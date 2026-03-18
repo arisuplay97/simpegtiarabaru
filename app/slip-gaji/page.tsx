@@ -149,7 +149,7 @@ export default function SlipGajiPage() {
                     <div>
                       <h2 className="text-xl font-bold">PDAM Tirta Ardhia Rinjani</h2>
                       <p className="text-sm text-primary-foreground/80">Jl. Merdeka No. 123, Jakarta Selatan 12430</p>
-                      <p className="text-sm text-primary-foreground/80">Telp: (021) 1234567 | info@pdamtirtaselaras.co.id</p>
+                      <p className="text-sm text-primary-foreground/80">Telp: (021) 1234567 | info@pdamtiara.co.id</p>
                     </div>
                   </div>
                   <Badge className="bg-white/20 text-white hover:bg-white/30">

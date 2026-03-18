@@ -203,64 +203,85 @@
 }
 
 @media print {
-  /* Sembunyikan sidebar, topbar, tombol, header halaman */
+  /* Sembunyikan elemen navigasi */
   aside,
   header,
   nav,
-  .no-print {
+  .no-print,
+  [data-sonner-toaster] {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  /* Hilangkan padding kiri karena sidebar disembunyikan */
+  /* Hapus padding kiri karena sidebar hidden */
   .pl-64 {
     padding-left: 0 !important;
   }
 
-  /* Sembunyikan header "Slip Gaji Digital" dan dropdown */
-  main > div:first-child {
-    display: none !important;
-  }
-
-  /* Sembunyikan tombol print/download/email */
+  /* Sembunyikan semua tombol */
   button {
     display: none !important;
   }
 
-  /* Sembunyikan toast notifikasi */
-  [data-sonner-toaster] {
+  /* Sembunyikan header halaman (judul + dropdown pilih pegawai/periode) */
+  main > div:first-child {
     display: none !important;
   }
 
-  /* Pastikan slip tampil penuh */
-  body {
+  /* Background putih */
+  body, html {
     background: white !important;
-    font-size: 9pt !important;
+    color: black !important;
+    font-size: 10pt !important;
   }
 
-  /* Shrink text for A5 Portrait */
-  .text-3xl { font-size: 16pt !important; }
-  .text-2xl { font-size: 13pt !important; }
-  .text-xl { font-size: 11pt !important; }
-  .text-lg { font-size: 10pt !important; }
-  .text-sm { font-size: 8.5pt !important; }
-  .text-xs { font-size: 7.5pt !important; }
-  
-  h1, h2, h3, h4 { margin-bottom: 0.2rem !important; }
-  .p-6 { padding: 0.75rem !important; }
-  .p-4 { padding: 0.5rem !important; }
+  /* Slip gaji tampil penuh tanpa card shadow */
+  .card-premium,
+  .shadow-xl,
+  .shadow-md,
+  .shadow-sm {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Max width penuh */
+  .max-w-4xl,
+  .max-w-3xl,
+  .max-w-2xl {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Ukuran teks proporsional */
+  .text-3xl { font-size: 18pt !important; }
+  .text-2xl { font-size: 14pt !important; }
+  .text-xl  { font-size: 12pt !important; }
+  .text-lg  { font-size: 11pt !important; }
+  .text-sm  { font-size: 9pt !important; }
+  .text-xs  { font-size: 8pt !important; }
+
+  /* Padding lebih kecil */
+  .p-6 { padding: 0.6rem !important; }
+  .p-4 { padding: 0.4rem !important; }
   .mb-6 { margin-bottom: 0.5rem !important; }
   .mt-6 { margin-top: 0.5rem !important; }
   .gap-6 { gap: 0.5rem !important; }
-  .gap-4 { gap: 0.35rem !important; }
-  .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.5rem !important; }
-  .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.35rem !important; }
 
-  /* Ensure card takes full width in portrait */
-  .max-w-4xl { max-width: 100% !important; }
-  .card-premium { border: none !important; box-shadow: none !important; }
+  /* Gradient background jadi solid untuk print */
+  .bg-gradient-to-r,
+  .bg-gradient-to-br {
+    background: oklch(0.35 0.12 250) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* QR code area tetap tampil */
+  .border-dashed {
+    border: 2px dashed #9ca3af !important;
+  }
 
   @page {
-    margin: 0.8cm;
-    size: A5 portrait;
+    margin: 1cm;
+    size: A4 portrait;
   }
 }

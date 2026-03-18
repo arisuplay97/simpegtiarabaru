@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import { format, addDays } from "date-fns"
+import { id } from "date-fns/locale"
 import {
   Plane,
   Clock,
@@ -69,7 +71,7 @@ const initialApprovalItems: ApprovalItem[] = [
     unit: "IT & Sistem",
     type: "cuti",
     title: "Pengajuan Cuti Tahunan",
-    date: "18-22 Mar 2026",
+    date: `${format(new Date(), "dd")}-${format(addDays(new Date(), 4), "dd MMM yyyy", { locale: id })}`,
     status: "urgent",
     slaHours: 4,
     description: "Cuti untuk keperluan keluarga",
@@ -83,7 +85,7 @@ const initialApprovalItems: ApprovalItem[] = [
     unit: "Keuangan",
     type: "lembur",
     title: "Pengajuan Lembur",
-    date: "15 Mar 2026",
+    date: format(new Date(), "dd MMM yyyy", { locale: id }),
     status: "pending",
     slaHours: 12,
     description: "Lembur closing laporan bulanan",
@@ -97,7 +99,7 @@ const initialApprovalItems: ApprovalItem[] = [
     unit: "Distribusi",
     type: "mutasi",
     title: "Usulan Mutasi",
-    date: "Efektif 1 Apr 2026",
+    date: `Efektif 1 ${format(addDays(new Date(), 30), "MMM yyyy", { locale: id })}`,
     status: "pending",
     slaHours: 48,
     description: "Mutasi ke Cabang Utara",
@@ -111,7 +113,7 @@ const initialApprovalItems: ApprovalItem[] = [
     unit: "Pelayanan",
     type: "pangkat",
     title: "Kenaikan Pangkat",
-    date: "Periode Q1 2026",
+    date: `Periode ${format(new Date(), "yyyy", { locale: id })} Q1`,
     status: "overdue",
     slaHours: 0,
     description: "C/I ke C/II",
@@ -125,7 +127,7 @@ const initialApprovalItems: ApprovalItem[] = [
     unit: "Produksi",
     type: "gaji",
     title: "Kenaikan Gaji Berkala",
-    date: "TMT 1 Apr 2026",
+    date: `TMT 1 ${format(addDays(new Date(), 30), "MMM yyyy", { locale: id })}`,
     status: "pending",
     slaHours: 24,
     description: "KGB masa kerja 2 tahun",

@@ -17,6 +17,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react"
+import { format } from "date-fns"
+import { id } from "date-fns/locale"
 
 interface KPICardProps {
   title: string
@@ -135,7 +137,7 @@ export function KPICards() {
     {
       title: "Payroll Bulan Ini",
       value: "Rp 4.2M",
-      subtitle: "Periode Maret 2026",
+      subtitle: `Periode ${format(new Date(), "MMMM yyyy", { locale: id })}`,
       icon: Wallet,
       variant: "primary" as const,
       trend: { value: 3.1, isPositive: false },

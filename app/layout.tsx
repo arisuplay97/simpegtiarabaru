@@ -14,8 +14,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'SIMPEG PDAM - Enterprise Human Capital Suite',
-  description: 'Sistem Informasi Manajemen Kepegawaian Enterprise untuk PDAM',
+  title: "SIMPEG - PDAM Tirta Ardhia Rinjani",
+  description: "Sistem Informasi Manajemen Kepegawaian PDAM Tirta Ardhia Rinjani",
 }
 
 export const viewport: Viewport = {

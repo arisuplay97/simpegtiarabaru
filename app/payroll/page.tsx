@@ -329,7 +329,7 @@ export default function PayrollPage() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Payroll Management</h1>
                 <p className="text-sm text-muted-foreground">
-                  Kelola penggajian pegawai PDAM Tirta Selaras Jaya
+                  Kelola penggajian pegawai PDAM Tirta Ardhia Rinjani
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">

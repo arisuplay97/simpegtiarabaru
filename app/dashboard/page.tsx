@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
+import { format } from "date-fns"
+import { id } from "date-fns/locale"
 import { KPICards } from "@/components/simpeg/dashboard/kpi-cards"
 import { AnalyticsCharts } from "@/components/simpeg/dashboard/analytics-charts"
 import { ApprovalPanel } from "@/components/simpeg/dashboard/approval-panel"
@@ -36,7 +38,7 @@ export default function DashboardPage() {
                 Selamat Datang, {session?.user?.name || 'User'}
               </h1>
               <p className="text-neutral-500 dark:text-neutral-400 mt-1">
-                Berikut adalah ringkasan operasional SDM hari ini.
+                Berikut adalah ringkasan operasional SDM hari ini — {format(new Date(), "EEEE, dd MMMM yyyy", { locale: id })}.
               </p>
             </div>
             <div className="flex gap-2">
