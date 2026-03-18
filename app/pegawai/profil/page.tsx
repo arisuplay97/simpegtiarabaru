@@ -162,12 +162,13 @@ export default function MyProfilePage() {
         setProfile({
           ...data,
           initials: data.nama ? data.nama.split(" ").map((n:any)=>n[0]).join("").slice(0,2).toUpperCase() : "AA",
-          name: data.nama,
-          nik: data.nik,
+          name: data.nama || "User",
+          nik: data.nik || "-",
           // Fallback fields for UI compatibility
-          noKTP: data.nik,
-          noBPJSKes: data.bpjsKesehatan,
-          noBPJSTK: data.bpjsKetenagakerjaan,
+          noKTP: data.nik || "-",
+          noBPJSKes: data.bpjsKesehatan || "-",
+          noBPJSTK: data.bpjsKetenagakerjaan || "-",
+          tanggalMasuk: data.tanggalMasuk ? new Date(data.tanggalMasuk).toLocaleDateString("id-ID") : "-",
         })
         setForm({ ...data })
       }
@@ -221,7 +222,7 @@ export default function MyProfilePage() {
     const content = `CURRICULUM VITAE\n================\nNama      : ${profile.name}\nNIK       : ${profile.nik}\nJabatan   : ${profile.jabatan}\nUnit Kerja: ${profile.unitKerja}\nGolongan  : ${profile.golongan} (${profile.pangkat})\nMasa Kerja: ${profile.masaKerja}\nPendidikan: ${profile.pendidikan}\nEmail     : ${profile.email}\nTelepon   : ${profile.telepon}\nAlamat    : ${profile.alamat}`.trim()
     const blob = new Blob([content], {type:"text/plain"})
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a"); a.href=url; a.download=`CV-${profile.name.replace(/\s+/g,"-")}.txt`; a.click()
+    const a = document.createElement("a"); a.href=url; a.download=`CV-${(profile.name || "Pegawai").replace(/\s+/g,"-")}.txt`; a.click()
     URL.revokeObjectURL(url)
     toast.success("CV berhasil didownload")
   }

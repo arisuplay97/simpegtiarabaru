@@ -133,9 +133,9 @@ export default function EmployeeListPage() {
         getEmployeeStats(),
         getBidang(),
       ])
-      setEmployees(emps as any[])
+      setEmployees(emps as any[] || [])
       setStats(s)
-      setBidangData(bid.length > 0 ? bid : fallbackBidang)
+      setBidangData(bid?.length ? bid : fallbackBidang)
     } catch (error) {
       toast.error("Gagal mengambil data dari database")
     } finally {
@@ -282,10 +282,16 @@ export default function EmployeeListPage() {
       pangkat: emp.pangkat,
       status: emp.status,
       sp: emp.sp,
-      tanggalMasuk: emp.tanggalMasuk ? new Date(emp.tanggalMasuk).toISOString().split("T")[0] : "",
+      tanggalMasuk: (() => {
+        try { return emp.tanggalMasuk ? new Date(emp.tanggalMasuk).toISOString().split("T")[0] : "" }
+        catch { return "" }
+      })(),
       jenisKelamin: emp.jenisKelamin,
       tempatLahir: emp.tempatLahir,
-      tanggalLahir: emp.tanggalLahir ? new Date(emp.tanggalLahir).toISOString().split("T")[0] : "",
+      tanggalLahir: (() => {
+        try { return emp.tanggalLahir ? new Date(emp.tanggalLahir).toISOString().split("T")[0] : "" }
+        catch { return "" }
+      })(),
       agama: emp.agama,
       statusNikah: emp.statusNikah,
       pendidikanTerakhir: emp.pendidikanTerakhir,

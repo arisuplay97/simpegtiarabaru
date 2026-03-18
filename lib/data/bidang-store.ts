@@ -109,13 +109,10 @@ export const getAtasanOtomatis = (
 
   switch (tipe) {
     case "staff":
-      // Atasan staff = kasubbid (atau kepala bidang jika tidak ada kasubbid)
-      return `Kasubbid ${bidang.nama}`
+      return `Kasubbid ${bidang.nama || "-"}`
     case "kasubbid":
-      // Atasan kasubbid = kepala bidang
-      return bidang.kepalaBidang || `Kepala Bidang ${bidang.nama}`
+      return bidang.kepalaBidang || `Kepala Bidang ${bidang.nama || "-"}`
     case "kepala_bidang":
-      // Atasan kepala bidang = direktur yang menaungi bidang tersebut
       return bidang.direkturAtasan || "Direktur Utama"
     default:
       return "-"
@@ -127,9 +124,9 @@ export const getJabatanOptions = (bidangId: string, bidangData: Bidang[] = bidan
   const bidang = bidangData.find(b => b.id === bidangId)
   if (!bidang) return []
   return [
-    { value: "kepala_bidang", label: `Kepala Bidang ${bidang.nama}` },
-    { value: "kasubbid",      label: `Kasubbid ${bidang.nama}` },
-    { value: "staff",         label: `Staff ${bidang.nama}` },
+    { value: "kepala_bidang", label: `Kepala Bidang ${bidang.nama || "-"}` },
+    { value: "kasubbid",      label: `Kasubbid ${bidang.nama || "-"}` },
+    { value: "staff",         label: `Staff ${bidang.nama || "-"}` },
   ]
 }
 

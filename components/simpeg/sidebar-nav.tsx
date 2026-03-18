@@ -202,8 +202,8 @@ export function SidebarNav() {
       {/* ===== USER INFO ===== */}
       {!collapsed && (
         <div className="border-b border-sidebar-border px-4 py-3">
-          <div className="text-sm font-semibold text-sidebar-foreground">{session?.user?.name ?? "Guest"}</div>
-          <div className="mt-1 text-xs text-sidebar-muted">{userRole ? roleLabels[userRole] : "Belum login"}</div>
+          <div className="text-sm font-semibold text-sidebar-foreground truncate">{session?.user?.name || "User"}</div>
+          <div className="mt-1 text-xs text-sidebar-muted">{userRole ? (roleLabels[userRole] || userRole) : "Belum login"}</div>
         </div>
       )}
 

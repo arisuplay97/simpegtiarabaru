@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useSession, signOut } from "next-auth/react"
@@ -177,9 +178,11 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              Profil Saya
+            <DropdownMenuItem asChild>
+              <Link href="/pegawai/profil" className="flex items-center w-full">
+                <User className="mr-2 h-4 w-4" />
+                Profil Saya
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />

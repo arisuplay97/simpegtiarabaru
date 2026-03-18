@@ -285,7 +285,7 @@ export default function EmployeeDetailPage() {
                         <AvatarImage src={employee.fotoUrl} className="object-cover" />
                       ) : null}
                       <AvatarFallback className="bg-primary/5 text-3xl text-primary">
-                        {employee.nama?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                        {(employee.nama || "P").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <label className="cursor-pointer">
@@ -301,9 +301,9 @@ export default function EmployeeDetailPage() {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="outline"
-                          className={statusConfig[employee.status.toLowerCase() as keyof typeof statusConfig]?.className || ""}
+                          className={statusConfig[(employee.status || "aktif").toLowerCase() as keyof typeof statusConfig]?.className || ""}
                         >
-                          {statusConfig[employee.status.toLowerCase() as keyof typeof statusConfig]?.label || employee.status}
+                          {statusConfig[(employee.status || "aktif").toLowerCase() as keyof typeof statusConfig]?.label || employee.status || "AKTIF"}
                         </Badge>
                         {employee.sp === "SP1" && <Badge variant="outline" className={spConfig.SP1.className}>SP-1</Badge>}
                         {employee.sp === "SP2" && <Badge variant="outline" className={spConfig.SP2.className}>SP-2</Badge>}
@@ -322,7 +322,7 @@ export default function EmployeeDetailPage() {
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4" />
-                        Masuk: {new Date(employee.tanggalMasuk).toLocaleDateString("id-ID")}
+                        Masuk: {employee.tanggalMasuk ? new Date(employee.tanggalMasuk).toLocaleDateString("id-ID") : "-"}
                       </span>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
@@ -500,7 +500,7 @@ export default function EmployeeDetailPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground">TMT Kerja</p>
-                        <p className="font-medium">{new Date(employee.tanggalMasuk).toLocaleDateString("id-ID")}</p>
+                        <p className="font-medium">{employee.tanggalMasuk ? new Date(employee.tanggalMasuk).toLocaleDateString("id-ID") : "-"}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Masa Kerja</p>
