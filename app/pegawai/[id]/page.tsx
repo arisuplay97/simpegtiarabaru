@@ -64,12 +64,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useParams } from "next/navigation"
+import { pegawaiData } from "@/lib/data/pegawai-store"
+
 const statusConfig = {
   aktif: { label: "Aktif", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  cuti: { label: "Cuti", className: "bg-blue-100 text-blue-700 border-blue-200" },
+  cuti: { label: "Cuti", className: "bg-amber-100 text-amber-700 border-amber-200" },
   "non-aktif": { label: "Non-Aktif", className: "bg-gray-100 text-gray-700 border-gray-200" },
-  pensiun: { label: "Pensiun", className: "bg-orange-100 text-orange-700 border-orange-200" },
+  pensiun: { label: "Pensiun", className: "bg-red-100 text-red-700 border-red-200" },
 }
+
+const spConfig = {
+  SP1: { label: "SP-1", className: "bg-gray-100 text-gray-600 border-gray-300" },
+  SP2: { label: "SP-2", className: "bg-amber-100 text-amber-700 border-amber-300" },
+  SP3: { label: "SP-3", className: "bg-red-100 text-red-700 border-red-300" },
+}
+
+// ... (other histories stay the same or could be made dynamic if needed)
 
 const familyMembers = [
   { nama: "Siti Aminah", hubungan: "Istri", tanggalLahir: "23 Mar 1987", pekerjaan: "Ibu Rumah Tangga", statusTanggungan: "Ya" },
@@ -144,43 +155,26 @@ const documents = [
 ]
 
 export default function EmployeeDetailPage() {
+  const params = useParams()
+  const id = params.id as string
   const [activeTab, setActiveTab] = useState("profil")
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Data pegawai sebagai state agar bisa diedit
+  // Find employee from store
+  const storeEmployee = pegawaiData.find(e => e.id === id) || pegawaiData[0]
+
+  // Convert store format to detail page format if different
   const [employee, setEmployee] = useState({
-    id: "1",
-    nik: "198501152010011001",
-    name: "Ahmad Rizki Pratama, S.Kom., M.T.",
-    avatar: undefined,
-    initials: "AR",
-    jabatan: "Kepala Bagian Teknologi Informasi",
-    unitKerja: "IT & Sistem",
-    status: "aktif" as const,
-    golongan: "C/III",
-    masaKerja: "16 tahun 2 bulan",
-    pendidikanTerakhir: "S2 - Teknik Informatika",
-    alamat: "Jl. Merdeka No. 123, RT 05/RW 02, Kel. Sukamaju, Kec. Cilandak, Jakarta Selatan 12430",
-    email: "ahmad.rizki@pdamtirtaselaras.co.id",
-    telepon: "081234567890",
-    jenisKelamin: "Laki-laki",
-    tempatLahir: "Bandung",
-    tanggalLahir: "15 Januari 1985",
-    usia: "41 tahun",
-    statusNikah: "Menikah",
-    agama: "Islam",
-    npwp: "12.345.678.9-012.345",
-    noKtp: "3201150115850001",
-    bank: "Bank Mandiri",
-    noRekening: "1234567890123",
-    bpjsKesehatan: "0001234567890",
-    bpjsKetenagakerjaan: "0001234567891",
-    tmt: "15 Januari 2010",
-    atasanLangsung: "Ir. Gunawan Wibowo, M.M.",
-    kontrakBerakhir: null as null | string,
-    foto: null,
-    sp: null as "sp1" | "sp2" | "sp3" | null,
+    ...storeEmployee,
+    name: storeEmployee.nama,
+    noKtp: storeEmployee.nik, // Using nik as kpt for demo consistency
+    pendidikanTerakhir: storeEmployee.pendidikan,
+    usia: "39 tahun", // Placeholder
+    atasanLangsung: "Ir. Joko Wibowo",
+    bpjsKesehatan: storeEmployee.bpjsKes,
+    bpjsKetenagakerjaan: storeEmployee.bpjsTK,
+    tmt: storeEmployee.tanggalMasuk,
   })
 
   // Form state — pre-filled dari data pegawai
@@ -242,9 +236,9 @@ export default function EmployeeDetailPage() {
                         >
                           {statusConfig[employee.status].label}
                         </Badge>
-                        {employee.sp === "sp1" && <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">SP-1</Badge>}
-                        {employee.sp === "sp2" && <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">SP-2</Badge>}
-                        {employee.sp === "sp3" && <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">SP-3</Badge>}
+                        {employee.sp === "SP1" && <Badge variant="outline" className={spConfig.SP1.className}>SP-1</Badge>}
+                        {employee.sp === "SP2" && <Badge variant="outline" className={spConfig.SP2.className}>SP-2</Badge>}
+                        {employee.sp === "SP3" && <Badge variant="outline" className={spConfig.SP3.className}>SP-3</Badge>}
                       </div>
                     </div>
                     <p className="mt-1 text-lg text-muted-foreground">{employee.jabatan}</p>
