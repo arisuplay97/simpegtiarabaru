@@ -161,7 +161,7 @@ export default function MyProfilePage() {
       if (data) {
         setProfile({
           ...data,
-          initials: data.initials || data.nama.split(" ").map((n:any)=>n[0]).join("").slice(0,2).toUpperCase(),
+          initials: data.nama ? data.nama.split(" ").map((n:any)=>n[0]).join("").slice(0,2).toUpperCase() : "AA",
           name: data.nama,
           nik: data.nik,
           // Fallback fields for UI compatibility
