@@ -552,8 +552,23 @@ export default function EmployeeListPage() {
           </div>
 
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[{label:"Total Pegawai",value:stats.total,icon:Users,bg:"bg-primary/10",color:"text-primary"},{label:"Aktif",value:stats.aktif,icon:UserCheck,bg:"bg-emerald-100",color:"text-emerald-600"},{label:"Sedang Cuti",value:stats.cuti,icon:Clock,bg:"bg-amber-100",color:"text-amber-600"},{label:"Non-Aktif/Pensiun",value:stats.nonAktif,icon:UserX,bg:"bg-red-100",color:"text-red-600"}].map(s=>(
-              <Card key={s.label} className="card-premium"><CardContent className="flex items-center gap-4 p-4"><div className={`flex h-12 w-12 items-center justify-center rounded-xl ${s.bg}`}><s.icon className={`h-6 w-6 ${s.color}`}/></div><div><p className="text-2xl font-bold">{s.value}</p><p className="text-xs text-muted-foreground">{s.label}</p></div></CardContent></Card>
+            {[
+              { label: "Total Pegawai", value: stats?.total || 0, icon: Users, bg: "bg-primary/10", color: "text-primary" },
+              { label: "Aktif", value: stats?.aktif || 0, icon: UserCheck, bg: "bg-emerald-100", color: "text-emerald-600" },
+              { label: "Sedang Cuti", value: stats?.cuti || 0, icon: Clock, bg: "bg-amber-100", color: "text-amber-600" },
+              { label: "Non-Aktif/Pensiun", value: stats?.nonAktif || 0, icon: UserX, bg: "bg-red-100", color: "text-red-600" }
+            ].map(s => (
+              <Card key={s.label} className="card-premium">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${s.bg}`}>
+                    <s.icon className={`h-6 w-6 ${s.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{s.value}</p>
+                    <p className="text-xs text-muted-foreground">{s.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
