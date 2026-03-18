@@ -116,7 +116,7 @@ export default function EmployeeListPage() {
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const emptyForm = { nik:"", nama:"", jabatan:"", unitKerja:"", golongan:"", pangkat:"", status:"aktif" as const, sp:null as Employee["sp"], masaKerja:"", email:"", telepon:"", jenisKelamin:"L" as "L"|"P", tanggalMasuk:"", tempatLahir:"", tanggalLahir:"", agama:"Islam", statusNikah:"Belum Menikah", alamat:"", noKTP:"", npwp:"", bank:"", noRekening:"", bpjsKes:"", bpjsTK:"", pendidikan:"" }
+  const emptyForm = { nik:"", nama:"", jabatan:"", unitKerja:"", golongan:"", pangkat:"", status:"aktif" as Employee["status"], sp:null as Employee["sp"], masaKerja:"", email:"", telepon:"", jenisKelamin:"L" as Employee["jenisKelamin"], tanggalMasuk:"", tempatLahir:"", tanggalLahir:"", agama:"Islam", statusNikah:"Belum Menikah", alamat:"", noKTP:"", npwp:"", bank:"", noRekening:"", bpjsKes:"", bpjsTK:"", pendidikan:"" }
   const [form, setForm] = useState(emptyForm)
   const [formErrors, setFormErrors] = useState<Record<string,string>>({})
 
