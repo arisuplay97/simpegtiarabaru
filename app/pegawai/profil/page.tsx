@@ -187,7 +187,7 @@ export default function MyProfilePage() {
       const formData = new FormData()
       formData.append("file", file)
       const url = await uploadAvatar(formData)
-      setForm(prev => ({ ...prev, avatar: url }))
+      setForm((prev: any) => ({ ...prev, avatar: url }))
       setPreviewUrl(url)
       toast.success("Foto profil berhasil diunggah")
     } catch (error) {
