@@ -1,6 +1,7 @@
 'use client'
 import { signIn } from "next-auth/react"
 import { useState } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -14,23 +15,35 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    await signIn("credentials", { 
+    const result = await signIn("credentials", { 
       email, 
       password, 
-      redirect: true,
-      callbackUrl: "/dashboard"
+      redirect: false,
     })
+    
+    if (result?.error) {
+      toast.error("Login gagal: Email atau password salah")
+    } else {
+      toast.success("Berhasil masuk")
+      window.location.href = "/dashboard"
+    }
     setIsLoading(false)
   }
 
   const quickLogin = async (role: string) => {
     setIsLoading(true)
-    await signIn("credentials", { 
+    const result = await signIn("credentials", { 
       email: `${role.toLowerCase()}@tiara.com`, 
       password: "123456", 
-      redirect: true,
-      callbackUrl: "/"
+      redirect: false,
     })
+
+    if (result?.error) {
+      toast.error("Gagal login demo")
+    } else {
+      toast.success(`Berhasil masuk sebagai ${role}`)
+      window.location.href = "/dashboard"
+    }
     setIsLoading(false)
   }
 
