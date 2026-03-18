@@ -63,6 +63,12 @@ import {
 import { getEmployees, getEmployeeStats, createEmployee } from "@/lib/actions/pegawai"
 import ExcelJS from "exceljs"
 
+const spConfig = {
+  SP1: { label: "SP-1", className: "bg-neutral-100 text-neutral-600 border-neutral-300" },
+  SP2: { label: "SP-2", className: "bg-amber-100 text-amber-700 border-amber-300" },
+  SP3: { label: "SP-3", className: "bg-red-100 text-red-700 border-red-300" },
+}
+
 export default function EmployeeListPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
@@ -80,7 +86,8 @@ export default function EmployeeListPage() {
     status: "aktif",
     tanggalMasuk: new Date().toISOString().split("T")[0],
     role: "PEGAWAI",
-    password: "123"
+    password: "123",
+    sp: null as "SP1" | "SP2" | "SP3" | null,
   })
 
   useEffect(() => {
@@ -209,6 +216,21 @@ export default function EmployeeListPage() {
                         <Input value={newEmployee.unitKerja} onChange={e => setNewEmployee({...newEmployee, unitKerja: e.target.value})} />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Surat Peringatan</Label>
+                      <Select
+                        value={newEmployee.sp ?? "none"}
+                        onValueChange={v => setNewEmployee({...newEmployee, sp: v === "none" ? null : v as any})}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Tidak Ada SP</SelectItem>
+                          <SelectItem value="SP1">SP-1 (Peringatan Pertama)</SelectItem>
+                          <SelectItem value="SP2">SP-2 (Peringatan Kedua)</SelectItem>
+                          <SelectItem value="SP3">SP-3 (Peringatan Ketiga)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
@@ -277,7 +299,17 @@ export default function EmployeeListPage() {
                           <AvatarFallback>{emp.nama.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{emp.nama}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{emp.nama}</p>
+                            {emp.sp && spConfig[emp.sp as keyof typeof spConfig] && (
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-1.5 py-0 ${spConfig[emp.sp as keyof typeof spConfig].className}`}
+                              >
+                                {spConfig[emp.sp as keyof typeof spConfig].label}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-neutral-500">{emp.email}</p>
                         </div>
                       </div>

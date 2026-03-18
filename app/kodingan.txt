@@ -1,193 +1,869 @@
-1. Update package.json (jalankan ini dulu)Ganti seluruh dependencies + tambah devDependencies:json
+# PROMPT PERBAIKAN SIMPEG TERBARU
+## 3 Perbaikan: Login Username, Badge SP, User Management Lengkap
 
-"dependencies": {
-  "@auth/prisma-adapter": "^2.7.4",
-  "@hookform/resolvers": "^3.9.1",
-  "@prisma/client": "^6.5.0",
-  "@radix-ui/*": "sudah ada semua",
-  "authjs": "next-auth@^5.0.0-beta.25",
-  "bcryptjs": "^3.0.0",
-  "date-fns": "^4.1.0",
-  "exceljs": "^4.4.0",
-  "jspdf": "^3.0.1",
-  "lucide-react": "^0.564.0",
-  "next": "15.5.13",
-  "next-themes": "^0.4.6",
-  "prisma": "^6.5.0",
-  "react-hook-form": "^7.54.1",
-  "recharts": "2.15.0",
-  "sonner": "^1.7.1",
-  "zod": "^3.24.1"
-},
-"devDependencies": {
-  "prisma": "^6.5.0"
-}
+Jangan ubah desain/warna. Jangan ubah sistem auth (NextAuth + Prisma). Ikuti instruksi per file.
 
-Jalankan:bash
+---
 
-pnpm install
-npx prisma generate
+## PERBAIKAN 1: `lib/auth.ts` — Dukung Login via Username
 
-2. Buat folder prisma/schema.prisma (FULL SCHEMA SEMUA MODUL)prisma
+Ubah credentials dari email menjadi username. Ganti seluruh isi file:
 
-generator client { provider = "prisma-client-js" }
-
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
-
-model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String
-  role        Role     @default(PEGAWAI)
-  pegawai     Pegawai?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Pegawai {
-  id              String    @id @default(cuid())
-  nip             String    @unique
-  nama            String
-  email           String    @unique
-  jabatan         String
-  golongan        String
-  pangkat         String
-  unitKerja       String
-  status          String    @default("Aktif")
-  tanggalMasuk    DateTime
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id])
-  absensi         Absensi[]
-  cuti            Cuti[]
-  payroll         Payroll[]
-  kpi             KPI[]
-  mutasi          Mutasi[]
-  slipGaji        SlipGaji[]
-  // tambah semua relasi lain
-}
-
-model Absensi { id String @id @default(cuid()) pegawaiId String tanggal DateTime status StatusAbsensi jamMasuk DateTime? jamKeluar DateTime? pegawai Pegawai @relation(fields: [pegawaiId], references: [id]) }
-model Cuti { id String @id @default(cuid()) pegawaiId String tanggalMulai DateTime tanggalSelesai DateTime jenisCuti String status StatusCuti alasan String pegawai Pegawai @relation(fields: [pegawaiId], references: [id]) }
-model Payroll { id String @id @default(cuid()) pegawaiId String bulan DateTime gajiPokok Decimal tunjangan Decimal potongan Decimal total Decimal pegawai Pegawai @relation(fields: [pegawaiId], references: [id]) }
-// ... (KPI, Mutasi, SlipGaji, Lembur, BPJS, THR, SP, dll — aku kasih full di repo nanti)
-
-enum Role { SUPERADMIN HRD DIREKSI PEGAWAI }
-enum StatusAbsensi { HADIR TERLAMBAT ALPA CUTI SAKIT }
-enum StatusCuti { PENDING APPROVED REJECTED }
-
-Jalankan:bash
-
-npx prisma db push
-npx prisma studio
-
-3. Buat lib/prisma.tsts
-
-import { PrismaClient } from '@prisma/client'
-export const prisma = new PrismaClient()
-
-4. Buat lib/auth.ts (Full Auth.js v5 + Role)ts
-
+```ts
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 
+// Demo users dengan username (bukan email)
+const demoUsers: Record<string, any> = {
+  "superadmin": { id: "demo-1", name: "Dwiky Firmansyah", email: "superadmin@tiara.com", username: "superadmin", role: "SUPERADMIN", jabatan: "Super Admin HRIS", unitKerja: "IT & Sistem" },
+  "hrd":        { id: "demo-2", name: "Fitri Handayani",  email: "hrd@tiara.com",        username: "hrd",        role: "HRD",        jabatan: "Staff HRD",        unitKerja: "SDM & Umum" },
+  "direktur":   { id: "demo-3", name: "Ir. Gunawan Wibowo", email: "direktur@tiara.com", username: "direktur",   role: "DIREKSI",    jabatan: "Direktur Utama",   unitKerja: "Direksi" },
+  "pegawai":    { id: "demo-4", name: "Ahmad Rizki Pratama", email: "pegawai@tiara.com", username: "pegawai",    role: "PEGAWAI",    jabatan: "Kepala Bagian IT", unitKerja: "IT & Sistem" },
+}
+
+const demoPasswords: Record<string, string> = {
+  "superadmin": "admin123",
+  "hrd":        "hrd123",
+  "direktur":   "direktur123",
+  "pegawai":    "pegawai123",
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  providers: [Credentials({
-    credentials: { email: {}, password: {} },
-    async authorize(cred) {
-      const user = await prisma.user.findUnique({ where: { email: cred.email as string }})
-      if (!user || !bcrypt.compareSync(cred.password as string, user.password)) return null
-      return { id: user.id, email: user.email, role: user.role }
-    }
-  })],
+  providers: [
+    Credentials({
+      credentials: {
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) return null
+
+        const username = (credentials.username as string).toLowerCase().trim()
+        const password = credentials.password as string
+
+        // Coba cari di database dulu (by email atau field username jika ada)
+        try {
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: { contains: username } },
+              ]
+            }
+          })
+          if (user && user.password && bcrypt.compareSync(password, user.password)) {
+            return { id: user.id, email: user.email, role: user.role, name: user.email }
+          }
+        } catch (error) {
+          console.error("Database connection failed, using demo fallback")
+        }
+
+        // Demo fallback via username
+        if (demoUsers[username] && demoPasswords[username] === password) {
+          return demoUsers[username]
+        }
+
+        return null
+      }
+    })
+  ],
   callbacks: {
-    jwt: ({ token, user }) => user ? { ...token, role: user.role } : token,
-    session: ({ session, token }) => ({ ...session, user: { ...session.user, role: token.role as string }})
-  }
+    jwt: ({ token, user }) => {
+      if (user) {
+        token.role = (user as any).role
+        token.jabatan = (user as any).jabatan
+        token.unitKerja = (user as any).unitKerja
+        token.username = (user as any).username
+      }
+      return token
+    },
+    session: ({ session, token }) => {
+      if (session.user) {
+        (session.user as any).role = token.role
+        ;(session.user as any).jabatan = token.jabatan
+        ;(session.user as any).unitKerja = token.unitKerja
+        ;(session.user as any).username = token.username
+      }
+      return session
+    }
+  },
+  session: { strategy: "jwt" },
+  trustHost: true,
+  pages: { signIn: "/login" }
 })
+```
 
-5. Fix components/auth/auth-provider.tsx & guard.tsx (sudah ada, replace dengan ini)auth-provider.tsx (lengkap):tsx
+---
 
-'use client'
-import { SessionProvider } from "next-auth/react"
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>
-}
+## PERBAIKAN 2: `app/login/page.tsx` — Ganti Email → Username
 
-guard.tsx (role-based):tsx
+Ganti seluruh isi file:
 
-'use client'
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-
-export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (status === "loading") return
-    if (!session) router.push("/login")
-  }, [session, status, router])
-
-  if (status === "loading") return <div>Loading...</div>
-  if (!session) return null
-
-  return <>{children}</>
-}
-
-6. app/login/page.tsx (Full + Quick Demo Login)tsx
-
+```tsx
 'use client'
 import { signIn } from "next-auth/react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Eye, EyeOff, Loader2, User, Lock } from "lucide-react"
+
+const demoAccounts = [
+  { username: "superadmin", password: "admin123", label: "Super Admin",  color: "bg-purple-100 text-purple-700" },
+  { username: "hrd",        password: "hrd123",   label: "HRD / Admin",  color: "bg-blue-100 text-blue-700" },
+  { username: "direktur",   password: "direktur123", label: "Direktur",  color: "bg-amber-100 text-amber-700" },
+  { username: "pegawai",    password: "pegawai123",  label: "Pegawai",   color: "bg-emerald-100 text-emerald-700" },
+]
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const router = useRouter()
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const quickLogin = async (role: string) => {
-    await signIn("credentials", { 
-      email: `${role.toLowerCase()}@tiara.com`, 
-      password: "123456", 
-      redirect: true 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+    const result = await signIn("credentials", {
+      username: username.toLowerCase().trim(),
+      password,
+      redirect: false,
     })
+    if (result?.error) {
+      setError("Username atau password salah")
+    } else {
+      toast.success("Berhasil masuk")
+      router.push("/")
+      router.refresh()
+    }
+    setIsLoading(false)
+  }
+
+  const quickLogin = async (u: string, p: string) => {
+    setIsLoading(true)
+    setError("")
+    const result = await signIn("credentials", {
+      username: u,
+      password: p,
+      redirect: false,
+    })
+    if (result?.error) {
+      setError("Login gagal")
+      setIsLoading(false)
+    } else {
+      toast.success(`Login berhasil`)
+      router.push("/")
+      router.refresh()
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 to-black">
-      <Card className="w-full max-w-md p-8">
-        <h1 className="text-3xl font-bold text-center mb-8">SIMPEG Tiara</h1>
-        {/* Form login normal */}
-        <div className="space-y-4">
-          <Button onClick={() => quickLogin("superadmin")} className="w-full">Quick Login Superadmin</Button>
-          <Button onClick={() => quickLogin("hrd")} variant="outline" className="w-full">Quick Login HRD</Button>
-          <Button onClick={() => quickLogin("direksi")} variant="outline" className="w-full">Quick Login Direksi</Button>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 to-black p-4">
+      <Card className="w-full max-w-md p-8 shadow-2xl bg-white/10 backdrop-blur-md border-white/20 text-white">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-extrabold tracking-tight mb-2">SIMPEG Tiara</h1>
+          <p className="text-blue-200">Sistem Informasi Manajemen Kepegawaian</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-blue-100">Username</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <Input
+                id="username"
+                type="text"
+                placeholder="Masukkan username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500"
+                required
+                autoComplete="username"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-blue-100">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Masukkan password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500"
+                required
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <p className="rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-2 text-sm text-red-300">
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
+          >
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memuat...</> : "Masuk ke Sistem"}
+          </Button>
+        </form>
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-white/10"></span>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-transparent px-2 text-blue-300">— Login Cepat Demo —</span>
+          </div>
+        </div>
+
+        {/* Quick Login */}
+        <div className="grid grid-cols-2 gap-2">
+          {demoAccounts.map(acc => (
+            <button
+              key={acc.username}
+              onClick={() => quickLogin(acc.username, acc.password)}
+              disabled={isLoading}
+              className="flex flex-col items-start rounded-lg border border-white/10 p-3 text-left hover:bg-white/10 transition-colors disabled:opacity-50"
+            >
+              <div className="flex w-full items-center justify-between">
+                <span className="text-sm font-medium text-white">{acc.username}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${acc.color}`}>
+                  {acc.label}
+                </span>
+              </div>
+              <span className="mt-0.5 text-xs text-white/40">{acc.password}</span>
+            </button>
+          ))}
         </div>
       </Card>
     </div>
   )
 }
+```
 
-7. app/dashboard/page.tsx (Full dengan Recharts + Role Card)tsx
+---
 
-// Full dashboard dengan grafik KPI, statistik pegawai, pending approval — copy dari pola enterprise
-// (kode 150+ baris, aku kasih full di commit nanti — langsung replace)
+## PERBAIKAN 3: `app/pegawai/page.tsx` — Tambah Badge SP
 
-8. app/pegawai/page.tsx (Full TanStack Table + CRUD + Export Excel)tsx
+### 3a. Tambah field `sp` di state `newEmployee`
+Cari:
+```ts
+const [newEmployee, setNewEmployee] = useState({
+  nama: "",
+  nik: "",
+  ...
+  password: "123"
+})
+```
+Tambahkan field `sp` di dalamnya:
+```ts
+sp: null as "SP1" | "SP2" | "SP3" | null,
+```
 
-// Sudah ada folder → replace total dengan versi production (search, filter, modal edit, export Excel menggunakan exceljs)
+### 3b. Tambah config SP setelah import
+```tsx
+const spConfig = {
+  SP1: { label: "SP-1", className: "bg-gray-100 text-gray-600 border-gray-300" },
+  SP2: { label: "SP-2", className: "bg-amber-100 text-amber-700 border-amber-300" },
+  SP3: { label: "SP-3", className: "bg-red-100 text-red-700 border-red-300" },
+}
+```
 
-9. Template untuk SEMUA MODULE LAIN (absensi, cuti, payroll, kpi, mutasi, dll)Buat di setiap folder app/absensi/page.tsx, app/cuti/page.tsx, dst:Pola Reusable (copy-paste, ganti nama model saja):tsx
+### 3c. Di tabel, ganti tampilan nama pegawai
+Cari:
+```tsx
+<div>
+  <p className="font-medium">{emp.nama}</p>
+  <p className="text-xs text-neutral-500">{emp.email}</p>
+</div>
+```
+Ganti dengan:
+```tsx
+<div>
+  <div className="flex items-center gap-2">
+    <p className="font-medium">{emp.nama}</p>
+    {emp.sp && spConfig[emp.sp as keyof typeof spConfig] && (
+      <Badge
+        variant="outline"
+        className={`text-[10px] px-1.5 py-0 ${spConfig[emp.sp as keyof typeof spConfig].className}`}
+      >
+        {spConfig[emp.sp as keyof typeof spConfig].label}
+      </Badge>
+    )}
+  </div>
+  <p className="text-xs text-neutral-500">{emp.email}</p>
+</div>
+```
 
-'use client'
-import { useEffect, useState } from "react"
-import { prisma } from "@/lib/prisma" // server action
-// ... TanStack Table + Server Action CRUD + Export Excel
+### 3d. Tambah Select SP di form Dialog Tambah Pegawai
+Di dalam `<div className="grid gap-4 py-4">`, tambahkan setelah field Unit Kerja:
+```tsx
+<div className="space-y-2">
+  <Label>Surat Peringatan</Label>
+  <Select
+    value={newEmployee.sp ?? "none"}
+    onValueChange={v => setNewEmployee({...newEmployee, sp: v === "none" ? null : v as any})}
+  >
+    <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
+    <SelectContent>
+      <SelectItem value="none">Tidak Ada SP</SelectItem>
+      <SelectItem value="SP1">SP-1 (Peringatan Pertama)</SelectItem>
+      <SelectItem value="SP2">SP-2 (Peringatan Kedua)</SelectItem>
+      <SelectItem value="SP3">SP-3 (Peringatan Ketiga)</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+```
 
+---
+
+## PERBAIKAN 4: `app/settings/users/page.tsx` — Isi Data Dummy + Lengkapi Fitur
+
+Ganti seluruh isi file:
+
+```tsx
+"use client"
+
+import React, { useState } from "react"
+import { SidebarNav } from "@/components/simpeg/sidebar-nav"
+import { TopBar } from "@/components/simpeg/top-bar"
+import { useSession } from "next-auth/react"
+import { hasPermission, roleLabels } from "@/lib/auth/permissions"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog, DialogContent, DialogFooter,
+  DialogHeader, DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Select, SelectContent, SelectItem,
+  SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import {
+  Table, TableBody, TableCell,
+  TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
+import {
+  Search, Plus, Edit, Trash2, Key,
+  Users, Shield, UserCheck, Loader2,
+  Eye, EyeOff,
+} from "lucide-react"
+import { toast } from "sonner"
+
+// ============ DATA DUMMY ============
+interface SystemUser {
+  id: string
+  name: string
+  username: string
+  email: string
+  password: string
+  nik: string
+  role: string
+  unitKerja: string
+  jabatan: string
+  status: "active" | "inactive"
+  createdAt: string
+}
+
+const initialUsers: SystemUser[] = [
+  { id: "1", name: "Dwiky Firmansyah",     username: "superadmin", email: "superadmin@tiara.com", password: "admin123",     nik: "3201010101900001", role: "SUPERADMIN", unitKerja: "IT & Sistem", jabatan: "Super Admin HRIS",      status: "active", createdAt: "01 Jan 2026" },
+  { id: "2", name: "Fitri Handayani",      username: "hrd",        email: "hrd@tiara.com",        password: "hrd123",       nik: "3201010101930002", role: "HRD",        unitKerja: "SDM & Umum",  jabatan: "Staff HRD",              status: "active", createdAt: "01 Jan 2026" },
+  { id: "3", name: "Ir. Gunawan Wibowo",   username: "direktur",   email: "direktur@tiara.com",   password: "direktur123",  nik: "3201010101750003", role: "DIREKSI",    unitKerja: "Direksi",     jabatan: "Direktur Utama",         status: "active", createdAt: "01 Jan 2026" },
+  { id: "4", name: "Ahmad Rizki Pratama",  username: "pegawai",    email: "pegawai@tiara.com",    password: "pegawai123",   nik: "3201150115850001", role: "PEGAWAI",    unitKerja: "IT & Sistem", jabatan: "Kepala Bagian IT",        status: "active", createdAt: "01 Jan 2026" },
+]
+
+const roleBadgeClass: Record<string, string> = {
+  SUPERADMIN: "bg-purple-100 text-purple-700 border-purple-200",
+  HRD:        "bg-blue-100 text-blue-700 border-blue-200",
+  DIREKSI:    "bg-amber-100 text-amber-700 border-amber-200",
+  PEGAWAI:    "bg-emerald-100 text-emerald-700 border-emerald-200",
+}
+
+// ============ KOMPONEN UTAMA ============
+export default function UserManagementPage() {
+  const { data: session } = useSession()
+  const user = session?.user as any
+
+  const [users, setUsers] = useState<SystemUser[]>(initialUsers)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [showDialog, setShowDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [editingUser, setEditingUser] = useState<SystemUser | null>(null)
+  const [deletingUser, setDeletingUser] = useState<SystemUser | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Form state
+  const [form, setForm] = useState({
+    name: "", username: "", email: "", password: "",
+    nik: "", role: "PEGAWAI", unitKerja: "", jabatan: "",
+    status: "active" as "active" | "inactive",
+  })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  if (!hasPermission(user?.role, "users.view")) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <SidebarNav />
+        <div className="flex flex-1 flex-col pl-64">
+          <TopBar breadcrumb={["Pengaturan", "Manajemen User"]} />
+          <main className="flex flex-1 items-center justify-center">
+            <p className="text-muted-foreground">Anda tidak memiliki akses ke halaman ini.</p>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  // ---- Filter ----
+  const filtered = users.filter(u => {
+    const matchSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchRole = roleFilter === "all" || u.role === roleFilter
+    return matchSearch && matchRole
+  })
+
+  // ---- Buka dialog tambah ----
+  const handleOpenAdd = () => {
+    setEditingUser(null)
+    setForm({ name: "", username: "", email: "", password: "", nik: "", role: "PEGAWAI", unitKerja: "", jabatan: "", status: "active" })
+    setFormErrors({})
+    setShowPassword(false)
+    setShowDialog(true)
+  }
+
+  // ---- Buka dialog edit ----
+  const handleOpenEdit = (u: SystemUser) => {
+    setEditingUser(u)
+    setForm({ name: u.name, username: u.username, email: u.email, password: "", nik: u.nik, role: u.role, unitKerja: u.unitKerja, jabatan: u.jabatan, status: u.status })
+    setFormErrors({})
+    setShowPassword(false)
+    setShowDialog(true)
+  }
+
+  // ---- Validasi ----
+  const validate = () => {
+    const errors: Record<string, string> = {}
+    if (!form.name.trim()) errors.name = "Nama wajib diisi"
+    if (!form.username.trim()) errors.username = "Username wajib diisi"
+    if (!form.email.includes("@")) errors.email = "Format email tidak valid"
+    if (!editingUser && form.password.length < 6) errors.password = "Password minimal 6 karakter"
+    if (editingUser && form.password && form.password.length < 6) errors.password = "Password minimal 6 karakter"
+    if (!form.unitKerja.trim()) errors.unitKerja = "Unit kerja wajib diisi"
+    if (!form.jabatan.trim()) errors.jabatan = "Jabatan wajib diisi"
+    // Cek username duplikat
+    const dupUsername = users.find(u => u.username === form.username && u.id !== editingUser?.id)
+    if (dupUsername) errors.username = "Username sudah digunakan"
+    // Cek email duplikat
+    const dupEmail = users.find(u => u.email === form.email && u.id !== editingUser?.id)
+    if (dupEmail) errors.email = "Email sudah digunakan"
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // ---- Simpan ----
+  const handleSave = async () => {
+    if (!validate()) return
+    setIsLoading(true)
+    await new Promise(r => setTimeout(r, 700))
+
+    if (editingUser) {
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? {
+        ...u,
+        name: form.name,
+        username: form.username,
+        email: form.email,
+        password: form.password || u.password,
+        nik: form.nik,
+        role: form.role,
+        unitKerja: form.unitKerja,
+        jabatan: form.jabatan,
+        status: form.status,
+      } : u))
+      toast.success(`Data ${form.name} berhasil diperbarui`)
+    } else {
+      const newUser: SystemUser = {
+        id: String(Date.now()),
+        name: form.name,
+        username: form.username,
+        email: form.email,
+        password: form.password,
+        nik: form.nik,
+        role: form.role,
+        unitKerja: form.unitKerja,
+        jabatan: form.jabatan,
+        status: form.status,
+        createdAt: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+      }
+      setUsers(prev => [newUser, ...prev])
+      toast.success(`User ${form.name} berhasil ditambahkan`)
+    }
+
+    setShowDialog(false)
+    setIsLoading(false)
+  }
+
+  // ---- Reset Password ----
+  const handleResetPassword = (u: SystemUser) => {
+    const newPass = "password123"
+    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, password: newPass } : x))
+    toast.success(`Password ${u.name} direset → ${newPass}`)
+  }
+
+  // ---- Toggle Status ----
+  const handleToggleStatus = (u: SystemUser) => {
+    const newStatus = u.status === "active" ? "inactive" : "active"
+    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, status: newStatus } : x))
+    toast.success(`${u.name} → ${newStatus === "active" ? "Aktif" : "Non-aktif"}`)
+  }
+
+  // ---- Hapus ----
+  const handleDelete = async () => {
+    if (!deletingUser) return
+    setIsLoading(true)
+    await new Promise(r => setTimeout(r, 500))
+    setUsers(prev => prev.filter(u => u.id !== deletingUser.id))
+    setShowDeleteDialog(false)
+    setDeletingUser(null)
+    setIsLoading(false)
+    toast.success(`User ${deletingUser.name} berhasil dihapus`)
+  }
+
+  return (
+    <div className="flex min-h-screen bg-background">
+      <SidebarNav />
+      <div className="flex flex-1 flex-col pl-64">
+        <TopBar breadcrumb={["Pengaturan", "Manajemen User"]} />
+        <main className="flex-1 overflow-auto p-6">
+
+          {/* Header */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Manajemen User</h1>
+              <p className="text-sm text-muted-foreground">Kelola akun, username, password, role, dan status user</p>
+            </div>
+            {hasPermission(user?.role, "users.manage") && (
+              <Button size="sm" className="gap-2" onClick={handleOpenAdd}>
+                <Plus className="h-4 w-4" /> Tambah User
+              </Button>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: "Total User",  value: users.length,                                     icon: Users,      bg: "bg-primary/10",    color: "text-primary" },
+              { label: "Super Admin", value: users.filter(u => u.role === "SUPERADMIN").length, icon: Shield,     bg: "bg-purple-100",    color: "text-purple-600" },
+              { label: "HRD",         value: users.filter(u => u.role === "HRD").length,        icon: UserCheck,  bg: "bg-blue-100",      color: "text-blue-600" },
+              { label: "Aktif",       value: users.filter(u => u.status === "active").length,   icon: UserCheck,  bg: "bg-emerald-100",   color: "text-emerald-600" },
+            ].map(s => (
+              <Card key={s.label} className="card-premium">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${s.bg}`}>
+                    <s.icon className={`h-6 w-6 ${s.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{s.value}</p>
+                    <p className="text-xs text-muted-foreground">{s.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Filter */}
+          <Card className="card-premium mb-4">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Cari nama, username, atau email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+                </div>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="Filter Role" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Role</SelectItem>
+                    <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
+                    <SelectItem value="HRD">HRD</SelectItem>
+                    <SelectItem value="DIREKSI">Direksi</SelectItem>
+                    <SelectItem value="PEGAWAI">Pegawai</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tabel */}
+          <Card className="card-premium">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-[220px]">User</TableHead>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Unit / Jabatan</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead>Dibuat</TableHead>
+                      <TableHead className="text-center">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-12 text-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <Users className="h-8 w-8 text-muted-foreground/50" />
+                            <p className="text-muted-foreground">Tidak ada user ditemukan</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : filtered.map(u => (
+                      <TableRow key={u.id} className="hover:bg-muted/30">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                                {u.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-sm">{u.name}</p>
+                              <p className="text-xs text-muted-foreground">{u.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{u.username}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={roleBadgeClass[u.role]}>
+                            {roleLabels[u.role] ?? u.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm">{u.unitKerja}</p>
+                          <p className="text-xs text-muted-foreground">{u.jabatan}</p>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className={u.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}
+                          >
+                            {u.status === "active" ? "Aktif" : "Non-aktif"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{u.createdAt}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            {hasPermission(user?.role, "users.manage") && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEdit(u)} title="Edit">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50" onClick={() => handleResetPassword(u)} title="Reset Password">
+                                  <Key className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => handleToggleStatus(u)} title="Toggle Status">
+                                  <UserCheck className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => { setDeletingUser(u); setShowDeleteDialog(true) }} title="Hapus">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+
+      {/* ===== DIALOG TAMBAH / EDIT ===== */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingUser ? `Edit User — ${editingUser.name}` : "Tambah User Baru"}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Nama Lengkap</Label>
+              <Input className="mt-1" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Nama lengkap" />
+              {formErrors.name && <p className="mt-1 text-xs text-destructive">{formErrors.name}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Username</Label>
+                <Input className="mt-1 font-mono" value={form.username} onChange={e => setForm({...form, username: e.target.value.toLowerCase()})} placeholder="username" />
+                {formErrors.username && <p className="mt-1 text-xs text-destructive">{formErrors.username}</p>}
+              </div>
+              <div>
+                <Label>
+                  Password {editingUser && <span className="text-muted-foreground font-normal text-xs">(kosong = tidak ganti)</span>}
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={e => setForm({...form, password: e.target.value})}
+                    placeholder={editingUser ? "Kosongkan jika tidak ganti" : "Min. 6 karakter"}
+                    className="pr-10"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {formErrors.password && <p className="mt-1 text-xs text-destructive">{formErrors.password}</p>}
+              </div>
+            </div>
+
+            <div>
+              <Label>Email</Label>
+              <Input className="mt-1" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@tiara.com" />
+              {formErrors.email && <p className="mt-1 text-xs text-destructive">{formErrors.email}</p>}
+            </div>
+
+            <div>
+              <Label>NIK</Label>
+              <Input className="mt-1 font-mono" value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="16 digit NIK" maxLength={16} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Role</Label>
+                <Select value={form.role} onValueChange={v => setForm({...form, role: v})}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
+                    <SelectItem value="HRD">HRD</SelectItem>
+                    <SelectItem value="DIREKSI">Direksi</SelectItem>
+                    <SelectItem value="PEGAWAI">Pegawai</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({...form, status: v as any})}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktif</SelectItem>
+                    <SelectItem value="inactive">Non-aktif</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Unit Kerja</Label>
+                <Select value={form.unitKerja} onValueChange={v => setForm({...form, unitKerja: v})}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih unit" /></SelectTrigger>
+                  <SelectContent>
+                    {["IT & Sistem","Keuangan","Distribusi","Pelayanan","Produksi","SDM & Umum","Direksi"].map(u => (
+                      <SelectItem key={u} value={u}>{u}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.unitKerja && <p className="mt-1 text-xs text-destructive">{formErrors.unitKerja}</p>}
+              </div>
+              <div>
+                <Label>Jabatan</Label>
+                <Input className="mt-1" value={form.jabatan} onChange={e => setForm({...form, jabatan: e.target.value})} placeholder="Nama jabatan" />
+                {formErrors.jabatan && <p className="mt-1 text-xs text-destructive">{formErrors.jabatan}</p>}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>Batal</Button>
+            <Button onClick={handleSave} disabled={isLoading}>
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : editingUser ? "Simpan Perubahan" : "Tambah User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== DIALOG HAPUS ===== */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Yakin ingin menghapus user <strong>{deletingUser?.name}</strong> ({deletingUser?.username})? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menghapus...</> : "Ya, Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
+```
+
+---
+
+## AKUN LOGIN SETELAH PERBAIKAN
+
+| Username | Password | Role |
+|----------|----------|------|
+| superadmin | admin123 | Super Admin |
+| hrd | hrd123 | HRD |
+| direktur | direktur123 | Direksi |
+| pegawai | pegawai123 | Pegawai |
+
+---
+
+## CATATAN PENTING
+
+- Jangan ubah NextAuth, Prisma schema, atau `components/auth/`
+- Jangan ubah `app/absensi/koreksi/page.tsx`
+- `lib/auth.ts` tetap support database (Prisma) sebagai prioritas, username/demo sebagai fallback
+- Untuk login via database: email user di DB harus mengandung username (misal `superadmin@tiara.com`)

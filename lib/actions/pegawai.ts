@@ -47,6 +47,7 @@ export async function createEmployee(data: any) {
       pangkat: data.pangkat || '-',
       unitKerja: data.unitKerja,
       status: data.status,
+      sp: data.sp,
       tanggalMasuk: new Date(data.tanggalMasuk),
       user: {
         create: {
