@@ -1129,10 +1129,10 @@ export default function EmployeeDetailPage() {
             {/* SP Status */}
             <div>
               <Label>Surat Peringatan (SP)</Label>
-              <Select value={formData.sp || ""} onValueChange={v => handleChange("sp", v === "" ? null : v)}>
+              <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Tidak ada SP" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tidak Ada SP</SelectItem>
+                  <SelectItem value="NONE">Tidak Ada SP</SelectItem>
                   <SelectItem value="SP1">SP-1 (Peringatan Pertama)</SelectItem>
                   <SelectItem value="SP2">SP-2 (Peringatan Kedua)</SelectItem>
                   <SelectItem value="SP3">SP-3 (Peringatan Ketiga)</SelectItem>

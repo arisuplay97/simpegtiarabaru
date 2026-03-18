@@ -427,10 +427,13 @@ export default function EmployeeListPage() {
             <Input type="date" value={form.tanggalMasuk} onChange={e => setForm({...form, tanggalMasuk: e.target.value})} />
           </F>
           <F label="SP (Jika Ada)">
-            <Select value={form.sp || ""} onValueChange={v => setForm({...form, sp: v === "" ? null : v})}>
+            <Select 
+              value={form.sp ?? "NONE"} 
+              onValueChange={v => setForm({...form, sp: v === "NONE" ? null : v})}
+            >
               <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tidak Ada</SelectItem>
+                <SelectItem value="NONE">Tidak Ada</SelectItem>
                 <SelectItem value="SP1">SP 1</SelectItem>
                 <SelectItem value="SP2">SP 2</SelectItem>
                 <SelectItem value="SP3">SP 3</SelectItem>
