@@ -170,10 +170,15 @@ export default function EmployeeListPage() {
   useEffect(() => { setCurrentPage(1) }, [searchQuery, statusFilter, unitFilter])
 
   const filtered = employees.filter(emp => {
-    const matchSearch = emp.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      emp.nik.includes(searchQuery) || 
-                      emp.jabatan.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchStatus = statusFilter === "all" || emp.status === statusFilter
+    const nama = emp.nama || ""
+    const nik = emp.nik || ""
+    const jabatan = emp.jabatan || ""
+    const status = emp.status || ""
+    
+    const matchSearch = nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      nik.includes(searchQuery) || 
+                      jabatan.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchStatus = statusFilter === "all" || status === statusFilter
     const matchUnit = unitFilter === "all" || emp.bidangId === unitFilter
     return matchSearch && matchStatus && matchUnit
   })
@@ -608,7 +613,7 @@ export default function EmployeeListPage() {
                               <AvatarImage src={emp.fotoUrl} className="object-cover" />
                             ) : null}
                             <AvatarFallback className="bg-primary/10 text-sm text-primary">
-                              {emp.nama.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}
+                              {(emp.nama || "P").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -630,8 +635,8 @@ export default function EmployeeListPage() {
                       <TableCell><Badge variant="outline" className="font-mono text-xs">{emp.golongan}</Badge></TableCell>
                       <TableCell className="text-sm">{emp.masaKerja || "-"}</TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className={statusConfig[emp.status.toLowerCase() as keyof typeof statusConfig]?.className}>
-                          {emp.status}
+                        <Badge variant="outline" className={statusConfig[(emp.status || "aktif").toLowerCase() as keyof typeof statusConfig]?.className}>
+                          {emp.status || "AKTIF"}
                         </Badge>
                       </TableCell>
                       <TableCell>
