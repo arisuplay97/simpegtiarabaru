@@ -27,6 +27,7 @@ model Pegawai {
   pangkat      String
   unitKerja    String
   status       String     @default("Aktif")
+  sp           String?
   tanggalMasuk DateTime
   userId       String     @unique
   user         User       @relation(fields: [userId], references: [id])
