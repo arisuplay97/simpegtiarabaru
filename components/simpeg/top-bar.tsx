@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useSession, signOut } from "next-auth/react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -38,7 +38,7 @@ interface TopBarProps {
 export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   const [searchFocused, setSearchFocused] = useState(false)
   const { theme, setTheme } = useTheme()
-  const { user, logout } = useAuth()
+  const { data: session } = useSession()
   const router = useRouter()
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -50,11 +50,23 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
     return () => document.removeEventListener("keydown", handler)
   }, [])
 
-  const handleLogout = () => { logout(); toast.success("Berhasil logout"); router.push("/login") }
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" })
+    toast.success("Berhasil logout")
+  }
+
+  const user = session?.user
+  const userRole = user?.role as string | undefined
+
+  const roleLabels: Record<string, string> = {
+    SUPERADMIN: "Super Admin",
+    HRD: "HRD / Admin",
+    DIREKSI: "Direksi",
+    PEGAWAI: "Pegawai",
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-6">
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
         {breadcrumb.map((item, index) => (
           <span key={index} className="flex items-center gap-2">
@@ -72,7 +84,6 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
         ))}
       </div>
 
-      {/* Center - Search */}
       <div className="flex flex-1 items-center justify-center px-8">
         <div
           className={cn(
@@ -95,9 +106,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
         </div>
       </div>
 
-      {/* Right - Actions & User */}
       <div className="flex items-center gap-2">
-        {/* Unit Switch */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-2 text-sm">
@@ -119,7 +128,6 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
 
         <div className="h-6 w-px bg-border" />
 
-        {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center rounded-full bg-red-500 px-1 text-[10px] text-white">
@@ -127,7 +135,6 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
           </Badge>
         </Button>
 
-        {/* Messages */}
         <Button variant="ghost" size="icon" className="relative">
           <MessageSquare className="h-5 w-5" />
           <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
@@ -135,24 +142,22 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
           </Badge>
         </Button>
 
-        {/* Settings */}
         <Button variant="ghost" size="icon">
           <Settings className="h-5 w-5" />
         </Button>
 
         <div className="h-6 w-px bg-border" />
 
-        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-3 pl-2 pr-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="/avatars/user.jpg" alt="User" />
+                <AvatarImage src={user?.image || ""} alt={user?.name || "User"} />
                 <AvatarFallback className="bg-primary text-xs text-primary-foreground">{user?.name?.charAt(0) ?? "?"}</AvatarFallback>
               </Avatar>
               <div className="hidden flex-col items-start text-left lg:flex">
                 <span className="text-sm font-medium">{user?.name ?? "Guest"}</span>
-                <span className="text-[10px] text-muted-foreground">{user?.unit ?? ""}</span>
+                <span className="text-[10px] text-muted-foreground">{userRole ? roleLabels[userRole] : ""}</span>
               </div>
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </Button>
@@ -161,14 +166,9 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             <DropdownMenuLabel>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <span>{user?.name ?? "User"}</span>
-                  <Badge className={`text-[10px] ${
-                    user?.role === "super_admin" ? "bg-purple-100 text-purple-700" :
-                    user?.role === "hrd" ? "bg-blue-100 text-blue-700" :
-                    user?.role === "direktur" ? "bg-amber-100 text-amber-700" :
-                    "bg-emerald-100 text-emerald-700"
-                  }`}>
-                    {user?.role === "super_admin" ? "Super Admin" : user?.role === "hrd" ? "HRD / Admin" : user?.role === "direktur" ? "Direktur" : "Pegawai"}
+                  <span className="truncate">{user?.name ?? "User"}</span>
+                  <Badge className="text-[10px]">
+                    {userRole ? roleLabels[userRole] : "Guest"}
                   </Badge>
                 </div>
                 <span className="text-xs font-normal text-muted-foreground">
@@ -191,11 +191,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? (
-                <Sun className="mr-2 h-4 w-4" />
-              ) : (
-                <Moon className="mr-2 h-4 w-4" />
-              )}
+              {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
               {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />

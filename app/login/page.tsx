@@ -1,97 +1,100 @@
-"use client"
-
-import React from "react"
-import Image from "next/image"
-import { ShieldCheck, UserCog, Briefcase, User } from "lucide-react"
-import { useAuth } from "@/components/auth/auth-provider"
-import type { AppRole } from "@/lib/auth/types"
-
-const cards: Array<{ role: AppRole; title: string; subtitle: string; icon: React.ReactNode }> = [
-  {
-    role: "super_admin",
-    title: "Masuk sebagai Super Admin",
-    subtitle: "Akses penuh seluruh modul aktif",
-    icon: <ShieldCheck className="h-5 w-5" />,
-  },
-  {
-    role: "hrd",
-    title: "Masuk sebagai HRD",
-    subtitle: "Kelola approval, pegawai, payroll, dan SP",
-    icon: <UserCog className="h-5 w-5" />,
-  },
-  {
-    role: "direktur",
-    title: "Masuk sebagai Direktur",
-    subtitle: "Approval strategis dan dashboard direksi",
-    icon: <Briefcase className="h-5 w-5" />,
-  },
-  {
-    role: "pegawai",
-    title: "Masuk sebagai Pegawai",
-    subtitle: "Absensi, cuti, slip gaji, dan dokumen pribadi",
-    icon: <User className="h-5 w-5" />,
-  },
-]
+'use client'
+import { signIn } from "next-auth/react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 
 export default function LoginPage() {
-  const { loginAs } = useAuth()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    await signIn("credentials", { 
+      email, 
+      password, 
+      redirect: true,
+      callbackUrl: "/dashboard"
+    })
+    setIsLoading(false)
+  }
+
+  const quickLogin = async (role: string) => {
+    setIsLoading(true)
+    await signIn("credentials", { 
+      email: `${role.toLowerCase()}@tiara.com`, 
+      password: "123456", 
+      redirect: true,
+      callbackUrl: "/"
+    })
+    setIsLoading(false)
+  }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-6 py-10">
-      <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="grid min-h-[640px] md:grid-cols-[1.1fr_0.9fr]">
-          <div className="relative hidden md:block">
-            <Image src="/login-bg.png" alt="SIMPEG" fill className="object-cover" />
-            <div className="absolute inset-0 bg-[#0f3b6e]/70" />
-            <div className="relative z-10 flex h-full flex-col justify-between p-10 text-white">
-              <div>
-                <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 text-xl font-bold">SP</div>
-                <h1 className="max-w-md text-4xl font-bold leading-tight">SIMPEG PDAM Enterprise Human Capital Suite</h1>
-                <p className="mt-4 max-w-md text-sm text-white/80">
-                  Demo login berbasis role untuk Super Admin, HRD, Direktur, dan Pegawai.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-                <div className="text-sm font-semibold">Yang tersedia dalam patch ini</div>
-                <ul className="mt-3 space-y-2 text-sm text-white/80">
-                  <li>• Role-based sidebar & access control</li>
-                  <li>• User Management</li>
-                  <li>• Modul SP / Surat Peringatan</li>
-                  <li>• Approval flow bertahap (frontend demo)</li>
-                </ul>
-              </div>
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 to-black p-4">
+      <Card className="w-full max-w-md p-8 shadow-2xl bg-white/10 backdrop-blur-md border-white/20 text-white">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-extrabold tracking-tight mb-2">SIMPEG Tiara</h1>
+          <p className="text-blue-200">Sistem Informasi Manajemen Kepegawaian</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-blue-100">Email</Label>
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="nama@tiara.com" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500"
+              required
+            />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-blue-100">Password</Label>
+            <Input 
+              id="password" 
+              type="password" 
+              placeholder="••••••••" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500"
+              required
+            />
+          </div>
+          <Button type="submit" disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all duration-200 shadow-lg">
+            {isLoading ? "Memuat..." : "Masuk ke Sistem"}
+          </Button>
+        </form>
 
-          <div className="flex items-center justify-center p-8 md:p-12">
-            <div className="w-full max-w-md">
-              <div className="mb-8 text-center md:text-left">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0f3b6e] text-lg font-bold text-white md:mx-0">SP</div>
-                <h2 className="text-3xl font-bold text-slate-900">Pilih Role Demo</h2>
-                <p className="mt-2 text-sm text-slate-500">Masuk cepat untuk menguji akses, approval, dan pembatasan menu.</p>
-              </div>
-
-              <div className="space-y-3">
-                {cards.map((card) => (
-                  <button
-                    key={card.role}
-                    onClick={() => loginAs(card.role)}
-                    className="flex w-full items-start gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-[#0f3b6e] hover:bg-slate-50"
-                  >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e9f2fb] text-[#0f3b6e]">
-                      {card.icon}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-slate-900">{card.title}</div>
-                      <div className="mt-1 text-sm text-slate-500">{card.subtitle}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-white/10"></span>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-transparent px-2 text-blue-300 backdrop-blur-md">Uji Coba Demo</span>
           </div>
         </div>
-      </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <Button onClick={() => quickLogin("superadmin")} variant="outline" className="border-white/20 hover:bg-white/10 text-blue-200">
+            Login Superadmin
+          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => quickLogin("hrd")} variant="outline" className="border-white/20 hover:bg-white/10 text-blue-200">
+              Login HRD
+            </Button>
+            <Button onClick={() => quickLogin("direksi")} variant="outline" className="border-white/20 hover:bg-white/10 text-blue-200">
+              Login Direksi
+            </Button>
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }

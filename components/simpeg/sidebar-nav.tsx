@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { useAuth, roleLabels } from "@/components/auth/auth-provider"
+import { useSession, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   Users,
@@ -53,7 +53,7 @@ const navigation: NavGroup[] = [
   {
     label: "Dashboard",
     items: [
-      { title: "Dashboard Utama", href: "/", icon: LayoutDashboard },
+      { title: "Dashboard Utama", href: "/dashboard", icon: LayoutDashboard },
       { title: "Dashboard Direksi", href: "/dashboard/direksi", icon: BarChart3, allowedRoles: ["super_admin", "direktur"] },
       { title: "Approval Center", href: "/approval", icon: CheckSquare, badge: 12, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Notifikasi", href: "/notifikasi", icon: Bell },
@@ -112,22 +112,39 @@ const navigation: NavGroup[] = [
 ]
 
 function isItemActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/"
+  if (href === "/dashboard") return pathname === "/dashboard"
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 export function SidebarNav() {
   const pathname = usePathname()
-  const { role, user, logout } = useAuth()
+  const { data: session } = useSession()
+  const userRole = session?.user?.role as string | undefined
+
+  const roleLabels: Record<string, string> = {
+    SUPERADMIN: "Super Admin",
+    HRD: "HRD / Admin",
+    DIREKSI: "Direksi",
+    PEGAWAI: "Pegawai",
+  }
 
   const filteredNavigation = useMemo(() => {
     return navigation
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => !item.allowedRoles || (role && item.allowedRoles.includes(role))),
+        items: group.items.filter((item) => {
+          if (!item.allowedRoles) return true
+          if (!userRole) return false
+          const normalizedAllowed = item.allowedRoles.map(r => 
+            r === "super_admin" ? "SUPERADMIN" : 
+            r === "direktur" ? "DIREKSI" : 
+            r.toUpperCase()
+          )
+          return normalizedAllowed.includes(userRole)
+        }),
       }))
       .filter((group) => group.items.length > 0)
-  }, [role])
+  }, [userRole])
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>(
     filteredNavigation
@@ -137,6 +154,10 @@ export function SidebarNav() {
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) => (prev.includes(label) ? prev.filter((g) => g !== label) : [...prev, label]))
+  }
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: "/login" })
   }
 
   return (
@@ -152,9 +173,9 @@ export function SidebarNav() {
       </div>
 
       <div className="border-b border-sidebar-border px-4 py-3">
-        <div className="text-sm font-semibold text-sidebar-foreground">{user?.name ?? "Guest"}</div>
-        <div className="mt-1 text-xs text-sidebar-muted">{role ? roleLabels[role] : "Belum login"}</div>
-        <div className="mt-1 text-xs text-sidebar-muted">{user?.unit}</div>
+        <div className="text-sm font-semibold text-sidebar-foreground">{session?.user?.name ?? "Guest"}</div>
+        <div className="mt-1 text-xs text-sidebar-muted">{userRole ? roleLabels[userRole] : "Belum login"}</div>
+        <div className="mt-1 text-xs text-sidebar-muted">Unit Kerja</div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
@@ -200,7 +221,7 @@ export function SidebarNav() {
 
       <div className="border-t border-sidebar-border p-3">
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/80 transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <LogOut className="h-4 w-4" />

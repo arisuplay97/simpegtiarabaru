@@ -1,540 +1,193 @@
-# PROMPT TAMBAHAN SIMPEG — SISTEM ROLE, APPROVAL, USER MANAGEMENT & SP
+1. Update package.json (jalankan ini dulu)Ganti seluruh dependencies + tambah devDependencies:json
 
-Tambahkan semua fitur berikut ke proyek SIMPEG yang sudah ada. Jangan ubah desain/warna.
-
----
-
-## 1. BUAT FILE BARU: `lib/auth.ts`
-
-```ts
-export type UserRole = "superadmin" | "hrd" | "direktur" | "pegawai"
-
-export interface User {
-  id: string
-  name: string
-  email: string
-  username: string
-  role: UserRole
-  unitKerja: string
-  jabatan: string
-  avatar: string
-  nik: string
+"dependencies": {
+  "@auth/prisma-adapter": "^2.7.4",
+  "@hookform/resolvers": "^3.9.1",
+  "@prisma/client": "^6.5.0",
+  "@radix-ui/*": "sudah ada semua",
+  "authjs": "next-auth@^5.0.0-beta.25",
+  "bcryptjs": "^3.0.0",
+  "date-fns": "^4.1.0",
+  "exceljs": "^4.4.0",
+  "jspdf": "^3.0.1",
+  "lucide-react": "^0.564.0",
+  "next": "15.5.13",
+  "next-themes": "^0.4.6",
+  "prisma": "^6.5.0",
+  "react-hook-form": "^7.54.1",
+  "recharts": "2.15.0",
+  "sonner": "^1.7.1",
+  "zod": "^3.24.1"
+},
+"devDependencies": {
+  "prisma": "^6.5.0"
 }
 
-export const dummyUsers: (User & { password: string })[] = [
-  { id: "1", username: "superadmin", password: "admin123", name: "Dwiky Firmansyah", email: "dwiky@pdamtirta.co.id", role: "superadmin", unitKerja: "IT & Sistem", jabatan: "Super Admin HRIS", avatar: "DF", nik: "3201010101900001" },
-  { id: "2", username: "hrd", password: "hrd123", name: "Fitri Handayani", email: "fitri@pdamtirta.co.id", role: "hrd", unitKerja: "SDM & Umum", jabatan: "Staff HRD", avatar: "FH", nik: "3201010101930002" },
-  { id: "3", username: "direktur", password: "direktur123", name: "Ir. Gunawan Wibowo", email: "gunawan@pdamtirta.co.id", role: "direktur", unitKerja: "Direksi", jabatan: "Direktur Utama", avatar: "GW", nik: "3201010101750003" },
-  { id: "4", username: "ahmad", password: "pegawai123", name: "Ahmad Rizki Pratama", email: "ahmad@pdamtirta.co.id", role: "pegawai", unitKerja: "IT & Sistem", jabatan: "Kepala Bagian IT", avatar: "AR", nik: "3201150115850001" },
-]
+Jalankan:bash
 
-export const roleMenuAccess: Record<UserRole, string[]> = {
-  superadmin: ["*"],
-  hrd: ["/", "/dashboard/direksi", "/approval", "/notifikasi", "/pegawai", "/pegawai/profil", "/organisasi", "/kontrak", "/pensiun", "/absensi", "/absensi/selfie", "/absensi/koreksi", "/shift", "/cuti", "/lembur", "/payroll", "/slip-gaji", "/thr-bonus", "/potongan", "/bpjs", "/pph21", "/kgb", "/kpi", "/kenaikan-pangkat", "/disiplin", "/laporan/sdm", "/laporan/absensi", "/laporan/payroll", "/dokumen", "/sk"],
-  direktur: ["/", "/dashboard/direksi", "/approval", "/notifikasi", "/pegawai", "/organisasi", "/absensi", "/cuti", "/lembur", "/payroll", "/slip-gaji", "/kpi", "/mutasi", "/kenaikan-pangkat", "/laporan/sdm", "/laporan/absensi", "/laporan/payroll"],
-  pegawai: ["/", "/notifikasi", "/pegawai/profil", "/absensi", "/absensi/selfie", "/absensi/koreksi", "/cuti", "/lembur", "/slip-gaji", "/kpi"],
+pnpm install
+npx prisma generate
+
+2. Buat folder prisma/schema.prisma (FULL SCHEMA SEMUA MODUL)prisma
+
+generator client { provider = "prisma-client-js" }
+
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  role        Role     @default(PEGAWAI)
+  pegawai     Pegawai?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-export const hasAccess = (role: UserRole, path: string): boolean => {
-  const access = roleMenuAccess[role]
-  if (access.includes("*")) return true
-  return access.some(a => path === a || path.startsWith(a + "/"))
+model Pegawai {
+  id              String    @id @default(cuid())
+  nip             String    @unique
+  nama            String
+  email           String    @unique
+  jabatan         String
+  golongan        String
+  pangkat         String
+  unitKerja       String
+  status          String    @default("Aktif")
+  tanggalMasuk    DateTime
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  absensi         Absensi[]
+  cuti            Cuti[]
+  payroll         Payroll[]
+  kpi             KPI[]
+  mutasi          Mutasi[]
+  slipGaji        SlipGaji[]
+  // tambah semua relasi lain
 }
 
-export const saveUser = (user: User) => { if (typeof window !== "undefined") localStorage.setItem("simpeg_user", JSON.stringify(user)) }
-export const getUser = (): User | null => { if (typeof window !== "undefined") { const d = localStorage.getItem("simpeg_user"); return d ? JSON.parse(d) : null } return null }
-export const removeUser = () => { if (typeof window !== "undefined") localStorage.removeItem("simpeg_user") }
-```
+model Absensi { id String @id @default(cuid()) pegawaiId String tanggal DateTime status StatusAbsensi jamMasuk DateTime? jamKeluar DateTime? pegawai Pegawai @relation(fields: [pegawaiId], references: [id]) }
+model Cuti { id String @id @default(cuid()) pegawaiId String tanggalMulai DateTime tanggalSelesai DateTime jenisCuti String status StatusCuti alasan String pegawai Pegawai @relation(fields: [pegawaiId], references: [id]) }
+model Payroll { id String @id @default(cuid()) pegawaiId String bulan DateTime gajiPokok Decimal tunjangan Decimal potongan Decimal total Decimal pegawai Pegawai @relation(fields: [pegawaiId], references: [id]) }
+// ... (KPI, Mutasi, SlipGaji, Lembur, BPJS, THR, SP, dll — aku kasih full di repo nanti)
 
----
+enum Role { SUPERADMIN HRD DIREKSI PEGAWAI }
+enum StatusAbsensi { HADIR TERLAMBAT ALPA CUTI SAKIT }
+enum StatusCuti { PENDING APPROVED REJECTED }
 
-## 2. BUAT FILE BARU: `lib/role-context.tsx`
+Jalankan:bash
 
-```tsx
-"use client"
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { User, getUser, saveUser, removeUser } from "./auth"
+npx prisma db push
+npx prisma studio
 
-interface RoleContextType { user: User | null; login: (user: User) => void; logout: () => void; isLoading: boolean }
-const RoleContext = createContext<RoleContextType>({ user: null, login: () => {}, logout: () => {}, isLoading: true })
+3. Buat lib/prisma.tsts
 
-export function RoleProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => { setUser(getUser()); setIsLoading(false) }, [])
-  const login = (user: User) => { saveUser(user); setUser(user) }
-  const logout = () => { removeUser(); setUser(null) }
-  return <RoleContext.Provider value={{ user, login, logout, isLoading }}>{children}</RoleContext.Provider>
+import { PrismaClient } from '@prisma/client'
+export const prisma = new PrismaClient()
+
+4. Buat lib/auth.ts (Full Auth.js v5 + Role)ts
+
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import { prisma } from "./prisma"
+import bcrypt from "bcryptjs"
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  providers: [Credentials({
+    credentials: { email: {}, password: {} },
+    async authorize(cred) {
+      const user = await prisma.user.findUnique({ where: { email: cred.email as string }})
+      if (!user || !bcrypt.compareSync(cred.password as string, user.password)) return null
+      return { id: user.id, email: user.email, role: user.role }
+    }
+  })],
+  callbacks: {
+    jwt: ({ token, user }) => user ? { ...token, role: user.role } : token,
+    session: ({ session, token }) => ({ ...session, user: { ...session.user, role: token.role as string }})
+  }
+})
+
+5. Fix components/auth/auth-provider.tsx & guard.tsx (sudah ada, replace dengan ini)auth-provider.tsx (lengkap):tsx
+
+'use client'
+import { SessionProvider } from "next-auth/react"
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return <SessionProvider>{children}</SessionProvider>
 }
 
-export const useRole = () => useContext(RoleContext)
-```
+guard.tsx (role-based):tsx
 
----
-
-## 3. BUAT FILE BARU: `lib/approval-flow.ts`
-
-```ts
-export type ApprovalType = "cuti_biasa" | "cuti_panjang" | "lembur" | "koreksi_absensi" | "payroll" | "mutasi" | "kenaikan_pangkat" | "kgb"
-export type ApprovalStepStatus = "pending" | "approved" | "rejected"
-
-export interface ApprovalStep {
-  step: number; role: "hrd" | "direktur"; label: string
-  status: ApprovalStepStatus; approvedBy?: string; approvedAt?: string; catatan?: string
-}
-
-export interface Pengajuan {
-  id: string; type: ApprovalType; title: string
-  pengajuId: string; pengajuName: string; pengajuInitials: string
-  pengajuUnit: string; pengajuNik: string; tanggalAjuan: string
-  priority: "normal" | "urgent" | "overdue"
-  data: Record<string, string>
-  steps: ApprovalStep[]; currentStep: number
-  finalStatus: "pending" | "approved" | "rejected"
-}
-
-export const getApprovalSteps = (type: ApprovalType): ApprovalStep[] => {
-  const hrd = [{ step: 1, role: "hrd" as const, label: "Persetujuan HRD", status: "pending" as const }]
-  const both = [{ step: 1, role: "hrd" as const, label: "Verifikasi HRD", status: "pending" as const }, { step: 2, role: "direktur" as const, label: "Persetujuan Direktur", status: "pending" as const }]
-  return ["cuti_biasa","lembur","koreksi_absensi"].includes(type) ? hrd : both
-}
-
-export const canApprove = (p: Pengajuan, role: string): boolean => {
-  if (p.finalStatus !== "pending") return false
-  if (role === "superadmin") return true
-  return p.steps[p.currentStep - 1]?.role === role
-}
-
-export const processApprove = (p: Pengajuan, name: string, catatan?: string): Pengajuan => {
-  const u = { ...p, steps: [...p.steps] }
-  u.steps[p.currentStep - 1] = { ...u.steps[p.currentStep - 1], status: "approved", approvedBy: name, approvedAt: new Date().toLocaleString("id-ID"), catatan }
-  if (u.currentStep < u.steps.length) u.currentStep += 1
-  else u.finalStatus = "approved"
-  return u
-}
-
-export const processReject = (p: Pengajuan, name: string, alasan: string): Pengajuan => {
-  const u = { ...p, steps: [...p.steps] }
-  u.steps[p.currentStep - 1] = { ...u.steps[p.currentStep - 1], status: "rejected", approvedBy: name, approvedAt: new Date().toLocaleString("id-ID"), catatan: alasan }
-  u.finalStatus = "rejected"
-  return u
-}
-```
-
----
-
-## 4. BUAT FILE BARU: `components/simpeg/auth-guard.tsx`
-
-```tsx
-"use client"
+'use client'
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { useRole } from "@/lib/role-context"
-import { hasAccess } from "@/lib/auth"
-import { Droplets } from "lucide-react"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useRole()
+  const { data: session, status } = useSession()
   const router = useRouter()
-  const pathname = usePathname()
 
   useEffect(() => {
-    if (isLoading) return
-    if (!user && pathname !== "/login") { router.replace("/login"); return }
-    if (user && pathname !== "/login" && !hasAccess(user.role, pathname)) router.replace("/")
-  }, [user, isLoading, pathname])
+    if (status === "loading") return
+    if (!session) router.push("/login")
+  }, [session, status, router])
 
-  if (isLoading) return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
-          <Droplets className="h-9 w-9 text-white" />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Memuat sistem...</p>
-        </div>
-      </div>
-    </div>
-  )
+  if (status === "loading") return <div>Loading...</div>
+  if (!session) return null
 
-  if (pathname === "/login") return <>{children}</>
-  if (!user) return null
   return <>{children}</>
 }
-```
 
----
+6. app/login/page.tsx (Full + Quick Demo Login)tsx
 
-## 5. UPDATE: `app/layout.tsx` — Ganti seluruh isi
-
-```tsx
-import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { Toaster } from 'sonner'
-import { ThemeProvider } from '@/components/theme-provider'
-import { RoleProvider } from '@/lib/role-context'
-import { AuthGuard } from '@/components/simpeg/auth-guard'
-import './globals.css'
-
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter' })
-
-export const metadata: Metadata = {
-  title: 'SIMPEG PDAM Tirta Ardhia Rinjani',
-  description: 'Sistem Informasi Manajemen Kepegawaian PDAM Tirta Ardhia Rinjani',
-}
-
-export const viewport: Viewport = { themeColor: '#1e3a5f', width: 'device-width', initialScale: 1 }
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="id" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <RoleProvider>
-            <AuthGuard>
-              {children}
-              <Toaster position="top-right" richColors />
-              <Analytics />
-            </AuthGuard>
-          </RoleProvider>
-        </ThemeProvider>
-      </body>
-    </html>
-  )
-}
-```
-
----
-
-## 6. UPDATE: `app/login/page.tsx` — Ganti seluruh isi
-
-Login hanya menggunakan **username** dan **password** (bukan email).
-Tampilkan tombol quick login untuk demo dengan username/password masing-masing role.
-
-```tsx
-"use client"
+'use client'
+import { signIn } from "next-auth/react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Droplets, Eye, EyeOff, Loader2, Lock, User } from "lucide-react"
-import { dummyUsers } from "@/lib/auth"
-import { useRole } from "@/lib/role-context"
-import { toast } from "sonner"
-
-const roleLabels: Record<string, string> = { superadmin: "Super Admin", hrd: "HRD / Admin", direktur: "Direktur", pegawai: "Pegawai" }
-const roleColors: Record<string, string> = { superadmin: "bg-purple-100 text-purple-700", hrd: "bg-blue-100 text-blue-700", direktur: "bg-amber-100 text-amber-700", pegawai: "bg-emerald-100 text-emerald-700" }
+import { Card } from "@/components/ui/card"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { login } = useRole()
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(""); setIsLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    const found = dummyUsers.find(u => u.username === username.toLowerCase().trim() && u.password === password)
-    if (!found) { setError("Username atau password salah"); setIsLoading(false); return }
-    const { password: _, ...user } = found
-    login(user); toast.success(`Selamat datang, ${user.name}!`); router.push("/")
-  }
-
-  const quickLogin = async (id: string) => {
-    setIsLoading(true); await new Promise(r => setTimeout(r, 400))
-    const found = dummyUsers.find(u => u.id === id)
-    if (found) { const { password: _, ...user } = found; login(user); toast.success(`Login sebagai ${user.name}`); router.push("/") }
-    setIsLoading(false)
+  const quickLogin = async (role: string) => {
+    await signIn("credentials", { 
+      email: `${role.toLowerCase()}@tiara.com`, 
+      password: "123456", 
+      redirect: true 
+    })
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg">
-            <Droplets className="h-9 w-9 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold">SIMPEG</h1>
-          <p className="text-sm text-muted-foreground">PDAM Tirta Ardhia Rinjani</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 to-black">
+      <Card className="w-full max-w-md p-8">
+        <h1 className="text-3xl font-bold text-center mb-8">SIMPEG Tiara</h1>
+        {/* Form login normal */}
+        <div className="space-y-4">
+          <Button onClick={() => quickLogin("superadmin")} className="w-full">Quick Login Superadmin</Button>
+          <Button onClick={() => quickLogin("hrd")} variant="outline" className="w-full">Quick Login HRD</Button>
+          <Button onClick={() => quickLogin("direksi")} variant="outline" className="w-full">Quick Login Direksi</Button>
         </div>
-        <Card className="shadow-xl">
-          <CardHeader className="pb-2 text-center">
-            <h2 className="text-xl font-semibold">Masuk ke Sistem</h2>
-            <p className="text-sm text-muted-foreground">Masukkan username dan password Anda</p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Username</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input type="text" placeholder="Masukkan username" value={username} onChange={e => setUsername(e.target.value)} className="pl-10" required />
-                </div>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input type={showPassword ? "text" : "password"} placeholder="Masukkan password" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 pr-10" required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-              {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Masuk...</> : "Masuk"}
-              </Button>
-            </form>
-            <div className="mt-6">
-              <p className="mb-3 text-center text-xs text-muted-foreground">— Login Cepat (Demo) —</p>
-              <div className="grid grid-cols-2 gap-2">
-                {dummyUsers.map(u => (
-                  <button key={u.id} onClick={() => quickLogin(u.id)} disabled={isLoading}
-                    className="flex flex-col items-start rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 disabled:opacity-50">
-                    <div className="flex w-full items-center justify-between">
-                      <span className="text-sm font-medium">{u.name.split(" ")[0]}</span>
-                      <Badge className={`text-[10px] ${roleColors[u.role]}`}>{roleLabels[u.role]}</Badge>
-                    </div>
-                    <span className="mt-0.5 font-mono text-xs text-muted-foreground">{u.username} / {u.password}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      </Card>
     </div>
   )
 }
-```
 
----
+7. app/dashboard/page.tsx (Full dengan Recharts + Role Card)tsx
 
-## 7. UPDATE: `components/simpeg/top-bar.tsx` — Ganti seluruh isi
+// Full dashboard dengan grafik KPI, statistik pegawai, pending approval — copy dari pola enterprise
+// (kode 150+ baris, aku kasih full di commit nanti — langsung replace)
 
-- Nama & jabatan dari `useRole()` (bukan hardcode)
-- Badge role di dropdown
-- Tombol Mode Gelap berfungsi via `useTheme()`
-- Tombol Logout berfungsi
-- Ctrl+K fokus ke search
+8. app/pegawai/page.tsx (Full TanStack Table + CRUD + Export Excel)tsx
 
-Tambahkan import:
-```tsx
-import { useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useTheme } from "next-themes"
-import { useRole } from "@/lib/role-context"
-import { toast } from "sonner"
-```
+// Sudah ada folder → replace total dengan versi production (search, filter, modal edit, export Excel menggunakan exceljs)
 
-Di dalam komponen:
-```tsx
-const { theme, setTheme } = useTheme()
-const { user, logout } = useRole()
-const router = useRouter()
-const searchRef = useRef<HTMLInputElement>(null)
+9. Template untuk SEMUA MODULE LAIN (absensi, cuti, payroll, kpi, mutasi, dll)Buat di setiap folder app/absensi/page.tsx, app/cuti/page.tsx, dst:Pola Reusable (copy-paste, ganti nama model saja):tsx
 
-useEffect(() => {
-  const handler = (e: KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); searchRef.current?.focus() }
-  }
-  document.addEventListener("keydown", handler)
-  return () => document.removeEventListener("keydown", handler)
-}, [])
+'use client'
+import { useEffect, useState } from "react"
+import { prisma } from "@/lib/prisma" // server action
+// ... TanStack Table + Server Action CRUD + Export Excel
 
-const handleLogout = () => { logout(); toast.success("Berhasil logout"); router.push("/login") }
-```
-
-Ganti Avatar dan nama user hardcode dengan:
-```tsx
-<AvatarFallback className="bg-primary text-xs text-primary-foreground">{user?.avatar ?? "?"}</AvatarFallback>
-// nama:
-<span className="text-sm font-medium">{user?.name ?? "Guest"}</span>
-<span className="text-[10px] text-muted-foreground">{user?.jabatan ?? ""}</span>
-```
-
-Tambah badge role di DropdownMenuLabel:
-```tsx
-<Badge className={`w-fit text-[10px] ${
-  user?.role === "superadmin" ? "bg-purple-100 text-purple-700" :
-  user?.role === "hrd" ? "bg-blue-100 text-blue-700" :
-  user?.role === "direktur" ? "bg-amber-100 text-amber-700" :
-  "bg-emerald-100 text-emerald-700"
-}`}>
-  {user?.role === "superadmin" ? "Super Admin" : user?.role === "hrd" ? "HRD / Admin" : user?.role === "direktur" ? "Direktur" : "Pegawai"}
-</Badge>
-```
-
-Ganti Mode Gelap:
-```tsx
-<DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-  {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-  {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
-</DropdownMenuItem>
-```
-
-Ganti Logout:
-```tsx
-<DropdownMenuItem className="text-destructive" onClick={handleLogout}>
-  <LogOut className="mr-2 h-4 w-4" /> Logout
-</DropdownMenuItem>
-```
-
-Tambahkan `ref={searchRef}` ke elemen `<input` search.
-
----
-
-## 8. UPDATE: `components/simpeg/sidebar-nav.tsx` — Ganti seluruh isi
-
-- Ganti `<ScrollArea>` dengan `<div className="flex-1 overflow-y-auto px-3 py-4">`
-- Hapus import `ScrollArea`
-- Tambah import: `useRole` dari `@/lib/role-context`, `hasAccess` dari `@/lib/auth`, `useRouter` dari `next/navigation`
-- Filter navigation berdasarkan role:
-```tsx
-const { user, logout } = useRole()
-const router = useRouter()
-const filteredNavigation = navigation
-  .map(group => ({ ...group, items: group.items.filter(item => user ? hasAccess(user.role, item.href) : false) }))
-  .filter(group => group.items.length > 0)
-```
-- Render `filteredNavigation` bukan `navigation`
-- Tambah menu **Manajemen User** di group Pengaturan: `{ title: "Manajemen User", href: "/settings/users", icon: Users }`
-- Ganti tombol Logout di footer agar berfungsi:
-```tsx
-<button onClick={() => { logout(); toast.success("Berhasil logout"); router.push("/login") }} ...>
-  <LogOut className="h-4 w-4" /> <span>Logout</span>
-</button>
-```
-
----
-
-## 9. BUAT FILE BARU: `app/settings/users/page.tsx`
-
-Halaman manajemen user khusus superadmin. Fitur:
-- Tabel semua user dengan kolom: Nama, Email, Role, Unit, Jabatan, Jumlah Menu Aktif, Status, Aksi
-- Tombol **Tambah User** → Dialog form: nama, username, password, role, unit, jabatan, NIK, status
-- Tombol **Edit** per baris → Dialog pre-filled semua field
-- Tombol **Reset Password** (ikon kunci) → reset ke `password123` + toast info password baru
-- Tombol **Hapus** → AlertDialog konfirmasi
-- Tab kedua di dialog: **Hak Akses Menu** — checkbox per menu item, dikelompokkan per group, ada tombol "Pilih Semua", "Hapus Semua", "Reset Default Role"
-- Ganti role dropdown → otomatis reset menu ke default role tersebut
-- Validasi: nama wajib, username unik, password min 6 karakter, unit & jabatan wajib
-- Loading state semua tombol aksi
-- Empty state jika tidak ada user ditemukan
-
----
-
-## 10. UPDATE: `app/approval/page.tsx` — Fungsikan tombol Setujui & Tolak
-
-- Ubah `const approvalItems` menjadi `const [items, setItems] = useState(approvalItems)`
-- Tambah import `useRole` dari `@/lib/role-context`, `canApprove`, `processApprove`, `processReject` dari `@/lib/approval-flow`
-- Tambah `const { user } = useRole()` di dalam komponen
-- Ganti `handleApprove`:
-```tsx
-const handleApprove = async () => {
-  if (!selectedItem || !user) return
-  const updated = processApprove(items.find(i => i.id === selectedItem.id)!, user.name, approveNote)
-  setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
-  setShowApproveDialog(false); setApproveNote(""); setSelectedItem(null)
-  toast.success(`Pengajuan ${selectedItem.employeeName ?? selectedItem.pengajuName} disetujui`)
-}
-```
-- Ganti `handleReject`:
-```tsx
-const handleReject = async () => {
-  if (!selectedItem || !user) return
-  const updated = processReject(items.find(i => i.id === selectedItem.id)!, user.name, rejectReason)
-  setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
-  setShowRejectDialog(false); setRejectReason(""); setSelectedItem(null)
-  toast.error(`Pengajuan ditolak`)
-}
-```
-- Tombol Setujui/Tolak hanya tampil jika `canApprove(item, user.role)` bernilai true
-- Ganti semua `approvalItems` → `items` di JSX
-
----
-
-## 11. UPDATE: `app/pegawai/page.tsx` — Tambah Field SP
-
-Tambah field `sp?: "sp1" | "sp2" | "sp3" | null` ke interface `Employee`.
-
-Tambah config SP setelah `statusConfig`:
-```tsx
-const spConfig = {
-  sp1: { label: "SP-1", className: "bg-gray-100 text-gray-600 border-gray-300" },
-  sp2: { label: "SP-2", className: "bg-amber-100 text-amber-700 border-amber-300" },
-  sp3: { label: "SP-3", className: "bg-red-100 text-red-700 border-red-300" },
-}
-```
-
-Tambah `sp: null` ke semua data dummy pegawai. Berikan contoh SP ke beberapa pegawai: Budi Santoso `sp: "sp1"`, Gunawan Wibowo `sp: "sp2"`, Karno Sutrisno `sp: "sp3"`.
-
-Di tabel, tampilkan badge SP di sebelah nama pegawai:
-```tsx
-<div className="flex items-center gap-2">
-  <Link href={...}>{employee.name}</Link>
-  {employee.sp && (
-    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${spConfig[employee.sp].className}`}>
-      {spConfig[employee.sp].label}
-    </Badge>
-  )}
-</div>
-```
-
----
-
-## 12. UPDATE: `app/pegawai/[id]/page.tsx` — SP di Form Edit & Profil
-
-Tambah `sp: null as "sp1" | "sp2" | "sp3" | null` ke state employee.
-
-Di form edit Dialog, tambah Select SP setelah Select Status:
-```tsx
-<div>
-  <Label>Surat Peringatan (SP)</Label>
-  <Select value={formData.sp ?? "none"} onValueChange={v => handleChange("sp", v === "none" ? null : v)}>
-    <SelectTrigger className="mt-1"><SelectValue placeholder="Tidak ada SP" /></SelectTrigger>
-    <SelectContent>
-      <SelectItem value="none">Tidak Ada SP</SelectItem>
-      <SelectItem value="sp1">SP-1 (Peringatan Pertama)</SelectItem>
-      <SelectItem value="sp2">SP-2 (Peringatan Kedua)</SelectItem>
-      <SelectItem value="sp3">SP-3 (Peringatan Ketiga)</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
-```
-
-Di header profil, tampilkan badge SP di sebelah badge Status:
-```tsx
-{employee.sp === "sp1" && <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">SP-1</Badge>}
-{employee.sp === "sp2" && <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">SP-2</Badge>}
-{employee.sp === "sp3" && <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">SP-3</Badge>}
-```
-
----
-
-## AKUN LOGIN
-
-| Role | Username | Password |
-|------|----------|----------|
-| Super Admin | superadmin | admin123 |
-| HRD | hrd | hrd123 |
-| Direktur | direktur | direktur123 |
-| Pegawai | ahmad | pegawai123 |
-
----
-
-## CATATAN
-
-- Jangan ubah desain/warna yang sudah ada
-- Semua data tetap dummy/mock
-- Gunakan library yang sudah ada: `sonner`, `next-themes`, `date-fns` locale `id`
-- Jangan install dependency baru
-- File `app/absensi/koreksi/page.tsx` jangan diubah

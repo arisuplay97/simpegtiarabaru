@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(PEGAWAI)
+  pegawai   Pegawai?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pegawai {
+  id           String     @id @default(cuid())
+  nip          String     @unique
+  nama         String
+  email        String     @unique
+  jabatan      String
+  golongan     String
+  pangkat      String
+  unitKerja    String
+  status       String     @default("Aktif")
+  tanggalMasuk DateTime
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+  absensi      Absensi[]
+  cuti         Cuti[]
+  payroll      Payroll[]
+  kpi          KPI[]
+  mutasi       Mutasi[]
+  slipGaji     SlipGaji[]
+}
+
+model Absensi {
+  id        String        @id @default(cuid())
+  pegawaiId String
+  tanggal   DateTime
+  status    StatusAbsensi
+  jamMasuk  DateTime?
+  jamKeluar DateTime?
+  pegawai   Pegawai       @relation(fields: [pegawaiId], references: [id])
+}
+
+model Cuti {
+  id             String     @id @default(cuid())
+  pegawaiId      String
+  tanggalMulai   DateTime
+  tanggalSelesai DateTime
+  jenisCuti      String
+  status         StatusCuti
+  alasan         String
+  pegawai        Pegawai    @relation(fields: [pegawaiId], references: [id])
+}
+
+model Payroll {
+  id        String   @id @default(cuid())
+  pegawaiId String
+  bulan     DateTime
+  gajiPokok Decimal
+  tunjangan Decimal
+  potongan  Decimal
+  total     Decimal
+  pegawai   Pegawai  @relation(fields: [pegawaiId], references: [id])
+}
+
+model KPI {
+  id        String  @id @default(cuid())
+  pegawaiId String
+  tahun     String
+  nilai     Decimal
+  pegawai   Pegawai @relation(fields: [pegawaiId], references: [id])
+}
+
+model Mutasi {
+  id        String   @id @default(cuid())
+  pegawaiId String
+  tanggal   DateTime
+  dariUnit  String
+  keUnit    String
+  pegawai   Pegawai  @relation(fields: [pegawaiId], references: [id])
+}
+
+model SlipGaji {
+  id        String   @id @default(cuid())
+  pegawaiId String
+  bulan     DateTime
+  fileUrl   String
+  pegawai   Pegawai  @relation(fields: [pegawaiId], references: [id])
+}
+
+enum Role {
+  SUPERADMIN
+  HRD
+  DIREKSI
+  PEGAWAI
+}
+
+enum StatusAbsensi {
+  HADIR
+  TERLAMBAT
+  ALPA
+  CUTI
+  SAKIT
+}
+
+enum StatusCuti {
+  PENDING
+  APPROVED
+  REJECTED
+}

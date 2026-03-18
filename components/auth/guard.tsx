@@ -1,27 +1,26 @@
-"use client"
-
-import React from "react"
-import { usePathname, useRouter } from "next/navigation"
-import { routeAccess, hasPermission } from "@/lib/auth/permissions"
-import { useAuth } from "./auth-provider"
+'use client'
+import { useSession } from "next-auth/react"
+import { useRouter, usePathname } from "next/navigation"
+import { useEffect } from "react"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
+  const { data: session, status } = useSession()
   const router = useRouter()
-  const { role, isAuthenticated } = useAuth()
+  const pathname = usePathname()
 
-  React.useEffect(() => {
-    if (pathname === "/login") return
-    if (!isAuthenticated) {
-      router.replace("/login")
-      return
-    }
-    if (!role) return
-    const permission = routeAccess(pathname)
-    if (permission && !hasPermission(role, permission)) {
-      router.replace("/forbidden")
-    }
-  }, [pathname, router, isAuthenticated, role])
+  useEffect(() => {
+    if (status === "loading") return
+    if (!session && pathname !== "/login") router.push("/login")
+    if (session && pathname === "/login") router.push("/")
+  }, [session, status, router, pathname])
+
+  if (status === "loading") return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  )
+
+  if (!session && pathname !== "/login") return null
 
   return <>{children}</>
 }
