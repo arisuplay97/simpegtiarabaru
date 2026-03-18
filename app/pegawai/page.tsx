@@ -17,7 +17,7 @@ import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -37,56 +37,56 @@ import {
   Search, Download, UserPlus, MoreHorizontal,
   Eye, Edit, Trash2, Users, UserCheck, UserX,
   Clock, Mail, Phone, ChevronLeft, ChevronRight,
-  Loader2, AlertTriangle,
+  Loader2, AlertTriangle, Camera, UserCircle,
 } from "lucide-react"
-import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
+import { 
+  getEmployees, 
+  getEmployeeStats, 
+  createEmployee, 
+  updateEmployee, 
+  deleteEmployee,
+  getBidang
+} from "@/lib/actions/pegawai"
+import { bidangList as fallbackBidang, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
 
 // ============ TIPE DATA ============
 interface Employee {
   id: string
   nik: string
   nama: string
-  initials: string
+  email: string
+  telepon: string | null
+  fotoUrl: string | null
+  bidangId: string | null
+  bidang?: { nama: string }
   jabatan: string
-  unitKerja: string
+  tipeJabatan: string
+  atasanLangsung: string | null
   golongan: string
   pangkat: string
-  status: "aktif" | "cuti" | "non-aktif" | "pensiun"
-  sp: "SP1" | "SP2" | "SP3" | null
-  masaKerja: string
-  email: string
-  telepon: string
-  jenisKelamin: "L" | "P"
+  status: string
+  sp: string | null
   tanggalMasuk: string
-  tempatLahir: string
-  tanggalLahir: string
-  agama: string
-  statusNikah: string
-  alamat: string
-  noKTP: string
-  npwp: string
-  bank: string
-  noRekening: string
-  bpjsKes: string
-  bpjsTK: string
-  pendidikan: string
+  jenisKelamin: string | null
+  tempatLahir: string | null
+  tanggalLahir: string | null
+  agama: string | null
+  statusNikah: string | null
+  alamat: string | null
+  npwp: string | null
+  pendidikanTerakhir: string | null
+  jurusan: string | null
+  institusi: string | null
+  tahunLulus: string | null
+  bank: string | null
+  noRekening: string | null
+  bpjsKesehatan: string | null
+  bpjsKetenagakerjaan: string | null
+  masaKerja?: string
+  initials?: string
 }
 
-// ============ DATA DUMMY LENGKAP ============
-const initialEmployees: Employee[] = [
-  { id:"1", nik:"3201150115850001", nama:"Ahmad Rizki Pratama", initials:"AR", jabatan:"Kepala Bagian IT", unitKerja:"IT & Sistem", golongan:"C/III", pangkat:"Penata", status:"aktif", sp:null, masaKerja:"16 tahun", email:"ahmad.rizki@pdamtiara.co.id", telepon:"081234567890", jenisKelamin:"L", tanggalMasuk:"15 Jan 2010", tempatLahir:"Bandung", tanggalLahir:"15 Jan 1985", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Merdeka No. 123, Jakarta Selatan", noKTP:"3201150115850001", npwp:"12.345.678.9-012.345", bank:"Bank Mandiri", noRekening:"1234567890123", bpjsKes:"0001234567890", bpjsTK:"0001234567891", pendidikan:"S2 - Teknik Informatika" },
-  { id:"2", nik:"3201032215900001", nama:"Siti Nurhaliza", initials:"SN", jabatan:"Staff Keuangan Senior", unitKerja:"Keuangan", golongan:"B/III", pangkat:"Penata Muda Tk.I", status:"aktif", sp:null, masaKerja:"11 tahun", email:"siti.nurhaliza@pdamtiara.co.id", telepon:"081234567891", jenisKelamin:"P", tanggalMasuk:"22 Jan 2015", tempatLahir:"Jakarta", tanggalLahir:"22 Mar 1990", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Sudirman No. 45, Jakarta Pusat", noKTP:"3201032215900001", npwp:"12.345.678.9-012.346", bank:"Bank BNI", noRekening:"9876543210", bpjsKes:"0001234567891", bpjsTK:"0001234567892", pendidikan:"S1 - Akuntansi" },
-  { id:"3", nik:"3201050512870001", nama:"Budi Santoso", initials:"BS", jabatan:"Supervisor Distribusi", unitKerja:"Distribusi", golongan:"D/III", pangkat:"Penata Tk.I", status:"cuti", sp:"SP1", masaKerja:"18 tahun", email:"budi.santoso@pdamtiara.co.id", telepon:"081234567892", jenisKelamin:"L", tanggalMasuk:"05 Jan 2008", tempatLahir:"Surabaya", tanggalLahir:"12 Mei 1987", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Gatot Subroto No. 78, Jakarta Selatan", noKTP:"3201050512870001", npwp:"12.345.678.9-012.347", bank:"Bank BRI", noRekening:"1122334455", bpjsKes:"0001234567892", bpjsTK:"0001234567893", pendidikan:"S1 - Teknik Sipil" },
-  { id:"4", nik:"3201051519920001", nama:"Dewi Lestari", initials:"DL", jabatan:"Customer Service", unitKerja:"Pelayanan", golongan:"A/III", pangkat:"Penata Muda", status:"aktif", sp:null, masaKerja:"8 tahun", email:"dewi.lestari@pdamtiara.co.id", telepon:"081234567893", jenisKelamin:"P", tanggalMasuk:"15 Jan 2018", tempatLahir:"Bandung", tanggalLahir:"15 Mei 1992", agama:"Islam", statusNikah:"Belum Menikah", alamat:"Jl. Thamrin No. 22, Jakarta Pusat", noKTP:"3201051519920001", npwp:"12.345.678.9-012.348", bank:"Bank Mandiri", noRekening:"5566778899", bpjsKes:"0001234567893", bpjsTK:"0001234567894", pendidikan:"D3 - Manajemen Pemasaran" },
-  { id:"5", nik:"3201081519800001", nama:"Eko Prasetyo", initials:"EP", jabatan:"Operator IPA", unitKerja:"Produksi", golongan:"D/II", pangkat:"Pengatur Tk.I", status:"aktif", sp:null, masaKerja:"21 tahun", email:"eko.prasetyo@pdamtiara.co.id", telepon:"081234567894", jenisKelamin:"L", tanggalMasuk:"15 Jan 2005", tempatLahir:"Yogyakarta", tanggalLahir:"15 Agu 1980", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Kuningan No. 55, Jakarta Selatan", noKTP:"3201081519800001", npwp:"12.345.678.9-012.349", bank:"Bank BRI", noRekening:"9988776655", bpjsKes:"0001234567894", bpjsTK:"0001234567895", pendidikan:"SMA - IPA" },
-  { id:"6", nik:"3201010101930002", nama:"Fitri Handayani", initials:"FH", jabatan:"Staff HRD", unitKerja:"SDM & Umum", golongan:"A/III", pangkat:"Penata Muda", status:"aktif", sp:null, masaKerja:"6 tahun", email:"fitri.handayani@pdamtiara.co.id", telepon:"081234567895", jenisKelamin:"P", tanggalMasuk:"20 Jan 2020", tempatLahir:"Semarang", tanggalLahir:"20 Agu 1993", agama:"Islam", statusNikah:"Belum Menikah", alamat:"Jl. Senayan No. 10, Jakarta Selatan", noKTP:"3201010101930002", npwp:"12.345.678.9-012.350", bank:"Bank BNI", noRekening:"1133557799", bpjsKes:"0001234567895", bpjsTK:"0001234567896", pendidikan:"S1 - Psikologi" },
-  { id:"7", nik:"3201100619750003", nama:"Ir. Gunawan Wibowo", initials:"GW", jabatan:"Manager Produksi", unitKerja:"Produksi", golongan:"A/IV", pangkat:"Pembina", status:"aktif", sp:"SP2", masaKerja:"28 tahun", email:"gunawan.wibowo@pdamtiara.co.id", telepon:"081234567896", jenisKelamin:"L", tanggalMasuk:"10 Jun 1998", tempatLahir:"Jakarta", tanggalLahir:"10 Jun 1975", agama:"Kristen", statusNikah:"Menikah", alamat:"Jl. Kemang Raya No. 99, Jakarta Selatan", noKTP:"3201100619750003", npwp:"12.345.678.9-012.351", bank:"Bank Mandiri", noRekening:"2244668800", bpjsKes:"0001234567896", bpjsTK:"0001234567897", pendidikan:"S1 - Teknik Kimia" },
-  { id:"8", nik:"3201041519890001", nama:"Hendra Kusuma", initials:"HK", jabatan:"Teknisi Distribusi", unitKerja:"Distribusi", golongan:"C/II", pangkat:"Pengatur", status:"aktif", sp:null, masaKerja:"14 tahun", email:"hendra.kusuma@pdamtiara.co.id", telepon:"081234567897", jenisKelamin:"L", tanggalMasuk:"15 Apr 2012", tempatLahir:"Bekasi", tanggalLahir:"15 Apr 1989", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Bekasi Timur No. 33, Bekasi", noKTP:"3201041519890001", npwp:"12.345.678.9-012.352", bank:"Bank BRI", noRekening:"3355779911", bpjsKes:"0001234567897", bpjsTK:"0001234567898", pendidikan:"D3 - Teknik Mesin" },
-  { id:"9", nik:"3201010101650003", nama:"Ir. Joko Wibowo", initials:"JW", jabatan:"Direktur Utama", unitKerja:"Direksi", golongan:"E/IV", pangkat:"Pembina Utama", status:"aktif", sp:null, masaKerja:"36 tahun", email:"joko.wibowo@pdamtiara.co.id", telepon:"081234567898", jenisKelamin:"L", tanggalMasuk:"20 Jan 1990", tempatLahir:"Solo", tanggalLahir:"20 Jan 1965", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Menteng Raya No. 50, Jakarta Pusat", noKTP:"3201010101650003", npwp:"12.345.678.9-012.353", bank:"Bank Mandiri", noRekening:"4466880022", bpjsKes:"0001234567898", bpjsTK:"0001234567899", pendidikan:"S2 - Manajemen" },
-  { id:"10", nik:"3201010101600001", nama:"Karno Sutrisno", initials:"KS", jabatan:"Staff Senior", unitKerja:"Pelayanan", golongan:"D/III", pangkat:"Penata Tk.I", status:"pensiun", sp:"SP3", masaKerja:"35 tahun", email:"karno.sutrisno@pdamtiara.co.id", telepon:"081234567899", jenisKelamin:"L", tanggalMasuk:"01 Jan 1985", tempatLahir:"Purwokerto", tanggalLahir:"01 Jan 1960", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Cempaka Putih No. 77, Jakarta Pusat", noKTP:"3201010101600001", npwp:"12.345.678.9-012.354", bank:"Bank BNI", noRekening:"5577991133", bpjsKes:"0001234567899", bpjsTK:"0001234567900", pendidikan:"S1 - Administrasi Negara" },
-  { id:"11", nik:"3201011519850001", nama:"Lina Marlina", initials:"LM", jabatan:"Kepala Bagian Keuangan", unitKerja:"Keuangan", golongan:"D/III", pangkat:"Penata Tk.I", status:"aktif", sp:null, masaKerja:"17 tahun", email:"lina.marlina@pdamtiara.co.id", telepon:"081234567900", jenisKelamin:"P", tanggalMasuk:"10 Mar 2009", tempatLahir:"Cirebon", tanggalLahir:"10 Mar 1985", agama:"Islam", statusNikah:"Menikah", alamat:"Jl. Rasuna Said No. 15, Jakarta Selatan", noKTP:"3201011519850001", npwp:"12.345.678.9-012.355", bank:"Bank Mandiri", noRekening:"6688002244", bpjsKes:"0001234567900", bpjsTK:"0001234567901", pendidikan:"S1 - Akuntansi" },
-  { id:"12", nik:"3201061519910001", nama:"Made Suardana", initials:"MS", jabatan:"Teknisi IPA", unitKerja:"Produksi", golongan:"B/II", pangkat:"Pengatur Muda Tk.I", status:"aktif", sp:null, masaKerja:"10 tahun", email:"made.suardana@pdamtiara.co.id", telepon:"081234567901", jenisKelamin:"L", tanggalMasuk:"15 Jun 2016", tempatLahir:"Denpasar", tanggalLahir:"15 Jun 1991", agama:"Hindu", statusNikah:"Menikah", alamat:"Jl. Kuningan Timur No. 20, Jakarta Selatan", noKTP:"3201061519910001", npwp:"12.345.678.9-012.356", bank:"Bank BNI", noRekening:"7799113355", bpjsKes:"0001234567901", bpjsTK:"0001234567902", pendidikan:"D3 - Teknik Kimia" },
-]
+
 
 const statusConfig = {
   aktif:       { label: "Aktif",      className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -105,7 +105,7 @@ const golonganOptions = ["A/I","B/I","C/I","D/I","A/II","B/II","C/II","D/II","A/
 const ITEMS_PER_PAGE = 10
 
 export default function EmployeeListPage() {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [unitFilter, setUnitFilter] = useState("all")
@@ -115,31 +115,72 @@ export default function EmployeeListPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [bidangData, setBidangData] = useState<any[]>([])
+  const [stats, setStats] = useState<any>(null)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
 
-  const emptyForm = { nik:"", nama:"", jabatan:"", unitKerja:"", golongan:"", pangkat:"", status:"aktif" as Employee["status"], sp:null as Employee["sp"], masaKerja:"", email:"", telepon:"", jenisKelamin:"L" as Employee["jenisKelamin"], tanggalMasuk:"", tempatLahir:"", tanggalLahir:"", agama:"Islam", statusNikah:"Belum Menikah", alamat:"", noKTP:"", npwp:"", bank:"", noRekening:"", bpjsKes:"", bpjsTK:"", pendidikan:"" }
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    setIsLoading(true)
+    try {
+      const [emps, s, bid] = await Promise.all([
+        getEmployees(),
+        getEmployeeStats(),
+        getBidang(),
+      ])
+      setEmployees(emps as any[])
+      setStats(s)
+      setBidangData(bid.length > 0 ? bid : fallbackBidang)
+    } catch (error) {
+      toast.error("Gagal mengambil data dari database")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const emptyForm = {
+    nik: "", nama: "", email: "", telepon: "",
+    bidangId: "", tipeJabatan: "" as TipeJabatan | "",
+    jabatan: "", atasanLangsung: "",
+    golongan: "", pangkat: "",
+    status: "AKTIF", sp: "",
+    tanggalMasuk: new Date().toISOString().split("T")[0],
+    jenisKelamin: "", tempatLahir: "", tanggalLahir: "",
+    agama: "", statusNikah: "",
+    pendidikanTerakhir: "", jurusan: "", institusi: "", tahunLulus: "",
+    bank: "", noRekening: "", bpjsKesehatan: "", bpjsKetenagakerjaan: "",
+    alamat: "", npwp: "",
+    role: "PEGAWAI", password: "123456",
+  }
   const [form, setForm] = useState(emptyForm)
   const [formErrors, setFormErrors] = useState<Record<string,string>>({})
 
   useEffect(() => { setCurrentPage(1) }, [searchQuery, statusFilter, unitFilter])
 
   const filtered = employees.filter(emp => {
-    const matchSearch = emp.nama.toLowerCase().includes(searchQuery.toLowerCase()) || emp.nik.includes(searchQuery) || emp.jabatan.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchSearch = emp.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      emp.nik.includes(searchQuery) || 
+                      emp.jabatan.toLowerCase().includes(searchQuery.toLowerCase())
     const matchStatus = statusFilter === "all" || emp.status === statusFilter
-    const matchUnit = unitFilter === "all" || emp.unitKerja === unitFilter
+    const matchUnit = unitFilter === "all" || emp.bidangId === unitFilter
     return matchSearch && matchStatus && matchUnit
   })
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
   const paginated = filtered.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE)
-  const units = [...new Set(employees.map(e => e.unitKerja))].sort()
+  const units = bidangData.map(b => ({ id: b.id, nama: b.nama }))
 
   const validate = () => {
     const errors: Record<string,string> = {}
     if (!form.nama.trim()) errors.nama = "Nama wajib diisi"
     if (!form.nik || form.nik.length !== 16) errors.nik = "NIK harus 16 digit"
     if (!form.jabatan.trim()) errors.jabatan = "Jabatan wajib diisi"
-    if (!form.unitKerja) errors.unitKerja = "Unit kerja wajib dipilih"
+    if (!form.bidangId) errors.bidangId = "Unit kerja wajib dipilih"
     if (!form.golongan) errors.golongan = "Golongan wajib dipilih"
     if (!form.email.includes("@")) errors.email = "Format email tidak valid"
     if (!form.telepon || form.telepon.length < 10) errors.telepon = "Nomor telepon tidak valid"
@@ -149,39 +190,54 @@ export default function EmployeeListPage() {
     return Object.keys(errors).length === 0
   }
 
-  const handleAdd = async () => {
-    if (!validate()) return
+  // Handlers
+  const handleCreate = async () => {
+    if (!form.nama || !form.nik || !form.email) {
+      toast.error("Nama, NIK, dan Email wajib diisi")
+      return
+    }
     setIsLoading(true)
-    await new Promise(r => setTimeout(r, 700))
-    const initials = form.nama.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()
-    setEmployees(prev => [{ id:String(Date.now()), initials, ...form }, ...prev])
-    setShowAddDialog(false)
+    try {
+      await createEmployee(form, fotoFile ?? undefined)
+      toast.success("Pegawai berhasil ditambahkan")
+      setShowAddDialog(false)
+      fetchData() // refresh dari DB
+    } catch (error: any) {
+      toast.error(error.message || "Gagal menambahkan pegawai")
+    }
     setIsLoading(false)
-    toast.success(`Pegawai ${form.nama} berhasil ditambahkan`)
   }
 
-  const handleEdit = async () => {
-    if (!validate()) return
+  const handleUpdate = async () => {
+    if (!editingEmployee || !form.nama || !form.nik || !form.email) {
+      toast.error("Nama, NIK, dan Email wajib diisi")
+      return
+    }
     setIsLoading(true)
-    await new Promise(r => setTimeout(r, 700))
-    const initials = form.nama.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()
-    setEmployees(prev => prev.map(e => e.id === editingEmployee!.id ? {...e, ...form, initials} : e))
-    setShowEditDialog(false); setEditingEmployee(null); setIsLoading(false)
-    toast.success(`Data ${form.nama} berhasil diperbarui`)
+    try {
+      await updateEmployee(editingEmployee.id, form, fotoFile ?? undefined)
+      toast.success("Pegawai berhasil diperbarui")
+      setShowEditDialog(false)
+      fetchData()
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memperbarui pegawai")
+    }
+    setIsLoading(false)
   }
 
-  const handleDelete = async () => {
-    if (!deletingEmployee) return
-    setIsLoading(true)
-    await new Promise(r => setTimeout(r, 500))
-    setEmployees(prev => prev.filter(e => e.id !== deletingEmployee.id))
-    setShowDeleteDialog(false); setDeletingEmployee(null); setIsLoading(false)
-    toast.success(`Pegawai ${deletingEmployee.nama} berhasil dihapus`)
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteEmployee(id)
+      toast.success("Pegawai berhasil dihapus")
+      fetchData()
+    } catch {
+      toast.error("Gagal menghapus pegawai")
+    }
   }
 
   const handleExport = () => {
-    const headers = ["NIK","Nama","Jabatan","Unit Kerja","Golongan","Status","SP","Email","Telepon","Masa Kerja"]
-    const rows = filtered.map(e => [e.nik,e.nama,e.jabatan,e.unitKerja,e.golongan,e.status,e.sp??"-",e.email,e.telepon,e.masaKerja])
+    const headers = ["NIK","Nama","Jabatan","Unit Kerja","Golongan","Status","SP","Email","Telepon"]
+    const rows = filtered.map(e => [e.nik,e.nama,e.jabatan,e.bidang?.nama || "-",e.golongan,e.status,e.sp??"-",e.email,e.telepon])
     const csv = [headers,...rows].map(r=>r.join(",")).join("\n")
     const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"})
     const url = URL.createObjectURL(blob)
@@ -190,132 +246,288 @@ export default function EmployeeListPage() {
     toast.success("Data berhasil diekspor")
   }
 
-  const openAdd = () => { setForm(emptyForm); setFormErrors({}); setShowAddDialog(true) }
+  const openAdd = () => { 
+    setForm(emptyForm)
+    setFotoPreview(null)
+    setFotoFile(null)
+    setFormErrors({})
+    setShowAddDialog(true) 
+  }
+
   const openEdit = (emp: Employee) => {
     setEditingEmployee(emp)
-    setForm({nik:emp.nik,nama:emp.nama,jabatan:emp.jabatan,unitKerja:emp.unitKerja,golongan:emp.golongan,pangkat:emp.pangkat,status:emp.status,sp:emp.sp,masaKerja:emp.masaKerja,email:emp.email,telepon:emp.telepon,jenisKelamin:emp.jenisKelamin,tanggalMasuk:emp.tanggalMasuk,tempatLahir:emp.tempatLahir,tanggalLahir:emp.tanggalLahir,agama:emp.agama,statusNikah:emp.statusNikah,alamat:emp.alamat,noKTP:"",npwp:emp.npwp,bank:emp.bank,noRekening:emp.noRekening,bpjsKes:emp.bpjsKes,bpjsTK:emp.bpjsTK,pendidikan:emp.pendidikan})
-    setFormErrors({}); setShowEditDialog(true)
+    setForm({
+      nik: emp.nik,
+      nama: emp.nama,
+      email: emp.email,
+      telepon: emp.telepon || "",
+      bidangId: emp.bidangId || "",
+      tipeJabatan: emp.tipeJabatan as any,
+      jabatan: emp.jabatan,
+      atasanLangsung: emp.atasanLangsung || "",
+      golongan: emp.golongan,
+      pangkat: emp.pangkat as any,
+      status: emp.status,
+      sp: emp.sp || "",
+      tanggalMasuk: emp.tanggalMasuk ? new Date(emp.tanggalMasuk).toISOString().split("T")[0] : "",
+      jenisKelamin: emp.jenisKelamin || "",
+      tempatLahir: emp.tempatLahir || "",
+      tanggalLahir: emp.tanggalLahir ? new Date(emp.tanggalLahir).toISOString().split("T")[0] : "",
+      agama: emp.agama || "",
+      statusNikah: emp.statusNikah || "",
+      pendidikanTerakhir: emp.pendidikanTerakhir || "",
+      jurusan: emp.jurusan || "",
+      institusi: emp.institusi || "",
+      tahunLulus: emp.tahunLulus || "",
+      bank: emp.bank || "",
+      noRekening: emp.noRekening || "",
+      bpjsKesehatan: emp.bpjsKesehatan || "",
+      bpjsKetenagakerjaan: emp.bpjsKetenagakerjaan || "",
+      alamat: emp.alamat || "",
+      npwp: emp.npwp || "",
+      role: "PEGAWAI", // Default for edit
+      password: "", // Handled separately if needed
+    })
+    setFotoPreview(emp.fotoUrl)
+    setFotoFile(null)
+    setFormErrors({})
+    setShowEditDialog(true)
   }
 
   const F = ({label, error, children}: {label:string; error?:string; children:React.ReactNode}) => (
     <div><Label>{label}</Label><div className="mt-1">{children}</div>{error && <p className="mt-1 text-xs text-destructive">{error}</p>}</div>
   )
 
-  const FormBody = () => (
+  const formContent = (
     <div className="space-y-6">
+      {/* Section 1: Foto + Nama + NIK */}
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-dashed border-muted-foreground/30">
+            {fotoPreview ? (
+              <img src={fotoPreview} alt="Preview" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                <Camera className="h-8 w-8" />
+              </div>
+            )}
+          </div>
+          <label className="cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  setFotoFile(file)
+                  setFotoPreview(URL.createObjectURL(file))
+                }
+              }}
+            />
+            <span className="text-xs text-primary underline">Upload Foto</span>
+          </label>
+        </div>
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <F label="Nama Lengkap" error={formErrors.nama}>
+            <Input value={form.nama} onChange={e => setForm({...form, nama: e.target.value})} placeholder="Nama Lengkap" />
+          </F>
+          <F label="NIK (KTP)" error={formErrors.nik}>
+            <Input value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="16 Digit NIK" maxLength={16} />
+          </F>
+          <F label="Email" error={formErrors.email}>
+            <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@perusahaan.com" />
+          </F>
+          <F label="Telepon" error={formErrors.telepon}>
+            <Input value={form.telepon} onChange={e => setForm({...form, telepon: e.target.value})} placeholder="0812..." />
+          </F>
+        </div>
+      </div>
+
+      <DropdownMenuSeparator />
+
+      {/* Section 2: Kepegawaian */}
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2"><F label="Nama Lengkap" error={formErrors.nama}><Input value={form.nama} onChange={e=>setForm({...form,nama:e.target.value})} placeholder="Nama lengkap"/></F></div>
-          <F label="NIK (16 digit)" error={formErrors.nik}><Input value={form.nik} onChange={e=>setForm({...form,nik:e.target.value})} placeholder="16 digit NIK" maxLength={16} className="font-mono"/></F>
-          <F label="Unit Kerja / Bidang" error={formErrors.unitKerja}>
-            <Select 
-              value={bidangList.find(b => b.nama === form.unitKerja)?.id ?? ""} 
-              onValueChange={v => {
-                const b = bidangList.find(x => x.id === v)
-                setForm({...form, unitKerja: b?.nama ?? "", jabatan: ""})
-              }}
-            >
-              <SelectTrigger><SelectValue placeholder="Pilih unit"/></SelectTrigger>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <F label="Bidang / Unit Kerja">
+            <Select value={form.bidangId} onValueChange={v => setForm({...form, bidangId: v, jabatan: ""})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Bidang" /></SelectTrigger>
               <SelectContent>
-                {bidangList.filter(b => b.aktif).map(b => (
-                  <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
+                {bidangData.map(b => <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </F>
+          <F label="Tipe Jabatan">
+            <Select value={form.tipeJabatan} onValueChange={v => setForm({...form, tipeJabatan: v as any})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
+                <SelectItem value="kasubbid">Kasubbid</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+              </SelectContent>
+            </Select>
+          </F>
+          <F label="Jabatan">
+            <Select 
+              value={form.jabatan} 
+              onValueChange={v => setForm({...form, jabatan: v})}
+              disabled={!form.bidangId}
+            >
+              <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
+              <SelectContent>
+                {getJabatanOptions(form.bidangId, bidangData).map(opt => (
+                  <SelectItem key={opt.value} value={opt.label}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </F>
-          {form.unitKerja && (
-            <F label="Jabatan" error={formErrors.jabatan}>
-              <Select
-                value={form.jabatan}
-                onValueChange={v => {
-                  const bid = bidangList.find(b => b.nama === form.unitKerja)
-                  if (!bid) return
-                  const tipe = v as TipeJabatan
-                  setForm({...form, jabatan: getJabatanLabel(tipe, bid.nama)})
-                }}
-              >
-                <SelectTrigger><SelectValue placeholder="Pilih jabatan"/></SelectTrigger>
-                <SelectContent>
-                  {getJabatanOptions(
-                    bidangList.find(b => b.nama === form.unitKerja)?.id ?? ""
-                  ).map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </F>
-          )}
-          <F label="Golongan" error={formErrors.golongan}>
-            <Select value={form.golongan} onValueChange={v=>setForm({...form,golongan:v})}>
-              <SelectTrigger><SelectValue placeholder="Pilih golongan"/></SelectTrigger>
-              <SelectContent>{golonganOptions.map(g=><SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+          <F label="Pangkat">
+            <Input value={form.pangkat} onChange={e => setForm({...form, pangkat: e.target.value})} placeholder="Misal: Penata" />
+          </F>
+          <F label="Golongan">
+            <Select value={form.golongan} onValueChange={v => setForm({...form, golongan: v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+              <SelectContent>
+                {golonganOptions.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              </SelectContent>
             </Select>
           </F>
-          <F label="Pangkat"><Input value={form.pangkat} onChange={e=>setForm({...form,pangkat:e.target.value})} placeholder="Nama pangkat"/></F>
-          <F label="Status">
-            <Select value={form.status} onValueChange={v=>setForm({...form,status:v as any})}>
-              <SelectTrigger><SelectValue/></SelectTrigger>
-              <SelectContent><SelectItem value="aktif">Aktif</SelectItem><SelectItem value="cuti">Cuti</SelectItem><SelectItem value="non-aktif">Non-Aktif</SelectItem><SelectItem value="pensiun">Pensiun</SelectItem></SelectContent>
+          <F label="Status Pegawai">
+            <Select value={form.status} onValueChange={v => setForm({...form, status: v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AKTIF">Aktif</SelectItem>
+                <SelectItem value="CUTI">Cuti</SelectItem>
+                <SelectItem value="NON_AKTIF">Non-Aktif</SelectItem>
+                <SelectItem value="PENSIUN">Pensiun</SelectItem>
+              </SelectContent>
             </Select>
           </F>
-          <F label="Surat Peringatan (SP)">
-            <Select value={form.sp??"none"} onValueChange={v=>setForm({...form,sp:v==="none"?null:v as any})}>
-              <SelectTrigger><SelectValue placeholder="Tidak Ada SP"/></SelectTrigger>
-              <SelectContent><SelectItem value="none">Tidak Ada SP</SelectItem><SelectItem value="SP1">SP-1 (Peringatan Pertama)</SelectItem><SelectItem value="SP2">SP-2 (Peringatan Kedua)</SelectItem><SelectItem value="SP3">SP-3 (Peringatan Ketiga)</SelectItem></SelectContent>
+          <F label="Tanggal Masuk">
+            <Input type="date" value={form.tanggalMasuk} onChange={e => setForm({...form, tanggalMasuk: e.target.value})} />
+          </F>
+          <F label="SP (Jika Ada)">
+            <Select value={form.sp || ""} onValueChange={v => setForm({...form, sp: v === "" ? null : v})}>
+              <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Tidak Ada</SelectItem>
+                <SelectItem value="SP1">SP 1</SelectItem>
+                <SelectItem value="SP2">SP 2</SelectItem>
+                <SelectItem value="SP3">SP 3</SelectItem>
+              </SelectContent>
             </Select>
           </F>
-          <F label="Tanggal Masuk"><Input value={form.tanggalMasuk} onChange={e=>setForm({...form,tanggalMasuk:e.target.value})} placeholder="01 Jan 2020"/></F>
         </div>
+        {(form.tipeJabatan as TipeJabatan) && form.bidangId && (
+          <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-emerald-600" />
+            <span className="text-xs text-emerald-800 font-medium">
+              Atasan Otomatis: {getAtasanOtomatis(form.tipeJabatan as TipeJabatan, form.bidangId, bidangData)}
+            </span>
+          </div>
+        )}
       </section>
+
+      <DropdownMenuSeparator />
+
+      {/* Section 3: Data Pribadi */}
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Pribadi</p>
-        <div className="grid grid-cols-2 gap-4">
-          <F label="Tempat Lahir"><Input value={form.tempatLahir} onChange={e=>setForm({...form,tempatLahir:e.target.value})} placeholder="Kota lahir"/></F>
-          <F label="Tanggal Lahir"><Input value={form.tanggalLahir} onChange={e=>setForm({...form,tanggalLahir:e.target.value})} placeholder="01 Jan 1990"/></F>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <F label="Tempat Lahir">
+            <Input value={form.tempatLahir} onChange={e => setForm({...form, tempatLahir: e.target.value})} placeholder="Kota Kelahiran" />
+          </F>
+          <F label="Tanggal Lahir">
+            <Input type="date" value={form.tanggalLahir} onChange={e => setForm({...form, tanggalLahir: e.target.value})} />
+          </F>
           <F label="Jenis Kelamin">
-            <Select value={form.jenisKelamin} onValueChange={v=>setForm({...form,jenisKelamin:v as any})}>
-              <SelectTrigger><SelectValue/></SelectTrigger>
-              <SelectContent><SelectItem value="L">Laki-laki</SelectItem><SelectItem value="P">Perempuan</SelectItem></SelectContent>
+            <Select value={form.jenisKelamin} onValueChange={v => setForm({...form, jenisKelamin: v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih JKL" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="L">Laki-laki</SelectItem>
+                <SelectItem value="P">Perempuan</SelectItem>
+              </SelectContent>
             </Select>
           </F>
           <F label="Agama">
-            <Select value={form.agama} onValueChange={v=>setForm({...form,agama:v})}>
-              <SelectTrigger><SelectValue/></SelectTrigger>
-              <SelectContent>{["Islam","Kristen","Katolik","Hindu","Buddha","Konghucu"].map(a=><SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+            <Select value={form.agama || ""} onValueChange={v => setForm({...form, agama: v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Agama" /></SelectTrigger>
+              <SelectContent>
+                {["ISLAM","KRISTEN","KATOLIK","HINDU","BUDDHA","KONGHUCU"].map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
             </Select>
           </F>
-          <F label="Status Pernikahan">
-            <Select value={form.statusNikah} onValueChange={v=>setForm({...form,statusNikah:v})}>
-              <SelectTrigger><SelectValue/></SelectTrigger>
-              <SelectContent><SelectItem value="Belum Menikah">Belum Menikah</SelectItem><SelectItem value="Menikah">Menikah</SelectItem><SelectItem value="Cerai">Cerai</SelectItem></SelectContent>
+          <F label="Status Nikah">
+            <Select value={form.statusNikah || ""} onValueChange={v => setForm({...form, statusNikah: v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BELUM_MENIKAH">Belum Menikah</SelectItem>
+                <SelectItem value="MENIKAH">Menikah</SelectItem>
+                <SelectItem value="CERAI">Cerai</SelectItem>
+              </SelectContent>
             </Select>
           </F>
-          <F label="Pendidikan Terakhir"><Input value={form.pendidikan} onChange={e=>setForm({...form,pendidikan:e.target.value})} placeholder="S1 - Teknik Informatika"/></F>
-          <div className="col-span-2"><F label="Alamat Lengkap"><Textarea value={form.alamat} onChange={e=>setForm({...form,alamat:e.target.value})} placeholder="Alamat lengkap" rows={2}/></F></div>
+        </div>
+        <div className="mt-4">
+          <F label="Alamat Domisili">
+            <Textarea value={form.alamat} onChange={e => setForm({...form, alamat: e.target.value})} placeholder="Alamat lengkap tempat tinggal saat ini" />
+          </F>
         </div>
       </section>
+
+      <DropdownMenuSeparator />
+
+      {/* Section 4: Pendidikan */}
       <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Kontak & Keuangan</p>
-        <div className="grid grid-cols-2 gap-4">
-          <F label="Email" error={formErrors.email}><Input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="email@pdamtiara.co.id"/></F>
-          <F label="Telepon" error={formErrors.telepon}><Input value={form.telepon} onChange={e=>setForm({...form,telepon:e.target.value})} placeholder="08xxxxxxxxxx"/></F>
-          <F label="NPWP"><Input value={form.npwp} onChange={e=>setForm({...form,npwp:e.target.value})} placeholder="xx.xxx.xxx.x-xxx.xxx" className="font-mono"/></F>
-          <F label="Bank">
-            <Select value={form.bank} onValueChange={v=>setForm({...form,bank:v})}>
-              <SelectTrigger><SelectValue placeholder="Pilih bank"/></SelectTrigger>
-              <SelectContent>{["Bank Mandiri","Bank BNI","Bank BRI","Bank BCA","Bank BTN","Bank Syariah Indonesia"].map(b=><SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pendidikan Terakhir</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <F label="Tingkat Pendidikan">
+            <Select value={form.pendidikanTerakhir || ""} onValueChange={v => setForm({...form, pendidikanTerakhir: v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Jenjang" /></SelectTrigger>
+              <SelectContent>
+                {["SD","SMP","SMA","D1","D2","D3","D4","S1","S2","S3"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
             </Select>
           </F>
-          <F label="No. Rekening"><Input value={form.noRekening} onChange={e=>setForm({...form,noRekening:e.target.value})} placeholder="No rekening" className="font-mono"/></F>
-          <F label="BPJS Kesehatan"><Input value={form.bpjsKes} onChange={e=>setForm({...form,bpjsKes:e.target.value})} placeholder="No. BPJS Kes" className="font-mono"/></F>
-          <F label="BPJS Ketenagakerjaan"><Input value={form.bpjsTK} onChange={e=>setForm({...form,bpjsTK:e.target.value})} placeholder="No. BPJS TK" className="font-mono"/></F>
+          <F label="Jurusan">
+            <Input value={form.jurusan} onChange={e => setForm({...form, jurusan: e.target.value})} placeholder="Nama Jurusan" />
+          </F>
+          <F label="Institusi / Sekolah">
+            <Input value={form.institusi} onChange={e => setForm({...form, institusi: e.target.value})} placeholder="Nama Kampus/Sekolah" />
+          </F>
+          <F label="Tahun Lulus">
+            <Input value={form.tahunLulus} onChange={e => setForm({...form, tahunLulus: e.target.value})} placeholder="2020" maxLength={4} />
+          </F>
+        </div>
+      </section>
+
+      <DropdownMenuSeparator />
+
+      {/* Section 5: Keuangan & Dokumen */}
+      <section>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Keuangan & Dokumen</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <F label="Bank">
+            <Input value={form.bank} onChange={e => setForm({...form, bank: e.target.value})} placeholder="BCA / Mandiri / dst" />
+          </F>
+          <F label="No. Rekening">
+            <Input value={form.noRekening} onChange={e => setForm({...form, noRekening: e.target.value})} placeholder="000111222" />
+          </F>
+          <F label="NPWP">
+            <Input value={form.npwp} onChange={e => setForm({...form, npwp: e.target.value})} placeholder="00.000.000..." />
+          </F>
+          <F label="BPJS Kesehatan">
+            <Input value={form.bpjsKesehatan} onChange={e => setForm({...form, bpjsKesehatan: e.target.value})} placeholder="No Kartu BPJS" />
+          </F>
+          <F label="BPJS Ketenagakerjaan">
+            <Input value={form.bpjsKetenagakerjaan} onChange={e => setForm({...form, bpjsKetenagakerjaan: e.target.value})} placeholder="No KPJ" />
+          </F>
         </div>
       </section>
     </div>
   )
 
-  const stats = { total:employees.length, aktif:employees.filter(e=>e.status==="aktif").length, cuti:employees.filter(e=>e.status==="cuti").length, nonAktif:employees.filter(e=>e.status==="non-aktif"||e.status==="pensiun").length }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -340,8 +552,8 @@ export default function EmployeeListPage() {
           <Card className="card-premium mb-4"><CardContent className="p-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input placeholder="Cari nama, NIK, atau jabatan..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} className="pl-10"/></div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Status"/></SelectTrigger><SelectContent><SelectItem value="all">Semua Status</SelectItem><SelectItem value="aktif">Aktif</SelectItem><SelectItem value="cuti">Cuti</SelectItem><SelectItem value="non-aktif">Non-Aktif</SelectItem><SelectItem value="pensiun">Pensiun</SelectItem></SelectContent></Select>
-              <Select value={unitFilter} onValueChange={setUnitFilter}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Unit Kerja"/></SelectTrigger><SelectContent><SelectItem value="all">Semua Unit</SelectItem>{units.map(u=><SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Status"/></SelectTrigger><SelectContent><SelectItem value="all">Semua Status</SelectItem><SelectItem value="AKTIF">Aktif</SelectItem><SelectItem value="CUTI">Cuti</SelectItem><SelectItem value="NON_AKTIF">Non-Aktif</SelectItem><SelectItem value="PENSIUN">Pensiun</SelectItem></SelectContent></Select>
+              <Select value={unitFilter} onValueChange={setUnitFilter}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Unit Kerja"/></SelectTrigger><SelectContent><SelectItem value="all">Semua Unit</SelectItem>{units.map(u=><SelectItem key={u.id} value={u.id}>{u.nama}</SelectItem>)}</SelectContent></Select>
             </div>
           </CardContent></Card>
 
@@ -362,17 +574,28 @@ export default function EmployeeListPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.length === 0 ? (
+                   {paginated.length === 0 ? (
                     <TableRow><TableCell colSpan={9} className="py-12 text-center"><div className="flex flex-col items-center gap-2"><Search className="h-8 w-8 text-muted-foreground/50"/><p className="font-medium text-muted-foreground">Tidak ada pegawai ditemukan</p></div></TableCell></TableRow>
                   ) : paginated.map(emp=>(
                     <TableRow key={emp.id} className="hover:bg-muted/30">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10"><AvatarFallback className="bg-primary/10 text-sm text-primary">{emp.initials}</AvatarFallback></Avatar>
+                          <Avatar className="h-10 w-10">
+                            {emp.fotoUrl ? (
+                              <AvatarImage src={emp.fotoUrl} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="bg-primary/10 text-sm text-primary">
+                              {emp.nama.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
                             <div className="flex items-center gap-2">
                               <Link href={`/pegawai/${emp.id}`} className="font-medium hover:text-primary hover:underline">{emp.nama}</Link>
-                              {emp.sp && <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${spConfig[emp.sp].className}`}>{spConfig[emp.sp].label}</Badge>}
+                              {emp.sp && spConfig[emp.sp as keyof typeof spConfig] && (
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${spConfig[emp.sp as keyof typeof spConfig].className}`}>
+                                  {spConfig[emp.sp as keyof typeof spConfig].label}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground">{emp.jenisKelamin==="L"?"Laki-laki":"Perempuan"}</p>
                           </div>
@@ -380,10 +603,14 @@ export default function EmployeeListPage() {
                       </TableCell>
                       <TableCell className="font-mono text-xs">{emp.nik}</TableCell>
                       <TableCell className="text-sm">{emp.jabatan}</TableCell>
-                      <TableCell className="text-sm">{emp.unitKerja}</TableCell>
+                      <TableCell className="text-sm">{emp.bidang?.nama}</TableCell>
                       <TableCell><Badge variant="outline" className="font-mono text-xs">{emp.golongan}</Badge></TableCell>
-                      <TableCell className="text-sm">{emp.masaKerja}</TableCell>
-                      <TableCell className="text-center"><Badge variant="outline" className={statusConfig[emp.status].className}>{statusConfig[emp.status].label}</Badge></TableCell>
+                      <TableCell className="text-sm">{emp.masaKerja || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={statusConfig[emp.status.toLowerCase() as keyof typeof statusConfig]?.className}>
+                          {emp.status}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <a href={`mailto:${emp.email}`} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"><Mail className="h-3 w-3"/><span className="max-w-[120px] truncate">{emp.email}</span></a>
@@ -418,26 +645,24 @@ export default function EmployeeListPage() {
         </main>
       </div>
 
-      {/* Dialog Tambah */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Tambah Pegawai Baru</DialogTitle><DialogDescription>Lengkapi semua data pegawai</DialogDescription></DialogHeader>
-          <FormBody/>
+          <div className="py-4">{formContent}</div>
           <DialogFooter>
             <Button variant="outline" onClick={()=>setShowAddDialog(false)}>Batal</Button>
-            <Button onClick={handleAdd} disabled={isLoading}>{isLoading?<><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menyimpan...</>:"Tambah Pegawai"}</Button>
+            <Button onClick={handleCreate} disabled={isLoading}>{isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menyimpan...</> : "Tambah Pegawai"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Edit */}
-      <Dialog open={showEditDialog} onOpenChange={v=>{setShowEditDialog(v);if(!v)setEditingEmployee(null)}}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={showEditDialog} onOpenChange={v=>{setShowEditDialog(v);if(!v){setEditingEmployee(null)}}}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Data — {editingEmployee?.nama}</DialogTitle><DialogDescription>Perbarui data pegawai</DialogDescription></DialogHeader>
-          <FormBody/>
+          <div className="py-4">{formContent}</div>
           <DialogFooter>
             <Button variant="outline" onClick={()=>{setShowEditDialog(false);setEditingEmployee(null)}}>Batal</Button>
-            <Button onClick={handleEdit} disabled={isLoading}>{isLoading?<><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menyimpan...</>:"Simpan Perubahan"}</Button>
+            <Button onClick={handleUpdate} disabled={isLoading}>{isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menyimpan...</> : "Simpan Perubahan"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -451,7 +676,7 @@ export default function EmployeeListPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isLoading?<><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menghapus...</>:"Ya, Hapus"}</AlertDialogAction>
+            <AlertDialogAction onClick={() => deletingEmployee && handleDelete(deletingEmployee.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isLoading?<><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menghapus...</>:"Ya, Hapus"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,6 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { getEmployeeByUserId, updateEmployee, uploadAvatar } from "@/lib/actions/pegawai"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { Button } from "@/components/ui/button"
@@ -8,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
@@ -134,24 +136,85 @@ const formatCurrency = (v: number) => new Intl.NumberFormat("id-ID",{style:"curr
 
 // ============ KOMPONEN UTAMA ============
 export default function MyProfilePage() {
-  const [profile, setProfile] = useState(initialProfile)
+  const { data: session } = useSession()
+  const userId = (session?.user as any)?.id
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("data-diri")
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [form, setForm] = useState({...initialProfile})
+  const [isUploading, setIsUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [form, setForm] = useState<any>({})
+
+  useEffect(() => {
+    if (userId) {
+      fetchProfile()
+    }
+  }, [userId])
+
+  const fetchProfile = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getEmployeeByUserId(userId)
+      if (data) {
+        setProfile({
+          ...data,
+          initials: data.initials || data.nama.split(" ").map((n:any)=>n[0]).join("").slice(0,2).toUpperCase(),
+          name: data.nama,
+          nik: data.nik,
+          // Fallback fields for UI compatibility
+          noKTP: data.nik,
+          noBPJSKes: data.bpjsKes,
+          noBPJSTK: data.bpjsTK,
+        })
+        setForm({ ...data })
+      }
+    } catch (error) {
+      toast.error("Gagal mengambil data profil")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const url = await uploadAvatar(formData)
+      setForm(prev => ({ ...prev, avatar: url }))
+      setPreviewUrl(url)
+      toast.success("Foto profil berhasil diunggah")
+    } catch (error) {
+      toast.error("Gagal mengunggah foto profil")
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const handleOpenEdit = () => {
-    setForm({...profile})
+    setForm({ ...profile })
     setShowEditDialog(true)
   }
 
   const handleSave = async () => {
-    setIsLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    setProfile({...form})
-    setShowEditDialog(false)
-    setIsLoading(false)
-    toast.success("Profil berhasil diperbarui")
+    if (!profile) return
+    setIsSaving(true)
+    try {
+      await updateEmployee(profile.id, form)
+      await fetchProfile()
+      setShowEditDialog(false)
+      toast.success("Profil berhasil diperbarui")
+    } catch (error) {
+      toast.error("Gagal memperbarui profil")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDownloadCV = () => {
@@ -163,6 +226,21 @@ export default function MyProfilePage() {
     toast.success("CV berhasil didownload")
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <p className="text-muted-foreground">Profil tidak ditemukan. Pastikan Anda sudah login atau ID pegawai sudah terdaftar.</p>
+      </div>
+    )
+  }
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav/>
@@ -185,8 +263,8 @@ export default function MyProfilePage() {
                         {profile.status==="aktif"?"Aktif":profile.status==="cuti"?"Cuti":"Non-Aktif"}
                       </Badge>
                       {profile.sp && (
-                        <Badge variant="outline" className={spConfig[profile.sp].className}>
-                          {spConfig[profile.sp].label}
+                        <Badge variant="outline" className={spConfig[profile.sp as keyof typeof spConfig]?.className || ""}>
+                          {spConfig[profile.sp as keyof typeof spConfig]?.label || profile.sp}
                         </Badge>
                       )}
                     </div>
@@ -620,8 +698,8 @@ export default function MyProfilePage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={()=>setShowEditDialog(false)}>Batal</Button>
-            <Button onClick={handleSave} disabled={isLoading}>
-              {isLoading?<><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menyimpan...</>:"Simpan Perubahan"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Menyimpan...</> : "Simpan Perubahan"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
@@ -65,8 +65,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useParams } from "next/navigation"
-import { pegawaiData } from "@/lib/data/pegawai-store"
+import { getEmployee, updateEmployee, uploadFotoPegawai } from "@/lib/actions/pegawai"
 import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
+import { Camera } from "lucide-react"
 
 const statusConfig = {
   aktif: { label: "Aktif", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -160,50 +161,107 @@ export default function EmployeeDetailPage() {
   const id = params.id as string
   const [activeTab, setActiveTab] = useState("profil")
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // Find employee from store
-  const storeEmployee = pegawaiData.find(e => e.id === id) || pegawaiData[0]
+  const [employee, setEmployee] = useState<any>(null)
+  const [formData, setFormData] = useState<any>({})
 
-  // Convert store format to detail page format if different
-  const [employee, setEmployee] = useState({
-    ...storeEmployee,
-    name: storeEmployee.nama,
-    noKtp: storeEmployee.nik, // Using nik as kpt for demo consistency
-    pendidikanTerakhir: storeEmployee.pendidikan,
-    usia: "39 tahun", // Placeholder
-    atasanLangsung: "Ir. Joko Wibowo",
-    bpjsKesehatan: storeEmployee.bpjsKes,
-    bpjsKetenagakerjaan: storeEmployee.bpjsTK,
-    tmt: storeEmployee.tanggalMasuk,
-  })
+  useEffect(() => {
+    fetchEmployee()
+  }, [id])
 
-  // Form state — pre-filled dari data pegawai
-  const [formData, setFormData] = useState({ ...employee })
+  const fetchEmployee = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getEmployee(id)
+      if (data) {
+        setEmployee(data)
+        setFormData({ ...data })
+      }
+    } catch (error) {
+      toast.error("Gagal mengambil data pegawai")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleOpenEdit = () => {
     setFormData({ ...employee }) // reset form ke data terkini
     setShowEditDialog(true)
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    toast.loading("Mengupload foto...")
+    try {
+      const url = await uploadFotoPegawai(id, file)
+      setEmployee((prev: any) => ({ ...prev, fotoUrl: url }))
+      setPreviewUrl(url)
+      toast.dismiss()
+      toast.success("Foto berhasil diperbarui")
+    } catch (error) {
+      toast.dismiss()
+      toast.error("Gagal mengunggah foto")
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const handleSaveEdit = async () => {
-    setIsLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    setEmployee({ ...formData })
-    setShowEditDialog(false)
-    setIsLoading(false)
-    toast.success("Data pegawai berhasil diperbarui")
+    setIsSaving(true)
+    try {
+      await updateEmployee(id, formData)
+      await fetchEmployee()
+      setShowEditDialog(false)
+      toast.success("Data pegawai berhasil diperbarui")
+    } catch (error) {
+      toast.error("Gagal memperbarui data pegawai")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev: any) => ({ ...prev, [field]: value }))
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!employee) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <SidebarNav />
+        <div className="flex flex-1 flex-col sidebar-offset">
+          <TopBar breadcrumb={["Kepegawaian", "Data Pegawai", "Not Found"]} />
+          <main className="flex flex-1 items-center justify-center p-6">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold">Pegawai Tidak Ditemukan</h1>
+              <p className="mt-2 text-muted-foreground">ID pegawai tidak valid atau sudah dihapus.</p>
+              <Button asChild className="mt-6"><Link href="/pegawai">Kembali ke Daftar</Link></Button>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
       <div className="flex flex-1 flex-col sidebar-offset">
-        <TopBar breadcrumb={["Kepegawaian", "Data Pegawai", employee.name]} />
+        <TopBar breadcrumb={["Kepegawaian", "Data Pegawai", employee?.nama]} />
         <main className="flex-1 overflow-auto p-6">
           {/* Back Button */}
           <div className="mb-4">
@@ -220,22 +278,32 @@ export default function EmployeeDetailPage() {
             <CardContent className="p-6">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 {/* Left - Avatar & Basic Info */}
-                <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-                  <Avatar className="h-28 w-28 shrink-0">
-                    <AvatarImage src={employee.avatar} />
-                    <AvatarFallback className="bg-primary text-3xl text-primary-foreground">
-                      {employee.initials}
-                    </AvatarFallback>
-                  </Avatar>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="flex flex-col items-center gap-2">
+                    <Avatar className="h-28 w-28 shrink-0 border-2 border-primary/10">
+                      {employee.fotoUrl ? (
+                        <AvatarImage src={employee.fotoUrl} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/5 text-3xl text-primary">
+                        {employee.nama?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <label className="cursor-pointer">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                      <span className="flex items-center gap-1 text-[10px] text-primary hover:underline">
+                        <Camera className="h-3 w-3" /> Ganti Foto
+                      </span>
+                    </label>
+                  </div>
                   <div>
                     <div className="flex items-center gap-3">
-                      <h1 className="text-2xl font-bold text-foreground">{employee.name}</h1>
+                      <h1 className="text-2xl font-bold text-foreground">{employee.nama}</h1>
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="outline"
-                          className={statusConfig[employee.status].className}
+                          className={statusConfig[employee.status.toLowerCase() as keyof typeof statusConfig]?.className || ""}
                         >
-                          {statusConfig[employee.status].label}
+                          {statusConfig[employee.status.toLowerCase() as keyof typeof statusConfig]?.label || employee.status}
                         </Badge>
                         {employee.sp === "SP1" && <Badge variant="outline" className={spConfig.SP1.className}>SP-1</Badge>}
                         {employee.sp === "SP2" && <Badge variant="outline" className={spConfig.SP2.className}>SP-2</Badge>}
@@ -246,15 +314,15 @@ export default function EmployeeDetailPage() {
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <Building2 className="h-4 w-4" />
-                        {employee.unitKerja}
+                        {employee.bidang?.nama || "-"}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Briefcase className="h-4 w-4" />
-                        Golongan {employee.golongan}
+                        Golongan {employee.golongan || "-"}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4" />
-                        {employee.masaKerja}
+                        Masuk: {new Date(employee.tanggalMasuk).toLocaleDateString("id-ID")}
                       </span>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
@@ -393,7 +461,7 @@ export default function EmployeeDetailPage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Tempat, Tanggal Lahir</p>
-                        <p className="font-medium">{employee.tempatLahir}, {employee.tanggalLahir}</p>
+                        <p className="font-medium">{employee.tempatLahir || "-"}, {employee.tanggalLahir || "-"}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Usia</p>
@@ -432,7 +500,7 @@ export default function EmployeeDetailPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground">TMT Kerja</p>
-                        <p className="font-medium">{employee.tmt}</p>
+                        <p className="font-medium">{new Date(employee.tanggalMasuk).toLocaleDateString("id-ID")}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Masa Kerja</p>
@@ -444,7 +512,7 @@ export default function EmployeeDetailPage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Unit Kerja</p>
-                        <p className="font-medium">{employee.unitKerja}</p>
+                        <p className="font-medium">{employee.bidang?.nama || "-"}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Golongan</p>
@@ -900,15 +968,52 @@ export default function EmployeeDetailPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Foto Pegawai */}
+            <section>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Foto Pegawai</p>
+              <div className="flex items-center gap-6">
+                <Avatar className="h-24 w-24 border-2 border-primary/20">
+                  {previewUrl || formData.fotoUrl ? (
+                    <AvatarImage src={previewUrl || formData.fotoUrl} className="object-cover" />
+                  ) : null}
+                  <AvatarFallback className="bg-primary/5 text-2xl text-primary">
+                    {formData.nama?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="avatar-upload" className="cursor-pointer">
+                    <div className="flex items-center gap-2 rounded-lg border-2 border-dashed border-primary/20 p-4 transition-colors hover:bg-primary/5">
+                      {isUploading ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      ) : (
+                        <Download className="h-5 w-5 text-primary" />
+                      )}
+                      <span className="text-sm font-medium text-primary">
+                        {isUploading ? "Mengunggah..." : "Klik untuk unggah foto"}
+                      </span>
+                      <Input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                      />
+                    </div>
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground">Rekomendasi: File gambar (JPG, PNG) maks. 2MB</p>
+                </div>
+              </div>
+            </section>
 
             {/* Nama */}
             <div>
               <Label>Nama Lengkap</Label>
               <Input
                 className="mt-1"
-                value={formData.name}
-                onChange={e => handleChange("name", e.target.value)}
+                value={formData.nama || ""}
+                onChange={e => handleChange("nama", e.target.value)}
               />
             </div>
 
@@ -938,17 +1043,17 @@ export default function EmployeeDetailPage() {
               <div>
                 <Label>Bidang / Unit Kerja</Label>
                 <Select
-                  value={bidangList.find(b => b.nama === formData.unitKerja)?.id ?? ""}
+                  value={formData.bidangId || ""}
                   onValueChange={v => {
                     const b = bidangList.find(x => x.id === v)
-                    handleChange("unitKerja", b?.nama ?? "")
+                    handleChange("bidangId", v)
                     handleChange("jabatan", "")
                     handleChange("atasanLangsung", "")
                   }}
                 >
                   <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih bidang" /></SelectTrigger>
                   <SelectContent>
-                    {bidangList.filter(b => b.aktif).map(b => (
+                    {bidangList.map(b => (
                       <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
                     ))}
                   </SelectContent>
@@ -956,13 +1061,13 @@ export default function EmployeeDetailPage() {
               </div>
 
               {/* Jabatan */}
-              {formData.unitKerja && (
+              {formData.bidangId && (
                 <div>
                   <Label>Jabatan</Label>
                   <Select
                     value={formData.jabatan}
                     onValueChange={v => {
-                      const bid = bidangList.find(b => b.nama === formData.unitKerja)
+                      const bid = bidangList.find(b => b.id === formData.bidangId)
                       if (!bid) return
                       const tipe = v as TipeJabatan
                       handleChange("jabatan", getJabatanLabel(tipe, bid.nama))
@@ -971,9 +1076,7 @@ export default function EmployeeDetailPage() {
                   >
                     <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
                     <SelectContent>
-                      {getJabatanOptions(
-                        bidangList.find(b => b.nama === formData.unitKerja)?.id ?? ""
-                      ).map(opt => (
+                      {getJabatanOptions(formData.bidangId).map(opt => (
                         <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1014,10 +1117,10 @@ export default function EmployeeDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="aktif">Aktif</SelectItem>
-                    <SelectItem value="cuti">Cuti</SelectItem>
-                    <SelectItem value="non-aktif">Non-Aktif</SelectItem>
-                    <SelectItem value="pensiun">Pensiun</SelectItem>
+                    <SelectItem value="AKTIF">Aktif</SelectItem>
+                    <SelectItem value="CUTI">Cuti</SelectItem>
+                    <SelectItem value="NON_AKTIF">Non-Aktif</SelectItem>
+                    <SelectItem value="PENSIUN">Pensiun</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1026,13 +1129,13 @@ export default function EmployeeDetailPage() {
             {/* SP Status */}
             <div>
               <Label>Surat Peringatan (SP)</Label>
-              <Select value={formData.sp ?? "none"} onValueChange={v => handleChange("sp", v === "none" ? null : v)}>
+              <Select value={formData.sp || ""} onValueChange={v => handleChange("sp", v === "" ? null : v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Tidak ada SP" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Tidak Ada SP</SelectItem>
-                  <SelectItem value="sp1">SP-1 (Peringatan Pertama)</SelectItem>
-                  <SelectItem value="sp2">SP-2 (Peringatan Kedua)</SelectItem>
-                  <SelectItem value="sp3">SP-3 (Peringatan Ketiga)</SelectItem>
+                  <SelectItem value="">Tidak Ada SP</SelectItem>
+                  <SelectItem value="SP1">SP-1 (Peringatan Pertama)</SelectItem>
+                  <SelectItem value="SP2">SP-2 (Peringatan Kedua)</SelectItem>
+                  <SelectItem value="SP3">SP-3 (Peringatan Ketiga)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
