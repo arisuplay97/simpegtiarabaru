@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useSession } from "next-auth/react"
 import { canApprove, processApprove, processReject, Pengajuan } from "@/lib/approval-flow"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -344,7 +344,8 @@ const priorityConfig = {
 }
 
 export default function ApprovalCenterPage() {
-  const { user } = useAuth()
+  const { data: session } = useSession()
+  const user = session?.user
   const [items, setItems] = useState<ApprovalItem[]>(approvalItems as ApprovalItem[])
   const [selectedTab, setSelectedTab] = useState("pending")
   const [searchQuery, setSearchQuery] = useState("")
@@ -590,7 +591,7 @@ export default function ApprovalCenterPage() {
                                 {item.date}
                               </div>
                               <div className="mt-3 flex items-center gap-2">
-                                {user?.role !== "pegawai" && item.status === "pending" && (
+                                {user?.role !== "PEGAWAI" && item.status === "pending" && (
                                   <>
                                     <Button
                                       size="sm"

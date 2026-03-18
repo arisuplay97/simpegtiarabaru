@@ -2,7 +2,8 @@
 
 import React from "react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useSession } from "next-auth/react"
+import { hasPermission } from "@/lib/auth/permissions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -68,7 +69,9 @@ function statusClass(status: SPStatus) {
 }
 
 export default function SPPage() {
-  const { can } = useAuth()
+  const { data: session } = useSession()
+  const user = session?.user
+  const can = (permission: string) => hasPermission(user?.role, permission)
   const [rows, setRows] = React.useState<SPItem[]>(initialData)
   const [open, setOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<SPItem | null>(null)

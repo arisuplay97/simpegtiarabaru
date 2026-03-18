@@ -2,8 +2,9 @@
 
 import React from "react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
-import { demoUsers, useAuth, roleLabels } from "@/components/auth/auth-provider"
-import type { AppRole, DemoUser } from "@/lib/auth/types"
+import { useSession } from "next-auth/react"
+import { roleLabels, hasPermission } from "@/lib/auth/permissions"
+import type { PermissionKey } from "@/lib/auth/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,19 +12,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 
-const initialUsers: DemoUser[] = Object.values(demoUsers)
+const initialUsers: any[] = [] // Empty for now, or could fetch from Prisma
 
 export default function UserManagementPage() {
-  const { can } = useAuth()
-  const [users, setUsers] = React.useState<DemoUser[]>(initialUsers)
+  const { data: session } = useSession()
+  const user = session?.user
+  
+  const can = (permission: string) => hasPermission(user?.role, permission)
+  
+  const [users, setUsers] = React.useState<any[]>(initialUsers)
   const [open, setOpen] = React.useState(false)
-  const [editing, setEditing] = React.useState<DemoUser | null>(null)
-  const [form, setForm] = React.useState<DemoUser>({
+  const [editing, setEditing] = React.useState<any | null>(null)
+  const [form, setForm] = React.useState<any>({
     id: "",
     name: "",
     email: "",
     nik: "",
-    role: "pegawai",
+    role: "PEGAWAI",
     unit: "",
     status: "active",
     lastLogin: "Belum pernah",
@@ -74,13 +79,13 @@ export default function UserManagementPage() {
                 <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 <Input placeholder="NIK 16 digit" value={form.nik} onChange={(e) => setForm({ ...form, nik: e.target.value })} />
                 <Input placeholder="Unit kerja" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-                <Select value={form.role} onValueChange={(value: AppRole) => setForm({ ...form, role: value })}>
+                <Select value={form.role} onValueChange={(value: string) => setForm({ ...form, role: value })}>
                   <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                    <SelectItem value="hrd">HRD</SelectItem>
-                    <SelectItem value="direktur">Direktur</SelectItem>
-                    <SelectItem value="pegawai">Pegawai</SelectItem>
+                    <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
+                    <SelectItem value="HRD">HRD</SelectItem>
+                    <SelectItem value="DIREKSI">Direksi</SelectItem>
+                    <SelectItem value="PEGAWAI">Pegawai</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={form.status} onValueChange={(value: "active" | "inactive") => setForm({ ...form, status: value })}>

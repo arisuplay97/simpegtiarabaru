@@ -1,14 +1,14 @@
 import type { AppRole, PermissionKey } from "./types"
 
-export const roleLabels: Record<AppRole, string> = {
-  super_admin: "Super Admin",
-  hrd: "HRD",
-  direktur: "Direktur",
-  pegawai: "Pegawai",
+export const roleLabels: Record<string, string> = {
+  SUPERADMIN: "Super Admin",
+  HRD: "HRD",
+  DIREKSI: "Direksi",
+  PEGAWAI: "Pegawai",
 }
 
-export const rolePermissions: Record<AppRole, PermissionKey[]> = {
-  super_admin: [
+export const rolePermissions: Record<string, string[]> = {
+  SUPERADMIN: [
     "dashboard.view",
     "dashboard.director",
     "approval.view",
@@ -38,7 +38,7 @@ export const rolePermissions: Record<AppRole, PermissionKey[]> = {
     "roles.view",
     "roles.manage",
   ],
-  hrd: [
+  HRD: [
     "dashboard.view",
     "approval.view",
     "approval.act",
@@ -66,7 +66,7 @@ export const rolePermissions: Record<AppRole, PermissionKey[]> = {
     "users.manage",
     "roles.view",
   ],
-  direktur: [
+  DIREKSI: [
     "dashboard.view",
     "dashboard.director",
     "approval.view",
@@ -84,7 +84,7 @@ export const rolePermissions: Record<AppRole, PermissionKey[]> = {
     "sk.view",
     "sp.view",
   ],
-  pegawai: [
+  PEGAWAI: [
     "dashboard.view",
     "absensi.view",
     "selfie.view",
@@ -94,8 +94,9 @@ export const rolePermissions: Record<AppRole, PermissionKey[]> = {
   ],
 }
 
-export function hasPermission(role: AppRole, permission: PermissionKey) {
-  return rolePermissions[role].includes(permission)
+export function hasPermission(role: string | null | undefined, permission: string) {
+  if (!role) return false
+  return rolePermissions[role]?.includes(permission) ?? false
 }
 
 export function routeAccess(pathname: string): PermissionKey | null {
