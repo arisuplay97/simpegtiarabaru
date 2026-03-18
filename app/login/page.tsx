@@ -1,6 +1,7 @@
 'use client'
 import { signIn } from "next-auth/react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -25,26 +27,20 @@ export default function LoginPage() {
       toast.error("Login gagal: Email atau password salah")
     } else {
       toast.success("Berhasil masuk")
-      window.location.href = "/dashboard"
+      router.push("/dashboard")
+      router.refresh()
     }
     setIsLoading(false)
   }
 
   const quickLogin = async (role: string) => {
     setIsLoading(true)
-    const result = await signIn("credentials", { 
+    await signIn("credentials", { 
       email: `${role.toLowerCase()}@tiara.com`, 
       password: "123456", 
-      redirect: false,
+      redirect: true,
+      callbackUrl: "/dashboard"
     })
-
-    if (result?.error) {
-      toast.error("Gagal login demo")
-    } else {
-      toast.success(`Berhasil masuk sebagai ${role}`)
-      window.location.href = "/dashboard"
-    }
-    setIsLoading(false)
   }
 
   return (
