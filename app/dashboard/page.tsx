@@ -29,7 +29,7 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <SidebarNav />
-      <div className="flex flex-1 flex-col pl-64">
+      <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Dashboard", "Utama"]} />
         <main className="flex-1 p-8 space-y-8">
           <div className="flex items-center justify-between">

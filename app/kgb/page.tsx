@@ -324,7 +324,7 @@ export default function KGBPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <div className="flex-1 pl-64">
+      <div className="flex-1 sidebar-offset">
         <TopBar breadcrumb={["Remunerasi", "Kenaikan Gaji Berkala"]} />
         <main className="p-6">
           {/* Header */}

@@ -39,6 +39,7 @@ import {
   Clock, Mail, Phone, ChevronLeft, ChevronRight,
   Loader2, AlertTriangle,
 } from "lucide-react"
+import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
 
 // ============ TIPE DATA ============
 interface Employee {
@@ -192,7 +193,7 @@ export default function EmployeeListPage() {
   const openAdd = () => { setForm(emptyForm); setFormErrors({}); setShowAddDialog(true) }
   const openEdit = (emp: Employee) => {
     setEditingEmployee(emp)
-    setForm({nik:emp.nik,nama:emp.nama,jabatan:emp.jabatan,unitKerja:emp.unitKerja,golongan:emp.golongan,pangkat:emp.pangkat,status:emp.status,sp:emp.sp,masaKerja:emp.masaKerja,email:emp.email,telepon:emp.telepon,jenisKelamin:emp.jenisKelamin,tanggalMasuk:emp.tanggalMasuk,tempatLahir:emp.tempatLahir,tanggalLahir:emp.tanggalLahir,agama:emp.agama,statusNikah:emp.statusNikah,alamat:emp.alamat,noKTP:emp.noKTP,npwp:emp.npwp,bank:emp.bank,noRekening:emp.noRekening,bpjsKes:emp.bpjsKes,bpjsTK:emp.bpjsTK,pendidikan:emp.pendidikan})
+    setForm({nik:emp.nik,nama:emp.nama,jabatan:emp.jabatan,unitKerja:emp.unitKerja,golongan:emp.golongan,pangkat:emp.pangkat,status:emp.status,sp:emp.sp,masaKerja:emp.masaKerja,email:emp.email,telepon:emp.telepon,jenisKelamin:emp.jenisKelamin,tanggalMasuk:emp.tanggalMasuk,tempatLahir:emp.tempatLahir,tanggalLahir:emp.tanggalLahir,agama:emp.agama,statusNikah:emp.statusNikah,alamat:emp.alamat,noKTP:"",npwp:emp.npwp,bank:emp.bank,noRekening:emp.noRekening,bpjsKes:emp.bpjsKes,bpjsTK:emp.bpjsTK,pendidikan:emp.pendidikan})
     setFormErrors({}); setShowEditDialog(true)
   }
 
@@ -207,14 +208,44 @@ export default function EmployeeListPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2"><F label="Nama Lengkap" error={formErrors.nama}><Input value={form.nama} onChange={e=>setForm({...form,nama:e.target.value})} placeholder="Nama lengkap"/></F></div>
           <F label="NIK (16 digit)" error={formErrors.nik}><Input value={form.nik} onChange={e=>setForm({...form,nik:e.target.value})} placeholder="16 digit NIK" maxLength={16} className="font-mono"/></F>
-          <F label="No. KTP"><Input value={form.noKTP} onChange={e=>setForm({...form,noKTP:e.target.value})} placeholder="Sama dengan NIK" className="font-mono"/></F>
-          <F label="Jabatan" error={formErrors.jabatan}><Input value={form.jabatan} onChange={e=>setForm({...form,jabatan:e.target.value})} placeholder="Nama jabatan"/></F>
-          <F label="Unit Kerja" error={formErrors.unitKerja}>
-            <Select value={form.unitKerja} onValueChange={v=>setForm({...form,unitKerja:v})}>
+          <F label="Unit Kerja / Bidang" error={formErrors.unitKerja}>
+            <Select 
+              value={bidangList.find(b => b.nama === form.unitKerja)?.id ?? ""} 
+              onValueChange={v => {
+                const b = bidangList.find(x => x.id === v)
+                setForm({...form, unitKerja: b?.nama ?? "", jabatan: ""})
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Pilih unit"/></SelectTrigger>
-              <SelectContent>{["IT & Sistem","Keuangan","Distribusi","Pelayanan","Produksi","SDM & Umum","Direksi"].map(u=><SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {bidangList.filter(b => b.aktif).map(b => (
+                  <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </F>
+          {form.unitKerja && (
+            <F label="Jabatan" error={formErrors.jabatan}>
+              <Select
+                value={form.jabatan}
+                onValueChange={v => {
+                  const bid = bidangList.find(b => b.nama === form.unitKerja)
+                  if (!bid) return
+                  const tipe = v as TipeJabatan
+                  setForm({...form, jabatan: getJabatanLabel(tipe, bid.nama)})
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Pilih jabatan"/></SelectTrigger>
+                <SelectContent>
+                  {getJabatanOptions(
+                    bidangList.find(b => b.nama === form.unitKerja)?.id ?? ""
+                  ).map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </F>
+          )}
           <F label="Golongan" error={formErrors.golongan}>
             <Select value={form.golongan} onValueChange={v=>setForm({...form,golongan:v})}>
               <SelectTrigger><SelectValue placeholder="Pilih golongan"/></SelectTrigger>
@@ -289,7 +320,7 @@ export default function EmployeeListPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <div className="flex flex-1 flex-col pl-64">
+      <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Kepegawaian","Data Pegawai"]}/>
         <main className="flex-1 overflow-auto p-6">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

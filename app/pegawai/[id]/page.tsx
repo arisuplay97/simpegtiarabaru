@@ -66,6 +66,7 @@ import {
 } from "@/components/ui/select"
 import { useParams } from "next/navigation"
 import { pegawaiData } from "@/lib/data/pegawai-store"
+import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
 
 const statusConfig = {
   aktif: { label: "Aktif", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -201,7 +202,7 @@ export default function EmployeeDetailPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <div className="flex flex-1 flex-col pl-64">
+      <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Kepegawaian", "Data Pegawai", employee.name]} />
         <main className="flex-1 overflow-auto p-6">
           {/* Back Button */}
@@ -389,10 +390,6 @@ export default function EmployeeDetailPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">NIK</p>
                         <p className="font-mono font-medium">{employee.nik}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">No. KTP</p>
-                        <p className="font-mono font-medium">{employee.noKtp}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Tempat, Tanggal Lahir</p>
@@ -915,14 +912,14 @@ export default function EmployeeDetailPage() {
               />
             </div>
 
-            {/* NIK & No KTP */}
+            {/* NIK & NPWP */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>NIK (16 digit)</Label>
                 <Input
                   className="mt-1 font-mono"
-                  value={formData.noKtp}
-                  onChange={e => handleChange("noKtp", e.target.value)}
+                  value={formData.nik}
+                  onChange={e => handleChange("nik", e.target.value)}
                   maxLength={16}
                 />
               </div>
@@ -936,34 +933,63 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            {/* Jabatan & Unit */}
+            {/* Bidang / Unit Kerja */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Jabatan</Label>
-                <Input
-                  className="mt-1"
-                  value={formData.jabatan}
-                  onChange={e => handleChange("jabatan", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Unit Kerja</Label>
-                <Select value={formData.unitKerja} onValueChange={v => handleChange("unitKerja", v)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
+                <Label>Bidang / Unit Kerja</Label>
+                <Select
+                  value={bidangList.find(b => b.nama === formData.unitKerja)?.id ?? ""}
+                  onValueChange={v => {
+                    const b = bidangList.find(x => x.id === v)
+                    handleChange("unitKerja", b?.nama ?? "")
+                    handleChange("jabatan", "")
+                    handleChange("atasanLangsung", "")
+                  }}
+                >
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih bidang" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="IT & Sistem">IT & Sistem</SelectItem>
-                    <SelectItem value="Keuangan">Keuangan</SelectItem>
-                    <SelectItem value="Distribusi">Distribusi</SelectItem>
-                    <SelectItem value="Pelayanan">Pelayanan</SelectItem>
-                    <SelectItem value="Produksi">Produksi</SelectItem>
-                    <SelectItem value="SDM & Umum">SDM & Umum</SelectItem>
-                    <SelectItem value="Direksi">Direksi</SelectItem>
+                    {bidangList.filter(b => b.aktif).map(b => (
+                      <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Jabatan */}
+              {formData.unitKerja && (
+                <div>
+                  <Label>Jabatan</Label>
+                  <Select
+                    value={formData.jabatan}
+                    onValueChange={v => {
+                      const bid = bidangList.find(b => b.nama === formData.unitKerja)
+                      if (!bid) return
+                      const tipe = v as TipeJabatan
+                      handleChange("jabatan", getJabatanLabel(tipe, bid.nama))
+                      handleChange("atasanLangsung", getAtasanOtomatis(tipe, bid.id))
+                    }}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
+                    <SelectContent>
+                      {getJabatanOptions(
+                        bidangList.find(b => b.nama === formData.unitKerja)?.id ?? ""
+                      ).map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
+
+            {/* Preview Atasan Otomatis */}
+            {formData.atasanLangsung && formData.atasanLangsung !== "-" && (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+                <p className="text-xs text-emerald-700">
+                  ✓ Atasan langsung otomatis: <strong>{formData.atasanLangsung}</strong>
+                </p>
+              </div>
+            )}
 
             {/* Golongan & Status */}
             <div className="grid grid-cols-2 gap-4">
@@ -1136,22 +1162,14 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            {/* Pendidikan & Atasan */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Pendidikan */}
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label>Pendidikan Terakhir</Label>
                 <Input
                   className="mt-1"
                   value={formData.pendidikanTerakhir}
                   onChange={e => handleChange("pendidikanTerakhir", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Atasan Langsung</Label>
-                <Input
-                  className="mt-1"
-                  value={formData.atasanLangsung}
-                  onChange={e => handleChange("atasanLangsung", e.target.value)}
                 />
               </div>
             </div>

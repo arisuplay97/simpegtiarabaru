@@ -8,7 +8,7 @@ export default function DokumenPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <div className="flex flex-1 flex-col pl-64">
+      <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Administrasi", "Dokumen Kepegawaian"]} />
         <main className="flex flex-1 items-center justify-center p-6">
           <Card className="w-full max-w-md">

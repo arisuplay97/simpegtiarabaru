@@ -4,6 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --sidebar-width: 16rem;
   /* SIMPEG PDAM Enterprise Color System - Premium Blue Theme */
   --background: oklch(0.98 0.005 250);
   --foreground: oklch(0.15 0.02 250);
@@ -159,6 +160,12 @@
   --color-sidebar-muted: var(--sidebar-muted);
 }
 
+/* Sidebar offset — otomatis menyesuaikan lebar sidebar */
+.sidebar-offset {
+  padding-left: var(--sidebar-width);
+  transition: padding-left 0.3s ease;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -214,7 +221,8 @@
   }
 
   /* Hapus padding kiri karena sidebar hidden */
-  .pl-64 {
+  .pl-64,
+  .sidebar-offset {
     padding-left: 0 !important;
   }
 

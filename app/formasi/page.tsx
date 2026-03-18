@@ -192,7 +192,7 @@ export default function FormasiPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <div className="flex-1 pl-64">
+      <div className="flex-1 sidebar-offset">
         <TopBar breadcrumb={["Kepegawaian", "Formasi Jabatan"]} />
         <main className="p-6">
           {/* Header */}

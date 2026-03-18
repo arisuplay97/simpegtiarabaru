@@ -8,7 +8,7 @@ export default function LemburPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <div className="flex flex-1 flex-col pl-64">
+      <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Kehadiran", "Lembur"]} />
         <main className="flex flex-1 items-center justify-center p-6">
           <Card className="w-full max-w-md">

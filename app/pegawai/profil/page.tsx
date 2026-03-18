@@ -166,7 +166,7 @@ export default function MyProfilePage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav/>
-      <div className="flex flex-1 flex-col pl-64">
+      <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Kepegawaian","Profil Saya"]}/>
         <main className="flex-1 overflow-auto p-6">
 
@@ -289,7 +289,6 @@ export default function MyProfilePage() {
                   <CardContent>
                     <div className="space-y-3">
                       {[
-                        {label:"No. KTP",value:profile.noKTP},
                         {label:"No. KK",value:profile.noKK},
                         {label:"NPWP",value:profile.npwp},
                         {label:"No. BPJS Kesehatan",value:profile.noBPJSKes},
@@ -600,10 +599,6 @@ export default function MyProfilePage() {
             <section>
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dokumen & Keuangan</p>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>No. KTP</Label>
-                  <Input className="mt-1 font-mono" value={form.noKTP} onChange={e=>setForm({...form,noKTP:e.target.value})}/>
-                </div>
                 <div>
                   <Label>NPWP</Label>
                   <Input className="mt-1 font-mono" value={form.npwp} onChange={e=>setForm({...form,npwp:e.target.value})}/>

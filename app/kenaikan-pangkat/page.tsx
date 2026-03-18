@@ -272,7 +272,7 @@ export default function KenaikanPangkatPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <div className="flex-1 pl-64">
+      <div className="flex-1 sidebar-offset">
         <TopBar breadcrumb={["Kinerja & Karier", "Kenaikan Pangkat"]} />
         <main className="p-6">
           {/* Header */}
