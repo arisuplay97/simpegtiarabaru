@@ -15,10 +15,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Demo Fallback (If DB fails or user not found)
         const demoUsers: Record<string, any> = {
-          "superadmin@tiara.com": { id: "demo-1", email: "superadmin@tiara.com", role: "SUPERADMIN" },
-          "hrd@tiara.com": { id: "demo-2", email: "hrd@tiara.com", role: "HRD" },
-          "direksi@tiara.com": { id: "demo-3", email: "direksi@tiara.com", role: "DIREKSI" },
-          "pegawai@tiara.com": { id: "demo-4", email: "pegawai@tiara.com", role: "PEGAWAI" },
+          "superadmin@tiara.com": { id: "demo-1", name: "Super Admin", email: "superadmin@tiara.com", role: "SUPERADMIN" },
+          "hrd@tiara.com": { id: "demo-2", name: "HRD Staff", email: "hrd@tiara.com", role: "HRD" },
+          "direksi@tiara.com": { id: "demo-3", name: "Direktur Utama", email: "direksi@tiara.com", role: "DIREKSI" },
+          "pegawai@tiara.com": { id: "demo-4", name: "Pegawai Tetap", email: "pegawai@tiara.com", role: "PEGAWAI" },
         }
 
         try {
@@ -61,6 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }
   },
   session: { strategy: "jwt" },
+  trustHost: true,
   pages: {
     signIn: "/login",
   }
