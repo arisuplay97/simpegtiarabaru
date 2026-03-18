@@ -48,7 +48,7 @@ model Pegawai {
   jabatan               String
   tipeJabatan           TipeJabatan @default(STAFF)
   golongan              String    // Format: A/I, B/II, dst
-  pangkat               TipePangkat @default(STAFF)
+  pangkat               String?
   atasanLangsung        String?
   status                StatusPegawai @default(AKTIF)
   sp                    StatusSP?
@@ -185,13 +185,6 @@ enum Role {
 enum TipeJabatan {
   KEPALA_BIDANG
   KASUBBID
-  STAFF
-  KONTRAK
-}
-
-enum TipePangkat {
-  KEPALA_BIDANG
-  KEPALA_SUB_BIDANG
   STAFF
   KONTRAK
 }
