@@ -143,12 +143,19 @@ export default function EmployeeListPage() {
     }
   }
 
-  const emptyForm = {
+  type EmployeeForm = Omit<Employee, "id" | "bidang" | "masaKerja" | "initials"> & {
+    id?: string
+    password?: string
+    role?: string
+  }
+
+  const emptyForm: EmployeeForm = {
     nik: "", nama: "", email: "", telepon: "",
     bidangId: "", tipeJabatan: "" as TipeJabatan | "",
     jabatan: "", atasanLangsung: "",
     golongan: "", pangkat: "",
-    status: "AKTIF", sp: "",
+    status: "AKTIF", sp: null,
+    fotoUrl: null,
     tanggalMasuk: new Date().toISOString().split("T")[0],
     jenisKelamin: "", tempatLahir: "", tanggalLahir: "",
     agama: "", statusNikah: "",
@@ -157,7 +164,7 @@ export default function EmployeeListPage() {
     alamat: "", npwp: "",
     role: "PEGAWAI", password: "123456",
   }
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState<EmployeeForm>(emptyForm)
   const [formErrors, setFormErrors] = useState<Record<string,string>>({})
 
   useEffect(() => { setCurrentPage(1) }, [searchQuery, statusFilter, unitFilter])
@@ -260,33 +267,34 @@ export default function EmployeeListPage() {
       nik: emp.nik,
       nama: emp.nama,
       email: emp.email,
-      telepon: emp.telepon || "",
-      bidangId: emp.bidangId || "",
+      telepon: emp.telepon,
+      fotoUrl: emp.fotoUrl,
+      bidangId: emp.bidangId,
       tipeJabatan: emp.tipeJabatan as any,
       jabatan: emp.jabatan,
-      atasanLangsung: emp.atasanLangsung || "",
+      atasanLangsung: emp.atasanLangsung,
       golongan: emp.golongan,
-      pangkat: emp.pangkat as any,
+      pangkat: emp.pangkat,
       status: emp.status,
-      sp: emp.sp || "",
+      sp: emp.sp,
       tanggalMasuk: emp.tanggalMasuk ? new Date(emp.tanggalMasuk).toISOString().split("T")[0] : "",
-      jenisKelamin: emp.jenisKelamin || "",
-      tempatLahir: emp.tempatLahir || "",
+      jenisKelamin: emp.jenisKelamin,
+      tempatLahir: emp.tempatLahir,
       tanggalLahir: emp.tanggalLahir ? new Date(emp.tanggalLahir).toISOString().split("T")[0] : "",
-      agama: emp.agama || "",
-      statusNikah: emp.statusNikah || "",
-      pendidikanTerakhir: emp.pendidikanTerakhir || "",
-      jurusan: emp.jurusan || "",
-      institusi: emp.institusi || "",
-      tahunLulus: emp.tahunLulus || "",
-      bank: emp.bank || "",
-      noRekening: emp.noRekening || "",
-      bpjsKesehatan: emp.bpjsKesehatan || "",
-      bpjsKetenagakerjaan: emp.bpjsKetenagakerjaan || "",
-      alamat: emp.alamat || "",
-      npwp: emp.npwp || "",
-      role: "PEGAWAI", // Default for edit
-      password: "", // Handled separately if needed
+      agama: emp.agama,
+      statusNikah: emp.statusNikah,
+      pendidikanTerakhir: emp.pendidikanTerakhir,
+      jurusan: emp.jurusan,
+      institusi: emp.institusi,
+      tahunLulus: emp.tahunLulus,
+      bank: emp.bank,
+      noRekening: emp.noRekening,
+      bpjsKesehatan: emp.bpjsKesehatan,
+      bpjsKetenagakerjaan: emp.bpjsKetenagakerjaan,
+      alamat: emp.alamat,
+      npwp: emp.npwp,
+      role: "PEGAWAI",
+      password: "",
     })
     setFotoPreview(emp.fotoUrl)
     setFotoFile(null)
@@ -339,7 +347,7 @@ export default function EmployeeListPage() {
             <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@perusahaan.com" />
           </F>
           <F label="Telepon" error={formErrors.telepon}>
-            <Input value={form.telepon} onChange={e => setForm({...form, telepon: e.target.value})} placeholder="0812..." />
+            <Input value={form.telepon || ""} onChange={e => setForm({...form, telepon: e.target.value})} placeholder="0812..." />
           </F>
         </div>
       </div>
@@ -351,7 +359,7 @@ export default function EmployeeListPage() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <F label="Bidang / Unit Kerja">
-            <Select value={form.bidangId} onValueChange={v => setForm({...form, bidangId: v, jabatan: ""})}>
+            <Select value={form.bidangId || ""} onValueChange={v => setForm({...form, bidangId: v, jabatan: ""})}>
               <SelectTrigger><SelectValue placeholder="Pilih Bidang" /></SelectTrigger>
               <SelectContent>
                 {bidangData.map(b => <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>)}
@@ -370,20 +378,20 @@ export default function EmployeeListPage() {
           </F>
           <F label="Jabatan">
             <Select 
-              value={form.jabatan} 
+              value={form.jabatan || ""} 
               onValueChange={v => setForm({...form, jabatan: v})}
               disabled={!form.bidangId}
             >
               <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
               <SelectContent>
-                {getJabatanOptions(form.bidangId, bidangData).map(opt => (
+                {getJabatanOptions(form.bidangId || "", bidangData).map(opt => (
                   <SelectItem key={opt.value} value={opt.label}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </F>
           <F label="Pangkat">
-            <Input value={form.pangkat} onChange={e => setForm({...form, pangkat: e.target.value})} placeholder="Misal: Penata" />
+            <Input value={form.pangkat || ""} onChange={e => setForm({...form, pangkat: e.target.value})} placeholder="Misal: Penata" />
           </F>
           <F label="Golongan">
             <Select value={form.golongan} onValueChange={v => setForm({...form, golongan: v})}>
@@ -423,7 +431,7 @@ export default function EmployeeListPage() {
           <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-emerald-600" />
             <span className="text-xs text-emerald-800 font-medium">
-              Atasan Otomatis: {getAtasanOtomatis(form.tipeJabatan as TipeJabatan, form.bidangId, bidangData)}
+              Atasan Otomatis: {getAtasanOtomatis(form.tipeJabatan as TipeJabatan, form.bidangId || "", bidangData)}
             </span>
           </div>
         )}
@@ -436,13 +444,13 @@ export default function EmployeeListPage() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Pribadi</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <F label="Tempat Lahir">
-            <Input value={form.tempatLahir} onChange={e => setForm({...form, tempatLahir: e.target.value})} placeholder="Kota Kelahiran" />
+            <Input value={form.tempatLahir || ""} onChange={e => setForm({...form, tempatLahir: e.target.value})} placeholder="Kota Kelahiran" />
           </F>
           <F label="Tanggal Lahir">
-            <Input type="date" value={form.tanggalLahir} onChange={e => setForm({...form, tanggalLahir: e.target.value})} />
+            <Input type="date" value={form.tanggalLahir || ""} onChange={e => setForm({...form, tanggalLahir: e.target.value})} />
           </F>
           <F label="Jenis Kelamin">
-            <Select value={form.jenisKelamin} onValueChange={v => setForm({...form, jenisKelamin: v})}>
+            <Select value={form.jenisKelamin || ""} onValueChange={v => setForm({...form, jenisKelamin: v})}>
               <SelectTrigger><SelectValue placeholder="Pilih JKL" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="L">Laki-laki</SelectItem>
@@ -471,7 +479,7 @@ export default function EmployeeListPage() {
         </div>
         <div className="mt-4">
           <F label="Alamat Domisili">
-            <Textarea value={form.alamat} onChange={e => setForm({...form, alamat: e.target.value})} placeholder="Alamat lengkap tempat tinggal saat ini" />
+            <Textarea value={form.alamat || ""} onChange={e => setForm({...form, alamat: e.target.value})} placeholder="Alamat lengkap tempat tinggal saat ini" />
           </F>
         </div>
       </section>
@@ -491,13 +499,13 @@ export default function EmployeeListPage() {
             </Select>
           </F>
           <F label="Jurusan">
-            <Input value={form.jurusan} onChange={e => setForm({...form, jurusan: e.target.value})} placeholder="Nama Jurusan" />
+            <Input value={form.jurusan || ""} onChange={e => setForm({...form, jurusan: e.target.value})} placeholder="Nama Jurusan" />
           </F>
           <F label="Institusi / Sekolah">
-            <Input value={form.institusi} onChange={e => setForm({...form, institusi: e.target.value})} placeholder="Nama Kampus/Sekolah" />
+            <Input value={form.institusi || ""} onChange={e => setForm({...form, institusi: e.target.value})} placeholder="Nama Kampus/Sekolah" />
           </F>
           <F label="Tahun Lulus">
-            <Input value={form.tahunLulus} onChange={e => setForm({...form, tahunLulus: e.target.value})} placeholder="2020" maxLength={4} />
+            <Input value={form.tahunLulus || ""} onChange={e => setForm({...form, tahunLulus: e.target.value})} placeholder="2020" maxLength={4} />
           </F>
         </div>
       </section>
@@ -509,19 +517,19 @@ export default function EmployeeListPage() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Keuangan & Dokumen</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <F label="Bank">
-            <Input value={form.bank} onChange={e => setForm({...form, bank: e.target.value})} placeholder="BCA / Mandiri / dst" />
+            <Input value={form.bank || ""} onChange={e => setForm({...form, bank: e.target.value})} placeholder="BCA / Mandiri / dst" />
           </F>
           <F label="No. Rekening">
-            <Input value={form.noRekening} onChange={e => setForm({...form, noRekening: e.target.value})} placeholder="000111222" />
+            <Input value={form.noRekening || ""} onChange={e => setForm({...form, noRekening: e.target.value})} placeholder="000111222" />
           </F>
           <F label="NPWP">
-            <Input value={form.npwp} onChange={e => setForm({...form, npwp: e.target.value})} placeholder="00.000.000..." />
+            <Input value={form.npwp || ""} onChange={e => setForm({...form, npwp: e.target.value})} placeholder="00.000.000..." />
           </F>
           <F label="BPJS Kesehatan">
-            <Input value={form.bpjsKesehatan} onChange={e => setForm({...form, bpjsKesehatan: e.target.value})} placeholder="No Kartu BPJS" />
+            <Input value={form.bpjsKesehatan || ""} onChange={e => setForm({...form, bpjsKesehatan: e.target.value})} placeholder="No Kartu BPJS" />
           </F>
           <F label="BPJS Ketenagakerjaan">
-            <Input value={form.bpjsKetenagakerjaan} onChange={e => setForm({...form, bpjsKetenagakerjaan: e.target.value})} placeholder="No KPJ" />
+            <Input value={form.bpjsKetenagakerjaan || ""} onChange={e => setForm({...form, bpjsKetenagakerjaan: e.target.value})} placeholder="No KPJ" />
           </F>
         </div>
       </section>
