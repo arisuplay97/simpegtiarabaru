@@ -1,0 +1,211 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
+import { useAuth } from "@/components/auth/auth-provider"
+import { toast } from "sonner"
+import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+import {
+  Search,
+  Bell,
+  MessageSquare,
+  Settings,
+  ChevronDown,
+  Building2,
+  User,
+  LogOut,
+  HelpCircle,
+  Moon,
+  Sun,
+} from "lucide-react"
+
+interface TopBarProps {
+  breadcrumb?: string[]
+}
+
+export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
+  const [searchFocused, setSearchFocused] = useState(false)
+  const { theme, setTheme } = useTheme()
+  const { user, logout } = useAuth()
+  const router = useRouter()
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); searchRef.current?.focus() }
+    }
+    document.addEventListener("keydown", handler)
+    return () => document.removeEventListener("keydown", handler)
+  }, [])
+
+  const handleLogout = () => { logout(); toast.success("Berhasil logout"); router.push("/login") }
+
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-6">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm">
+        {breadcrumb.map((item, index) => (
+          <span key={index} className="flex items-center gap-2">
+            {index > 0 && <span className="text-muted-foreground">/</span>}
+            <span
+              className={cn(
+                index === breadcrumb.length - 1
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground cursor-pointer"
+              )}
+            >
+              {item}
+            </span>
+          </span>
+        ))}
+      </div>
+
+      {/* Center - Search */}
+      <div className="flex flex-1 items-center justify-center px-8">
+        <div
+          className={cn(
+            "relative w-full max-w-xl transition-all duration-200",
+            searchFocused && "max-w-2xl"
+          )}
+        >
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Cari pegawai, dokumen, approval, payroll..."
+            className="h-10 w-full rounded-lg border border-input bg-secondary/50 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+          />
+          <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block">
+            Ctrl+K
+          </kbd>
+        </div>
+      </div>
+
+      {/* Right - Actions & User */}
+      <div className="flex items-center gap-2">
+        {/* Unit Switch */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2 text-sm">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden lg:inline">Kantor Pusat</span>
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Pilih Unit Kerja</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>Kantor Pusat</DropdownMenuItem>
+            <DropdownMenuItem>Cabang Utara</DropdownMenuItem>
+            <DropdownMenuItem>Cabang Selatan</DropdownMenuItem>
+            <DropdownMenuItem>Cabang Timur</DropdownMenuItem>
+            <DropdownMenuItem>Cabang Barat</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <div className="h-6 w-px bg-border" />
+
+        {/* Notifications */}
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center rounded-full bg-red-500 px-1 text-[10px] text-white">
+            5
+          </Badge>
+        </Button>
+
+        {/* Messages */}
+        <Button variant="ghost" size="icon" className="relative">
+          <MessageSquare className="h-5 w-5" />
+          <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+            3
+          </Badge>
+        </Button>
+
+        {/* Settings */}
+        <Button variant="ghost" size="icon">
+          <Settings className="h-5 w-5" />
+        </Button>
+
+        <div className="h-6 w-px bg-border" />
+
+        {/* User Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="gap-3 pl-2 pr-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src="/avatars/user.jpg" alt="User" />
+                <AvatarFallback className="bg-primary text-xs text-primary-foreground">{user?.name?.charAt(0) ?? "?"}</AvatarFallback>
+              </Avatar>
+              <div className="hidden flex-col items-start text-left lg:flex">
+                <span className="text-sm font-medium">{user?.name ?? "Guest"}</span>
+                <span className="text-[10px] text-muted-foreground">{user?.unit ?? ""}</span>
+              </div>
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span>{user?.name ?? "User"}</span>
+                  <Badge className={`text-[10px] ${
+                    user?.role === "super_admin" ? "bg-purple-100 text-purple-700" :
+                    user?.role === "hrd" ? "bg-blue-100 text-blue-700" :
+                    user?.role === "direktur" ? "bg-amber-100 text-amber-700" :
+                    "bg-emerald-100 text-emerald-700"
+                  }`}>
+                    {user?.role === "super_admin" ? "Super Admin" : user?.role === "hrd" ? "HRD / Admin" : user?.role === "direktur" ? "Direktur" : "Pegawai"}
+                  </Badge>
+                </div>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {user?.email ?? ""}
+                </span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              Profil Saya
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              Pengaturan
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              Bantuan
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? (
+                <Sun className="mr-2 h-4 w-4" />
+              ) : (
+                <Moon className="mr-2 h-4 w-4" />
+              )}
+              {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  )
+}

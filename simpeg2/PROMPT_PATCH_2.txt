@@ -1,0 +1,52 @@
+Patch tahap 2 untuk project Next.js App Router + TypeScript + Tailwind ini. Jangan rebuild dari nol. Fokus pada membuat demo terasa hidup, menghilangkan tombol mati, dan memperbaiki flow yang paling sering diuji client.
+
+TARGET PATCH 2:
+1. Dashboard utama harus punya aksi nyata.
+2. Approval Center harus bisa review, approve, reject, dan update status lokal.
+3. Slip gaji harus punya download PDF sungguhan tanpa library tambahan eksternal.
+4. Print slip gaji harus rapi.
+5. Kirim email boleh dummy tapi harus terasa nyata di UI.
+6. Jangan merusak styling utama.
+7. Jangan menambah dependency baru jika tidak wajib.
+
+IMPLEMENTASI WAJIB:
+A. Dashboard utama
+- Tombol Export Dashboard harus mengunduh file CSV ringkasan dashboard.
+- Tombol Generate Report harus membuka dialog dengan pilihan jenis laporan, periode, dan output.
+- Tombol Tambah Pegawai harus membuka modal form sederhana dan menambah data dummy ke state lokal / menampilkan toast sukses.
+- Tombol Proses Payroll harus membuka dialog konfirmasi, lalu mengubah status dummy payroll menjadi berhasil diproses.
+- Gunakan dialog / modal yang konsisten.
+- Tampilkan toast sukses setelah aksi penting.
+
+B. Approval Center
+- Tambahkan state lokal untuk daftar approval.
+- Tombol Review membuka dialog detail approval.
+- Tombol Setujui mengubah status item menjadi approved.
+- Tombol Tolak mengubah status item menjadi rejected.
+- Untuk item yang butuh alur bertahap, gunakan step sederhana:
+  Menunggu Review HRD -> Menunggu Persetujuan Direktur -> Disetujui
+- Jika HRD approve, item lanjut ke step Direktur.
+- Jika Direktur approve, final disetujui.
+- Jika reject di salah satu tahap, final ditolak.
+- Tampilkan current step, approver terakhir, catatan singkat, dan waktu update.
+
+C. Slip Gaji
+- Tombol Download PDF harus menghasilkan file PDF sungguhan tanpa library tambahan baru.
+- Gunakan helper util internal untuk generate PDF text sederhana dari data slip gaji.
+- Tombol Print tetap boleh memakai window.print() tapi harus menampilkan toast.
+- Tombol Kirim Email harus menampilkan toast proses dan sukses.
+- Gunakan NIK, bukan NIP.
+- Pastikan golongan tetap konsisten dengan format baru jika project sudah dirapikan.
+
+D. Utility helper
+- Tambahkan helper untuk:
+  - downloadCsvFile()
+  - downloadTextFile()
+  - downloadSimplePdf()
+- Jangan pakai dependency baru jika tidak diperlukan.
+
+E. Kualitas
+- Tidak boleh ada tombol CTA besar tanpa aksi.
+- Jangan merusak layout desktop.
+- Jangan ubah struktur visual secara liar.
+- Hasil harus aman build dan tidak error import.
