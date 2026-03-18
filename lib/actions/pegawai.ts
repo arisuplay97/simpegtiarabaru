@@ -281,3 +281,51 @@ export async function deleteBidang(id: string) {
   await prisma.bidang.delete({ where: { id } })
   revalidatePath("/settings/bidang")
 }
+
+// ============ GET PEGAWAI BERDASARKAN USER ID ============
+export async function getEmployeeByUserId(userId: string) {
+  if (!userId) return null
+  return await prisma.pegawai.findUnique({
+    where: { userId },
+    include: { bidang: true, user: { select: { email: true, role: true } } },
+  })
+}
+
+// ============ UPLOAD AVATAR (FORM DATA) ============
+export async function uploadAvatar(formData: FormData) {
+  const file = formData.get("file") as File
+  if (!file) throw new Error("File tidak ditemukan")
+
+  // Ambil session untuk tau ini user mana
+  const { auth } = await import("@/lib/auth")
+  const session = await auth()
+  const userId = (session?.user as any)?.id
+
+  if (!userId) throw new Error("Unauthorized")
+
+  const employee = await prisma.pegawai.findUnique({
+    where: { userId },
+    select: { id: true, nik: true, fotoUrl: true }
+  })
+
+  if (!employee) throw new Error("Pegawai tidak ditemukan")
+
+  // Hapus foto lama jika ada
+  if (employee.fotoUrl) {
+    try { await del(employee.fotoUrl) } catch {}
+  }
+
+  const blob = await put(
+    `pegawai/${employee.nik}-${Date.now()}.${file.name.split(".").pop()}`,
+    file,
+    { access: "public" }
+  )
+
+  await prisma.pegawai.update({
+    where: { id: employee.id },
+    data: { fotoUrl: blob.url },
+  })
+
+  revalidatePath("/pegawai/profil")
+  return blob.url
+}

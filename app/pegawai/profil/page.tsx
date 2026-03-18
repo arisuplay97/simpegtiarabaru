@@ -166,8 +166,8 @@ export default function MyProfilePage() {
           nik: data.nik,
           // Fallback fields for UI compatibility
           noKTP: data.nik,
-          noBPJSKes: data.bpjsKes,
-          noBPJSTK: data.bpjsTK,
+          noBPJSKes: data.bpjsKesehatan,
+          noBPJSTK: data.bpjsKetenagakerjaan,
         })
         setForm({ ...data })
       }
