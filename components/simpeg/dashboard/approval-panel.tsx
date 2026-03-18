@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -179,6 +179,9 @@ function getStatusBadge(status: ApprovalStatus) {
 }
 
 export function ApprovalPanel() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const [selectedType, setSelectedType] = useState<ApprovalType>("all")
   const [items, setItems] = useState<ApprovalItem[]>(initialApprovalItems)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -234,6 +237,10 @@ export function ApprovalPanel() {
     toast.success("Pengajuan ditolak")
     setSelectedId(null)
     setNote("")
+  }
+
+  if (!mounted) {
+    return <div className="h-[400px] w-full animate-pulse bg-muted rounded-xl" />
   }
 
   return (

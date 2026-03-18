@@ -1,5 +1,5 @@
 "use client"
-
+import React, { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
   Users,
@@ -102,6 +102,11 @@ function KPICard({
 }
 
 export function KPICards() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  if (!mounted) return <div className="grid h-32 w-full grid-cols-6 gap-4 animate-pulse bg-muted rounded-xl" />
+
   const primaryKPIs = [
     {
       title: "Total Pegawai",

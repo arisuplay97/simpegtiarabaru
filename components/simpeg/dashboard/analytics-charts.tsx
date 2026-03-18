@@ -1,4 +1,5 @@
 "use client"
+import React, { useState, useEffect } from "react"
 
 import {
   PieChart,
@@ -141,6 +142,26 @@ function MiniSparkline({ data, color = "#3b82f6" }: { data: number[]; color?: st
 }
 
 export function AnalyticsCharts() {
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="h-[300px] rounded-xl border bg-muted animate-pulse" />
+          <div className="h-[300px] rounded-xl border bg-muted animate-pulse" />
+        </div>
+        <div className="space-y-6">
+          <div className="h-[200px] rounded-xl border bg-muted animate-pulse" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Left Column - 2/3 width */}

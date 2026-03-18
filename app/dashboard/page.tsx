@@ -17,14 +17,18 @@ import { Users, FileCheck, AlertCircle, TrendingUp } from "lucide-react"
 export default function DashboardPage() {
   const { data: session } = useSession()
   const [stats, setStats] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     async function loadStats() {
       const data = await getDashboardStats()
       setStats(data)
     }
     loadStats()
   }, [])
+
+  if (!mounted) return null
 
   return (
     <div className="flex min-h-screen bg-neutral-50 dark:bg-neutral-950">
