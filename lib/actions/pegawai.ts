@@ -48,8 +48,8 @@ export async function getEmployeeStats() {
   return { total, aktif, cuti, nonAktif, sp }
 }
 
-// ============ TAMBAH PEGAWAI ============
 export async function createEmployee(data: any, fotoFile?: File) {
+  try {
   // Upload foto jika ada
   let fotoUrl: string | undefined
   if (fotoFile && fotoFile.size > 0) {
@@ -111,10 +111,16 @@ export async function createEmployee(data: any, fotoFile?: File) {
 
   revalidatePath("/pegawai")
   return employee
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      throw new Error("NIK atau Email sudah terdaftar dalam sistem.")
+    }
+    throw new Error("Gagal menyimpan data ke database. Pastikan semua field yang wajib diisi sudah terisi.")
+  }
 }
 
-// ============ UPDATE PEGAWAI ============
 export async function updateEmployee(id: string, data: any, fotoFile?: File) {
+  try {
   // Upload foto baru jika ada
   let fotoUrl: string | undefined
   if (fotoFile && fotoFile.size > 0) {

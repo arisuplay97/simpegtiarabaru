@@ -38,6 +38,7 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { getEmployees, getBidang } from "@/lib/actions/pegawai"
+import { getJabatanOptions } from "@/lib/data/bidang-store"
 
 // ============ TIPE DATA ============
 type MutasiStatus = "pending" | "approved" | "rejected"
@@ -609,7 +610,15 @@ export default function MutasiPage() {
                 </div>
                 <div>
                   <Label>Jabatan Tujuan *</Label>
-                  <Input className="mt-1" value={form.jabatanTujuan} onChange={e => setForm(p => ({...p, jabatanTujuan: e.target.value}))} placeholder="Nama jabatan" />
+                  <Select value={form.jabatanTujuan || "NONE"} onValueChange={v => setForm(p => ({...p, jabatanTujuan: v === "NONE" ? "" : v}))} disabled={!form.unitTujuan}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">— Pilih Jabatan —</SelectItem>
+                      {form.unitTujuan ? getJabatanOptions(bidangList.find(b => b.nama === form.unitTujuan)?.id || "", bidangList).map(j => (
+                        <SelectItem key={j} value={j}>{j}</SelectItem>
+                      )) : null}
+                    </SelectContent>
+                  </Select>
                   {formErrors.jabatanTujuan && <p className="mt-1 text-xs text-destructive">{formErrors.jabatanTujuan}</p>}
                 </div>
               </div>

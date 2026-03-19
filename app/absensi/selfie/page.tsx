@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { lokasiData, cekDalamRadius, getAcaraHariIni, type LokasiAbsensi } from "@/lib/data/lokasi-store"
 
 type CaptureStep = "idle" | "ready" | "capturing" | "verifying" | "success" | "checkout_success"
 type CheckType = "checkin" | "checkout"
@@ -45,6 +46,11 @@ export default function SelfieAttendancePage() {
   // GPS state
   const [gpsStatus, setGpsStatus] = useState<"checking" | "valid" | "invalid">("checking")
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null)
+  
+  // Geo-Fencing state
+  const [lokasiValid, setLokasiValid] = useState<LokasiAbsensi | null>(null)
+  const [jarakMeter, setJarakMeter] = useState<number | null>(null)
+  const [acaraHariIni, setAcaraHariIni] = useState<LokasiAbsensi | null>(null)
 
   // Jam real-time
   useEffect(() => {
@@ -58,10 +64,26 @@ export default function SelfieAttendancePage() {
       setGpsStatus("invalid")
       return
     }
+
+    const acara = getAcaraHariIni(lokasiData)
+    setAcaraHariIni(acara)
+
+    const lokasiUntukCek = acara
+      ? [acara]  // Kalau ada acara wajib, hanya cek lokasi acara
+      : lokasiData.filter(l => l.aktif && l.tipe !== "acara")
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setGpsAccuracy(Math.round(pos.coords.accuracy))
-        setGpsStatus("valid")
+        const hasil = cekDalamRadius(pos.coords.latitude, pos.coords.longitude, lokasiUntukCek)
+        if (hasil.valid) {
+          setGpsStatus("valid")
+          setLokasiValid(hasil.lokasi ?? null)
+          setJarakMeter(hasil.jarak ?? null)
+        } else {
+          setGpsStatus("invalid")
+          setLokasiValid(null)
+        }
       },
       () => setGpsStatus("invalid"),
       { enableHighAccuracy: true, timeout: 10000 }
@@ -191,6 +213,46 @@ export default function SelfieAttendancePage() {
               </p>
             </div>
 
+            {/* Banner acara wajib */}
+            {acaraHariIni && (
+              <div className="rounded-lg bg-purple-50 border border-purple-200 p-3 mb-4 text-center sm:text-left">
+                <p className="text-sm font-semibold text-purple-800">📢 Acara Wajib Hari Ini</p>
+                <p className="text-sm text-purple-700 mt-1 font-bold">{acaraHariIni.nama}</p>
+                {acaraHariIni.keterangan && <p className="text-xs text-purple-600 italic">"{acaraHariIni.keterangan}"</p>}
+                <p className="text-xs text-purple-600 mt-1 font-medium">
+                  Seluruh pegawai WAJIB absen di lokasi acara ini. Absen kantor dinonaktifkan sementara.
+                </p>
+              </div>
+            )}
+
+            {/* Info lokasi valid */}
+            {lokasiValid && (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 mb-4 text-center sm:text-left">
+                <p className="text-sm text-emerald-700">
+                  ✓ Anda berada di <strong>{lokasiValid.nama}</strong>
+                  {jarakMeter !== null && ` (${jarakMeter}m dari titik absensi)`}
+                </p>
+              </div>
+            )}
+
+            {/* Info lokasi tidak valid */}
+            {gpsStatus === "invalid" && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 mb-4 text-center sm:text-left">
+                <p className="text-sm text-red-700 font-medium">
+                  ✗ Anda berada di luar area absensi atau GPS tidak aktif
+                </p>
+                {acaraHariIni ? (
+                  <p className="text-xs text-red-600 mt-1">
+                    Hari ini harus absen di: <strong>{acaraHariIni.nama}</strong>
+                  </p>
+                ) : (
+                  <p className="text-xs text-red-600 mt-1">
+                    Pastikan Anda berada di kantor pusat atau kantor cabang yang terdaftar
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="grid gap-6 lg:grid-cols-3">
 
               {/* ===== KIRI — KAMERA ===== */}
@@ -280,7 +342,7 @@ export default function SelfieAttendancePage() {
                             </div>
                             <p className="text-2xl font-bold text-white">Check-in Berhasil!</p>
                             <p className="mt-2 text-lg text-white/90">{checkInTime}</p>
-                            <p className="text-sm text-white/70">Kantor Pusat PDAM Tirta Ardhia Rinjani</p>
+                            <p className="text-sm text-white/70">{lokasiValid?.nama ?? "Lokasi Utama"}</p>
                           </div>
                         </div>
                       )}
@@ -294,7 +356,7 @@ export default function SelfieAttendancePage() {
                             </div>
                             <p className="text-2xl font-bold text-white">Check-out Berhasil!</p>
                             <p className="mt-2 text-lg text-white/90">{checkOutTime}</p>
-                            <p className="text-sm text-white/70">Kantor Pusat PDAM Tirta Ardhia Rinjani</p>
+                            <p className="text-sm text-white/70">{lokasiValid?.nama ?? "Lokasi Utama"}</p>
                           </div>
                         </div>
                       )}
@@ -346,9 +408,9 @@ export default function SelfieAttendancePage() {
 
                       {/* Tombol utama */}
                       {captureStep === "idle" && !cameraError && (
-                        <Button size="lg" className="w-full gap-3 py-6 text-lg" onClick={startCamera}>
+                        <Button size="lg" className="w-full gap-3 py-6 text-lg" onClick={startCamera} disabled={gpsStatus !== "valid"}>
                           <Camera className="h-6 w-6" />
-                          Buka Kamera
+                          {gpsStatus !== "valid" ? "Di Luar Area" : "Buka Kamera"}
                         </Button>
                       )}
 
@@ -517,12 +579,12 @@ export default function SelfieAttendancePage() {
                         </div>
                       </div>
                       <div className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-1 text-xs text-white">
-                        Radius absensi: 15m
+                        Radius absensi: {lokasiValid?.radius ?? 100}m
                       </div>
                     </div>
                     <div className="mt-3 text-center">
-                      <p className="text-sm font-medium">Kantor Pusat PDAM Tirta Ardhia Rinjani</p>
-                      <p className="text-xs text-muted-foreground">Lokasi terdeteksi via GPS</p>
+                      <p className="text-sm font-medium">{lokasiValid?.nama ?? "Mencari Lokasi..."}</p>
+                      <p className="text-xs text-muted-foreground">{gpsStatus === "valid" && jarakMeter ? `Berjarak ${jarakMeter} meter dari titik` : "Lokasi terdeteksi via GPS"}</p>
                     </div>
                   </CardContent>
                 </Card>

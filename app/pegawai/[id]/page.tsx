@@ -231,6 +231,38 @@ export default function EmployeeDetailPage() {
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
+  // Hitung sisa pensiun (Umur 56)
+  const getPensiunInfo = () => {
+    if (!employee?.tanggalLahir) return null
+    const birthDate = new Date(employee.tanggalLahir)
+    const pensiunDate = new Date(birthDate.getFullYear() + 56, birthDate.getMonth(), birthDate.getDate())
+    const today = new Date()
+    
+    const diffTime = pensiunDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays <= 0) {
+      return { status: "Sudah Pensiun", color: "text-red-700 bg-red-100" }
+    }
+    
+    const years = Math.floor(diffDays / 365)
+    let sisaText = ""
+    if (years > 0) sisaText = `${years} Tahun`
+    else {
+      const months = Math.floor(diffDays / 30)
+      if (months > 0) sisaText = `${months} Bulan`
+      else sisaText = `${diffDays} Hari`
+    }
+    
+    return { 
+      tanggal: pensiunDate.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" }),
+      sisaText: `(sisa ${sisaText})`,
+      color: diffDays < 365 * 2 ? "text-amber-700 bg-amber-100" : "text-emerald-700 bg-emerald-100"
+    }
+  }
+
+  const pensiunInfo = getPensiunInfo()
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen bg-background items-center justify-center">
@@ -466,6 +498,19 @@ export default function EmployeeDetailPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Usia</p>
                         <p className="font-medium">{employee.usia}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Masa Pensiun (56 Thn)</p>
+                        {pensiunInfo ? (
+                          <div className="flex flex-col mt-0.5">
+                            <span className="font-medium text-sm">{pensiunInfo.tanggal ?? "-"}</span>
+                            <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-sm font-semibold mt-0.5 ${pensiunInfo.color}`}>
+                              {pensiunInfo.status || pensiunInfo.sisaText} 
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="font-medium">-</p>
+                        )}
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Jenis Kelamin</p>
