@@ -25,9 +25,18 @@ import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { Building2, Plus, Edit2, Trash2, Loader2, CheckCircle2, XCircle, Search } from "lucide-react"
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Building2, Plus, Edit2, Trash2, Loader2, CheckCircle2, XCircle, Search, Layers } from "lucide-react"
 import { toast } from "sonner"
 import { getBidang, createBidang, updateBidang, deleteBidang } from "@/lib/actions/pegawai"
+
+interface SubBidangItem {
+  id: string
+  nama: string
+  bidangId: string
+}
 
 export default function BidangSettingsPage() {
   const [bidang, setBidang] = useState<any[]>([])
@@ -38,6 +47,14 @@ export default function BidangSettingsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [deletingItem, setDeletingItem] = useState<any>(null)
+
+  // Sub Bidang dialog state
+  const [showSubDialog, setShowSubDialog] = useState(false)
+  const [showDeleteSubDialog, setShowDeleteSubDialog] = useState(false)
+  const [editingSubBidang, setEditingSubBidang] = useState<SubBidangItem | null>(null)
+  const [deletingSubBidang, setDeletingSubBidang] = useState<SubBidangItem | null>(null)
+  const [subBidangParentId, setSubBidangParentId] = useState("")
+  const [subBidangForm, setSubBidangForm] = useState({ nama: "" })
 
   const [form, setForm] = useState({
     nama: "",
@@ -55,7 +72,12 @@ export default function BidangSettingsPage() {
     setIsFetching(true)
     try {
       const data = await getBidang()
-      setBidang(data)
+      // Tambahkan subBidang array jika belum ada
+      const dataWithSub = (data || []).map((b: any) => ({
+        ...b,
+        subBidang: b.subBidang || [],
+      }))
+      setBidang(dataWithSub)
     } catch (error) {
       toast.error("Gagal mengambil data bidang")
     } finally {
@@ -123,6 +145,66 @@ export default function BidangSettingsPage() {
     setIsLoading(false)
   }
 
+  // ============ SUB BIDANG HANDLERS ============
+  const handleOpenAddSub = (bidangId: string) => {
+    setEditingSubBidang(null)
+    setSubBidangParentId(bidangId)
+    setSubBidangForm({ nama: "" })
+    setShowSubDialog(true)
+  }
+
+  const handleOpenEditSub = (sub: SubBidangItem) => {
+    setEditingSubBidang(sub)
+    setSubBidangParentId(sub.bidangId)
+    setSubBidangForm({ nama: sub.nama })
+    setShowSubDialog(true)
+  }
+
+  const handleSaveSub = async () => {
+    if (!subBidangForm.nama.trim()) {
+      toast.error("Nama sub bidang wajib diisi")
+      return
+    }
+    setIsLoading(true)
+    // Update local state (client-side, karena sub bidang belum di DB)
+    setBidang(prev => prev.map(b => {
+      if (b.id !== subBidangParentId) return b
+      const existing: SubBidangItem[] = b.subBidang || []
+      if (editingSubBidang) {
+        // Edit
+        return {
+          ...b,
+          subBidang: existing.map((sb: SubBidangItem) => sb.id === editingSubBidang.id ? { ...sb, nama: subBidangForm.nama } : sb),
+        }
+      } else {
+        // Tambah
+        const newSub: SubBidangItem = {
+          id: `${subBidangParentId}-${Date.now()}`,
+          nama: subBidangForm.nama,
+          bidangId: subBidangParentId,
+        }
+        return { ...b, subBidang: [...existing, newSub] }
+      }
+    }))
+    toast.success(editingSubBidang ? "Sub Bidang berhasil diperbarui" : "Sub Bidang berhasil ditambahkan")
+    setShowSubDialog(false)
+    setIsLoading(false)
+  }
+
+  const handleDeleteSub = () => {
+    if (!deletingSubBidang) return
+    setBidang(prev => prev.map(b => {
+      if (b.id !== deletingSubBidang.bidangId) return b
+      return {
+        ...b,
+        subBidang: (b.subBidang || []).filter((sb: SubBidangItem) => sb.id !== deletingSubBidang.id),
+      }
+    }))
+    toast.success(`Sub Bidang ${deletingSubBidang.nama} berhasil dihapus`)
+    setShowDeleteSubDialog(false)
+    setDeletingSubBidang(null)
+  }
+
   const filtered = bidang.filter(b => 
     b.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
     b.kode.toLowerCase().includes(searchQuery.toLowerCase())
@@ -136,8 +218,8 @@ export default function BidangSettingsPage() {
         <main className="flex-1 overflow-auto p-6">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Kelola Bidang</h1>
-              <p className="text-sm text-muted-foreground">Atur master data unit kerja dan struktural</p>
+              <h1 className="text-2xl font-bold">Kelola Bidang & Sub Bidang</h1>
+              <p className="text-sm text-muted-foreground">Atur master data unit kerja, struktural, dan sub bidang</p>
             </div>
             <Button className="gap-2" onClick={handleOpenAdd}>
               <Plus className="h-4 w-4" /> Tambah Bidang
@@ -156,64 +238,97 @@ export default function BidangSettingsPage() {
             </div>
           </div>
 
-          <Card className="card-premium">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama Bidang</TableHead>
-                    <TableHead>Kode</TableHead>
-                    <TableHead>Kepala Bidang</TableHead>
-                    <TableHead>Direktur Atasan</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isFetching ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center">
-                        <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  ) : filtered.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                        Tidak ada data bidang.
-                      </TableCell>
-                    </TableRow>
-                  ) : filtered.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium text-sm">{item.nama}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="font-mono text-[10px]">{item.kode}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">{item.kepalaBidang || "-"}</TableCell>
-                      <TableCell className="text-sm">{item.direkturAtasan || "-"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={item.aktif ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-red-50 text-red-700 border-red-100"}>
-                          {item.aktif ? "Aktif" : "Non-Aktif"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleOpenEdit(item)}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setDeletingItem(item); setShowDeleteDialog(true) }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+          {/* Bidang Cards with Accordion for Sub Bidang */}
+          <div className="space-y-4">
+            {isFetching ? (
+              <Card className="card-premium">
+                <CardContent className="flex items-center justify-center h-32">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </CardContent>
+              </Card>
+            ) : filtered.length === 0 ? (
+              <Card className="card-premium">
+                <CardContent className="flex flex-col items-center justify-center h-32 gap-2">
+                  <Building2 className="h-8 w-8 text-muted-foreground/50" />
+                  <p className="text-muted-foreground">Tidak ada data bidang ditemukan.</p>
+                </CardContent>
+              </Card>
+            ) : filtered.map(item => (
+              <Card key={item.id} className="card-premium">
+                <CardContent className="p-0">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between p-4 border-b border-border/50">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                        <Building2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-sm">{item.nama}</p>
+                          <Badge variant="secondary" className="font-mono text-[10px]">{item.kode}</Badge>
+                          <Badge variant="outline" className={item.aktif ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-red-50 text-red-700 border-red-100"}>
+                            {item.aktif ? "Aktif" : "Non-Aktif"}
+                          </Badge>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Kepala: {item.kepalaBidang || "-"} · Direktur: {item.direkturAtasan || "-"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleOpenEdit(item)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setDeletingItem(item); setShowDeleteDialog(true) }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Sub Bidang Section */}
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Sub Bidang ({(item.subBidang || []).length})
+                        </span>
+                      </div>
+                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleOpenAddSub(item.id)}>
+                        <Plus className="h-3 w-3" /> Tambah Sub
+                      </Button>
+                    </div>
+                    {(item.subBidang || []).length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic pl-6">Belum ada sub bidang</p>
+                    ) : (
+                      <div className="space-y-1.5 pl-6">
+                        {(item.subBidang || []).map((sub: SubBidangItem) => (
+                          <div key={sub.id} className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full bg-primary/60" />
+                              <span className="text-sm">{sub.nama}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEditSub(sub)}>
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeletingSubBidang(sub); setShowDeleteSubDialog(true) }}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </main>
       </div>
 
+      {/* ===== DIALOG TAMBAH / EDIT BIDANG ===== */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
@@ -266,6 +381,35 @@ export default function BidangSettingsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ===== DIALOG TAMBAH / EDIT SUB BIDANG ===== */}
+      <Dialog open={showSubDialog} onOpenChange={setShowSubDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSubBidang ? "Edit Sub Bidang" : "Tambah Sub Bidang"}</DialogTitle>
+            <DialogDescription>
+              {editingSubBidang ? "Ubah nama sub bidang." : "Tambahkan sub bidang baru ke bidang ini."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nama Sub Bidang *</Label>
+              <Input 
+                value={subBidangForm.nama} 
+                onChange={e => setSubBidangForm({ nama: e.target.value })} 
+                placeholder="Contoh: Pengembangan Aplikasi" 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSubDialog(false)}>Batal</Button>
+            <Button onClick={handleSaveSub} disabled={isLoading}>
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== DIALOG HAPUS BIDANG ===== */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -278,6 +422,24 @@ export default function BidangSettingsPage() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Ya, Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ===== DIALOG HAPUS SUB BIDANG ===== */}
+      <AlertDialog open={showDeleteSubDialog} onOpenChange={setShowDeleteSubDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Sub Bidang?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sub Bidang <strong>{deletingSubBidang?.nama}</strong> akan dihapus.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSub} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Ya, Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

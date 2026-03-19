@@ -47,7 +47,7 @@ import {
   deleteEmployee,
   getBidang
 } from "@/lib/actions/pegawai"
-import { bidangList as fallbackBidang, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
+import { bidangList as fallbackBidang, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, getSubBidangOptions, golonganOptions, tipeKepegawaianOptions, type TipeJabatan } from "@/lib/data/bidang-store"
 
 // ============ TIPE DATA ============
 interface Employee {
@@ -101,7 +101,7 @@ const spConfig = {
   SP3: { label: "SP-3", className: "bg-red-100 text-red-700 border-red-300" },
 }
 
-const golonganOptions = ["A/I","B/I","C/I","D/I","A/II","B/II","C/II","D/II","A/III","B/III","C/III","D/III","A/IV","B/IV","C/IV","D/IV","E/IV"]
+// golonganOptions imported from bidang-store
 const ITEMS_PER_PAGE = 10
 
 export default function EmployeeListPage() {
@@ -163,7 +163,9 @@ export default function EmployeeListPage() {
     bank: "", noRekening: "", bpjsKesehatan: "", bpjsKetenagakerjaan: "",
     alamat: "", npwp: "",
     role: "PEGAWAI", password: "123456",
-  }
+    subBidangId: "",
+    tipeKepegawaian: "",
+  } as any
   const [form, setForm] = useState<EmployeeForm>(emptyForm)
   const [formErrors, setFormErrors] = useState<Record<string,string>>({})
 
@@ -377,9 +379,9 @@ export default function EmployeeListPage() {
               </SelectContent>
             </Select>
           </F>
-          <F label="Tipe Jabatan">
-            <Select value={form.tipeJabatan} onValueChange={v => setForm({...form, tipeJabatan: v as any})}>
-              <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
+          <F label="Jabatan Struktural">
+            <Select value={form.tipeJabatan} onValueChange={v => setForm({...form, tipeJabatan: v as any, subBidangId: v === "kepala_bidang" ? "" : (form as any).subBidangId})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
                 <SelectItem value="kasubbid">Kasubbid</SelectItem>
@@ -401,8 +403,33 @@ export default function EmployeeListPage() {
               </SelectContent>
             </Select>
           </F>
-          <F label="Pangkat">
-            <Input value={form.pangkat || ""} onChange={e => setForm({...form, pangkat: e.target.value})} placeholder="Misal: Penata" />
+          {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang */}
+          {form.tipeJabatan && form.tipeJabatan !== "kepala_bidang" && form.bidangId && (
+            <F label="Sub Bidang">
+              <Select
+                value={(form as any).subBidangId || "NONE"}
+                onValueChange={v => setForm({...form, subBidangId: v === "NONE" ? "" : v} as any)}
+              >
+                <SelectTrigger><SelectValue placeholder="Pilih Sub Bidang" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">— Pilih Sub Bidang —</SelectItem>
+                  {getSubBidangOptions(form.bidangId || "", bidangData).map(sb => (
+                    <SelectItem key={sb.id} value={sb.id}>{sb.nama}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </F>
+          )}
+          <F label="Tipe Kepegawaian">
+            <Select value={(form as any).tipeKepegawaian || "NONE"} onValueChange={v => setForm({...form, tipeKepegawaian: v === "NONE" ? "" : v} as any)}>
+              <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">— Pilih Tipe —</SelectItem>
+                {tipeKepegawaianOptions.map(t => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Golongan">
             <Select value={form.golongan} onValueChange={v => setForm({...form, golongan: v})}>

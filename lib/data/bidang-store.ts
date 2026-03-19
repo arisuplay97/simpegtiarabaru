@@ -1,7 +1,16 @@
 // lib/data/bidang-store.ts
-// Data master bidang/unit kerja + logika atasan otomatis
+// Data master bidang/unit kerja + sub bidang + logika atasan otomatis
 
 export type TipeJabatan = "kepala_bidang" | "kasubbid" | "staff"
+
+// Tipe status kepegawaian (bukan jabatan struktural)
+export type TipeKepegawaian = "tetap" | "honorer" | "kontrak" | "magang"
+
+export interface SubBidang {
+  id: string
+  nama: string
+  bidangId: string
+}
 
 export interface Bidang {
   id: string
@@ -10,6 +19,7 @@ export interface Bidang {
   kepalaBidang: string   // Nama kepala bidang
   direkturAtasan: string // Nama direktur yang menaungi
   aktif: boolean
+  subBidang?: SubBidang[]
 }
 
 export interface StrukturJabatan {
@@ -17,6 +27,23 @@ export interface StrukturJabatan {
   tipe: TipeJabatan
   namaJabatan: string    // Label jabatan lengkap
 }
+
+// ============ GOLONGAN (Urutan: A/I → A/IV, B/I → B/IV, dst) ============
+export const golonganOptions = [
+  "A/I", "A/II", "A/III", "A/IV",
+  "B/I", "B/II", "B/III", "B/IV",
+  "C/I", "C/II", "C/III", "C/IV",
+  "D/I", "D/II", "D/III", "D/IV",
+  "E/IV",
+]
+
+// ============ TIPE KEPEGAWAIAN ============
+export const tipeKepegawaianOptions = [
+  { value: "tetap", label: "Pegawai Tetap" },
+  { value: "honorer", label: "Honorer" },
+  { value: "kontrak", label: "Kontrak" },
+  { value: "magang", label: "Magang" },
+]
 
 // ============ DATA MASTER BIDANG ============
 export let bidangList: Bidang[] = [
@@ -27,6 +54,10 @@ export let bidangList: Bidang[] = [
     kepalaBidang: "Ahmad Rizki Pratama",
     direkturAtasan: "Direktur Teknik",
     aktif: true,
+    subBidang: [
+      { id: "1-1", nama: "Pengembangan Aplikasi", bidangId: "1" },
+      { id: "1-2", nama: "Infrastruktur & Jaringan", bidangId: "1" },
+    ],
   },
   {
     id: "2",
@@ -35,6 +66,10 @@ export let bidangList: Bidang[] = [
     kepalaBidang: "Siti Nurhaliza",
     direkturAtasan: "Direktur Umum",
     aktif: true,
+    subBidang: [
+      { id: "2-1", nama: "Akuntansi", bidangId: "2" },
+      { id: "2-2", nama: "Anggaran & Pelaporan", bidangId: "2" },
+    ],
   },
   {
     id: "3",
@@ -43,6 +78,10 @@ export let bidangList: Bidang[] = [
     kepalaBidang: "Budi Santoso",
     direkturAtasan: "Direktur Teknik",
     aktif: true,
+    subBidang: [
+      { id: "3-1", nama: "Perencanaan Distribusi", bidangId: "3" },
+      { id: "3-2", nama: "Operasional Distribusi", bidangId: "3" },
+    ],
   },
   {
     id: "4",
@@ -51,6 +90,10 @@ export let bidangList: Bidang[] = [
     kepalaBidang: "Dewi Lestari",
     direkturAtasan: "Direktur Umum",
     aktif: true,
+    subBidang: [
+      { id: "4-1", nama: "Pelayanan Pelanggan", bidangId: "4" },
+      { id: "4-2", nama: "Hubungan Masyarakat", bidangId: "4" },
+    ],
   },
   {
     id: "5",
@@ -59,6 +102,10 @@ export let bidangList: Bidang[] = [
     kepalaBidang: "Ir. Gunawan Wibowo",
     direkturAtasan: "Direktur Teknik",
     aktif: true,
+    subBidang: [
+      { id: "5-1", nama: "Pengelolaan Air Baku", bidangId: "5" },
+      { id: "5-2", nama: "Pengawasan Mutu", bidangId: "5" },
+    ],
   },
   {
     id: "6",
@@ -67,6 +114,10 @@ export let bidangList: Bidang[] = [
     kepalaBidang: "Fitri Handayani",
     direkturAtasan: "Direktur Umum",
     aktif: true,
+    subBidang: [
+      { id: "6-1", nama: "Kepegawaian", bidangId: "6" },
+      { id: "6-2", nama: "Umum & Logistik", bidangId: "6" },
+    ],
   },
   {
     id: "7",
@@ -75,6 +126,7 @@ export let bidangList: Bidang[] = [
     kepalaBidang: "Ir. Joko Widagdo",
     direkturAtasan: "Dewan Pengawas",
     aktif: true,
+    subBidang: [],
   },
 ]
 
@@ -128,6 +180,12 @@ export const getJabatanOptions = (bidangId: string, bidangData: Bidang[] = bidan
     { value: "kasubbid",      label: `Kasubbid ${bidang.nama || "-"}` },
     { value: "staff",         label: `Staff ${bidang.nama || "-"}` },
   ]
+}
+
+// Ambil sub bidang berdasarkan bidangId
+export const getSubBidangOptions = (bidangId: string, bidangData: Bidang[] = bidangList): SubBidang[] => {
+  const bidang = bidangData.find(b => b.id === bidangId)
+  return bidang?.subBidang || []
 }
 
 // Helper: parse jabatan string ke tipe
