@@ -65,7 +65,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 to-black p-4">
       <Card className="w-full max-w-md p-8 shadow-2xl bg-white/10 backdrop-blur-md border-white/20 text-white">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 flex flex-col items-center justify-center">
+          <img src="/logo-tar.png" alt="Logo Tirta Ardhia Rinjani" className="h-24 object-contain mb-4" />
           <h1 className="text-4xl font-extrabold tracking-tight mb-2">SIMPEG Tiara</h1>
           <p className="text-blue-200">Sistem Informasi Manajemen Kepegawaian</p>
         </div>

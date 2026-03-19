@@ -200,11 +200,10 @@ export default function EmployeeListPage() {
     const errors: Record<string,string> = {}
     if (!form.nama.trim()) errors.nama = "Nama wajib diisi"
     if (!form.nik || form.nik.length !== 16) errors.nik = "NIK harus 16 digit"
-    if (!form.jabatan.trim()) errors.jabatan = "Jabatan wajib diisi"
     if (!form.bidangId) errors.bidangId = "Unit kerja wajib dipilih"
     if (!form.golongan) errors.golongan = "Golongan wajib dipilih"
-    if (!form.email.includes("@")) errors.email = "Format email tidak valid"
-    if (!form.telepon || form.telepon.length < 10) errors.telepon = "Nomor telepon tidak valid"
+    if (form.email && !form.email.includes("@")) errors.email = "Format email tidak valid"
+    if (form.telepon && form.telepon.length < 10) errors.telepon = "Nomor telepon tidak valid"
     const dup = employees.find(e => e.nik === form.nik && e.id !== editingEmployee?.id)
     if (dup) errors.nik = "NIK sudah terdaftar"
     setFormErrors(errors)
@@ -213,13 +212,17 @@ export default function EmployeeListPage() {
 
   // Handlers
   const handleCreate = async () => {
-    if (!form.nama || !form.nik || !form.email) {
-      toast.error("Nama, NIK, dan Email wajib diisi")
+    if (!form.nama || !form.nik) {
+      toast.error("Nama dan NIK wajib diisi")
       return
     }
+    
+    // Auto-fill form email if empty, using NIK
+    const safeForm = { ...form, email: form.email || `${form.nik}@pdamtirta.com` }
+    
     setIsLoading(true)
     try {
-      const res = await createEmployee(form, fotoFile ?? undefined) as any
+      const res = await createEmployee(safeForm, fotoFile ?? undefined) as any
       if (res?.error) {
         toast.error(res.error)
         setIsLoading(false)
@@ -235,13 +238,17 @@ export default function EmployeeListPage() {
   }
 
   const handleUpdate = async () => {
-    if (!editingEmployee || !form.nama || !form.nik || !form.email) {
-      toast.error("Nama, NIK, dan Email wajib diisi")
+    if (!editingEmployee || !form.nama || !form.nik) {
+      toast.error("Nama dan NIK wajib diisi")
       return
     }
+    
+    // Auto-fill form email if empty, using NIK
+    const safeForm = { ...form, email: form.email || `${form.nik}@pdamtirta.com` }
+
     setIsLoading(true)
     try {
-      const res = await updateEmployee(editingEmployee.id, form, fotoFile ?? undefined) as any
+      const res = await updateEmployee(editingEmployee.id, safeForm, fotoFile ?? undefined) as any
       if (res?.error) {
         toast.error(res.error)
         setIsLoading(false)
