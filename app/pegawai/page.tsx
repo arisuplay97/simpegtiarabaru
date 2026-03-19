@@ -147,6 +147,8 @@ export default function EmployeeListPage() {
     id?: string
     password?: string
     role?: string
+    subBidangId?: string
+    tipeKepegawaian?: string
   }
 
   const emptyForm: EmployeeForm = {
@@ -165,7 +167,7 @@ export default function EmployeeListPage() {
     role: "PEGAWAI", password: "123456",
     subBidangId: "",
     tipeKepegawaian: "",
-  } as any
+  } as EmployeeForm
   const [form, setForm] = useState<EmployeeForm>(emptyForm)
   const [formErrors, setFormErrors] = useState<Record<string,string>>({})
 
