@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select"
 import { Building2, Plus, Edit2, Trash2, Loader2, CheckCircle2, XCircle, Search, Layers } from "lucide-react"
 import { toast } from "sonner"
-import { getBidang, createBidang, updateBidang, deleteBidang } from "@/lib/actions/pegawai"
+import { getBidang, createBidang, updateBidang, deleteBidang, createSubBidang, updateSubBidang, deleteSubBidang } from "@/lib/actions/pegawai"
 
 interface SubBidangItem {
   id: string
@@ -163,43 +163,35 @@ export default function BidangSettingsPage() {
       return
     }
     setIsLoading(true)
-    // Update local state (client-side, karena sub bidang belum di DB)
-    setBidang(prev => prev.map(b => {
-      if (b.id !== subBidangParentId) return b
-      const existing: SubBidangItem[] = b.subBidang || []
+    try {
       if (editingSubBidang) {
-        // Edit
-        return {
-          ...b,
-          subBidang: existing.map((sb: SubBidangItem) => sb.id === editingSubBidang.id ? { ...sb, nama: subBidangForm.nama } : sb),
-        }
+        await updateSubBidang(editingSubBidang.id, { nama: subBidangForm.nama })
+        toast.success("Sub Bidang berhasil diperbarui")
       } else {
-        // Tambah
-        const newSub: SubBidangItem = {
-          id: `${subBidangParentId}-${Date.now()}`,
-          nama: subBidangForm.nama,
-          bidangId: subBidangParentId,
-        }
-        return { ...b, subBidang: [...existing, newSub] }
+        await createSubBidang({ nama: subBidangForm.nama, bidangId: subBidangParentId })
+        toast.success("Sub Bidang berhasil ditambahkan")
       }
-    }))
-    toast.success(editingSubBidang ? "Sub Bidang berhasil diperbarui" : "Sub Bidang berhasil ditambahkan")
-    setShowSubDialog(false)
+      await loadData()
+      setShowSubDialog(false)
+    } catch (e: any) {
+      toast.error(e.message || "Gagal menyimpan sub bidang")
+    }
     setIsLoading(false)
   }
 
-  const handleDeleteSub = () => {
+  const handleDeleteSub = async () => {
     if (!deletingSubBidang) return
-    setBidang(prev => prev.map(b => {
-      if (b.id !== deletingSubBidang.bidangId) return b
-      return {
-        ...b,
-        subBidang: (b.subBidang || []).filter((sb: SubBidangItem) => sb.id !== deletingSubBidang.id),
-      }
-    }))
-    toast.success(`Sub Bidang ${deletingSubBidang.nama} berhasil dihapus`)
-    setShowDeleteSubDialog(false)
-    setDeletingSubBidang(null)
+    setIsLoading(true)
+    try {
+      await deleteSubBidang(deletingSubBidang.id)
+      toast.success(`Sub Bidang ${deletingSubBidang.nama} berhasil dihapus`)
+      await loadData()
+      setShowDeleteSubDialog(false)
+      setDeletingSubBidang(null)
+    } catch (e: any) {
+      toast.error(e.message || "Gagal menghapus sub bidang")
+    }
+    setIsLoading(false)
   }
 
   const filtered = bidang.filter(b => 

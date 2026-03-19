@@ -358,7 +358,7 @@ export default function EmployeeListPage() {
           <F label="Nama Lengkap" error={formErrors.nama}>
             <Input value={form.nama} onChange={e => setForm({...form, nama: e.target.value})} placeholder="Nama Lengkap" />
           </F>
-          <F label="NIK (KTP)" error={formErrors.nik}>
+          <F label="NIK" error={formErrors.nik}>
             <Input value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="16 Digit NIK" maxLength={16} />
           </F>
           <F label="Email" error={formErrors.email}>
@@ -377,40 +377,36 @@ export default function EmployeeListPage() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <F label="Bidang / Unit Kerja">
-            <Select value={form.bidangId || ""} onValueChange={v => setForm({...form, bidangId: v, jabatan: ""})}>
+            <Select value={form.bidangId || "NONE"} onValueChange={v => {
+              const bid = v === "NONE" ? "" : v
+              setForm({...form, bidangId: bid, jabatan: "", tipeJabatan: "", subBidangId: ""})
+            }}>
               <SelectTrigger><SelectValue placeholder="Pilih Bidang" /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="NONE">— Pilih Bidang —</SelectItem>
                 {bidangData.map(b => <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>)}
               </SelectContent>
             </Select>
           </F>
           <F label="Jabatan Struktural">
-            <Select value={form.tipeJabatan} onValueChange={v => {
-              // Auto-fill jabatan berdasarkan tipe + bidang yang dipilih
+            <Select value={form.tipeJabatan || "NONE"} onValueChange={v => {
+              const tipe = v === "NONE" ? "" : v
               const bidang = bidangData.find(b => b.id === form.bidangId)
               const namaB = bidang?.nama || ""
-              let autoJabatan = form.jabatan
-              if (v === "kepala_bidang") autoJabatan = `Kepala Bidang ${namaB}`
-              else if (v === "kasubbid") autoJabatan = `Kasubbid ${namaB}`
-              else if (v === "staff") autoJabatan = `Staff ${namaB}`
-              setForm({...form, tipeJabatan: v, jabatan: autoJabatan, subBidangId: v === "kepala_bidang" ? "" : form.subBidangId})
+              let autoJabatan = ""
+              if (tipe === "kepala_bidang") autoJabatan = `Kepala Bidang ${namaB}`
+              else if (tipe === "kasubbid") autoJabatan = `Kasubbid ${namaB}`
+              else if (tipe === "staff") autoJabatan = `Staff ${namaB}`
+              setForm({...form, tipeJabatan: tipe, jabatan: autoJabatan, subBidangId: tipe === "kepala_bidang" ? "" : form.subBidangId})
             }}>
               <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="NONE">— Pilih —</SelectItem>
                 <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
                 <SelectItem value="kasubbid">Kasubbid</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
               </SelectContent>
             </Select>
-          </F>
-          <F label="Jabatan">
-            <Input 
-              value={form.jabatan || ""} 
-              readOnly
-              disabled
-              placeholder="Otomatis berdasarkan Jabatan Struktural"
-              className="bg-muted"
-            />
           </F>
           {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang */}
           {form.tipeJabatan && form.tipeJabatan !== "kepala_bidang" && form.bidangId && (
@@ -441,15 +437,16 @@ export default function EmployeeListPage() {
             </Select>
           </F>
           <F label="Golongan">
-            <Select value={form.golongan} onValueChange={v => setForm({...form, golongan: v})}>
+            <Select value={form.golongan || "NONE"} onValueChange={v => setForm({...form, golongan: v === "NONE" ? "" : v})}>
               <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="NONE">— Pilih —</SelectItem>
                 {golonganOptions.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
               </SelectContent>
             </Select>
           </F>
           <F label="Status Pegawai">
-            <Select value={form.status} onValueChange={v => setForm({...form, status: v})}>
+            <Select value={form.status || "AKTIF"} onValueChange={v => setForm({...form, status: v})}>
               <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="AKTIF">Aktif</SelectItem>
@@ -536,7 +533,34 @@ export default function EmployeeListPage() {
 
       <DropdownMenuSeparator />
 
-      {/* Section 4: Keuangan & Dokumen */}
+      {/* Section 4: Pendidikan */}
+      <section>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pendidikan Terakhir</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <F label="Tingkat Pendidikan">
+            <Select value={form.pendidikanTerakhir || "NONE"} onValueChange={v => setForm({...form, pendidikanTerakhir: v === "NONE" ? "" : v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Jenjang" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">— Pilih —</SelectItem>
+                {["SD","SMP","SMA","D1","D2","D3","D4","S1","S2","S3"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </F>
+          <F label="Jurusan">
+            <Input value={form.jurusan || ""} onChange={e => setForm({...form, jurusan: e.target.value})} placeholder="Nama Jurusan" />
+          </F>
+          <F label="Institusi / Sekolah">
+            <Input value={form.institusi || ""} onChange={e => setForm({...form, institusi: e.target.value})} placeholder="Nama Kampus/Sekolah" />
+          </F>
+          <F label="Tahun Lulus">
+            <Input value={form.tahunLulus || ""} onChange={e => setForm({...form, tahunLulus: e.target.value})} placeholder="2020" maxLength={4} />
+          </F>
+        </div>
+      </section>
+
+      <DropdownMenuSeparator />
+
+      {/* Section 5: Keuangan & Dokumen */}
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Keuangan & Dokumen</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

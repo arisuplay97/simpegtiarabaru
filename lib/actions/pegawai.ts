@@ -68,7 +68,8 @@ export async function createEmployee(data: any, fotoFile?: File) {
       fotoUrl: fotoUrl || null,
 
       bidangId: data.bidangId || null,
-      jabatan: data.jabatan,
+      subBidangId: data.subBidangId || null,
+      jabatan: data.jabatan || "",
       tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
       golongan: data.golongan || "",
       pangkat: data.pangkat || "",
@@ -133,7 +134,8 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       ...(fotoUrl ? { fotoUrl } : {}),
 
       bidangId: data.bidangId || null,
-      jabatan: data.jabatan,
+      subBidangId: data.subBidangId || null,
+      jabatan: data.jabatan || "",
       tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
       golongan: data.golongan || "",
       pangkat: data.pangkat || "",
@@ -271,6 +273,7 @@ export async function updateMutasiStatus(
 // ============ GET BIDANG ============
 export async function getBidang() {
   return await prisma.bidang.findMany({
+    include: { subBidang: { orderBy: { nama: "asc" } } },
     orderBy: { nama: "asc" },
   })
 }
@@ -290,6 +293,24 @@ export async function updateBidang(id: string, data: any) {
 
 export async function deleteBidang(id: string) {
   await prisma.bidang.delete({ where: { id } })
+  revalidatePath("/settings/bidang")
+}
+
+// ============ CRUD SUB BIDANG ============
+export async function createSubBidang(data: { nama: string; bidangId: string }) {
+  const sub = await prisma.subBidang.create({ data })
+  revalidatePath("/settings/bidang")
+  return sub
+}
+
+export async function updateSubBidang(id: string, data: { nama: string }) {
+  const sub = await prisma.subBidang.update({ where: { id }, data })
+  revalidatePath("/settings/bidang")
+  return sub
+}
+
+export async function deleteSubBidang(id: string) {
+  await prisma.subBidang.delete({ where: { id } })
   revalidatePath("/settings/bidang")
 }
 

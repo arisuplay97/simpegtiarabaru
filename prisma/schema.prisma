@@ -22,15 +22,29 @@ model User {
 
 // ============ BIDANG / UNIT KERJA ============
 model Bidang {
-  id              String    @id @default(cuid())
-  nama            String    @unique
-  kode            String    @unique
+  id              String      @id @default(cuid())
+  nama            String      @unique
+  kode            String      @unique
   kepalaBidang    String
   direkturAtasan  String
-  aktif           Boolean   @default(true)
+  aktif           Boolean     @default(true)
   pegawai         Pegawai[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  subBidang       SubBidang[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// ============ SUB BIDANG ============
+model SubBidang {
+  id        String    @id @default(cuid())
+  nama      String
+  bidangId  String
+  bidang    Bidang    @relation(fields: [bidangId], references: [id], onDelete: Cascade)
+  pegawai   Pegawai[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([bidangId, nama])
 }
 
 // ============ PEGAWAI ============
@@ -44,7 +58,9 @@ model Pegawai {
 
   // Kepegawaian
   bidangId              String?
-  bidang                Bidang?   @relation(fields: [bidangId], references: [id])
+  bidang                Bidang?     @relation(fields: [bidangId], references: [id])
+  subBidangId           String?
+  subBidang             SubBidang?  @relation(fields: [subBidangId], references: [id])
   jabatan               String
   tipeJabatan           TipeJabatan @default(STAFF)
   golongan              String    // Format: A/I, B/II, dst
