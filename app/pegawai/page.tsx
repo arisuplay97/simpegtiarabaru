@@ -104,6 +104,11 @@ const spConfig = {
 // golonganOptions imported from bidang-store
 const ITEMS_PER_PAGE = 10
 
+// Form field wrapper — MUST be outside component to prevent input remount per keystroke
+const F = ({label, error, children}: {label:string; error?:string; children:React.ReactNode}) => (
+  <div><Label>{label}</Label><div className="mt-1">{children}</div>{error && <p className="mt-1 text-xs text-destructive">{error}</p>}</div>
+)
+
 export default function EmployeeListPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -317,9 +322,7 @@ export default function EmployeeListPage() {
     setShowEditDialog(true)
   }
 
-  const F = ({label, error, children}: {label:string; error?:string; children:React.ReactNode}) => (
-    <div><Label>{label}</Label><div className="mt-1">{children}</div>{error && <p className="mt-1 text-xs text-destructive">{error}</p>}</div>
-  )
+  // F helper moved outside component to prevent input remount
 
   const formContent = (
     <div className="space-y-6">
@@ -382,7 +385,16 @@ export default function EmployeeListPage() {
             </Select>
           </F>
           <F label="Jabatan Struktural">
-            <Select value={form.tipeJabatan} onValueChange={v => setForm({...form, tipeJabatan: v as any, subBidangId: v === "kepala_bidang" ? "" : (form as any).subBidangId})}>
+            <Select value={form.tipeJabatan} onValueChange={v => {
+              // Auto-fill jabatan berdasarkan tipe + bidang yang dipilih
+              const bidang = bidangData.find(b => b.id === form.bidangId)
+              const namaB = bidang?.nama || ""
+              let autoJabatan = form.jabatan
+              if (v === "kepala_bidang") autoJabatan = `Kepala Bidang ${namaB}`
+              else if (v === "kasubbid") autoJabatan = `Kasubbid ${namaB}`
+              else if (v === "staff") autoJabatan = `Staff ${namaB}`
+              setForm({...form, tipeJabatan: v, jabatan: autoJabatan, subBidangId: v === "kepala_bidang" ? "" : form.subBidangId})
+            }}>
               <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
@@ -409,8 +421,8 @@ export default function EmployeeListPage() {
           {form.tipeJabatan && form.tipeJabatan !== "kepala_bidang" && form.bidangId && (
             <F label="Sub Bidang">
               <Select
-                value={(form as any).subBidangId || "NONE"}
-                onValueChange={v => setForm({...form, subBidangId: v === "NONE" ? "" : v} as any)}
+                value={form.subBidangId || "NONE"}
+                onValueChange={v => setForm({...form, subBidangId: v === "NONE" ? "" : v})}
               >
                 <SelectTrigger><SelectValue placeholder="Pilih Sub Bidang" /></SelectTrigger>
                 <SelectContent>
@@ -423,7 +435,7 @@ export default function EmployeeListPage() {
             </F>
           )}
           <F label="Tipe Kepegawaian">
-            <Select value={(form as any).tipeKepegawaian || "NONE"} onValueChange={v => setForm({...form, tipeKepegawaian: v === "NONE" ? "" : v} as any)}>
+            <Select value={form.tipeKepegawaian || "NONE"} onValueChange={v => setForm({...form, tipeKepegawaian: v === "NONE" ? "" : v})}>
               <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Pilih Tipe —</SelectItem>

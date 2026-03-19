@@ -25,9 +25,6 @@ import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion"
 import { Building2, Plus, Edit2, Trash2, Loader2, CheckCircle2, XCircle, Search, Layers } from "lucide-react"
 import { toast } from "sonner"
 import { getBidang, createBidang, updateBidang, deleteBidang } from "@/lib/actions/pegawai"
