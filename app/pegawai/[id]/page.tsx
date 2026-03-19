@@ -45,6 +45,8 @@ import {
   TrendingUp,
   Loader2,
 } from "lucide-react"
+import { format } from "date-fns"
+import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -255,7 +257,7 @@ export default function EmployeeDetailPage() {
     }
     
     return { 
-      tanggal: pensiunDate.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" }),
+      tanggal: format(pensiunDate, "dd MMMM yyyy", { locale: idLocale }),
       sisaText: `(sisa ${sisaText})`,
       color: diffDays < 365 * 2 ? "text-amber-700 bg-amber-100" : "text-emerald-700 bg-emerald-100"
     }
@@ -352,9 +354,9 @@ export default function EmployeeDetailPage() {
                         <Briefcase className="h-4 w-4" />
                         Golongan {employee.golongan || "-"}
                       </span>
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5" suppressHydrationWarning>
                         <Calendar className="h-4 w-4" />
-                        Masuk: {employee.tanggalMasuk ? new Date(employee.tanggalMasuk).toLocaleDateString("id-ID") : "-"}
+                        Masuk: {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "-"}
                       </span>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
@@ -545,7 +547,7 @@ export default function EmployeeDetailPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground">TMT Kerja</p>
-                        <p className="font-medium">{employee.tanggalMasuk ? new Date(employee.tanggalMasuk).toLocaleDateString("id-ID") : "-"}</p>
+                        <p className="font-medium" suppressHydrationWarning>{employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "-"}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Masa Kerja</p>
