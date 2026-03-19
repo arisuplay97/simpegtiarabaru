@@ -17,6 +17,9 @@ const mapTipeJabatan = (val: string): string => {
   return map[val?.toLowerCase()] || val || "STAFF"
 }
 
+// Helper: strip "NONE" and empty-string values → null
+const clean = (v: any) => (!v || v === "NONE" || v === "") ? null : v
+
 // ============ GET SEMUA PEGAWAI ============
 export async function getEmployees() {
   return await prisma.pegawai.findMany({
@@ -67,34 +70,34 @@ export async function createEmployee(data: any, fotoFile?: File) {
       telepon: data.telepon || null,
       fotoUrl: fotoUrl || null,
 
-      bidangId: data.bidangId || null,
-      subBidangId: data.subBidangId || null,
+      bidangId: clean(data.bidangId),
+      subBidangId: clean(data.subBidangId),
       jabatan: data.jabatan || "",
       tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
-      golongan: data.golongan || "",
-      pangkat: data.pangkat || "",
-      atasanLangsung: data.atasanLangsung || null,
+      golongan: clean(data.golongan) || "",
+      pangkat: clean(data.pangkat) || "",
+      atasanLangsung: clean(data.atasanLangsung),
       status: data.status || "AKTIF",
-      sp: data.sp || null,
+      sp: clean(data.sp),
       tanggalMasuk: new Date(data.tanggalMasuk),
 
-      jenisKelamin: data.jenisKelamin || null,
-      tempatLahir: data.tempatLahir || null,
+      jenisKelamin: clean(data.jenisKelamin),
+      tempatLahir: clean(data.tempatLahir),
       tanggalLahir: data.tanggalLahir ? new Date(data.tanggalLahir) : null,
-      agama: data.agama || null,
-      statusNikah: data.statusNikah || null,
-      alamat: data.alamat || null,
-      npwp: data.npwp || null,
+      agama: clean(data.agama),
+      statusNikah: clean(data.statusNikah),
+      alamat: clean(data.alamat),
+      npwp: clean(data.npwp),
 
-      pendidikanTerakhir: data.pendidikanTerakhir || null,
-      jurusan: data.jurusan || null,
-      institusi: data.institusi || null,
-      tahunLulus: data.tahunLulus || null,
+      pendidikanTerakhir: clean(data.pendidikanTerakhir),
+      jurusan: clean(data.jurusan),
+      institusi: clean(data.institusi),
+      tahunLulus: clean(data.tahunLulus),
 
-      bank: data.bank || null,
-      noRekening: data.noRekening || null,
-      bpjsKesehatan: data.bpjsKesehatan || null,
-      bpjsKetenagakerjaan: data.bpjsKetenagakerjaan || null,
+      bank: clean(data.bank),
+      noRekening: clean(data.noRekening),
+      bpjsKesehatan: clean(data.bpjsKesehatan),
+      bpjsKetenagakerjaan: clean(data.bpjsKetenagakerjaan),
 
       user: {
         create: {
@@ -133,33 +136,33 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       telepon: data.telepon || null,
       ...(fotoUrl ? { fotoUrl } : {}),
 
-      bidangId: data.bidangId || null,
-      subBidangId: data.subBidangId || null,
+      bidangId: clean(data.bidangId),
+      subBidangId: clean(data.subBidangId),
       jabatan: data.jabatan || "",
       tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
-      golongan: data.golongan || "",
-      pangkat: data.pangkat || "",
-      atasanLangsung: data.atasanLangsung || null,
+      golongan: clean(data.golongan) || "",
+      pangkat: clean(data.pangkat) || "",
+      atasanLangsung: clean(data.atasanLangsung),
       status: data.status || "AKTIF",
-      sp: data.sp || null,
+      sp: clean(data.sp),
 
-      jenisKelamin: data.jenisKelamin || null,
-      tempatLahir: data.tempatLahir || null,
+      jenisKelamin: clean(data.jenisKelamin),
+      tempatLahir: clean(data.tempatLahir),
       tanggalLahir: data.tanggalLahir ? new Date(data.tanggalLahir) : null,
-      agama: data.agama || null,
-      statusNikah: data.statusNikah || null,
-      alamat: data.alamat || null,
-      npwp: data.npwp || null,
+      agama: clean(data.agama),
+      statusNikah: clean(data.statusNikah),
+      alamat: clean(data.alamat),
+      npwp: clean(data.npwp),
 
-      pendidikanTerakhir: data.pendidikanTerakhir || null,
-      jurusan: data.jurusan || null,
-      institusi: data.institusi || null,
-      tahunLulus: data.tahunLulus || null,
+      pendidikanTerakhir: clean(data.pendidikanTerakhir),
+      jurusan: clean(data.jurusan),
+      institusi: clean(data.institusi),
+      tahunLulus: clean(data.tahunLulus),
 
-      bank: data.bank || null,
-      noRekening: data.noRekening || null,
-      bpjsKesehatan: data.bpjsKesehatan || null,
-      bpjsKetenagakerjaan: data.bpjsKetenagakerjaan || null,
+      bank: clean(data.bank),
+      noRekening: clean(data.noRekening),
+      bpjsKesehatan: clean(data.bpjsKesehatan),
+      bpjsKetenagakerjaan: clean(data.bpjsKetenagakerjaan),
     },
   })
 

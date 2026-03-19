@@ -37,6 +37,7 @@ import {
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { getEmployees, getBidang } from "@/lib/actions/pegawai"
 
 // ============ TIPE DATA ============
 type MutasiStatus = "pending" | "approved" | "rejected"
@@ -186,15 +187,47 @@ export default function MutasiPage() {
   const [rejectNote, setRejectNote] = useState("")
   const [approveNote, setApproveNote] = useState("")
 
+  // Employee list for dropdown
+  const [employeeList, setEmployeeList] = useState<any[]>([])
+  const [bidangList, setBidangList] = useState<any[]>([])
+  const [empSearch, setEmpSearch] = useState("")
+
+  useEffect(() => {
+    const loadEmpAndBidang = async () => {
+      try {
+        const [emps, bids] = await Promise.all([getEmployees(), getBidang()])
+        setEmployeeList(emps || [])
+        setBidangList(bids || [])
+      } catch {}
+    }
+    loadEmpAndBidang()
+  }, [])
+
   // Form state
   const [form, setForm] = useState({
-    nik: "", namaPegawai: "", inisial: "",
+    pegawaiId: "", nik: "", namaPegawai: "", inisial: "",
     unitAsal: "", jabatanAsal: "",
     unitTujuan: "", jabatanTujuan: "",
     type: "mutasi" as MutasiType,
     alasan: "", tanggalEfektif: "",
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // When employee is selected, auto-fill posisi asal
+  const handleSelectEmployee = (empId: string) => {
+    const emp = employeeList.find(e => e.id === empId)
+    if (!emp) return
+    const bidangNama = emp.bidang?.nama || "-"
+    setForm(p => ({
+      ...p,
+      pegawaiId: emp.id,
+      nik: emp.nik,
+      namaPegawai: emp.nama,
+      inisial: emp.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
+      unitAsal: bidangNama,
+      jabatanAsal: emp.jabatan || "-",
+    }))
+  }
 
   // ---- Filter ----
   const filtered = data.filter(item => {
@@ -254,7 +287,8 @@ export default function MutasiPage() {
     }
     setData(prev => [newItem, ...prev])
     setShowAddDialog(false)
-    setForm({ nik: "", namaPegawai: "", inisial: "", unitAsal: "", jabatanAsal: "", unitTujuan: "", jabatanTujuan: "", type: "mutasi", alasan: "", tanggalEfektif: "" })
+    setForm({ pegawaiId: "", nik: "", namaPegawai: "", inisial: "", unitAsal: "", jabatanAsal: "", unitTujuan: "", jabatanTujuan: "", type: "mutasi", alasan: "", tanggalEfektif: "" })
+    setEmpSearch("")
     setIsLoading(false)
     toast.success("Pengajuan mutasi berhasil dikirim")
   }
@@ -312,7 +346,7 @@ export default function MutasiPage() {
               <h1 className="text-2xl font-bold">Mutasi & Promosi</h1>
               <p className="text-sm text-muted-foreground">Kelola pengajuan mutasi, promosi, dan rotasi pegawai</p>
             </div>
-            <Button size="sm" className="gap-2" onClick={() => { setForm({ nik: "", namaPegawai: "", inisial: "", unitAsal: "", jabatanAsal: "", unitTujuan: "", jabatanTujuan: "", type: "mutasi", alasan: "", tanggalEfektif: "" }); setFormErrors({}); setShowAddDialog(true) }}>
+            <Button size="sm" className="gap-2" onClick={() => { setForm({ pegawaiId: "", nik: "", namaPegawai: "", inisial: "", unitAsal: "", jabatanAsal: "", unitTujuan: "", jabatanTujuan: "", type: "mutasi", alasan: "", tanggalEfektif: "" }); setEmpSearch(""); setFormErrors({}); setShowAddDialog(true) }}>
               <Plus className="h-4 w-4" /> Ajukan Mutasi
             </Button>
           </div>
@@ -491,17 +525,47 @@ export default function MutasiPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Nama Pegawai *</Label>
-                <Input className="mt-1" value={form.namaPegawai} onChange={e => setForm(p => ({...p, namaPegawai: e.target.value}))} placeholder="Nama lengkap" />
-                {formErrors.nama && <p className="mt-1 text-xs text-destructive">{formErrors.nama}</p>}
+            {/* Employee Searchable Select */}
+            <div>
+              <Label>Nama Pegawai *</Label>
+              <div className="mt-1 relative">
+                <Input
+                  value={form.pegawaiId ? form.namaPegawai : empSearch}
+                  onChange={e => {
+                    setEmpSearch(e.target.value)
+                    if (form.pegawaiId) setForm(p => ({...p, pegawaiId: "", nik: "", namaPegawai: "", inisial: "", unitAsal: "", jabatanAsal: ""}))
+                  }}
+                  placeholder="Ketik nama pegawai untuk mencari..."
+                />
+                {empSearch && !form.pegawaiId && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {employeeList
+                      .filter(e => e.nama.toLowerCase().includes(empSearch.toLowerCase()) || e.nik.includes(empSearch))
+                      .slice(0, 10)
+                      .map(emp => (
+                        <button
+                          key={emp.id}
+                          type="button"
+                          className="w-full px-3 py-2 text-left hover:bg-muted flex items-center justify-between text-sm"
+                          onClick={() => { handleSelectEmployee(emp.id); setEmpSearch("") }}
+                        >
+                          <div>
+                            <p className="font-medium">{emp.nama}</p>
+                            <p className="text-xs text-muted-foreground">{emp.jabatan || "-"} — {emp.bidang?.nama || "-"}</p>
+                          </div>
+                          <span className="font-mono text-xs text-muted-foreground">{emp.nik}</span>
+                        </button>
+                      ))}
+                    {employeeList.filter(e => e.nama.toLowerCase().includes(empSearch.toLowerCase()) || e.nik.includes(empSearch)).length === 0 && (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">Tidak ditemukan</p>
+                    )}
+                  </div>
+                )}
               </div>
-              <div>
-                <Label>NIK (16 digit) *</Label>
-                <Input className="mt-1 font-mono" value={form.nik} onChange={e => setForm(p => ({...p, nik: e.target.value}))} placeholder="3201xxxxxxxxxxxxxxx" maxLength={16} />
-                {formErrors.nik && <p className="mt-1 text-xs text-destructive">{formErrors.nik}</p>}
-              </div>
+              {form.pegawaiId && (
+                <p className="mt-1 text-xs text-emerald-600">✓ NIK: {form.nik} — {form.unitAsal} / {form.jabatanAsal}</p>
+              )}
+              {formErrors.nama && <p className="mt-1 text-xs text-destructive">{formErrors.nama}</p>}
             </div>
 
             <div>
@@ -521,17 +585,12 @@ export default function MutasiPage() {
               <div className="space-y-3 rounded-lg bg-muted/50 p-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase">Posisi Asal</p>
                 <div>
-                  <Label>Unit Kerja Asal *</Label>
-                  <Select value={form.unitAsal} onValueChange={v => setForm(p => ({...p, unitAsal: v}))}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih unit" /></SelectTrigger>
-                    <SelectContent>{unitOptions.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
-                  </Select>
-                  {formErrors.unitAsal && <p className="mt-1 text-xs text-destructive">{formErrors.unitAsal}</p>}
+                  <Label>Unit Kerja Asal</Label>
+                  <Input className="mt-1 bg-muted" value={form.unitAsal} readOnly disabled />
                 </div>
                 <div>
-                  <Label>Jabatan Asal *</Label>
-                  <Input className="mt-1" value={form.jabatanAsal} onChange={e => setForm(p => ({...p, jabatanAsal: e.target.value}))} placeholder="Nama jabatan" />
-                  {formErrors.jabatanAsal && <p className="mt-1 text-xs text-destructive">{formErrors.jabatanAsal}</p>}
+                  <Label>Jabatan Asal</Label>
+                  <Input className="mt-1 bg-muted" value={form.jabatanAsal} readOnly disabled />
                 </div>
               </div>
 
@@ -539,9 +598,12 @@ export default function MutasiPage() {
                 <p className="text-xs font-semibold text-primary uppercase">Posisi Tujuan</p>
                 <div>
                   <Label>Unit Kerja Tujuan *</Label>
-                  <Select value={form.unitTujuan} onValueChange={v => setForm(p => ({...p, unitTujuan: v}))}>
+                  <Select value={form.unitTujuan || "NONE"} onValueChange={v => setForm(p => ({...p, unitTujuan: v === "NONE" ? "" : v}))}>
                     <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih unit" /></SelectTrigger>
-                    <SelectContent>{unitOptions.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      <SelectItem value="NONE">— Pilih —</SelectItem>
+                      {bidangList.map(b => <SelectItem key={b.id} value={b.nama}>{b.nama}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                   {formErrors.unitTujuan && <p className="mt-1 text-xs text-destructive">{formErrors.unitTujuan}</p>}
                 </div>

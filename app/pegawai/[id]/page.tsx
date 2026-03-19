@@ -69,11 +69,11 @@ import { getEmployee, updateEmployee, uploadFotoPegawai } from "@/lib/actions/pe
 import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
-const statusConfig = {
-  aktif: { label: "Aktif", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  cuti: { label: "Cuti", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  "non-aktif": { label: "Non-Aktif", className: "bg-gray-100 text-gray-700 border-gray-200" },
-  pensiun: { label: "Pensiun", className: "bg-red-100 text-red-700 border-red-200" },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  AKTIF: { label: "Aktif", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  CUTI: { label: "Cuti", className: "bg-amber-100 text-amber-700 border-amber-200" },
+  NON_AKTIF: { label: "Non-Aktif", className: "bg-gray-100 text-gray-700 border-gray-200" },
+  PENSIUN: { label: "Pensiun", className: "bg-red-100 text-red-700 border-red-200" },
 }
 
 const spConfig = {
@@ -301,9 +301,9 @@ export default function EmployeeDetailPage() {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="outline"
-                          className={statusConfig[(employee.status || "aktif").toLowerCase() as keyof typeof statusConfig]?.className || ""}
+                          className={statusConfig[employee.status || "AKTIF"]?.className || ""}
                         >
-                          {statusConfig[(employee.status || "aktif").toLowerCase() as keyof typeof statusConfig]?.label || employee.status || "AKTIF"}
+                          {statusConfig[employee.status || "AKTIF"]?.label || employee.status || "AKTIF"}
                         </Badge>
                         {employee.sp === "SP1" && <Badge variant="outline" className={spConfig.SP1.className}>SP-1</Badge>}
                         {employee.sp === "SP2" && <Badge variant="outline" className={spConfig.SP2.className}>SP-2</Badge>}
@@ -1041,18 +1041,20 @@ export default function EmployeeDetailPage() {
             {/* Bidang / Unit Kerja */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Bidang / Unit Kerja</Label>
+                <Label>Bidang</Label>
                 <Select
-                  value={formData.bidangId || ""}
+                  value={formData.bidangId || "NONE"}
                   onValueChange={v => {
-                    const b = bidangList.find(x => x.id === v)
-                    handleChange("bidangId", v)
+                    const val = v === "NONE" ? null : v;
+                    handleChange("bidangId", val)
+                    handleChange("subBidangId", null)
                     handleChange("jabatan", "")
                     handleChange("atasanLangsung", "")
                   }}
                 >
                   <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih bidang" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="NONE">— Pilih —</SelectItem>
                     {bidangList.map(b => (
                       <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
                     ))}
@@ -1088,11 +1090,12 @@ export default function EmployeeDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Golongan</Label>
-                <Select value={formData.golongan} onValueChange={v => handleChange("golongan", v)}>
+                <Select value={formData.golongan || "NONE"} onValueChange={v => handleChange("golongan", v === "NONE" ? null : v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="NONE">— Pilih —</SelectItem>
                     {["A/I","A/II","A/III","A/IV",
                       "B/I","B/II","B/III","B/IV",
                       "C/I","C/II","C/III","C/IV",
@@ -1104,7 +1107,7 @@ export default function EmployeeDetailPage() {
               </div>
               <div>
                 <Label>Status</Label>
-                <Select value={formData.status} onValueChange={v => handleChange("status", v)}>
+                <Select value={formData.status || "AKTIF"} onValueChange={v => handleChange("status", v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
