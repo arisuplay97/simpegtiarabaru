@@ -410,23 +410,20 @@ export default function EmployeeListPage() {
               const tipe = v === "NONE" ? "" : v
               const bidang = bidangData.find(b => b.id === form.bidangId)
               const namaB = bidang?.nama || ""
-              let autoJabatan = ""
-              if (tipe === "kepala_bidang") autoJabatan = `Kepala Bidang ${namaB}`
-              else if (tipe === "kasubbid") autoJabatan = `Kasubbid ${namaB}`
-              else if (tipe === "staff") autoJabatan = `Staff ${namaB}`
-              setForm({...form, tipeJabatan: tipe, jabatan: autoJabatan, subBidangId: tipe === "kepala_bidang" ? "" : form.subBidangId})
+              const autoJabatan = tipe ? getJabatanLabel(tipe as TipeJabatan, namaB) : ""
+              setForm({...form, tipeJabatan: tipe, jabatan: autoJabatan, subBidangId: (tipe.includes("kepala") ? "" : form.subBidangId)})
             }}>
               <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Pilih —</SelectItem>
-                <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
-                <SelectItem value="kasubbid">Kasubbid</SelectItem>
-                <SelectItem value="staff">Staff</SelectItem>
+                {form.bidangId && getJabatanOptions(form.bidangId, bidangData).map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </F>
-          {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang */}
-          {form.tipeJabatan && form.tipeJabatan !== "kepala_bidang" && form.bidangId && (
+          {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang/Cabang */}
+          {form.tipeJabatan && !form.tipeJabatan.includes("kepala") && form.bidangId && (
             <F label="Sub Bidang">
               <Select
                 value={form.subBidangId || "NONE"}

@@ -13,6 +13,9 @@ const mapTipeJabatan = (val: string): string => {
     kasubbid: "KASUBBID",
     staff: "STAFF",
     kontrak: "KONTRAK",
+    kepala_cabang: "KEPALA_CABANG",
+    kasubbid_cabang: "KASUBBID_CABANG",
+    staff_cabang: "STAFF_CABANG",
   }
   return map[val?.toLowerCase()] || val || "STAFF"
 }

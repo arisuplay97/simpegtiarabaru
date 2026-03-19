@@ -203,6 +203,9 @@ enum TipeJabatan {
   KASUBBID
   STAFF
   KONTRAK
+  KEPALA_CABANG
+  KASUBBID_CABANG
+  STAFF_CABANG
 }
 
 enum StatusPegawai {

@@ -1,7 +1,7 @@
 // lib/data/bidang-store.ts
 // Data master bidang/unit kerja + sub bidang + logika atasan otomatis
 
-export type TipeJabatan = "kepala_bidang" | "kasubbid" | "staff"
+export type TipeJabatan = "kepala_bidang" | "kasubbid" | "staff" | "kepala_cabang" | "kasubbid_cabang" | "staff_cabang"
 
 // Tipe status kepegawaian (bukan jabatan struktural)
 export type TipeKepegawaian = "tetap" | "honorer" | "kontrak" | "magang"
@@ -128,6 +128,18 @@ export let bidangList: Bidang[] = [
     aktif: true,
     subBidang: [],
   },
+  {
+    id: "c12",
+    nama: "Cabang 12 Lombok Tengah",
+    kode: "C12LT",
+    kepalaBidang: "Ahmad Fauzi",
+    direkturAtasan: "Direktur Umum",
+    aktif: true,
+    subBidang: [
+      { id: "c12-1", nama: "Pelayanan Cabang", bidangId: "c12" },
+      { id: "c12-2", nama: "Teknik Cabang", bidangId: "c12" },
+    ],
+  },
 ]
 
 // ============ DAFTAR DIREKTUR ============
@@ -142,10 +154,16 @@ export const direkturList = [
 
 // Ambil label jabatan berdasarkan tipe dan bidang
 export const getJabatanLabel = (tipe: TipeJabatan, namaBidang: string): string => {
+  const isCabang = namaBidang.toLowerCase().includes('cabang')
+  const areaName = isCabang ? namaBidang.replace(/cabang/i, '').trim() : namaBidang
+
   switch (tipe) {
     case "kepala_bidang": return `Kepala Bidang ${namaBidang}`
     case "kasubbid":      return `Kasubbid ${namaBidang}`
     case "staff":         return `Staff ${namaBidang}`
+    case "kepala_cabang": return `Kepala Cabang ${areaName}`
+    case "kasubbid_cabang": return `Kasubbid Cabang ${areaName}`
+    case "staff_cabang":  return `Staff Cabang ${areaName}`
     default:              return namaBidang
   }
 }
@@ -160,14 +178,13 @@ export const getAtasanOtomatis = (
   if (!bidang) return "-"
 
   switch (tipe) {
-    case "staff":
-      return `Kasubbid ${bidang.nama || "-"}`
-    case "kasubbid":
-      return bidang.kepalaBidang || `Kepala Bidang ${bidang.nama || "-"}`
-    case "kepala_bidang":
-      return bidang.direkturAtasan || "Direktur Utama"
-    default:
-      return "-"
+    case "staff":         return `Kasubbid ${bidang.nama || "-"}`
+    case "kasubbid":      return bidang.kepalaBidang || `Kepala Bidang ${bidang.nama || "-"}`
+    case "kepala_bidang": return bidang.direkturAtasan || "Direktur Utama"
+    case "staff_cabang":  return `Kasubbid Cabang ${bidang.nama.replace(/cabang/i, '').trim() || "-"}`
+    case "kasubbid_cabang": return bidang.kepalaBidang || `Kepala Cabang ${bidang.nama.replace(/cabang/i, '').trim() || "-"}`
+    case "kepala_cabang": return bidang.direkturAtasan || "Direktur Umum"
+    default: return "-"
   }
 }
 
@@ -175,6 +192,18 @@ export const getAtasanOtomatis = (
 export const getJabatanOptions = (bidangId: string, bidangData: Bidang[] = bidangList) => {
   const bidang = bidangData.find(b => b.id === bidangId)
   if (!bidang) return []
+
+  const isCabang = bidang.nama.toLowerCase().includes('cabang')
+  const areaName = isCabang ? bidang.nama.replace(/cabang/i, '').trim() : bidang.nama
+
+  if (isCabang) {
+    return [
+      { value: "kepala_cabang", label: `Kepala Cabang ${areaName}` },
+      { value: "kasubbid_cabang", label: `Kasubbid Cabang ${areaName}` },
+      { value: "staff_cabang", label: `Staff Cabang ${areaName}` },
+    ]
+  }
+
   return [
     { value: "kepala_bidang", label: `Kepala Bidang ${bidang.nama || "-"}` },
     { value: "kasubbid",      label: `Kasubbid ${bidang.nama || "-"}` },
