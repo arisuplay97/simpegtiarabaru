@@ -113,9 +113,9 @@ export async function createEmployee(data: any, fotoFile?: File) {
   return employee
   } catch (error: any) {
     if (error.code === 'P2002') {
-      throw new Error("NIK atau Email sudah terdaftar dalam sistem.")
+      return { error: "NIK atau Email sudah terdaftar dalam sistem." }
     }
-    throw new Error("Gagal menyimpan data ke database. Pastikan semua field yang wajib diisi sudah terisi.")
+    return { error: "Gagal menyimpan data ke database. Pastikan semua field yang wajib diisi sudah terisi." }
   }
 }
 
@@ -177,9 +177,9 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
   return employee
   } catch (error: any) {
     if (error.code === 'P2002') {
-      throw new Error("NIK atau Email sudah terdaftar pada pengguna lain.")
+      return { error: "NIK atau Email sudah terdaftar pada pengguna lain." }
     }
-    throw new Error("Gagal memperbarui data di database.")
+    return { error: "Gagal memperbarui data di database." }
   }
 }
 

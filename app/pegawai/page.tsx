@@ -219,7 +219,12 @@ export default function EmployeeListPage() {
     }
     setIsLoading(true)
     try {
-      await createEmployee(form, fotoFile ?? undefined)
+      const res = await createEmployee(form, fotoFile ?? undefined) as any
+      if (res?.error) {
+        toast.error(res.error)
+        setIsLoading(false)
+        return
+      }
       toast.success("Pegawai berhasil ditambahkan")
       setShowAddDialog(false)
       fetchData() // refresh dari DB
@@ -236,7 +241,12 @@ export default function EmployeeListPage() {
     }
     setIsLoading(true)
     try {
-      await updateEmployee(editingEmployee.id, form, fotoFile ?? undefined)
+      const res = await updateEmployee(editingEmployee.id, form, fotoFile ?? undefined) as any
+      if (res?.error) {
+        toast.error(res.error)
+        setIsLoading(false)
+        return
+      }
       toast.success("Pegawai berhasil diperbarui")
       setShowEditDialog(false)
       fetchData()
@@ -565,7 +575,15 @@ export default function EmployeeListPage() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Keuangan & Dokumen</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <F label="Bank">
-            <Input value={form.bank || ""} onChange={e => setForm({...form, bank: e.target.value})} placeholder="BCA / Mandiri / dst" />
+            <Select value={form.bank || "NONE"} onValueChange={v => setForm({...form, bank: v === "NONE" ? "" : v})}>
+              <SelectTrigger><SelectValue placeholder="Pilih Bank" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">— Pilih Bank —</SelectItem>
+                {["BCA", "Mandiri", "BNI", "BRI", "BSI", "BPD NTB Syariah", "CIMB Niaga", "BTN", "Lainnya"].map(b => (
+                  <SelectItem key={b} value={b}>{b}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </F>
           <F label="No. Rekening">
             <Input value={form.noRekening || ""} onChange={e => setForm({...form, noRekening: e.target.value})} placeholder="000111222" />

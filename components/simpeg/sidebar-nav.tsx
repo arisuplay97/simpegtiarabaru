@@ -53,6 +53,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: "Absensi", href: "/absensi", icon: Clock },
       { title: "Absensi Selfie", href: "/absensi/selfie", icon: Camera },
+      { title: "Profil Pegawai", href: "/pegawai/profil", icon: UserCircle },
       { title: "Cuti & Izin", href: "/cuti", icon: CalendarDays },
       { title: "Koreksi Absensi", href: "/absensi/koreksi", icon: FileCheck, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Lokasi Absensi", href: "/settings/lokasi", icon: Navigation, allowedRoles: ["super_admin", "hrd"] },
