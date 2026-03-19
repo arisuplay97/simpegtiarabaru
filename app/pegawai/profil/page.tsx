@@ -1,9 +1,47 @@
 "use client"
+import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
-import { UserCircle } from "lucide-react"
+import { Loader2, UserCircle } from "lucide-react"
 
 export default function ProfilBasePage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (status === "loading") return
+
+    if (!session?.user?.id) {
+      setError("Anda belum login. Silakan login terlebih dahulu.")
+      setLoading(false)
+      return
+    }
+
+    // Cari pegawai berdasarkan userId
+    const fetchProfil = async () => {
+      try {
+        const res = await fetch("/api/pegawai/me")
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.id) {
+            router.replace(`/pegawai/${data.id}`)
+            return
+          }
+        }
+        setError("Profil pegawai Anda belum terdaftar. Hubungi HRD untuk mendaftarkan data Anda.")
+        setLoading(false)
+      } catch {
+        setError("Gagal memuat profil. Coba refresh halaman.")
+        setLoading(false)
+      }
+    }
+    fetchProfil()
+  }, [session, status, router])
+
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
@@ -12,12 +50,23 @@ export default function ProfilBasePage() {
         <main className="flex flex-1 items-center justify-center p-6 text-center">
           <div className="max-w-md mx-auto space-y-4">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <UserCircle className="w-8 h-8 text-primary" />
+              {loading ? (
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              ) : (
+                <UserCircle className="w-8 h-8 text-primary" />
+              )}
             </div>
-            <h1 className="text-2xl font-bold">Pilih Profil Pegawai</h1>
-            <p className="text-muted-foreground">
-              Silakan akses profil staf Anda dengan memillih nama mereka di menu <strong>Data Pegawai</strong>, atau gunakan pencarian untuk menemukan pegawai spesifik.
-            </p>
+            {loading ? (
+              <>
+                <h1 className="text-2xl font-bold">Memuat Profil...</h1>
+                <p className="text-muted-foreground">Sedang mencari data profil Anda</p>
+              </>
+            ) : error ? (
+              <>
+                <h1 className="text-2xl font-bold">Profil Pegawai</h1>
+                <p className="text-muted-foreground">{error}</p>
+              </>
+            ) : null}
           </div>
         </main>
       </div>

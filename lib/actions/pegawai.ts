@@ -23,6 +23,11 @@ const mapTipeJabatan = (val: string): string => {
 // Helper: strip "NONE" and empty-string values → null
 const clean = (v: any) => (!v || v === "NONE" || v === "") ? null : v
 
+// Helper: Hapus keys yang valuenya undefined agar Prisma tua di memori tidak complain "Unknown arg"
+const stripUndefined = (obj: any) => {
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null))
+}
+
 // ============ GET SEMUA PEGAWAI ============
 export async function getEmployees() {
   return await prisma.pegawai.findMany({
@@ -54,7 +59,7 @@ export async function getEmployeeStats() {
 export async function createEmployee(data: any, fotoFile?: File) {
   try {
   // Upload foto jika ada
-  let fotoUrl: string | undefined
+  let fotoUrl: string | null = null
   if (fotoFile && fotoFile.size > 0) {
     const blob = await put(`pegawai/${data.nik}-${Date.now()}.${fotoFile.name.split(".").pop()}`, fotoFile, {
       access: "public",
@@ -65,51 +70,66 @@ export async function createEmployee(data: any, fotoFile?: File) {
   // Hash password default
   const hashedPassword = await bcrypt.hash(data.password || "123456", 10)
 
-  const employee = await prisma.pegawai.create({
-    data: {
-      nik: data.nik,
-      nama: data.nama,
-      email: data.email,
-      telepon: data.telepon || null,
-      fotoUrl: fotoUrl || null,
-
-      bidangId: clean(data.bidangId) || undefined,
-      subBidangId: clean(data.subBidangId) || undefined,
-      jabatan: data.jabatan || "",
-      tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
-      golongan: clean(data.golongan) || "",
-      pangkat: clean(data.pangkat) || undefined,
-      atasanLangsung: clean(data.atasanLangsung) || undefined,
-      status: data.status || "AKTIF",
-      sp: clean(data.sp) || undefined,
-      tanggalMasuk: new Date(data.tanggalMasuk),
-
-      jenisKelamin: clean(data.jenisKelamin) || undefined,
-      tempatLahir: clean(data.tempatLahir) || undefined,
-      tanggalLahir: data.tanggalLahir ? new Date(data.tanggalLahir) : undefined,
-      agama: clean(data.agama) || undefined,
-      statusNikah: clean(data.statusNikah) || undefined,
-      alamat: clean(data.alamat) || undefined,
-      npwp: clean(data.npwp) || undefined,
-
-      pendidikanTerakhir: clean(data.pendidikanTerakhir) || undefined,
-      jurusan: clean(data.jurusan) || undefined,
-      institusi: clean(data.institusi) || undefined,
-      tahunLulus: clean(data.tahunLulus) || undefined,
-
-      bank: clean(data.bank) || undefined,
-      noRekening: clean(data.noRekening) || undefined,
-      bpjsKesehatan: clean(data.bpjsKesehatan) || undefined,
-      bpjsKetenagakerjaan: clean(data.bpjsKetenagakerjaan) || undefined,
-
-      user: {
-        create: {
-          email: data.email,
-          password: hashedPassword,
-          role: data.role || "PEGAWAI",
-        },
+  // --- BUILD PAYLOAD SECARA AMAN ---
+  // Field WAJIB — selalu ada
+  const payload: any = {
+    nik: data.nik,
+    nama: data.nama,
+    email: data.email,
+    jabatan: data.jabatan || "Staff",
+    tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
+    golongan: clean(data.golongan) || "A/I",
+    status: data.status || "AKTIF",
+    tanggalMasuk: data.tanggalMasuk ? new Date(data.tanggalMasuk) : new Date(),
+    user: {
+      create: {
+        email: data.email,
+        password: hashedPassword,
+        role: data.role || "PEGAWAI",
       },
     },
+  }
+
+  // Field OPSIONAL — hanya tambahkan jika ada nilai nyata (bukan empty string / NONE / null)
+  const optionalStr = (key: string, val: any) => {
+    const cleaned = clean(val)
+    if (cleaned) payload[key] = cleaned
+  }
+  const optionalDate = (key: string, val: any) => {
+    if (val && val !== "" && val !== "NONE") payload[key] = new Date(val)
+  }
+
+  optionalStr("telepon", data.telepon)
+  if (fotoUrl) payload.fotoUrl = fotoUrl
+  optionalStr("bidangId", data.bidangId)
+  optionalStr("subBidangId", data.subBidangId)
+  optionalStr("pangkat", data.pangkat)
+  optionalStr("atasanLangsung", data.atasanLangsung)
+  optionalStr("sp", data.sp)
+
+  // Data Pribadi
+  optionalStr("jenisKelamin", data.jenisKelamin)
+  optionalStr("tempatLahir", data.tempatLahir)
+  optionalDate("tanggalLahir", data.tanggalLahir)
+  optionalStr("agama", data.agama)
+  optionalStr("statusNikah", data.statusNikah)
+  optionalStr("alamat", data.alamat)
+  optionalStr("npwp", data.npwp)
+
+  // Pendidikan
+  optionalStr("pendidikanTerakhir", data.pendidikanTerakhir)
+  optionalStr("jurusan", data.jurusan)
+  optionalStr("institusi", data.institusi)
+  optionalStr("tahunLulus", data.tahunLulus)
+
+  // Keuangan
+  optionalStr("bank", data.bank)
+  optionalStr("noRekening", data.noRekening)
+  optionalStr("bpjsKesehatan", data.bpjsKesehatan)
+  optionalStr("bpjsKetenagakerjaan", data.bpjsKetenagakerjaan)
+
+  const employee = await prisma.pegawai.create({
+    data: payload,
   })
 
   revalidatePath("/pegawai")
@@ -138,11 +158,11 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
     fotoUrl = blob.url
   }
 
-  const employee = await prisma.pegawai.update({
-    where: { id },
-    data: {
+  const payload = {
+      nik: data.nik,
       nama: data.nama,
-      telepon: data.telepon || null,
+      email: data.email,
+      telepon: data.telepon || undefined,
       ...(fotoUrl ? { fotoUrl } : {}),
 
       bidangId: clean(data.bidangId) || undefined,
@@ -154,6 +174,7 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       atasanLangsung: clean(data.atasanLangsung) || undefined,
       status: data.status,
       sp: clean(data.sp) || undefined,
+      tanggalMasuk: data.tanggalMasuk ? new Date(data.tanggalMasuk) : undefined,
 
       jenisKelamin: clean(data.jenisKelamin) || undefined,
       tempatLahir: clean(data.tempatLahir) || undefined,
@@ -172,7 +193,11 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       noRekening: clean(data.noRekening) || undefined,
       bpjsKesehatan: clean(data.bpjsKesehatan) || undefined,
       bpjsKetenagakerjaan: clean(data.bpjsKetenagakerjaan) || undefined,
-    },
+  }
+
+  const employee = await prisma.pegawai.update({
+    where: { id },
+    data: stripUndefined(payload) as any,
   })
 
   revalidatePath("/pegawai")

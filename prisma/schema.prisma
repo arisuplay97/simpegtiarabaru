@@ -96,6 +96,7 @@ model Pegawai {
   user                  User      @relation(fields: [userId], references: [id])
 
   // Relasi ke modul lain
+  deviceId              String?   // UUID Perangkat Utama Pegawai
   absensi               Absensi[]
   cuti                  Cuti[]
   payroll               Payroll[]
@@ -279,4 +280,22 @@ enum StatusCuti {
   PENDING
   APPROVED
   REJECTED
+}
+
+// ============ LOKASI ABSENSI (GEO-FENCING) ============
+model LokasiAbsensi {
+  id              String    @id @default(cuid())
+  nama            String
+  tipe            String    // kantor_pusat, kantor_cabang, acara
+  alamat          String
+  latitude        Float
+  longitude       Float
+  radius          Int       @default(100)    // dalam meter
+  aktif           Boolean   @default(true)
+  tanggalMulai    String?   // YYYY-MM-DD, khusus acara
+  tanggalSelesai  String?   // YYYY-MM-DD, khusus acara
+  wajibHadir      Boolean   @default(false)
+  keterangan      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }

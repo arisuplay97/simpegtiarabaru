@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { Button } from "@/components/ui/button"
@@ -34,10 +34,10 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import {
-  lokasiData as initialData,
-  type LokasiAbsensi,
-  type TipeLokasi,
-} from "@/lib/data/lokasi-store"
+  getLokasiList, createLokasi, updateLokasi,
+  deleteLokasi, toggleLokasiAktif,
+} from "@/lib/actions/lokasi"
+import type { TipeLokasi } from "@/lib/data/lokasi-store"
 
 const tipeConfig: Record<TipeLokasi, { label: string; className: string }> = {
   kantor_pusat: { label: "Kantor Pusat", className: "bg-primary/10 text-primary" },
@@ -53,16 +53,46 @@ const defaultForm = {
   wajibHadir: false, keterangan: "",
 }
 
+interface LokasiItem {
+  id: string
+  nama: string
+  tipe: string
+  alamat: string
+  latitude: number
+  longitude: number
+  radius: number
+  aktif: boolean
+  tanggalMulai?: string | null
+  tanggalSelesai?: string | null
+  wajibHadir: boolean
+  keterangan?: string | null
+}
+
 export default function LokasiAbsensiPage() {
-  const [lokasi, setLokasi] = useState<LokasiAbsensi[]>(initialData)
+  const [lokasi, setLokasi] = useState<LokasiItem[]>([])
+  const [isPageLoading, setIsPageLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("semua")
   const [showDialog, setShowDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [editingItem, setEditingItem] = useState<LokasiAbsensi | null>(null)
-  const [deletingItem, setDeletingItem] = useState<LokasiAbsensi | null>(null)
+  const [editingItem, setEditingItem] = useState<LokasiItem | null>(null)
+  const [deletingItem, setDeletingItem] = useState<LokasiItem | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [form, setForm] = useState(defaultForm)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // Load lokasi dari database saat halaman dibuka
+  const fetchLokasi = useCallback(async () => {
+    try {
+      const data = await getLokasiList()
+      setLokasi(data as LokasiItem[])
+    } catch {
+      toast.error("Gagal memuat data lokasi")
+    } finally {
+      setIsPageLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchLokasi() }, [fetchLokasi])
 
   const filtered = lokasi.filter(l => {
     if (activeTab === "kantor") return l.tipe !== "acara"
@@ -99,10 +129,10 @@ export default function LokasiAbsensiPage() {
     setShowDialog(true)
   }
 
-  const handleOpenEdit = (item: LokasiAbsensi) => {
+  const handleOpenEdit = (item: LokasiItem) => {
     setEditingItem(item)
     setForm({
-      nama: item.nama, tipe: item.tipe,
+      nama: item.nama, tipe: item.tipe as TipeLokasi,
       alamat: item.alamat,
       latitude: String(item.latitude),
       longitude: String(item.longitude),
@@ -120,57 +150,69 @@ export default function LokasiAbsensiPage() {
   const handleSave = async () => {
     if (!validate()) return
     setIsLoading(true)
-    await new Promise(r => setTimeout(r, 600))
 
-    const data: LokasiAbsensi = {
-      id: editingItem?.id ?? String(Date.now()),
-      nama: form.nama,
-      tipe: form.tipe,
-      alamat: form.alamat,
-      latitude: Number(form.latitude),
-      longitude: Number(form.longitude),
-      radius: Number(form.radius),
-      aktif: form.aktif,
-      ...(form.tipe === "acara" ? {
-        tanggalMulai: form.tanggalMulai,
-        tanggalSelesai: form.tanggalSelesai,
-        wajibHadir: form.wajibHadir,
-        keterangan: form.keterangan,
-      } : {}),
+    try {
+      const payload = {
+        nama: form.nama,
+        tipe: form.tipe,
+        alamat: form.alamat,
+        latitude: Number(form.latitude),
+        longitude: Number(form.longitude),
+        radius: Number(form.radius),
+        aktif: form.aktif,
+        tanggalMulai: form.tipe === "acara" ? form.tanggalMulai || null : null,
+        tanggalSelesai: form.tipe === "acara" ? form.tanggalSelesai || null : null,
+        wajibHadir: form.tipe === "acara" ? form.wajibHadir : false,
+        keterangan: form.tipe === "acara" ? form.keterangan || null : null,
+      }
+
+      if (editingItem) {
+        await updateLokasi(editingItem.id, payload)
+        toast.success(`Lokasi ${form.nama} berhasil diperbarui`)
+      } else {
+        await createLokasi(payload)
+        toast.success(`Lokasi ${form.nama} berhasil ditambahkan`)
+      }
+
+      await fetchLokasi()
+      setShowDialog(false)
+    } catch (err: any) {
+      toast.error(`Gagal menyimpan: ${err.message}`)
+    } finally {
+      setIsLoading(false)
     }
-
-    if (editingItem) {
-      setLokasi(prev => prev.map(l => l.id === editingItem.id ? data : l))
-      toast.success(`Lokasi ${form.nama} berhasil diperbarui`)
-    } else {
-      setLokasi(prev => [...prev, data])
-      toast.success(`Lokasi ${form.nama} berhasil ditambahkan`)
-    }
-
-    setShowDialog(false)
-    setIsLoading(false)
   }
 
   const handleDelete = async () => {
     if (!deletingItem) return
     setIsLoading(true)
-    await new Promise(r => setTimeout(r, 500))
-    setLokasi(prev => prev.filter(l => l.id !== deletingItem.id))
-    toast.success(`Lokasi ${deletingItem.nama} berhasil dihapus`)
-    setShowDeleteDialog(false)
-    setDeletingItem(null)
-    setIsLoading(false)
+    try {
+      await deleteLokasi(deletingItem.id)
+      toast.success(`Lokasi ${deletingItem.nama} berhasil dihapus`)
+      await fetchLokasi()
+    } catch (err: any) {
+      toast.error(`Gagal menghapus: ${err.message}`)
+    } finally {
+      setShowDeleteDialog(false)
+      setDeletingItem(null)
+      setIsLoading(false)
+    }
   }
 
-  const handleToggleAktif = (item: LokasiAbsensi) => {
-    setLokasi(prev => prev.map(l => l.id === item.id ? { ...l, aktif: !l.aktif } : l))
-    toast.success(`${item.nama} ${item.aktif ? "dinonaktifkan" : "diaktifkan"}`)
+  const handleToggleAktif = async (item: LokasiItem) => {
+    try {
+      await toggleLokasiAktif(item.id, !item.aktif)
+      toast.success(`${item.nama} ${item.aktif ? "dinonaktifkan" : "diaktifkan"}`)
+      await fetchLokasi()
+    } catch {
+      toast.error("Gagal mengubah status")
+    }
   }
 
   // Ambil koordinat GPS dari browser
   const handleGetGPS = () => {
-    if (!navigator.geolocation) { toast.error("GPS tidak tersedia"); return }
-    toast.loading("Mengambil koordinat GPS...")
+    if (!navigator.geolocation) { toast.error("GPS tidak tersedia di perangkat ini"); return }
+    const toastId = toast.loading("Mengambil koordinat GPS...")
     navigator.geolocation.getCurrentPosition(
       pos => {
         setForm(p => ({
@@ -178,10 +220,20 @@ export default function LokasiAbsensiPage() {
           latitude: pos.coords.latitude.toFixed(6),
           longitude: pos.coords.longitude.toFixed(6),
         }))
-        toast.dismiss()
-        toast.success(`Koordinat didapat! Akurasi: ${Math.round(pos.coords.accuracy)}m`)
+        toast.dismiss(toastId)
+        toast.success(`Koordinat berhasil didapat! Akurasi: ${Math.round(pos.coords.accuracy)}m`)
       },
-      () => { toast.dismiss(); toast.error("Gagal ambil GPS. Aktifkan lokasi browser.") }
+      (err) => {
+        toast.dismiss(toastId)
+        if (err.code === 1) {
+          toast.error("Izin lokasi ditolak. Buka Pengaturan browser → izinkan akses Lokasi.")
+        } else if (err.code === 2) {
+          toast.error("GPS tidak tersedia. Pastikan lokasi pada perangkat Anda aktif.")
+        } else {
+          toast.error("Waktu habis menunggu GPS. Coba lagi di tempat terbuka.")
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     )
   }
 
@@ -291,8 +343,8 @@ export default function LokasiAbsensiPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={tipeConfig[item.tipe].className}>
-                              {tipeConfig[item.tipe].label}
+                            <Badge variant="outline" className={(tipeConfig as any)[item.tipe]?.className}>
+                              {(tipeConfig as any)[item.tipe]?.label ?? item.tipe}
                             </Badge>
                           </TableCell>
                           <TableCell>

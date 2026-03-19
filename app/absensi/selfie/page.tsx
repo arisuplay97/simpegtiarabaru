@@ -24,7 +24,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { lokasiData, cekDalamRadius, getAcaraHariIni, type LokasiAbsensi } from "@/lib/data/lokasi-store"
+import { cekDalamRadius, hitungJarak, type LokasiAbsensi } from "@/lib/data/lokasi-store"
+import { checkDeviceAndAbsen } from "@/lib/actions/absensi"
+import { getLokasiList } from "@/lib/actions/lokasi"
 
 type CaptureStep = "idle" | "ready" | "capturing" | "verifying" | "success" | "checkout_success"
 type CheckType = "checkin" | "checkout"
@@ -51,6 +53,7 @@ export default function SelfieAttendancePage() {
   const [lokasiValid, setLokasiValid] = useState<LokasiAbsensi | null>(null)
   const [jarakMeter, setJarakMeter] = useState<number | null>(null)
   const [acaraHariIni, setAcaraHariIni] = useState<LokasiAbsensi | null>(null)
+  const [lokasiLoaded, setLokasiLoaded] = useState(false)
 
   // Jam real-time
   useEffect(() => {
@@ -58,36 +61,78 @@ export default function SelfieAttendancePage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Cek GPS saat halaman dibuka
+  // Cek GPS & Device ID saat halaman dibuka
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setGpsStatus("invalid")
-      return
+    // 1. Generate & get Device ID for Anti-Titip Absen
+    let deviceId = localStorage.getItem("tris_device_id")
+    if (!deviceId) {
+      deviceId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)
+      localStorage.setItem("tris_device_id", deviceId)
     }
 
-    const acara = getAcaraHariIni(lokasiData)
-    setAcaraHariIni(acara)
+    // 2. Fetch lokasi dari database, lalu cek GPS
+    const run = async () => {
+      try {
+        const dbLokasi = await getLokasiList()
+        // Map ke tipe LokasiAbsensi
+        const lokasiList: LokasiAbsensi[] = dbLokasi.map((l: any) => ({
+          id: l.id,
+          nama: l.nama,
+          tipe: l.tipe as any,
+          alamat: l.alamat,
+          latitude: l.latitude,
+          longitude: l.longitude,
+          radius: l.radius,
+          aktif: l.aktif,
+          tanggalMulai: l.tanggalMulai ?? undefined,
+          tanggalSelesai: l.tanggalSelesai ?? undefined,
+          wajibHadir: l.wajibHadir ?? false,
+          keterangan: l.keterangan ?? undefined,
+        }))
 
-    const lokasiUntukCek = acara
-      ? [acara]  // Kalau ada acara wajib, hanya cek lokasi acara
-      : lokasiData.filter(l => l.aktif && l.tipe !== "acara")
+        // Cek acara wajib hari ini
+        const today = new Date().toISOString().split("T")[0]
+        const acara = lokasiList.find(l =>
+          l.tipe === "acara" && l.aktif && l.wajibHadir &&
+          l.tanggalMulai && l.tanggalSelesai &&
+          today >= l.tanggalMulai && today <= l.tanggalSelesai
+        ) ?? null
+        setAcaraHariIni(acara)
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGpsAccuracy(Math.round(pos.coords.accuracy))
-        const hasil = cekDalamRadius(pos.coords.latitude, pos.coords.longitude, lokasiUntukCek)
-        if (hasil.valid) {
-          setGpsStatus("valid")
-          setLokasiValid(hasil.lokasi ?? null)
-          setJarakMeter(hasil.jarak ?? null)
-        } else {
+        const lokasiUntukCek = acara
+          ? [acara]
+          : lokasiList.filter(l => l.aktif && l.tipe !== "acara")
+
+        setLokasiLoaded(true)
+
+        // 3. Cek GPS
+        if (!navigator.geolocation) {
           setGpsStatus("invalid")
-          setLokasiValid(null)
+          return
         }
-      },
-      () => setGpsStatus("invalid"),
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setGpsAccuracy(Math.round(pos.coords.accuracy))
+            const hasil = cekDalamRadius(pos.coords.latitude, pos.coords.longitude, lokasiUntukCek)
+            if (hasil.valid) {
+              setGpsStatus("valid")
+              setLokasiValid(hasil.lokasi ?? null)
+              setJarakMeter(hasil.jarak ?? null)
+            } else {
+              setGpsStatus("invalid")
+              setLokasiValid(null)
+            }
+          },
+          () => setGpsStatus("invalid"),
+          { enableHighAccuracy: true, timeout: 10000 }
+        )
+      } catch {
+        setGpsStatus("invalid")
+        setLokasiLoaded(true)
+      }
+    }
+    run()
   }, [])
 
   // Buka kamera
@@ -148,30 +193,39 @@ export default function SelfieAttendancePage() {
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext("2d")
+    let photoDataUrl = ""
     if (ctx) {
       ctx.drawImage(video, 0, 0)
-      const photoData = canvas.toDataURL("image/jpeg", 0.8)
-      setCapturedPhoto(photoData)
+      photoDataUrl = canvas.toDataURL("image/jpeg", 0.8)
+      setCapturedPhoto(photoDataUrl)
     }
-
-    // Simulasi verifikasi
-    await new Promise(r => setTimeout(r, 1000))
+    
     setCaptureStep("verifying")
-    await new Promise(r => setTimeout(r, 1500))
 
-    const now = formatTime(new Date())
-    if (checkType === "checkin") {
-      setCheckInTime(now)
-      setCaptureStep("success")
-      toast.success(`Check-in berhasil pukul ${now}`)
-    } else {
-      setCheckOutTime(now)
-      setCaptureStep("checkout_success")
-      toast.success(`Check-out berhasil pukul ${now}`)
+    // Matikan Perekaman Kamera di belakang layar tanpa mengubah state UI
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
     }
 
-    // Matikan kamera setelah sukses
-    stopCamera()
+    // Ambil Device ID dari localStorage
+    const clientDeviceId = localStorage.getItem("tris_device_id") || "unknown"
+
+    // Kirim Ke Backend Verifikasi Validasi "Titip Absen Perangkat"
+    const result = await checkDeviceAndAbsen(checkType, clientDeviceId, photoDataUrl, jarakMeter)
+    
+    if (result.error) {
+      toast.error(result.error, { duration: 6000 })
+      handleReset() // Kembalikan ke siap jika gagal
+    } else if (result.success) {
+      setCaptureStep(checkType === "checkin" ? "success" : "checkout_success")
+      const now = formatTime(new Date())
+      if (checkType === "checkin") setCheckInTime(now)
+      else setCheckOutTime(now)
+      
+      toast.success(result.success)
+      setIsCameraOn(false)
+    }
   }
 
   // Reset untuk coba lagi
