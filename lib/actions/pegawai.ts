@@ -175,6 +175,12 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
   revalidatePath("/pegawai")
   revalidatePath(`/pegawai/${id}`)
   return employee
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      throw new Error("NIK atau Email sudah terdaftar pada pengguna lain.")
+    }
+    throw new Error("Gagal memperbarui data di database.")
+  }
 }
 
 // ============ HAPUS PEGAWAI ============
