@@ -106,7 +106,7 @@ const ITEMS_PER_PAGE = 10
 
 // Form field wrapper — MUST be outside component to prevent input remount per keystroke
 const F = ({label, error, children}: {label:string; error?:string; children:React.ReactNode}) => (
-  <div><Label>{label}</Label><div className="mt-1">{children}</div>{error && <p className="mt-1 text-xs text-destructive">{error}</p>}</div>
+  <div className="min-w-0"><Label>{label}</Label><div className="mt-1 min-w-0">{children}</div>{error && <p className="mt-1 text-xs text-destructive">{error}</p>}</div>
 )
 
 export default function EmployeeListPage() {
@@ -398,7 +398,9 @@ export default function EmployeeListPage() {
               const bid = v === "NONE" ? "" : v
               setForm({...form, bidangId: bid, jabatan: "", tipeJabatan: "", subBidangId: ""})
             }}>
-              <SelectTrigger><SelectValue placeholder="Pilih Bidang" /></SelectTrigger>
+              <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate">
+                <SelectValue placeholder="Pilih Bidang" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Pilih Bidang —</SelectItem>
                 {bidangData.map(b => <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>)}
@@ -413,7 +415,9 @@ export default function EmployeeListPage() {
               const autoJabatan = tipe ? getJabatanLabel(tipe as TipeJabatan, namaB) : ""
               setForm({...form, tipeJabatan: tipe, jabatan: autoJabatan, subBidangId: (tipe.includes("kepala") ? "" : form.subBidangId)})
             }}>
-              <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
+              <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate">
+                <SelectValue placeholder="Pilih Jabatan" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Pilih —</SelectItem>
                 {form.bidangId && getJabatanOptions(form.bidangId, bidangData).map(opt => (
