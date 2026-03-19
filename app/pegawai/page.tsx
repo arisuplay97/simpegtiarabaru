@@ -420,9 +420,12 @@ export default function EmployeeListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Pilih —</SelectItem>
-                {form.bidangId && getJabatanOptions(form.bidangId, bidangData).map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
+                <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
+                <SelectItem value="kasubbid">Kasubbid</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="kepala_cabang">Kepala Cabang</SelectItem>
+                <SelectItem value="kasubbid_cabang">Kasubbid Cabang</SelectItem>
+                <SelectItem value="staff_cabang">Staff Cabang</SelectItem>
               </SelectContent>
             </Select>
           </F>
