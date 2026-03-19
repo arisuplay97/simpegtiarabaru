@@ -1064,23 +1064,13 @@ export default function EmployeeDetailPage() {
               {formData.bidangId && (
                 <div>
                   <Label>Jabatan</Label>
-                  <Select
-                    value={formData.jabatan}
-                    onValueChange={v => {
-                      const bid = bidangList.find(b => b.id === formData.bidangId)
-                      if (!bid) return
-                      const tipe = v as TipeJabatan
-                      handleChange("jabatan", getJabatanLabel(tipe, bid.nama))
-                      handleChange("atasanLangsung", getAtasanOtomatis(tipe, bid.id))
-                    }}
-                  >
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
-                    <SelectContent>
-                      {getJabatanOptions(formData.bidangId).map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    className="mt-1 bg-muted"
+                    value={formData.jabatan || ""}
+                    readOnly
+                    disabled
+                    placeholder="Otomatis"
+                  />
                 </div>
               )}
             </div>
@@ -1103,8 +1093,10 @@ export default function EmployeeDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {["A/I","B/I","C/I","D/I","A/II","B/II","C/II","D/II",
-                      "A/III","B/III","C/III","D/III","A/IV","B/IV","C/IV","D/IV","E/IV"].map(g => (
+                    {["A/I","A/II","A/III","A/IV",
+                      "B/I","B/II","B/III","B/IV",
+                      "C/I","C/II","C/III","C/IV",
+                      "D/I","D/II","D/III","D/IV","E/IV"].map(g => (
                       <SelectItem key={g} value={g}>{g}</SelectItem>
                     ))}
                   </SelectContent>
@@ -1164,36 +1156,39 @@ export default function EmployeeDetailPage() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Jenis Kelamin</Label>
-                <Select value={formData.jenisKelamin} onValueChange={v => handleChange("jenisKelamin", v)}>
+                <Select value={formData.jenisKelamin || "NONE"} onValueChange={v => handleChange("jenisKelamin", v === "NONE" ? null : v)}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                    <SelectItem value="Perempuan">Perempuan</SelectItem>
+                    <SelectItem value="NONE">— Pilih —</SelectItem>
+                    <SelectItem value="L">Laki-laki</SelectItem>
+                    <SelectItem value="P">Perempuan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Status Nikah</Label>
-                <Select value={formData.statusNikah} onValueChange={v => handleChange("statusNikah", v)}>
+                <Select value={formData.statusNikah || "NONE"} onValueChange={v => handleChange("statusNikah", v === "NONE" ? null : v)}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Belum Menikah">Belum Menikah</SelectItem>
-                    <SelectItem value="Menikah">Menikah</SelectItem>
-                    <SelectItem value="Cerai">Cerai</SelectItem>
+                    <SelectItem value="NONE">— Pilih —</SelectItem>
+                    <SelectItem value="BELUM_MENIKAH">Belum Menikah</SelectItem>
+                    <SelectItem value="MENIKAH">Menikah</SelectItem>
+                    <SelectItem value="CERAI">Cerai</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Agama</Label>
-                <Select value={formData.agama} onValueChange={v => handleChange("agama", v)}>
+                <Select value={formData.agama || "NONE"} onValueChange={v => handleChange("agama", v === "NONE" ? null : v)}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Islam">Islam</SelectItem>
-                    <SelectItem value="Kristen">Kristen</SelectItem>
-                    <SelectItem value="Katolik">Katolik</SelectItem>
-                    <SelectItem value="Hindu">Hindu</SelectItem>
-                    <SelectItem value="Buddha">Buddha</SelectItem>
-                    <SelectItem value="Konghucu">Konghucu</SelectItem>
+                    <SelectItem value="NONE">— Pilih —</SelectItem>
+                    <SelectItem value="ISLAM">Islam</SelectItem>
+                    <SelectItem value="KRISTEN">Kristen</SelectItem>
+                    <SelectItem value="KATOLIK">Katolik</SelectItem>
+                    <SelectItem value="HINDU">Hindu</SelectItem>
+                    <SelectItem value="BUDDHA">Buddha</SelectItem>
+                    <SelectItem value="KONGHUCU">Konghucu</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

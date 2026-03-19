@@ -6,6 +6,17 @@ import { revalidatePath } from "next/cache"
 import { put, del } from "@vercel/blob"
 import bcrypt from "bcryptjs"
 
+// Helper: map lowercase tipeJabatan to DB enum
+const mapTipeJabatan = (val: string): string => {
+  const map: Record<string, string> = {
+    kepala_bidang: "KEPALA_BIDANG",
+    kasubbid: "KASUBBID",
+    staff: "STAFF",
+    kontrak: "KONTRAK",
+  }
+  return map[val?.toLowerCase()] || val || "STAFF"
+}
+
 // ============ GET SEMUA PEGAWAI ============
 export async function getEmployees() {
   return await prisma.pegawai.findMany({
@@ -58,9 +69,9 @@ export async function createEmployee(data: any, fotoFile?: File) {
 
       bidangId: data.bidangId || null,
       jabatan: data.jabatan,
-      tipeJabatan: data.tipeJabatan || "STAFF",
+      tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
       golongan: data.golongan || "",
-      pangkat: data.pangkat || "STAFF",
+      pangkat: data.pangkat || "",
       atasanLangsung: data.atasanLangsung || null,
       status: data.status || "AKTIF",
       sp: data.sp || null,
@@ -123,9 +134,9 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
 
       bidangId: data.bidangId || null,
       jabatan: data.jabatan,
-      tipeJabatan: data.tipeJabatan || "STAFF",
+      tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
       golongan: data.golongan || "",
-      pangkat: data.pangkat || "STAFF",
+      pangkat: data.pangkat || "",
       atasanLangsung: data.atasanLangsung || null,
       status: data.status || "AKTIF",
       sp: data.sp || null,

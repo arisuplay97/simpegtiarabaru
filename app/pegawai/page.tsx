@@ -404,18 +404,13 @@ export default function EmployeeListPage() {
             </Select>
           </F>
           <F label="Jabatan">
-            <Select 
+            <Input 
               value={form.jabatan || ""} 
-              onValueChange={v => setForm({...form, jabatan: v})}
-              disabled={!form.bidangId}
-            >
-              <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
-              <SelectContent>
-                {getJabatanOptions(form.bidangId || "", bidangData).map(opt => (
-                  <SelectItem key={opt.value} value={opt.label}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              readOnly
+              disabled
+              placeholder="Otomatis berdasarkan Jabatan Struktural"
+              className="bg-muted"
+            />
           </F>
           {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang */}
           {form.tipeJabatan && form.tipeJabatan !== "kepala_bidang" && form.bidangId && (
@@ -541,33 +536,7 @@ export default function EmployeeListPage() {
 
       <DropdownMenuSeparator />
 
-      {/* Section 4: Pendidikan */}
-      <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pendidikan Terakhir</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <F label="Tingkat Pendidikan">
-            <Select value={form.pendidikanTerakhir || ""} onValueChange={v => setForm({...form, pendidikanTerakhir: v})}>
-              <SelectTrigger><SelectValue placeholder="Pilih Jenjang" /></SelectTrigger>
-              <SelectContent>
-                {["SD","SMP","SMA","D1","D2","D3","D4","S1","S2","S3"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </F>
-          <F label="Jurusan">
-            <Input value={form.jurusan || ""} onChange={e => setForm({...form, jurusan: e.target.value})} placeholder="Nama Jurusan" />
-          </F>
-          <F label="Institusi / Sekolah">
-            <Input value={form.institusi || ""} onChange={e => setForm({...form, institusi: e.target.value})} placeholder="Nama Kampus/Sekolah" />
-          </F>
-          <F label="Tahun Lulus">
-            <Input value={form.tahunLulus || ""} onChange={e => setForm({...form, tahunLulus: e.target.value})} placeholder="2020" maxLength={4} />
-          </F>
-        </div>
-      </section>
-
-      <DropdownMenuSeparator />
-
-      {/* Section 5: Keuangan & Dokumen */}
+      {/* Section 4: Keuangan & Dokumen */}
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Keuangan & Dokumen</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
