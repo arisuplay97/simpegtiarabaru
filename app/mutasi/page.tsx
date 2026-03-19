@@ -615,7 +615,7 @@ export default function MutasiPage() {
                     <SelectContent>
                       <SelectItem value="NONE">— Pilih Jabatan —</SelectItem>
                       {form.unitTujuan ? getJabatanOptions(bidangList.find(b => b.nama === form.unitTujuan)?.id || "", bidangList).map(j => (
-                        <SelectItem key={j} value={j}>{j}</SelectItem>
+                        <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
                       )) : null}
                     </SelectContent>
                   </Select>
