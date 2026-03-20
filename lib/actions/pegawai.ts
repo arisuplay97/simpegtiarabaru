@@ -20,6 +20,23 @@ const mapTipeJabatan = (val: string): string => {
   return map[val?.toLowerCase()] || val || "STAFF"
 }
 
+// Helper: map pangkat values to valid TipePangkat enum
+const mapPangkat = (val: string): string | null => {
+  if (!val || val === "" || val === "NONE") return null
+  const map: Record<string, string> = {
+    kepala_bidang: "KEPALA_BIDANG",
+    kepala_sub_bidang: "KEPALA_SUB_BIDANG",
+    staff: "STAFF",
+    kontrak: "KONTRAK",
+    // Already uppercase values pass through
+    KEPALA_BIDANG: "KEPALA_BIDANG",
+    KEPALA_SUB_BIDANG: "KEPALA_SUB_BIDANG",
+    STAFF: "STAFF",
+    KONTRAK: "KONTRAK",
+  }
+  return map[val] || null
+}
+
 // Helper: strip "NONE" and empty-string values → null
 const clean = (v: any) => (!v || v === "NONE" || v === "") ? null : v
 
@@ -103,7 +120,9 @@ export async function createEmployee(data: any, fotoFile?: File) {
   if (fotoUrl) payload.fotoUrl = fotoUrl
   optionalStr("bidangId", data.bidangId)
   optionalStr("subBidangId", data.subBidangId)
-  optionalStr("pangkat", data.pangkat)
+  // Map pangkat to valid enum value
+  const mappedPangkat = mapPangkat(data.pangkat)
+  if (mappedPangkat) payload.pangkat = mappedPangkat
   optionalStr("atasanLangsung", data.atasanLangsung)
   optionalStr("sp", data.sp)
 
@@ -170,7 +189,7 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       jabatan: data.jabatan || "",
       tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
       golongan: clean(data.golongan) || "",
-      pangkat: clean(data.pangkat) || undefined,
+      pangkat: mapPangkat(data.pangkat) || undefined,
       atasanLangsung: clean(data.atasanLangsung) || undefined,
       status: data.status,
       sp: clean(data.sp) || undefined,
