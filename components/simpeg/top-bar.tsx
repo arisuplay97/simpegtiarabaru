@@ -30,7 +30,9 @@ import {
   HelpCircle,
   Moon,
   Sun,
+  Menu,
 } from "lucide-react"
+import { useSidebar } from "@/components/simpeg/sidebar-nav"
 
 interface TopBarProps {
   breadcrumb?: string[]
@@ -42,6 +44,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const searchRef = useRef<HTMLInputElement>(null)
+  const { setMobileOpen } = useSidebar()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -67,25 +70,40 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-6">
-      <div className="flex items-center gap-2 text-sm">
-        {breadcrumb.map((item, index) => (
-          <span key={index} className="flex items-center gap-2">
-            {index > 0 && <span className="text-muted-foreground">/</span>}
-            <span
-              className={cn(
-                index === breadcrumb.length - 1
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground cursor-pointer"
-              )}
-            >
-              {item}
+    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-border bg-card px-3 md:px-6 gap-2">
+      {/* Left: Hamburger (mobile) + Breadcrumb */}
+      <div className="flex items-center gap-2 min-w-0">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-muted transition-colors"
+          aria-label="Buka menu"
+        >
+          <Menu className="h-5 w-5 text-foreground" />
+        </button>
+
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-1.5 text-sm min-w-0">
+          {breadcrumb.map((item, index) => (
+            <span key={index} className="flex items-center gap-1.5 min-w-0">
+              {index > 0 && <span className="text-muted-foreground shrink-0">/</span>}
+              <span
+                className={cn(
+                  "truncate",
+                  index === breadcrumb.length - 1
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground cursor-pointer hidden sm:inline"
+                )}
+              >
+                {item}
+              </span>
             </span>
-          </span>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-8">
+      {/* Center: Search — hidden on mobile */}
+      <div className="hidden md:flex flex-1 items-center justify-center px-6">
         <div
           className={cn(
             "relative w-full max-w-xl transition-all duration-200",
@@ -107,10 +125,12 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Right: Action buttons */}
+      <div className="flex items-center gap-1 shrink-0">
+        {/* Branch selector — hidden on small screens */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2 text-sm">
+            <Button variant="ghost" size="sm" className="gap-1.5 text-sm hidden sm:flex">
               <Building2 className="h-4 w-4" />
               <span className="hidden lg:inline">Kantor Pusat</span>
               <ChevronDown className="h-3 w-3" />
@@ -127,40 +147,44 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="h-6 w-px bg-border" />
+        <div className="h-6 w-px bg-border hidden sm:block" />
 
-        <Button variant="ghost" size="icon" className="relative">
+        {/* Notifications */}
+        <Button variant="ghost" size="icon" className="relative h-9 w-9">
           <Bell className="h-5 w-5" />
-          <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center rounded-full bg-red-500 px-1 text-[10px] text-white">
+          <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center rounded-full bg-red-500 px-1 text-[9px] text-white">
             5
           </Badge>
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative">
+        {/* Messages — hidden on mobile */}
+        <Button variant="ghost" size="icon" className="relative h-9 w-9 hidden sm:flex">
           <MessageSquare className="h-5 w-5" />
-          <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+          <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center rounded-full bg-primary px-1 text-[9px] text-primary-foreground">
             3
           </Badge>
         </Button>
 
-        <Button variant="ghost" size="icon">
+        {/* Settings — hidden on mobile */}
+        <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex">
           <Settings className="h-5 w-5" />
         </Button>
 
-        <div className="h-6 w-px bg-border" />
+        <div className="h-6 w-px bg-border hidden sm:block" />
 
+        {/* User Avatar Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-3 pl-2 pr-3">
-              <Avatar className="h-8 w-8">
+            <Button variant="ghost" className="gap-2 pl-1 pr-2 h-9">
+              <Avatar className="h-7 w-7 md:h-8 md:w-8">
                 <AvatarImage src={user?.image || ""} alt={user?.name || "User"} />
                 <AvatarFallback className="bg-primary text-xs text-primary-foreground">{user?.name?.charAt(0) ?? "?"}</AvatarFallback>
               </Avatar>
               <div className="hidden flex-col items-start text-left lg:flex">
-                <span className="text-sm font-medium">{user?.name ?? "Guest"}</span>
-                <span className="text-[10px] text-muted-foreground">{userRole ? roleLabels[userRole] : ""}</span>
+                <span className="text-sm font-medium leading-none">{user?.name ?? "Guest"}</span>
+                <span className="text-[10px] text-muted-foreground mt-0.5">{userRole ? roleLabels[userRole] : ""}</span>
               </div>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

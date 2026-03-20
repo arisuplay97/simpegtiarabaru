@@ -160,10 +160,16 @@
   --color-sidebar-muted: var(--sidebar-muted);
 }
 
-/* Sidebar offset — otomatis menyesuaikan lebar sidebar */
+/* Sidebar offset — 0 on mobile (drawer), variable-based on desktop */
 .sidebar-offset {
-  padding-left: var(--sidebar-width);
+  padding-left: 0;
   transition: padding-left 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .sidebar-offset {
+    padding-left: var(--sidebar-width);
+  }
 }
 
 @layer base {

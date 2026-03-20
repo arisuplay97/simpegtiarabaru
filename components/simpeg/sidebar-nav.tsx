@@ -1,7 +1,7 @@
 "use client"
-// components/simpeg/sidebar-nav.tsx — dengan fitur minimize
+// components/simpeg/sidebar-nav.tsx — Mobile responsive with off-canvas drawer
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, createContext, useContext } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -13,7 +13,7 @@ import {
   Navigation, Wallet, Receipt, ArrowUpCircle, Target, Star,
   FolderOpen, FileSignature, ShieldCheck, UserCog, Bell,
   CheckSquare, BarChart3, AlertTriangle, ChevronDown, ChevronRight,
-  ChevronLeft, LogOut,
+  ChevronLeft, LogOut, X, Menu,
 } from "lucide-react"
 
 type NavItem = {
@@ -92,6 +92,23 @@ const navigation: NavGroup[] = [
   },
 ]
 
+// ---- Context: share mobileOpen state between SidebarNav & TopBar ----
+type SidebarCtx = { mobileOpen: boolean; setMobileOpen: (v: boolean) => void }
+const SidebarContext = createContext<SidebarCtx>({ mobileOpen: false, setMobileOpen: () => {} })
+
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  return (
+    <SidebarContext.Provider value={{ mobileOpen, setMobileOpen }}>
+      {children}
+    </SidebarContext.Provider>
+  )
+}
+
+export function useSidebar() {
+  return useContext(SidebarContext)
+}
+
 function isItemActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard"
   return pathname === href || pathname.startsWith(`${href}/`)
@@ -102,6 +119,7 @@ export function SidebarNav() {
   const { data: session } = useSession()
   const userRole = session?.user?.role as string | undefined
   const [collapsed, setCollapsed] = useState(false)
+  const { mobileOpen, setMobileOpen } = useSidebar()
 
   const roleLabels: Record<string, string> = {
     SUPERADMIN: "Super Admin",
@@ -110,13 +128,29 @@ export function SidebarNav() {
     PEGAWAI: "Pegawai",
   }
 
-  // Update CSS variable saat collapse berubah agar semua halaman ikut menyesuaikan
+  // Update CSS variable on desktop collapse
   useEffect(() => {
+    const isMobile = window.innerWidth < 768
     document.documentElement.style.setProperty(
       "--sidebar-width",
-      collapsed ? "4rem" : "16rem"
+      isMobile ? "0px" : collapsed ? "4rem" : "16rem"
     )
   }, [collapsed])
+
+  // Update CSS variable on mobile open/close
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768
+    if (isMobile) {
+      document.documentElement.style.setProperty("--sidebar-width", "0px")
+    }
+    // Lock body scroll when mobile sidebar is open
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [mobileOpen])
 
   const filteredNavigation = useMemo(() => {
     return navigation
@@ -152,23 +186,23 @@ export function SidebarNav() {
     signOut({ callbackUrl: "/login" })
   }
 
-  return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col bg-sidebar text-sidebar-foreground transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
-      )}
-    >
-      {/* ===== HEADER / LOGO ===== */}
+  const handleNavClick = () => {
+    // On mobile: close drawer when a link is clicked
+    setMobileOpen(false)
+  }
+
+  const sidebarContent = (isMobileMode: boolean) => (
+    <div className="flex h-full flex-col">
+      {/* HEADER */}
       <div className={cn(
         "flex h-16 items-center border-b border-sidebar-border",
-        collapsed ? "justify-center px-2" : "justify-between px-4"
+        (!isMobileMode && collapsed) ? "justify-center px-2" : "justify-between px-4"
       )}>
-        <div className={cn("flex items-center gap-3 min-w-0", collapsed && "justify-center")}>
+        <div className={cn("flex items-center gap-3 min-w-0", (!isMobileMode && collapsed) && "justify-center")}>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white overflow-hidden">
             <Image src="/logo-tar.png" alt="Logo" width={32} height={32} className="object-contain" />
           </div>
-          {!collapsed && (
+          {(isMobileMode || !collapsed) && (
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold text-sidebar-foreground">SIMPEG</span>
               <span className="truncate text-[10px] text-sidebar-muted">PDAM Tirta Ardhia Rinjani</span>
@@ -176,8 +210,18 @@ export function SidebarNav() {
           )}
         </div>
 
-        {/* Tombol minimize */}
-        {!collapsed && (
+        {/* Close button for mobile */}
+        {isMobileMode && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
+
+        {/* Desktop collapse button */}
+        {!isMobileMode && !collapsed && (
           <button
             onClick={() => setCollapsed(true)}
             title="Perkecil sidebar"
@@ -186,29 +230,18 @@ export function SidebarNav() {
             <ChevronLeft className="h-4 w-4" />
           </button>
         )}
-
-        {/* Tombol expand (saat collapsed, tampil di tengah bawah logo) */}
-        {collapsed && (
-          <button
-            onClick={() => setCollapsed(false)}
-            title="Perluas sidebar"
-            className="absolute bottom-[calc(50%-1rem)] left-1/2 -translate-x-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors opacity-0 hover:opacity-100"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
       </div>
 
-      {/* ===== USER INFO ===== */}
-      {!collapsed && (
+      {/* USER INFO */}
+      {(isMobileMode || !collapsed) && (
         <div className="border-b border-sidebar-border px-4 py-3">
           <div className="text-sm font-semibold text-sidebar-foreground truncate">{session?.user?.name || "User"}</div>
           <div className="mt-1 text-xs text-sidebar-muted">{userRole ? (roleLabels[userRole] || userRole) : "Belum login"}</div>
         </div>
       )}
 
-      {/* Tombol expand saat collapsed — taruh di bawah logo */}
-      {collapsed && (
+      {/* Expand button saat collapsed (desktop only) */}
+      {!isMobileMode && collapsed && (
         <button
           onClick={() => setCollapsed(false)}
           title="Perluas sidebar"
@@ -218,14 +251,12 @@ export function SidebarNav() {
         </button>
       )}
 
-      {/* ===== NAVIGASI ===== */}
-      <div className={cn("flex-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-3")}>
+      {/* NAVIGASI */}
+      <div className={cn("flex-1 overflow-y-auto py-4", (!isMobileMode && collapsed) ? "px-2" : "px-3")}>
         <nav className="flex flex-col gap-1">
           {filteredNavigation.map((group) => (
             <div key={group.label} className="mb-2">
-
-              {/* Label grup — sembunyikan saat collapsed */}
-              {!collapsed && (
+              {(isMobileMode || !collapsed) && (
                 <button
                   onClick={() => toggleGroup(group.label)}
                   className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground"
@@ -237,8 +268,7 @@ export function SidebarNav() {
                 </button>
               )}
 
-              {/* Item menu */}
-              {(collapsed || expandedGroups.includes(group.label)) && (
+              {((!isMobileMode && collapsed) || expandedGroups.includes(group.label)) && (
                 <div className="mt-1 flex flex-col gap-0.5">
                   {group.items.map((item) => {
                     const isActive = isItemActive(pathname, item.href)
@@ -246,10 +276,11 @@ export function SidebarNav() {
                       <Link
                         key={item.href}
                         href={item.href}
-                        title={collapsed ? item.title : undefined}
+                        title={(!isMobileMode && collapsed) ? item.title : undefined}
+                        onClick={handleNavClick}
                         className={cn(
                           "group flex items-center rounded-lg transition-all duration-200",
-                          collapsed
+                          (!isMobileMode && collapsed)
                             ? "justify-center px-2 py-2.5"
                             : "gap-3 px-3 py-2",
                           isActive
@@ -263,7 +294,7 @@ export function SidebarNav() {
                             ? "text-sidebar-primary-foreground"
                             : "text-sidebar-muted group-hover:text-sidebar-accent-foreground"
                         )} />
-                        {!collapsed && (
+                        {(isMobileMode || !collapsed) && (
                           <>
                             <span className="truncate text-sm">{item.title}</span>
                             {item.badge ? (
@@ -273,8 +304,7 @@ export function SidebarNav() {
                             ) : null}
                           </>
                         )}
-                        {/* Badge kecil saat collapsed */}
-                        {collapsed && item.badge ? (
+                        {!isMobileMode && collapsed && item.badge ? (
                           <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
                             {item.badge}
                           </span>
@@ -289,20 +319,53 @@ export function SidebarNav() {
         </nav>
       </div>
 
-      {/* ===== FOOTER LOGOUT ===== */}
-      <div className={cn("border-t border-sidebar-border p-3", collapsed && "flex justify-center")}>
+      {/* FOOTER LOGOUT */}
+      <div className={cn("border-t border-sidebar-border p-3", (!isMobileMode && collapsed) && "flex justify-center")}>
         <button
           onClick={handleLogout}
           title="Logout"
           className={cn(
             "flex items-center rounded-lg text-sm text-sidebar-foreground/80 transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            collapsed ? "justify-center p-2" : "w-full gap-3 px-3 py-2"
+            (!isMobileMode && collapsed) ? "justify-center p-2" : "w-full gap-3 px-3 py-2"
           )}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Logout</span>}
+          {(isMobileMode || !collapsed) && <span>Logout</span>}
         </button>
       </div>
-    </aside>
+    </div>
+  )
+
+  return (
+    <>
+      {/* ===== DESKTOP SIDEBAR (md and above) ===== */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-40 hidden h-screen flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 md:flex",
+          collapsed ? "w-16" : "w-64"
+        )}
+      >
+        {sidebarContent(false)}
+      </aside>
+
+      {/* ===== MOBILE OVERLAY ===== */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* ===== MOBILE DRAWER ===== */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-50 h-screen w-72 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 md:hidden",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          "flex"
+        )}
+      >
+        {sidebarContent(true)}
+      </aside>
+    </>
   )
 }

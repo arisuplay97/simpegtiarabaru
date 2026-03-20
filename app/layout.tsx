@@ -7,6 +7,7 @@ import './globals.css'
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { AuthGuard } from "@/components/auth/guard"
+import { SidebarProvider } from "@/components/simpeg/sidebar-nav"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,9 +31,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <AuthProvider>
-            <AuthGuard>
-              {children}
-            </AuthGuard>
+            <SidebarProvider>
+              <AuthGuard>
+                {children}
+              </AuthGuard>
+            </SidebarProvider>
           </AuthProvider>
           <Analytics />
           <Toaster position="top-right" richColors />
