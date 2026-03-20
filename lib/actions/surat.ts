@@ -1,4 +1,3 @@
-'use server'
 // lib/actions/surat.ts
 // Generate surat resmi dari template docx
 
