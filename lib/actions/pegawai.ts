@@ -118,8 +118,17 @@ export async function createEmployee(data: any, fotoFile?: File) {
 
   optionalStr("telepon", data.telepon)
   if (fotoUrl) payload.fotoUrl = fotoUrl
-  optionalStr("bidangId", data.bidangId)
-  optionalStr("subBidangId", data.subBidangId)
+  
+  // Use 'connect' syntax for relations since we use nested 'user: { create }'
+  const cleanBidang = clean(data.bidangId)
+  if (cleanBidang) {
+    payload.bidang = { connect: { id: cleanBidang } }
+  }
+  const cleanSubBidang = clean(data.subBidangId)
+  if (cleanSubBidang) {
+    payload.subBidang = { connect: { id: cleanSubBidang } }
+  }
+  
   // Map pangkat to valid enum value
   const mappedPangkat = mapPangkat(data.pangkat)
   if (mappedPangkat) payload.pangkat = mappedPangkat
