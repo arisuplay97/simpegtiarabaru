@@ -22,9 +22,12 @@ import {
 
 // ============ CLIENT: Download docx ============
 async function downloadSurat(data: DataSurat, namaFile: string) {
-  const PizZip = (await import("pizzip")).default
-  const Docxtemplater = (await import("docxtemplater")).default
-  const { saveAs } = await import("file-saver")
+  const PizZipModule = await import("pizzip")
+  const PizZip = PizZipModule.default || PizZipModule
+  const DocxModule = await import("docxtemplater")
+  const Docxtemplater = DocxModule.default || DocxModule
+  const FileSaverModule = await import("file-saver")
+  const saveAs = FileSaverModule.saveAs || FileSaverModule.default?.saveAs || FileSaverModule.default
 
   const response = await fetch("/templates/template_surat_lengkap.docx")
   if (!response.ok) throw new Error("Template tidak ditemukan di /templates/template_surat_lengkap.docx")
