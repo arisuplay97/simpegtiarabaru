@@ -338,7 +338,7 @@ export default function KenaikanPangkatPage() {
                               <Avatar className="h-10 w-10">
                                 <AvatarImage src={pegawai?.avatar || undefined} />
                                 <AvatarFallback className="bg-primary/10 text-primary">
-                                  {pegawai.nama.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                  {pegawai.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
@@ -439,7 +439,7 @@ export default function KenaikanPangkatPage() {
                               <Avatar className="h-10 w-10">
                                 <AvatarImage src={pengajuan.avatar || undefined} />
                                 <AvatarFallback className="bg-primary/10 text-primary">
-                                  {pengajuan.nama.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                  {pengajuan.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
@@ -519,7 +519,7 @@ export default function KenaikanPangkatPage() {
               <div className="flex items-center gap-4 rounded-lg bg-secondary/50 p-4">
                 <Avatar className="h-12 w-12">
                   <AvatarFallback className="bg-primary/10 text-primary">
-                    {selectedPegawai.nama.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    {selectedPegawai.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -598,7 +598,7 @@ export default function KenaikanPangkatPage() {
               <div className="flex items-center gap-4 rounded-lg bg-secondary/50 p-4">
                 <Avatar className="h-14 w-14">
                   <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                    {selectedPengajuan.nama.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    {selectedPengajuan.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
