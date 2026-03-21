@@ -127,8 +127,9 @@ export default function KenaikanPangkatPage() {
         ])
         setEligiblePangkat(eligibleData)
         setPengajuanPangkat(pengajuanData)
-      } catch (error) {
-        console.error("Gagal memuat data kenaikan pangkat:", error)
+      } catch (error: any) {
+        console.error("Gagal memuat data", error)
+        toast.error(`Gagal memuat data kenaikan pangkat: ${error.message}`)
       } finally {
         setIsLoading(false)
       }
