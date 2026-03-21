@@ -31,17 +31,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const username = (credentials.username as string).toLowerCase().trim()
         const password = credentials.password as string
 
-        // Coba cari di database dulu (by email atau field username jika ada)
+        // Coba cari di database dulu (by email atau NIK)
         try {
           const user = await prisma.user.findFirst({
             where: {
               OR: [
                 { email: { contains: username } },
+                { pegawai: { nik: { contains: username } } }
               ]
+            },
+            include: {
+              pegawai: true
             }
           })
           if (user && user.password && bcrypt.compareSync(password, user.password)) {
-            return { id: user.id, email: user.email, role: user.role, name: user.email }
+            return { 
+              id: user.id, 
+              email: user.email, 
+              role: user.role, 
+              name: user.pegawai?.nama || user.email,
+              username: user.pegawai?.nik || user.email,
+              jabatan: user.pegawai?.jabatan || "",
+              unitKerja: user.pegawai?.bidangId || ""
+            }
           }
         } catch (error) {
           console.error("Database connection failed, using demo fallback")
