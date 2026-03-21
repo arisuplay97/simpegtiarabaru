@@ -331,7 +331,7 @@ export default function KenaikanPangkatPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredEligible.map((pegawai) => (
+                      {filteredEligible.map((pegawai: any) => (
                         <TableRow key={pegawai.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -432,7 +432,7 @@ export default function KenaikanPangkatPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredPengajuan.map((pengajuan) => (
+                      {filteredPengajuan.map((pengajuan: any) => (
                         <TableRow key={pengajuan.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -623,7 +623,7 @@ export default function KenaikanPangkatPage() {
               <div>
                 <h4 className="mb-3 font-semibold">Alur Persetujuan</h4>
                 <div className="space-y-3">
-                  {selectedPengajuan.approvals.map((approval, index) => (
+                  {selectedPengajuan.approvals.map((approval: any, index: number) => (
                     <div key={index} className="flex items-center gap-4 rounded-lg border p-3">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
                         approval.status === "approved" ? "bg-emerald-100 text-emerald-600" :
