@@ -81,146 +81,11 @@ const daftarPangkat = [
   { id: 17, nama: "Pembina Utama", golongan: "E/IV" },
 ]
 
-// Data pegawai yang eligible untuk kenaikan pangkat (4 tahun sekali)
-const eligiblePangkat = [
-  {
-    id: 1,
-    nama: "Ahmad Fadillah",
-    nik: "19850315 200801 1 001",
-    jabatan: "Kepala Seksi Produksi",
-    golonganSaatIni: "B/III",
-    pangkatSaatIni: "Penata Muda Tk.I",
-    golonganBaru: "C/III",
-    pangkatBaru: "Penata",
-    tmt: "1 April 2024",
-    status: "eligible",
-    avatar: null,
-    tmtPangkat: "2020-04-01",
-    masaKerja: "4 tahun 0 bulan",
-    eligibleDate: "2024-04-01",
-    sisaHari: 0,
-    nilaiKinerja: 88,
-  },
-  {
-    id: 2,
-    nama: "Siti Rahmawati",
-    nik: "19880722 201001 2 003",
-    jabatan: "Analis Keuangan",
-    golonganSaatIni: "C/III",
-    pangkatSaatIni: "Penata",
-    golonganBaru: "D/III",
-    pangkatBaru: "Penata Tk.I",
-    tmt: "1 April 2024",
-    status: "eligible",
-    avatar: null,
-    tmtPangkat: "2020-04-01",
-    masaKerja: "4 tahun 0 bulan",
-    eligibleDate: "2024-04-01",
-    sisaHari: 0,
-    nilaiKinerja: 92,
-  },
-  {
-    id: 3,
-    nama: "Budi Santoso",
-    nik: "19900610 201201 1 005",
-    jabatan: "Teknisi Jaringan",
-    golonganSaatIni: "D/II",
-    pangkatSaatIni: "Pengatur Tk.I",
-    golonganBaru: "A/III",
-    pangkatBaru: "Penata Muda",
-    tmt: "1 April 2024",
-    status: "proses",
-    avatar: null,
-    tmtPangkat: "2020-04-01",
-    masaKerja: "4 tahun 0 bulan",
-    eligibleDate: "2024-04-01",
-    sisaHari: 0,
-    nilaiKinerja: 85,
-  },
-  {
-    id: 4,
-    nama: "Dewi Anggraini",
-    nik: "19920815 201501 2 007",
-    jabatan: "Staff Pelayanan",
-    golonganSaatIni: "D/III",
-    pangkatSaatIni: "Penata Tk.I",
-    golonganBaru: "A/IV",
-    pangkatBaru: "Pembina",
-    tmt: "1 October 2024",
-    status: "eligible",
-    avatar: null,
-    tmtPangkat: "2020-10-01",
-    masaKerja: "3 tahun 6 bulan",
-    eligibleDate: "2024-10-01",
-    sisaHari: 180,
-    nilaiKinerja: 90,
-  },
-]
+// Data pangkat default list for reference if needed
+// (Moved to lib/actions/pangkat.ts)
 
-// Data pengajuan kenaikan pangkat
-const pengajuanPangkat = [
-  {
-    id: 1,
-    nik: "19870505 200901 1 002",
-    nama: "Rudi Hermawan",
-    jabatan: "Kepala Bagian SDM",
-    unit: "Bagian SDM",
-    pangkatLama: "Penata Tingkat I (D/III)",
-    pangkatBaru: "Pembina (A/IV)",
-    tanggalPengajuan: "2026-02-15",
-    tmtUsulan: "2026-04-01",
-    status: "menunggu_direksi",
-    approvals: [
-      { level: "Atasan Langsung", nama: "Ir. Bambang S.", status: "approved", tanggal: "2026-02-17" },
-      { level: "Kepala Bagian SDM", nama: "Dra. Hartini", status: "approved", tanggal: "2026-02-20" },
-      { level: "Direktur Umum", nama: "Dr. Sugiarto", status: "pending", tanggal: null },
-      { level: "Direktur Utama", nama: "Ir. H. Ahmad Yani", status: "pending", tanggal: null },
-    ],
-    dokumen: ["SK Pangkat Terakhir", "Penilaian Kinerja 2 Tahun", "Ijazah Terakhir", "DP3"],
-    catatan: "Telah memenuhi syarat masa kerja 4 tahun dalam pangkat",
-    avatar: null,
-  },
-  {
-    id: 2,
-    nik: "19830420 200601 1 004",
-    nama: "Eko Prasetyo",
-    jabatan: "Kepala Seksi Distribusi",
-    unit: "Bagian Distribusi",
-    pangkatLama: "Penata (C/III)",
-    pangkatBaru: "Penata Tingkat I (D/III)",
-    tanggalPengajuan: "2026-01-20",
-    tmtUsulan: "2026-03-01",
-    status: "disetujui",
-    approvals: [
-      { level: "Atasan Langsung", nama: "Ir. Sutarno", status: "approved", tanggal: "2026-01-22" },
-      { level: "Kepala Bagian SDM", nama: "Dra. Hartini", status: "approved", tanggal: "2026-01-25" },
-      { level: "Direktur Umum", nama: "Dr. Sugiarto", status: "approved", tanggal: "2026-01-28" },
-      { level: "Direktur Utama", nama: "Ir. H. Ahmad Yani", status: "approved", tanggal: "2026-02-01" },
-    ],
-    dokumen: ["SK Pangkat Terakhir", "Penilaian Kinerja 2 Tahun", "Ijazah Terakhir", "DP3"],
-    catatan: "Disetujui berdasarkan hasil penilaian kinerja yang baik",
-    avatar: null,
-  },
-  {
-    id: 3,
-    nik: "19910312 201301 2 006",
-    nama: "Fitri Handayani",
-    jabatan: "Staff Keuangan",
-    unit: "Bagian Keuangan",
-    pangkatLama: "Pengatur Tingkat I (D/II)",
-    pangkatBaru: "Penata Muda (A/III)",
-    tanggalPengajuan: "2026-02-01",
-    tmtUsulan: "2026-04-01",
-    status: "ditolak",
-    approvals: [
-      { level: "Atasan Langsung", nama: "Siti Rahmawati", status: "approved", tanggal: "2026-02-03" },
-      { level: "Kepala Bagian SDM", nama: "Dra. Hartini", status: "rejected", tanggal: "2026-02-07" },
-    ],
-    dokumen: ["SK Pangkat Terakhir", "Penilaian Kinerja 2 Tahun"],
-    catatan: "Ditolak: Belum memenuhi syarat pendidikan minimal S1 untuk golongan III",
-    avatar: null,
-  },
-]
+import { getEligibleKenaikanPangkat, getPengajuanKenaikanPangkat } from "@/lib/actions/pangkat"
+import { useEffect } from "react"
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -243,9 +108,33 @@ export default function KenaikanPangkatPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [showPengajuanDialog, setShowPengajuanDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
-  const [selectedPegawai, setSelectedPegawai] = useState<typeof eligiblePangkat[0] | null>(null)
-  const [selectedPengajuan, setSelectedPengajuan] = useState<typeof pengajuanPangkat[0] | null>(null)
+  
+  const [eligiblePangkat, setEligiblePangkat] = useState<any[]>([])
+  const [pengajuanPangkat, setPengajuanPangkat] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const [selectedPegawai, setSelectedPegawai] = useState<any | null>(null)
+  const [selectedPengajuan, setSelectedPengajuan] = useState<any | null>(null)
   const [activeTab, setActiveTab] = useState("eligible")
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true)
+      try {
+        const [eligibleData, pengajuanData] = await Promise.all([
+          getEligibleKenaikanPangkat(),
+          getPengajuanKenaikanPangkat()
+        ])
+        setEligiblePangkat(eligibleData)
+        setPengajuanPangkat(pengajuanData)
+      } catch (error) {
+        console.error("Gagal memuat data kenaikan pangkat:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   const filteredEligible = eligiblePangkat.filter(
     (p) =>
