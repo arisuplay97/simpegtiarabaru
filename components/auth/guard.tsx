@@ -2,6 +2,7 @@
 import { useSession } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
+import { ForceChangePasswordModal } from "./force-change-password-modal"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
@@ -22,5 +23,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!session && pathname !== "/login") return null
 
-  return <>{children}</>
+  return (
+    <>
+      <ForceChangePasswordModal />
+      {children}
+    </>
+  )
 }
+

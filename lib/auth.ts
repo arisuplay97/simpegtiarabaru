@@ -5,10 +5,10 @@ import bcrypt from "bcryptjs"
 
 // Demo users dengan username (bukan email)
 const demoUsers: Record<string, any> = {
-  "superadmin": { id: "demo-1", name: "Dwiky Firmansyah", email: "superadmin@tiara.com", username: "superadmin", role: "SUPERADMIN", jabatan: "Super Admin HRIS", unitKerja: "IT & Sistem" },
-  "hrd":        { id: "demo-2", name: "Fitri Handayani",  email: "hrd@tiara.com",        username: "hrd",        role: "HRD",        jabatan: "Staff HRD",        unitKerja: "SDM & Umum" },
-  "direktur":   { id: "demo-3", name: "Ir. Gunawan Wibowo", email: "direktur@tiara.com", username: "direktur",   role: "DIREKSI",    jabatan: "Direktur Utama",   unitKerja: "Direksi" },
-  "pegawai":    { id: "demo-4", name: "Ahmad Rizki Pratama", email: "pegawai@tiara.com", username: "pegawai",    role: "PEGAWAI",    jabatan: "Kepala Bagian IT", unitKerja: "IT & Sistem" },
+  "superadmin": { id: "demo-1", name: "Dwiky Firmansyah", email: "superadmin@tiara.com", username: "superadmin", role: "SUPERADMIN", jabatan: "Super Admin HRIS", unitKerja: "IT & Sistem", mustChangePassword: false },
+  "hrd":        { id: "demo-2", name: "Fitri Handayani",  email: "hrd@tiara.com",        username: "hrd",        role: "HRD",        jabatan: "Staff HRD",        unitKerja: "SDM & Umum", mustChangePassword: false },
+  "direktur":   { id: "demo-3", name: "Ir. Gunawan Wibowo", email: "direktur@tiara.com", username: "direktur",   role: "DIREKSI",    jabatan: "Direktur Utama",   unitKerja: "Direksi", mustChangePassword: false },
+  "pegawai":    { id: "demo-4", name: "Ahmad Rizki Pratama", email: "pegawai@tiara.com", username: "pegawai",    role: "PEGAWAI",    jabatan: "Kepala Bagian IT", unitKerja: "IT & Sistem", mustChangePassword: false },
 }
 
 const demoPasswords: Record<string, string> = {
@@ -52,7 +52,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               name: user.pegawai?.nama || user.email,
               username: user.pegawai?.nik || user.email,
               jabatan: user.pegawai?.jabatan || "",
-              unitKerja: user.pegawai?.bidangId || ""
+              unitKerja: user.pegawai?.bidangId || "",
+              mustChangePassword: user.mustChangePassword,
             }
           }
         } catch (error) {
@@ -75,6 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.jabatan = (user as any).jabatan
         token.unitKerja = (user as any).unitKerja
         token.username = (user as any).username
+        token.mustChangePassword = (user as any).mustChangePassword ?? false
       }
       return token
     },
@@ -85,6 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ;(session.user as any).jabatan = token.jabatan
         ;(session.user as any).unitKerja = token.unitKerja
         ;(session.user as any).username = token.username
+        ;(session.user as any).mustChangePassword = token.mustChangePassword
       }
       return session
     }
