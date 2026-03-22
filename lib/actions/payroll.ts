@@ -194,11 +194,10 @@ export async function processAllPayroll(periodStr: string) {
 }
 
 // ============ GET MY PAYROLL (For logged-in user Slip Gaji) ============
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { auth } from "@/lib/auth"
 
 export async function getMyPayroll(periodStr: string) {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   if (!session?.user?.email) return null
 
   const { start, end } = getMonthBounds(periodStr)

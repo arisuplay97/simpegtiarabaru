@@ -1,16 +1,31 @@
-REVISI
-1. Search bar GLOBAL sudah ada tapi belum berfungsi. 
+ADA ERROR SAAT push
+Failed to compile.
+./app/kgb/page.tsx:180:13
+Type error: Cannot find name 'Users'.
+  178 |       title: "Eligible Bulan Ini",
+  179 |       value: eligibleList.filter(e => e.sisaHari <= 30).length.toString(),
+> 180 |       icon: Users,
+      |             ^
+  181 |       color: "text-blue-600",
+  182 |       bgColor: "bg-blue-100",
+  183 |     },
+Next.js build worker exited with code: 1 and signal: null
+Error: Command "npm run build" exited with 1
 
-2.Dashboard Pegawai Personal
-Saat login sebagai pegawai, dashboard menampilkan:
-- Sisa cuti saya: X hari
-- Status absensi hari ini
-- Slip gaji terbaru
-- Pengajuan saya yang pending
-
-3. FORCE CHANGE PASSWORD FIRST LOGIN
-SETIAP AKUN Pegawai YANG BARU DIBUAT wajib ganti password saat pertama kali login
-DAN TAMBAHKAN Validasi yang Disarankan
-
-4. HAPUS IPK DI PENDIDIAKN PEGAWAI
-5. perbaiki tombol edit data di profil pegawai karna tidak sesuai dengan saat tambah pegawai
+22:43:39.519 
+ ⚠ Compiled with warnings in 10.5s
+22:43:39.521 
+22:43:39.521 
+./lib/actions/payroll.ts
+22:43:39.521 
+Attempted import error: 'getServerSession' is not exported from 'next-auth/next' (imported as 'getServerSession').
+22:43:39.521 
+22:43:39.521 
+Import trace for requested module:
+22:43:39.522 
+./lib/actions/payroll.ts
+22:43:39.522 
+22:43:39.522 
+./lib/actions/payroll.ts
+22:43:39.522 
+Attempted import error: 'authOptions' is not exported from '@/app/api/auth/[...nextauth]/route' (imported as 'authOptions').

@@ -52,6 +52,7 @@ import {
   ArrowUpCircle,
   Wallet,
   Calculator,
+  Users,
 } from "lucide-react"
 import {
   DropdownMenu,
