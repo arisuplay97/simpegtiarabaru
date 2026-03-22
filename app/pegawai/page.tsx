@@ -188,7 +188,13 @@ export default function EmployeeListPage() {
                       nik.includes(searchQuery) || 
                       jabatan.toLowerCase().includes(searchQuery.toLowerCase())
     const matchStatus = statusFilter === "all" || status === statusFilter
-    const matchUnit = unitFilter === "all" || emp.bidangId === unitFilter
+    
+    let matchUnit = false
+    if (unitFilter === "all") matchUnit = true
+    else if (unitFilter === "pusat") matchUnit = !!emp.bidangId && !emp.bidang?.nama?.toLowerCase().includes("cabang")
+    else if (unitFilter === "cabang") matchUnit = !!emp.bidang?.nama?.toLowerCase().includes("cabang")
+    else matchUnit = emp.bidangId === unitFilter
+    
     return matchSearch && matchStatus && matchUnit
   })
 
@@ -418,12 +424,18 @@ export default function EmployeeListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Pilih —</SelectItem>
-                <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
-                <SelectItem value="kasubbid">Kasubbid</SelectItem>
-                <SelectItem value="staff">Staff</SelectItem>
-                <SelectItem value="kepala_cabang">Kepala Cabang</SelectItem>
-                <SelectItem value="kasubbid_cabang">Kasubbid Cabang</SelectItem>
-                <SelectItem value="staff_cabang">Staff Cabang</SelectItem>
+                {form.bidangId ? getJabatanOptions(form.bidangId, bidangData).map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                )) : (
+                  <>
+                    <SelectItem value="kepala_bidang">Kepala Bidang</SelectItem>
+                    <SelectItem value="kasubbid">Kasubbid</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="kepala_cabang">Kepala Cabang</SelectItem>
+                    <SelectItem value="kasubbid_cabang">Kasubbid Cabang</SelectItem>
+                    <SelectItem value="staff_cabang">Staff Cabang</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </F>
@@ -651,7 +663,7 @@ export default function EmployeeListPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input placeholder="Cari nama, NIK, atau jabatan..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} className="pl-10"/></div>
               <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Status"/></SelectTrigger><SelectContent><SelectItem value="all">Semua Status</SelectItem><SelectItem value="AKTIF">Aktif</SelectItem><SelectItem value="CUTI">Cuti</SelectItem><SelectItem value="NON_AKTIF">Non-Aktif</SelectItem><SelectItem value="PENSIUN">Pensiun</SelectItem></SelectContent></Select>
-              <Select value={unitFilter} onValueChange={setUnitFilter}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Unit Kerja"/></SelectTrigger><SelectContent><SelectItem value="all">Semua Unit</SelectItem>{units.map(u=><SelectItem key={u.id} value={u.id}>{u.nama}</SelectItem>)}</SelectContent></Select>
+              <Select value={unitFilter} onValueChange={setUnitFilter}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Unit Kerja"/></SelectTrigger><SelectContent><SelectItem value="all">Semua Unit</SelectItem><SelectItem value="pusat">Kantor Pusat</SelectItem><SelectItem value="cabang">Kantor Cabang</SelectItem></SelectContent></Select>
             </div>
           </CardContent></Card>
 

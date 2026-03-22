@@ -47,9 +47,29 @@ const stripUndefined = (obj: any) => {
 
 // ============ GET SEMUA PEGAWAI ============
 export async function getEmployees() {
-  return await prisma.pegawai.findMany({
+  const data = await prisma.pegawai.findMany({
     include: { bidang: true, user: { select: { email: true, role: true } } },
     orderBy: { nama: "asc" },
+  })
+
+  return data.map(emp => {
+    let masaKerja = "-"
+    if (emp.tanggalMasuk) {
+      const start = new Date(emp.tanggalMasuk)
+      const now = new Date()
+      let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+      if (now.getDate() < start.getDate()) months-- // Adjust for incomplete month
+      if (months < 0) months = 0
+
+      const y = Math.floor(months / 12)
+      const m = months % 12
+
+      if (y > 0 && m > 0) masaKerja = `${y} Thn ${m} Bln`
+      else if (y > 0) masaKerja = `${y} Thn`
+      else if (m > 0) masaKerja = `${m} Bln`
+      else masaKerja = "< 1 Bln"
+    }
+    return { ...emp, masaKerja }
   })
 }
 
