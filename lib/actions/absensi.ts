@@ -105,3 +105,41 @@ export async function checkDeviceAndAbsen(
     return { error: `Sistem gagal merekam absensi: ${error.message}` }
   }
 }
+
+export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
+  try {
+    const whereClause: any = {}
+    if (dateStart && dateEnd) {
+      whereClause.tanggal = {
+        gte: dateStart,
+        lte: dateEnd
+      }
+    } else {
+      // Default to today if no date range is provided
+      const { startOfDay, endOfDay } = getTodayRange()
+      whereClause.tanggal = {
+        gte: startOfDay,
+        lte: endOfDay
+      }
+    }
+
+    const absensiList = await prisma.absensi.findMany({
+      where: whereClause,
+      include: {
+        pegawai: {
+          include: {
+            bidang: true
+          }
+        }
+      },
+      orderBy: [
+        { jamMasuk: 'desc' },
+        { tanggal: 'desc' }
+      ]
+    })
+    return absensiList
+  } catch (error) {
+    console.error("Error fetching absensi list:", error)
+    return []
+  }
+}

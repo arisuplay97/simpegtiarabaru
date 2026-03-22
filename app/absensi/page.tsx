@@ -66,6 +66,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { getAbsensiList } from "@/lib/actions/absensi"
 
 interface AttendanceRecord {
   id: string
@@ -289,8 +290,59 @@ export default function AttendancePage() {
   const [editCheckIn, setEditCheckIn] = useState("")
   const [editCheckOut, setEditCheckOut] = useState("")
   const [editStatus, setEditStatus] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [records, setRecords] = useState(attendanceData)
+  const [isLoading, setIsLoading] = useState(true)
+  const [records, setRecords] = useState<AttendanceRecord[]>([])
+
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true)
+        const data = await getAbsensiList()
+        const mappedData: AttendanceRecord[] = data.map((d: any) => {
+          const statusMap: Record<string, string> = {
+            HADIR: "hadir", IZIN: "izin", SAKIT: "sakit", 
+            CUTI: "cuti", ALPHA: "alpha", DINAS: "dinas"
+          }
+          
+          const formatTime = (dateStr: any) => {
+            if (!dateStr) return null
+            const dt = new Date(dateStr)
+            return dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+          }
+          
+          const calculateHours = (inTime: any, outTime: any) => {
+            if (!inTime || !outTime) return "-"
+            const diffMs = new Date(outTime).getTime() - new Date(inTime).getTime()
+            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60))
+            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+            return `${diffHrs}j ${diffMins}m`
+          }
+
+          return {
+            id: d.id,
+            employeeName: d.pegawai?.nama || "Unknown",
+            employeeInitials: (d.pegawai?.nama || "U").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
+            employeeUnit: d.pegawai?.bidang?.nama || "Kantor Pusat",
+            date: new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+            checkIn: formatTime(d.jamMasuk),
+            checkOut: formatTime(d.jamKeluar),
+            status: (statusMap[d.status] || "alpha") as AttendanceRecord["status"],
+            lateMinutes: 0,
+            earlyMinutes: 0,
+            method: "selfie",
+            location: "Gedung Utama",
+            workHours: calculateHours(d.jamMasuk, d.jamKeluar)
+          }
+        })
+        setRecords(mappedData)
+      } catch (error: any) {
+        toast.error(`Gagal memuat absensi: ${error.message}`)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadData()
+  }, [])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
