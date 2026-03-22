@@ -457,13 +457,13 @@ export default function AttendancePage() {
                         <span className="text-2xl font-bold text-foreground">
                           {stat.value}
                         </span>
-                        {stat.percentage && (
+                        {"percentage" in stat && stat.percentage && (
                           <span className="text-xs text-muted-foreground">
                             ({stat.percentage})
                           </span>
                         )}
                       </div>
-                      {stat.trend && (
+                      {"trend" in stat && stat.trend && (
                         <div className="flex items-center gap-1">
                           {stat.trendUp ? (
                             <TrendingUp className="h-3 w-3 text-emerald-600" />
