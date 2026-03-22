@@ -4,9 +4,12 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { TingkatPendidikan } from "@prisma/client"
 
-export async function getEmployeeProfile(pegawaiId: string) {
-  const pegawai = await prisma.pegawai.findUnique({
-    where: { id: pegawaiId },
+export async function getEmployeeProfile(slugOrId: string) {
+  let pegawai = null;
+
+  // 1. Coba cari berdasarkan ID persis
+  pegawai = await prisma.pegawai.findUnique({
+    where: { id: slugOrId },
     include: {
       bidang: true,
       user: { select: { email: true, role: true } },
@@ -17,7 +20,36 @@ export async function getEmployeeProfile(pegawaiId: string) {
       pelatihan: { orderBy: { tahun: 'desc' } },
       dokumen: { orderBy: { createdAt: 'desc' } },
     }
-  })
+  });
+
+  if (!pegawai && slugOrId.includes("-")) {
+    // 2. Jika slug mengandung "-", mungkin ID ada di akhir
+    const parts = slugOrId.split("-");
+    const possibleId = parts[parts.length - 1];
+    pegawai = await prisma.pegawai.findUnique({
+      where: { id: possibleId },
+      include: {
+        bidang: true, user: { select: { email: true, role: true } },
+        keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
+        riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
+        pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },
+      }
+    });
+  }
+
+  if (!pegawai) {
+    // 3. Fallback: Cari menggunakan nama (replace "-" dengan spasi) mode insensitive
+    const possibleName = slugOrId.replace(/-/g, " ");
+    pegawai = await prisma.pegawai.findFirst({
+      where: { nama: { equals: possibleName, mode: 'insensitive' } },
+      include: {
+        bidang: true, user: { select: { email: true, role: true } },
+        keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
+        riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
+        pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },
+      }
+    });
+  }
 
   return pegawai
 }

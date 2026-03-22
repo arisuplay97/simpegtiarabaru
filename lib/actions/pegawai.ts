@@ -276,9 +276,29 @@ export async function deleteEmployee(id: string) {
     try { await del(pegawai.fotoUrl) } catch {}
   }
 
-  // Hapus pegawai (cascade ke user)
-  await prisma.pegawai.delete({ where: { id } })
-  await prisma.user.delete({ where: { id: pegawai!.userId } })
+  // Karena tidak ada onDelete: Cascade di schema, kita harus hapus manual relasinya
+  await prisma.$transaction([
+    prisma.absensi.deleteMany({ where: { pegawaiId: id } }),
+    prisma.mutasi.deleteMany({ where: { pegawaiId: id } }),
+    prisma.cuti.deleteMany({ where: { pegawaiId: id } }),
+    prisma.payroll.deleteMany({ where: { pegawaiId: id } }),
+    prisma.kPI.deleteMany({ where: { pegawaiId: id } }),
+    prisma.slipGaji.deleteMany({ where: { pegawaiId: id } }),
+    prisma.pegawaiKeluarga.deleteMany({ where: { pegawaiId: id } }),
+    prisma.pegawaiPendidikan.deleteMany({ where: { pegawaiId: id } }),
+    prisma.pegawaiJabatan.deleteMany({ where: { pegawaiId: id } }),
+    prisma.pegawaiPangkat.deleteMany({ where: { pegawaiId: id } }),
+    prisma.pegawaiPelatihan.deleteMany({ where: { pegawaiId: id } }),
+    prisma.pegawaiDokumen.deleteMany({ where: { pegawaiId: id } }),
+    prisma.kGB.deleteMany({ where: { pegawaiId: id } }),
+    prisma.kenaikanPangkat.deleteMany({ where: { pegawaiId: id } }),
+    prisma.suratPeringatan.deleteMany({ where: { pegawaiId: id } }),
+    prisma.pegawai.delete({ where: { id } }),
+  ])
+  
+  if (pegawai?.userId) {
+    await prisma.user.delete({ where: { id: pegawai.userId } })
+  }
 
   revalidatePath("/pegawai")
 }

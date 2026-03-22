@@ -172,7 +172,7 @@ function F({ label, children, error }: { label: string, children: React.ReactNod
 export default function EmployeeDetailPage() {
   const params = useParams()
   const slug = params.slug as string
-  const id = slug?.includes("-") ? slug.split("-").pop() : slug
+  const id = slug
   const [activeTab, setActiveTab] = useState("profil")
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(true)

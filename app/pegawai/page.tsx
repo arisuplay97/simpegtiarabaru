@@ -700,7 +700,7 @@ export default function EmployeeListPage() {
                           </Avatar>
                           <div>
                             <div className="flex items-center gap-2">
-                              <Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}-${emp.id}`} className="font-medium hover:text-primary hover:underline">{emp.nama}</Link>
+                              <Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}`} className="font-medium hover:text-primary hover:underline">{emp.nama}</Link>
                               {emp.sp && spConfig[emp.sp as keyof typeof spConfig] && (
                                 <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${spConfig[emp.sp as keyof typeof spConfig].className}`}>
                                   {spConfig[emp.sp as keyof typeof spConfig].label}
@@ -731,7 +731,7 @@ export default function EmployeeListPage() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild><Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}-${emp.id}`}><Eye className="mr-2 h-4 w-4"/>Lihat Detail</Link></DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}`}><Eye className="mr-2 h-4 w-4"/>Lihat Detail</Link></DropdownMenuItem>
                             <DropdownMenuItem onClick={()=>openEdit(emp)}><Edit className="mr-2 h-4 w-4"/>Edit Data</DropdownMenuItem>
                             <DropdownMenuSeparator/>
                             <DropdownMenuItem className="text-destructive" onClick={()=>{setDeletingEmployee(emp);setShowDeleteDialog(true)}}><Trash2 className="mr-2 h-4 w-4"/>Hapus</DropdownMenuItem>

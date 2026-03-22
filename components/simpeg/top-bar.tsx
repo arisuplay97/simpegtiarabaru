@@ -145,10 +145,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             <DropdownMenuLabel>Pilih Unit Kerja</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Kantor Pusat</DropdownMenuItem>
-            <DropdownMenuItem>Cabang Utara</DropdownMenuItem>
-            <DropdownMenuItem>Cabang Selatan</DropdownMenuItem>
-            <DropdownMenuItem>Cabang Timur</DropdownMenuItem>
-            <DropdownMenuItem>Cabang Barat</DropdownMenuItem>
+            <DropdownMenuItem>Kantor Cabang</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
