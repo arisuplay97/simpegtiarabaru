@@ -62,6 +62,7 @@ model Pegawai {
   subBidangId           String?
   subBidang             SubBidang?  @relation(fields: [subBidangId], references: [id])
   jabatan               String
+  saldoCuti             Int         @default(12)
   tipeJabatan           TipeJabatan @default(STAFF)
   golongan              String    // Format: A/I, B/II, dst
   pangkat               String?
@@ -298,4 +299,35 @@ model LokasiAbsensi {
   keterangan      String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+// ============ PENGATURAN UMUM ============
+model Pengaturan {
+  id                String   @id @default("1")
+  
+  // Absensi
+  jamMasuk          String   @default("08:00")
+  jamPulang         String   @default("17:00")
+  batasTerlambat    Int      @default(15)
+  lokasiPusat       String?
+  
+  // Cuti
+  jatahCutiTahunan  Int      @default(12)
+  batasBawaCuti     Int      @default(0)
+
+  // Payroll
+  tanggalGajian     Int      @default(25)
+  bpjsKesehatanPcs  Float    @default(1.0)
+  bpjsTkPcs         Float    @default(2.0)
+
+  // Organisasi
+  namaPerusahaan    String   @default("Tirta Ardhia Rinjani")
+  alamatPerusahaan  String?
+  logoUrl           String?
+
+  // Dokumen
+  formatNomorSK     String   @default("SK/[NOMOR]/[BULAN]/[TAHUN]")
+  namaPenandatangan String   @default("Direktur Utama")
+
+  updatedAt         DateTime @updatedAt
 }

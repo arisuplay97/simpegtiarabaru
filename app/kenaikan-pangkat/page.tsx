@@ -87,6 +87,7 @@ const daftarPangkat = [
 
 import { getEligibleKenaikanPangkat, getPengajuanKenaikanPangkat } from "@/lib/actions/pangkat"
 import { useEffect } from "react"
+import { useSession } from "next-auth/react"
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -106,6 +107,9 @@ const getStatusBadge = (status: string) => {
 }
 
 export default function KenaikanPangkatPage() {
+  const { data: session } = useSession()
+  const isHRD = session?.user?.role === "HRD" || session?.user?.role === "SUPERADMIN"
+
   const [searchTerm, setSearchTerm] = useState("")
   const [showPengajuanDialog, setShowPengajuanDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
@@ -474,6 +478,22 @@ export default function KenaikanPangkatPage() {
                                   <Eye className="mr-2 h-4 w-4" />
                                   Lihat Detail
                                 </DropdownMenuItem>
+                                {isHRD && pengajuan.status !== "disetujui" && (
+                                  <>
+                                    <DropdownMenuItem className="text-emerald-600 font-medium cursor-pointer" onClick={() => {
+                                      toast.success(`Kenaikan pangkat ${pengajuan.nama} berhasil disetujui_`)
+                                    }}>
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Setujui Pengajuan
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600 font-medium cursor-pointer" onClick={() => {
+                                      toast.error(`Kenaikan pangkat ${pengajuan.nama} ditolak`)
+                                    }}>
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Tolak Pengajuan
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                                 <DropdownMenuItem>
                                   <FileText className="mr-2 h-4 w-4" />
                                   Cetak SK

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   Select,
@@ -49,13 +50,14 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   Eye,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
+  Loader2,
+  Check,
+  X
 } from "lucide-react"
+import { getCutiList, createCuti, updateCutiStatus, getPegawaiSaldoCuti } from "@/lib/actions/cuti"
 
 interface LeaveRequest {
   id: string
@@ -70,86 +72,7 @@ interface LeaveRequest {
   reason: string
   status: "pending" | "approved" | "rejected"
   submittedDate: string
-  approvedBy?: string
-  approvedDate?: string
 }
-
-const leaveRequests: LeaveRequest[] = [
-  {
-    id: "1",
-    employeeName: "Ahmad Rizki Pratama",
-    employeeNik: "198501152010011001",
-    employeeInitials: "AR",
-    unit: "IT & Sistem",
-    type: "Cuti Tahunan",
-    startDate: "18 Mar 2026",
-    endDate: "22 Mar 2026",
-    duration: 5,
-    reason: "Keperluan keluarga",
-    status: "pending",
-    submittedDate: "15 Mar 2026",
-  },
-  {
-    id: "2",
-    employeeName: "Siti Nurhaliza",
-    employeeNik: "199003222015012002",
-    employeeInitials: "SN",
-    unit: "Keuangan",
-    type: "Cuti Sakit",
-    startDate: "10 Mar 2026",
-    endDate: "12 Mar 2026",
-    duration: 3,
-    reason: "Sakit demam",
-    status: "approved",
-    submittedDate: "09 Mar 2026",
-    approvedBy: "Manager Keuangan",
-    approvedDate: "09 Mar 2026",
-  },
-  {
-    id: "3",
-    employeeName: "Budi Santoso",
-    employeeNik: "198712052008011003",
-    employeeInitials: "BS",
-    unit: "Distribusi",
-    type: "Cuti Tahunan",
-    startDate: "25 Mar 2026",
-    endDate: "28 Mar 2026",
-    duration: 4,
-    reason: "Liburan keluarga",
-    status: "pending",
-    submittedDate: "14 Mar 2026",
-  },
-  {
-    id: "4",
-    employeeName: "Dewi Lestari",
-    employeeNik: "199205152018012004",
-    employeeInitials: "DL",
-    unit: "Pelayanan",
-    type: "Izin Tidak Masuk",
-    startDate: "17 Mar 2026",
-    endDate: "17 Mar 2026",
-    duration: 1,
-    reason: "Keperluan mendadak",
-    status: "rejected",
-    submittedDate: "16 Mar 2026",
-  },
-  {
-    id: "5",
-    employeeName: "Indah Permata",
-    employeeNik: "199105152019012001",
-    employeeInitials: "IP",
-    unit: "Pelayanan",
-    type: "Cuti Melahirkan",
-    startDate: "01 Mar 2026",
-    endDate: "30 May 2026",
-    duration: 90,
-    reason: "Cuti melahirkan",
-    status: "approved",
-    submittedDate: "20 Feb 2026",
-    approvedBy: "Direktur SDM",
-    approvedDate: "21 Feb 2026",
-  },
-]
 
 const statusConfig = {
   pending: { label: "Pending", className: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock },
@@ -157,26 +80,69 @@ const statusConfig = {
   rejected: { label: "Ditolak", className: "bg-red-100 text-red-700 border-red-200", icon: XCircle },
 }
 
-const leaveStats = [
-  { label: "Total Pengajuan", value: "156", icon: Plane, color: "text-primary" },
-  { label: "Pending", value: "24", icon: Clock, color: "text-amber-600" },
-  { label: "Disetujui", value: "125", icon: CheckCircle2, color: "text-emerald-600" },
-  { label: "Ditolak", value: "7", icon: XCircle, color: "text-red-600" },
-]
-
 export default function CutiPage() {
-  const [leaveList, setLeaveList] = useState<LeaveRequest[]>(leaveRequests)
+  const { data: session } = useSession()
+  const userRole = session?.user?.role || "PEGAWAI"
+  const isHRD = userRole === "HRD" || userRole === "SUPERADMIN"
+
+  const [leaveList, setLeaveList] = useState<LeaveRequest[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [saldoCuti, setSaldoCuti] = useState(0)
+
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
   const [reason, setReason] = useState("")
   const [leaveType, setLeaveType] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    setIsLoading(true)
+    const [listRes, saldoRes] = await Promise.all([
+      getCutiList(),
+      getPegawaiSaldoCuti()
+    ])
+    
+    if (listRes.data) {
+      const mapped = listRes.data.map((c: any) => {
+        const start = new Date(c.tanggalMulai)
+        const end = new Date(c.tanggalSelesai)
+        const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        return {
+          id: c.id,
+          employeeName: c.pegawai?.nama || "Unknown",
+          employeeNik: c.pegawai?.nik || "-",
+          employeeInitials: (c.pegawai?.nama || "U").substring(0, 2).toUpperCase(),
+          unit: c.pegawai?.bidang?.nama || "-",
+          type: c.jenisCuti,
+          startDate: format(start, "dd MMM yyyy", { locale: id }),
+          endDate: format(end, "dd MMM yyyy", { locale: id }),
+          duration,
+          reason: c.alasan,
+          status: c.status.toLowerCase() as "pending" | "approved" | "rejected",
+          submittedDate: format(new Date(c.createdAt), "dd MMM yyyy", { locale: id }),
+        }
+      })
+      setLeaveList(mapped)
+    }
+    
+    if (saldoRes.data !== undefined) {
+      setSaldoCuti(saldoRes.data)
+    }
+    
+    setIsLoading(false)
+  }
 
   const filteredRequests = leaveList.filter((req) => {
     const matchesSearch =
@@ -193,43 +159,57 @@ export default function CutiPage() {
     currentPage * itemsPerPage
   )
 
-  const handleApplyLeave = () => {
+  const handleApplyLeave = async () => {
     if (!startDate || !endDate || !leaveType || !reason) {
       toast.error("Harap isi semua bidang wajib")
       return
     }
-
     if (startDate > endDate) {
       toast.error("Tanggal mulai tidak boleh setelah tanggal selesai")
       return
     }
 
-    const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    
-    const newRequest: LeaveRequest = {
-      id: (leaveList.length + 1).toString(),
-      employeeName: "User Profile", // Mock current user
-      employeeNik: "199001012020011001",
-      employeeInitials: "UP",
-      unit: "SDM & Umum",
-      type: leaveType,
-      startDate: format(startDate, "dd MMM yyyy"),
-      endDate: format(endDate, "dd MMM yyyy"),
-      duration,
-      reason,
-      status: "pending",
-      submittedDate: format(new Date(), "dd MMM yyyy"),
+    setIsSubmitting(true)
+    const payload = {
+      tanggalMulai: startDate,
+      tanggalSelesai: endDate,
+      jenisCuti: leaveType,
+      alasan: reason
     }
 
-    setLeaveList([newRequest, ...leaveList])
-    setShowAddDialog(false)
-    setStartDate(undefined)
-    setEndDate(undefined)
-    setReason("")
-    setLeaveType("")
-    toast.success("Pengajuan cuti berhasil dikirim")
+    const res = await createCuti(payload)
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success("Pengajuan cuti berhasil dikirim")
+      setShowAddDialog(false)
+      fetchData()
+    }
+    setIsSubmitting(false)
   }
 
+  const handleAction = async (id: string, action: "APPROVED" | "REJECTED") => {
+    const res = await updateCutiStatus(id, action)
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success(`Cuti berhasil ${action === "APPROVED" ? "disetujui" : "ditolak"}`)
+      fetchData()
+    }
+  }
+
+  // Stats calculate
+  const totalCount = leaveList.length
+  const pendingCount = leaveList.filter(l => l.status === "pending").length
+  const approvedCount = leaveList.filter(l => l.status === "approved").length
+  const rejectedCount = leaveList.filter(l => l.status === "rejected").length
+
+  const leaveStats = [
+    { label: "Total Pengajuan", value: totalCount.toString(), icon: Plane, color: "text-primary" },
+    { label: "Pending", value: pendingCount.toString(), icon: Clock, color: "text-amber-600" },
+    { label: "Disetujui", value: approvedCount.toString(), icon: CheckCircle2, color: "text-emerald-600" },
+    { label: "Ditolak", value: rejectedCount.toString(), icon: XCircle, color: "text-red-600" },
+  ]
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -242,10 +222,15 @@ export default function CutiPage() {
             <div>
               <h1 className="text-2xl font-bold text-foreground">Cuti & Izin</h1>
               <p className="text-sm text-muted-foreground">
-                Kelola pengajuan cuti dan izin pegawai
+                Kelola pengajuan cuti dan izin {isHRD ? "pegawai" : "Anda"}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {!isHRD && (
+                <div className="mr-4 text-sm font-medium bg-secondary px-3 py-1.5 rounded-md">
+                  Sisa Saldo Cuti: <span className="text-primary">{saldoCuti} Hari</span>
+                </div>
+              )}
               <Button variant="outline" size="sm" className="gap-2">
                 <Download className="h-4 w-4" />
                 Export
@@ -261,7 +246,7 @@ export default function CutiPage() {
                   <DialogHeader>
                     <DialogTitle>Ajukan Cuti / Izin</DialogTitle>
                     <DialogDescription>
-                      Isi form berikut untuk mengajukan cuti atau izin
+                      {isHRD ? "Minta Pegawai mengisi dari akun mereka jika memungkinkan." : `Sisa Saldo Cuti Tahunan: ${saldoCuti} hari`}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -340,20 +325,13 @@ export default function CutiPage() {
                         onChange={(e) => setReason(e.target.value)}
                       />
                     </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">Alamat Selama Cuti</label>
-                      <Input placeholder="Alamat yang bisa dihubungi" />
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">No. HP Darurat</label>
-                      <Input placeholder="Nomor yang bisa dihubungi" />
-                    </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowAddDialog(false)}>
                       Batal
                     </Button>
-                    <Button onClick={handleApplyLeave}>
+                    <Button onClick={handleApplyLeave} disabled={isSubmitting}>
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : null}
                       Ajukan
                     </Button>
                   </DialogFooter>
@@ -416,9 +394,6 @@ export default function CutiPage() {
                       <SelectItem value="Izin Tidak Masuk">Izin Tidak Masuk</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -437,11 +412,17 @@ export default function CutiPage() {
                       <TableHead>Durasi</TableHead>
                       <TableHead>Alasan</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-[100px] text-center">Aksi</TableHead>
+                      <TableHead className="w-[140px] text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedRequests.length > 0 ? (
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">
+                          <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedRequests.length > 0 ? (
                       paginatedRequests.map((request) => {
                       const StatusIcon = statusConfig[request.status].icon
                       return (
@@ -483,17 +464,39 @@ export default function CutiPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <div className="flex justify-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {isHRD && request.status === "pending" && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                    onClick={() => handleAction(request.id, "APPROVED")}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => handleAction(request.id, "REJECTED")}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
                     })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
-                          Tidak ada data pengajuan yang ditemukan.
+                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                          Tidak ada data pengajuan cuti yang ditemukan.
                         </TableCell>
                       </TableRow>
                     )}
@@ -531,7 +534,7 @@ export default function CutiPage() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -545,3 +548,4 @@ export default function CutiPage() {
     </div>
   )
 }
+

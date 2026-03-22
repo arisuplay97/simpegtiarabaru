@@ -4,13 +4,16 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
 // Format YYYY-MM-DD to get start and end of day
-function getTodayRange() {
-  const now = new Date()
-  // Waktu server (UTC) mungkin beda dengan WITA/WIB, jadi kita pastikan tanggal hari ini diatur di zona waktu lokal
-  // Namun untuk keamanan dasar, kita asumsikan UTC Server == Local untuk MVP, atau gunakan offset
-  const today = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
-  const startOfDay = new Date(today.setUTCHours(0, 0, 0, 0))
-  const endOfDay = new Date(today.setUTCHours(23, 59, 59, 999))
+function getTodayRange(date?: Date) {
+  const targetDate = date || new Date()
+  
+  // Gunakan local time boundary agar record yang di-submit pagi buta (misal 06:00 local, yang masih UTC hari sblmnya) tidak terfilter
+  const startOfDay = new Date(targetDate)
+  startOfDay.setHours(0, 0, 0, 0)
+  
+  const endOfDay = new Date(targetDate)
+  endOfDay.setHours(23, 59, 59, 999)
+  
   return { startOfDay, endOfDay, now: new Date() }
 }
 
@@ -71,16 +74,29 @@ export async function checkDeviceAndAbsen(
         return { error: "Anda sudah melakukan Check-in hari ini." }
       }
 
+      // Hitung keterlambatan berdasarkan Pengaturan
+      const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+      let statusAbsensi: any = "HADIR"
+
+      if (pengaturan && pengaturan.jamMasuk) {
+        const [jam, menit] = pengaturan.jamMasuk.split(":").map(Number)
+        const batasTerlambatTime = new Date(now)
+        batasTerlambatTime.setHours(jam, menit + (pengaturan.batasTerlambat || 0), 0, 0)
+
+        if (now > batasTerlambatTime) {
+          statusAbsensi = "TERLAMBAT"
+        }
+      }
+
       await prisma.absensi.create({
         data: {
           pegawaiId: pegawai.id,
           tanggal: now,
-          status: "HADIR",
+          status: statusAbsensi,
           jamMasuk: now,
-          // Ide: Simpan fotoDataUrl dan jarakMeter jika Prisma schema diupdate kelak
         }
       })
-      return { success: "Check-in berhasil disimpan ke sistem!" }
+      return { success: `Check-in berhasil disimpan! Status: ${statusAbsensi}` }
       
     } else if (checkType === "checkout") {
       if (!absensiHariIni) {

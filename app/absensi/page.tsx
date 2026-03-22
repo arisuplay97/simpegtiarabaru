@@ -297,11 +297,12 @@ export default function AttendancePage() {
     async function loadData() {
       try {
         setIsLoading(true)
-        const data = await getAbsensiList()
+        const data = await getAbsensiList(date, date)
         const mappedData: AttendanceRecord[] = data.map((d: any) => {
           const statusMap: Record<string, string> = {
             HADIR: "hadir", IZIN: "izin", SAKIT: "sakit", 
-            CUTI: "cuti", ALPHA: "alpha", DINAS: "dinas"
+            CUTI: "cuti", ALPHA: "alpha", DINAS: "dinas",
+            TERLAMBAT: "hadir"
           }
           
           const formatTime = (dateStr: any) => {
@@ -327,7 +328,7 @@ export default function AttendancePage() {
             checkIn: formatTime(d.jamMasuk),
             checkOut: formatTime(d.jamKeluar),
             status: (statusMap[d.status] || "alpha") as AttendanceRecord["status"],
-            lateMinutes: 0,
+            lateMinutes: d.status === "TERLAMBAT" ? 15 : 0,
             earlyMinutes: 0,
             method: "selfie",
             location: "Gedung Utama",
@@ -342,7 +343,7 @@ export default function AttendancePage() {
       }
     }
     loadData()
-  }, [])
+  }, [date])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5

@@ -13,7 +13,7 @@ import {
   Navigation, Wallet, Receipt, ArrowUpCircle, Target, Star,
   FolderOpen, FileSignature, ShieldCheck, UserCog, Bell,
   CheckSquare, BarChart3, AlertTriangle, ChevronDown, ChevronRight,
-  ChevronLeft, LogOut, X, Menu,
+  ChevronLeft, LogOut, X, Menu, Settings
 } from "lucide-react"
 
 type NavItem = {
@@ -85,6 +85,7 @@ const navigation: NavGroup[] = [
   {
     label: "Pengaturan",
     items: [
+      { title: "Pengaturan Sistem", href: "/settings/sistem", icon: Settings, allowedRoles: ["super_admin", "hrd"] },
       { title: "Kelola Bidang", href: "/settings/bidang", icon: Building2, allowedRoles: ["super_admin"] },
       { title: "User Management", href: "/settings/users", icon: UserCog, allowedRoles: ["super_admin", "hrd"] },
       { title: "Role & Permission", href: "/settings/role", icon: ShieldCheck, allowedRoles: ["super_admin", "hrd"] },

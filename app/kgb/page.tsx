@@ -60,6 +60,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useSession } from "next-auth/react"
+import { toast } from "sonner"
 
 // Data pegawai yang eligible untuk KGB (2 tahun sekali)
 const eligibleKGB = [
@@ -288,6 +290,9 @@ const getStatusBadge = (status: string) => {
 }
 
 export default function KGBPage() {
+  const { data: session } = useSession()
+  const isHRD = session?.user?.role === "HRD" || session?.user?.role === "SUPERADMIN"
+
   const [searchTerm, setSearchTerm] = useState("")
   const [showPengajuanDialog, setShowPengajuanDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
@@ -651,6 +656,22 @@ export default function KGBPage() {
                                   <Eye className="mr-2 h-4 w-4" />
                                   Lihat Detail
                                 </DropdownMenuItem>
+                                {isHRD && pengajuan.status !== "disetujui" && (
+                                  <>
+                                    <DropdownMenuItem className="text-emerald-600 font-medium cursor-pointer" onClick={() => {
+                                      toast.success(`KGB ${pengajuan.nama} berhasil disetujui`)
+                                    }}>
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Setujui Pengajuan
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600 font-medium cursor-pointer" onClick={() => {
+                                      toast.error(`KGB ${pengajuan.nama} ditolak`)
+                                    }}>
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Tolak Pengajuan
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                                 <DropdownMenuItem>
                                   <FileText className="mr-2 h-4 w-4" />
                                   Cetak SK KGB

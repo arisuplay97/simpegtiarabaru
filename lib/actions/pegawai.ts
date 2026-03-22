@@ -351,38 +351,80 @@ export async function getBidang() {
 
 // ============ CRUD BIDANG ============
 export async function createBidang(data: any) {
-  const bidang = await prisma.bidang.create({ data })
-  revalidatePath("/settings/bidang")
-  return bidang
+  try {
+    const bidang = await prisma.bidang.create({ data })
+    revalidatePath("/settings/bidang")
+    return bidang
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      throw new Error("Nama atau Kode bidang sudah digunakan.")
+    }
+    throw new Error(`Gagal menyimpan bidang: ${error.message}`)
+  }
 }
 
 export async function updateBidang(id: string, data: any) {
-  const bidang = await prisma.bidang.update({ where: { id }, data })
-  revalidatePath("/settings/bidang")
-  return bidang
+  try {
+    const bidang = await prisma.bidang.update({ where: { id }, data })
+    revalidatePath("/settings/bidang")
+    return bidang
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      throw new Error("Nama atau Kode bidang sudah digunakan oleh bidang lain.")
+    }
+    throw new Error(`Gagal memperbarui bidang: ${error.message}`)
+  }
 }
 
 export async function deleteBidang(id: string) {
-  await prisma.bidang.delete({ where: { id } })
-  revalidatePath("/settings/bidang")
+  try {
+    await prisma.bidang.delete({ where: { id } })
+    revalidatePath("/settings/bidang")
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      throw new Error("Tidak dapat menghapus bidang karena masih digunakan oleh data Pegawai.")
+    }
+    throw new Error(`Gagal menghapus bidang: ${error.message}`)
+  }
 }
 
 // ============ CRUD SUB BIDANG ============
 export async function createSubBidang(data: { nama: string; bidangId: string }) {
-  const sub = await prisma.subBidang.create({ data })
-  revalidatePath("/settings/bidang")
-  return sub
+  try {
+    const sub = await prisma.subBidang.create({ data })
+    revalidatePath("/settings/bidang")
+    return sub
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      throw new Error("Nama Sub Bidang ini sudah ada di bidang tersebut.")
+    }
+    throw new Error(`Gagal menyimpan sub bidang: ${error.message}`)
+  }
 }
 
 export async function updateSubBidang(id: string, data: { nama: string }) {
-  const sub = await prisma.subBidang.update({ where: { id }, data })
-  revalidatePath("/settings/bidang")
-  return sub
+  try {
+    const sub = await prisma.subBidang.update({ where: { id }, data })
+    revalidatePath("/settings/bidang")
+    return sub
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      throw new Error("Nama Sub Bidang ini sudah ada di bidang tersebut.")
+    }
+    throw new Error(`Gagal memperbarui sub bidang: ${error.message}`)
+  }
 }
 
 export async function deleteSubBidang(id: string) {
-  await prisma.subBidang.delete({ where: { id } })
-  revalidatePath("/settings/bidang")
+  try {
+    await prisma.subBidang.delete({ where: { id } })
+    revalidatePath("/settings/bidang")
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      throw new Error("Tidak dapat menghapus sub bidang karena masih digunakan oleh data Pegawai.")
+    }
+    throw new Error(`Gagal menghapus sub bidang: ${error.message}`)
+  }
 }
 
 // ============ GET PEGAWAI BERDASARKAN USER ID ============
