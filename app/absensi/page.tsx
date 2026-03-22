@@ -445,7 +445,7 @@ export default function AttendancePage() {
 
           {/* Stats Cards */}
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            {statsCards.map((stat) => (
+            {statsCards.map((stat: any) => (
               <Card key={stat.title} className="card-premium">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
