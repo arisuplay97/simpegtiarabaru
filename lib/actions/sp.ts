@@ -24,7 +24,7 @@ export async function getSPList() {
     let isActive = false
     let currentSP: SuratPeringatan | null = null
 
-    if (sp && new Date(sp.tanggalBerakhir) >= now) {
+    if (sp && new Date(sp.berlakuHingga) >= now) {
       isActive = true
       currentSP = sp
     }
@@ -35,9 +35,9 @@ export async function getSPList() {
       nik: emp.nik,
       jabatan: emp.jabatan || "-",
       unit: emp.bidang?.nama || "Umum",
-      status: isActive ? currentSP!.tingkat : "Tidak Ada SP",
+      status: isActive ? currentSP!.jenis : "Tidak Ada SP",
       issuedAt: isActive ? currentSP!.tanggalDiberikan.toISOString().split('T')[0] : "-",
-      expiredAt: isActive ? currentSP!.tanggalBerakhir.toISOString().split('T')[0] : "-",
+      expiredAt: isActive ? currentSP!.berlakuHingga.toISOString().split('T')[0] : "-",
       reason: isActive ? currentSP!.alasan : "Tidak ada catatan pelanggaran aktif",
       spId: isActive ? currentSP!.id : null, 
       // Attach history for detailed view if needed
@@ -66,7 +66,7 @@ export async function saveSP(data: {
   pegawaiId: string
   tingkat: string
   tanggalDiberikan: string
-  tanggalBerakhir: string
+  berlakuHingga: string
   alasan: string
 }) {
   try {
@@ -74,9 +74,9 @@ export async function saveSP(data: {
        await prisma.suratPeringatan.update({
          where: { id: data.spId },
          data: {
-           tingkat: data.tingkat,
+           jenis: data.tingkat as any,
            tanggalDiberikan: new Date(data.tanggalDiberikan),
-           tanggalBerakhir: new Date(data.tanggalBerakhir),
+           berlakuHingga: new Date(data.berlakuHingga),
            alasan: data.alasan,
          }
        })
@@ -84,9 +84,9 @@ export async function saveSP(data: {
        await prisma.suratPeringatan.create({
          data: {
            pegawaiId: data.pegawaiId,
-           tingkat: data.tingkat,
+           jenis: data.tingkat as any,
            tanggalDiberikan: new Date(data.tanggalDiberikan),
-           tanggalBerakhir: new Date(data.tanggalBerakhir),
+           berlakuHingga: new Date(data.berlakuHingga),
            alasan: data.alasan,
          }
        })

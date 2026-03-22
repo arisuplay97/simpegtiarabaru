@@ -193,46 +193,44 @@ export default function EmployeeDetailPage() {
     setIsLoading(true)
     try {
       const res = await getEmployeeProfile(id as string)
-      if (res.error) {
-        toast.error(res.error)
+      if (!res) {
+        toast.error("Pegawai tidak ditemukan")
       } else {
-        setEmployee(res.data)
+        setEmployee(res)
         // Set form initial state for editing
-        if (res.data) {
-          setFormData({
-            nik: res.data.nik,
-            nama: res.data.nama,
-            email: res.data.email,
-            telepon: res.data.telepon,
-            bidangId: res.data.bidangId,
-            tipeJabatan: res.data.tipeJabatan,
-            jabatan: res.data.jabatan,
-            atasanLangsung: res.data.atasanLangsung,
-            golongan: res.data.golongan,
-            pangkat: res.data.pangkat,
-            status: res.data.status,
-            sp: res.data.sp,
-            tanggalMasuk: res.data.tanggalMasuk ? new Date(res.data.tanggalMasuk).toISOString().split("T")[0] : "",
-            jenisKelamin: res.data.jenisKelamin,
-            tempatLahir: res.data.tempatLahir,
-            tanggalLahir: res.data.tanggalLahir ? new Date(res.data.tanggalLahir).toISOString().split("T")[0] : "",
-            agama: res.data.agama,
-            statusNikah: res.data.statusNikah,
-            alamat: res.data.alamat,
-            npwp: res.data.npwp,
-            pendidikanTerakhir: res.data.pendidikanTerakhir,
-            jurusan: res.data.jurusan,
-            institusi: res.data.institusi,
-            tahunLulus: res.data.tahunLulus,
-            bank: res.data.bank,
-            noRekening: res.data.noRekening,
-            bpjsKesehatan: res.data.bpjsKesehatan,
-            bpjsKetenagakerjaan: res.data.bpjsKetenagakerjaan,
-          })
-        }
+        setFormData({
+          nik: res.nik,
+          nama: res.nama,
+          email: res.email,
+          telepon: res.telepon,
+          bidangId: res.bidangId,
+          tipeJabatan: res.tipeJabatan,
+          jabatan: res.jabatan,
+          atasanLangsung: res.atasanLangsung,
+          golongan: res.golongan,
+          pangkat: res.pangkat,
+          status: res.status,
+          sp: res.sp,
+          tanggalMasuk: res.tanggalMasuk ? new Date(res.tanggalMasuk).toISOString().split("T")[0] : "",
+          jenisKelamin: res.jenisKelamin,
+          tempatLahir: res.tempatLahir,
+          tanggalLahir: res.tanggalLahir ? new Date(res.tanggalLahir).toISOString().split("T")[0] : "",
+          agama: res.agama,
+          statusNikah: res.statusNikah,
+          alamat: res.alamat,
+          npwp: res.npwp,
+          pendidikanTerakhir: res.pendidikanTerakhir,
+          jurusan: res.jurusan,
+          institusi: res.institusi,
+          tahunLulus: res.tahunLulus,
+          bank: res.bank,
+          noRekening: res.noRekening,
+          bpjsKesehatan: res.bpjsKesehatan,
+          bpjsKetenagakerjaan: res.bpjsKetenagakerjaan,
+        })
       }
-    } catch (error) {
-      toast.error("Gagal mengambil data pegawai")
+    } catch (e: any) {
+      toast.error(e.message || "Gagal memuat profil pegawai")
     } finally {
       setIsLoading(false)
     }
@@ -250,7 +248,7 @@ export default function EmployeeDetailPage() {
     setIsUploading(true)
     toast.loading("Mengupload foto...")
     try {
-      const url = await uploadFotoPegawai(id, file)
+      const url = await uploadFotoPegawai(id as string, file)
       setEmployee((prev: any) => ({ ...prev, fotoUrl: url }))
       setPreviewUrl(url)
       toast.dismiss()
@@ -266,7 +264,7 @@ export default function EmployeeDetailPage() {
   const handleSaveEdit = async () => {
     setIsSaving(true)
     try {
-      await updateEmployee(id, formData)
+      await updateEmployee(id as string, formData)
       await fetchEmployee()
       setShowEditDialog(false)
       toast.success("Data pegawai berhasil diperbarui")

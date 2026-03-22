@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
   Search,
   Filter,
@@ -53,6 +54,7 @@ import {
   Wallet,
   Calculator,
   Users,
+  Printer,
 } from "lucide-react"
 import {
   DropdownMenu,

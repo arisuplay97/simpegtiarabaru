@@ -19,6 +19,7 @@ export async function getSystemUsers() {
             nama: true,
             nik: true,
             jabatan: true,
+            status: true,
             bidang: { select: { nama: true } }
           }
         }

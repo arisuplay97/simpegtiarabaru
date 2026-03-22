@@ -42,10 +42,14 @@ interface SystemUser {
   email: string
   role: string
   createdAt: string | Date
+  name?: string
+  username?: string
+  status?: string
   pegawai?: {
     nama: string
     nik: string
     jabatan: string
+    status?: string
     bidang?: { nama: string }
   } | null
 }
@@ -80,7 +84,15 @@ export default function UserManagementPage() {
   const fetchUsers = async () => {
     setIsLoading(true)
     const res = await getSystemUsers()
-    if (res.data) setUsers(res.data as any)
+    if (res.data) {
+      const mapped = res.data.map((u: any) => ({
+        ...u,
+        name: u.pegawai?.nama || u.email,
+        username: u.pegawai?.nik || u.email,
+        status: u.pegawai?.status?.toLowerCase() === "aktif" ? "active" : "inactive"
+      }))
+      setUsers(mapped)
+    }
     else if (res.error) toast.error(res.error)
     setIsLoading(false)
   }

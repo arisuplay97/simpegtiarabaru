@@ -28,7 +28,7 @@ export async function getPangkatData() {
     where: { status: "AKTIF" },
     include: {
       bidang: true,
-      kenaikanPangkat: {
+      riwayatPangkat: {
         orderBy: { createdAt: 'desc' }
       }
     },
@@ -42,7 +42,7 @@ export async function getPangkatData() {
   for (const emp of pegawais) {
     if (!emp.tanggalMasuk) continue;
     
-    const lastPangkat = emp.kenaikanPangkat.length > 0 ? emp.kenaikanPangkat[0] : null
+    const lastPangkat = emp.riwayatPangkat.length > 0 ? emp.riwayatPangkat[0] : null
     
     // TMT Pangkat Terakhir adalah either the last approved promotion or their join date
     const tmtPangkatTerakhir = (lastPangkat?.status === "APPROVED") 
@@ -67,7 +67,7 @@ export async function getPangkatData() {
       golonganBaru = daftarPangkat[currentIndex + 1].golongan
     }
 
-    const hasPending = emp.kenaikanPangkat.some(k => k.status === "PENDING")
+    const hasPending = emp.riwayatPangkat.some((k: any) => k.status === "PENDING")
 
     // Hanya masukkan ke eligible kalau belum ada yg pending, ada jenjang karir selanjutnya, dan waktunya masuk
     if (isEligibleTime && !hasPending && currentIndex !== -1 && currentIndex < daftarPangkat.length - 1) {
@@ -90,7 +90,7 @@ export async function getPangkatData() {
     }
 
     // Riwayat pengajuan pangkat
-    for (const p of emp.kenaikanPangkat) {
+    for (const p of emp.riwayatPangkat) {
       riwayatPangkat.push({
         id: p.id,
         pegawaiId: emp.id,

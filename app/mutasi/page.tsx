@@ -102,7 +102,7 @@ export default function MutasiPage() {
   })
 
   // Options for form
-  const [jabatanOptions, setJabatanOptions] = useState<string[]>([])
+  const [jabatanOptions, setJabatanOptions] = useState<any[]>([])
 
   const loadData = useCallback(async () => {
     setIsLoading(true)

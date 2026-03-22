@@ -8,21 +8,20 @@ export async function getDashboardStats() {
     const totalUser = await prisma.user.count()
     
     // Hitung semua pengajuan yang butuh approval
-    const [cuti, mutasi, kgb, pangkat, sp] = await Promise.all([
+    const [cuti, mutasi, kgb, pangkat] = await Promise.all([
       prisma.cuti.count({ where: { status: 'PENDING' } }),
       prisma.mutasi.count({ where: { status: 'PENDING' } }),
       prisma.kGB.count({ where: { status: 'PENDING' } }),
       prisma.kenaikanPangkat.count({ where: { status: 'PENDING' } }),
-      prisma.suratPeringatan.count({ where: { status: 'PENDING' } }),
     ])
     
-    const approvalPending = cuti + mutasi + kgb + pangkat + sp
+    const approvalPending = cuti + mutasi + kgb + pangkat
     
     return {
       totalPegawai,
       totalUser,
       approvalPending: approvalPending || 0,
-      detail: { cuti, mutasi, kgb, pangkat, sp }
+      detail: { cuti, mutasi, kgb, pangkat, sp: 0 }
     }
   } catch (error) {
     console.warn("Database failed, returning mock stats for dashboard")

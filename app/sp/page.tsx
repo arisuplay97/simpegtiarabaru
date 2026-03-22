@@ -134,7 +134,7 @@ export default function SPPage() {
          pegawaiId: form.pegawaiId,
          tingkat: form.tingkat,
          tanggalDiberikan: form.tanggalDiberikan,
-         tanggalBerakhir: form.tanggalBerakhir,
+         berlakuHingga: form.tanggalBerakhir,
          alasan: form.alasan
       }
       

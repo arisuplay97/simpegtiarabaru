@@ -44,17 +44,15 @@ export async function getPendingApprovals(): Promise<UnifiedApprovalItem[]> {
       unit: c.pegawai.bidang?.nama || "Umum",
       jabatan: c.pegawai.jabatan,
       type: "cuti",
-      title: `Pengajuan ${c.tipeCuti.replace(/_/g, " ")}`,
+      title: `Pengajuan ${c.jenisCuti.replace(/_/g, " ")}`,
       date: `${c.tanggalMulai.toISOString().split('T')[0]} - ${c.tanggalSelesai.toISOString().split('T')[0]}`,
       submittedDate: c.createdAt.toISOString().split('T')[0],
       status: "pending",
       priority: "normal",
-      description: c.keterangan || "Pengajuan Cuti",
+      description: c.alasan || "Pengajuan Cuti",
       details: {
         "Sisa Cuti": `${c.pegawai.saldoCuti} Hari`,
-        "Tipe": c.tipeCuti,
-        "Dokumen": c.dokumenLampiran ? "Ada Lampiran" : "Tidak Ada",
-        "Kontak Darurat": c.kontakDarurat || "-"
+        "Tipe": c.jenisCuti,
       }
     })
   })
@@ -173,7 +171,7 @@ export async function processUnifiedApproval(
     const status = isApprove ? "APPROVED" : "REJECTED"
 
     if (type === "cuti") {
-      await prisma.cuti.update({ where: { id: originalId }, data: { status, persetujuanAtasan: isApprove, alasanPenolakan: catatan } })
+      await prisma.cuti.update({ where: { id: originalId }, data: { status } })
     } else if (type === "mutasi") {
       // Import from mutasi module logic to safely handle unit assignments
       const { processMutasi } = await import("@/lib/actions/mutasi")
