@@ -1,23 +1,15 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
-import { canApprove, processApprove, processReject, Pengajuan } from "@/lib/approval-flow"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardContent } from "@/components/ui/card"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -39,821 +31,506 @@ import {
   Calendar,
   Clock,
   MessageSquare,
-  FileText,
   AlertCircle,
   Briefcase,
-  Plane,
   ArrowRightLeft,
-  Wallet,
   Star,
-  MoreVertical,
   CheckCircle2,
   XCircle,
-  MapPin,
-  User,
-  ChevronLeft,
-  ChevronRight,
   TrendingUp,
 } from "lucide-react"
 
-type ApprovalStatus = "pending" | "approved" | "rejected"
-type ApprovalType = "cuti" | "lembur" | "mutasi" | "payroll" | "dokumen" | "pangkat" | "gaji"
+import { getPendingApprovals, processUnifiedApproval, UnifiedApprovalItem } from "@/lib/actions/approval"
 
-interface ApprovalItem {
-  id: string
-  employeeName: string
-  employeeNik: string
-  employeeAvatar?: string
-  employeeInitials: string
-  pengajuName?: string
-  pengajuInitials?: string
-  unit: string
-  jabatan: string
-  type: ApprovalType
-  title: string
-  date: string
-  submittedDate: string
-  status: ApprovalStatus
-  priority: "normal" | "urgent" | "overdue"
-  description: string
-  details: Record<string, any>
-  slaHours?: number
+const getTypeIcon = (type: string) => {
+  switch (type) {
+    case "cuti": return <Calendar className="w-5 h-5 text-blue-500" />
+    case "lembur": return <Clock className="w-5 h-5 text-indigo-500" />
+    case "mutasi": return <ArrowRightLeft className="w-5 h-5 text-amber-500" />
+    case "pangkat": return <Star className="w-5 h-5 text-emerald-500" />
+    case "kgb": return <TrendingUp className="w-5 h-5 text-emerald-600" />
+    default: return <Briefcase className="w-5 h-5 text-slate-500" />
+  }
 }
 
-const approvalItems: ApprovalItem[] = [
-  {
-    id: "1",
-    employeeName: "Ahmad Rizki Pratama",
-    employeeNik: "198501152010011001",
-    employeeInitials: "AR",
-    unit: "IT & Sistem",
-    jabatan: "Kepala Bagian IT",
-    type: "cuti",
-    title: "Pengajuan Cuti Tahunan",
-    date: "18-22 Mar 2026",
-    submittedDate: "15 Mar 2026",
-    status: "pending",
-    priority: "urgent",
-    slaHours: 4,
-    description: "Cuti untuk keperluan keluarga - menemani anak masuk sekolah",
-    details: {
-      "Jenis Cuti": "Cuti Tahunan",
-      "Tanggal Mulai": "18 Maret 2026",
-      "Tanggal Selesai": "22 Maret 2026",
-      "Durasi": "5 hari kerja",
-      "Sisa Cuti": "7 hari",
-      "Alamat Selama Cuti": "Jl. Merdeka No. 123, Jakarta",
-      "No. HP Darurat": "081234567890",
-    },
-  },
-  {
-    id: "2",
-    employeeName: "Siti Nurhaliza",
-    employeeNik: "199003222015012002",
-    employeeInitials: "SN",
-    unit: "Keuangan",
-    jabatan: "Staff Keuangan Senior",
-    type: "lembur",
-    title: "Pengajuan Lembur",
-    date: "15 Mar 2026",
-    submittedDate: "14 Mar 2026",
-    status: "pending",
-    priority: "normal",
-    slaHours: 12,
-    description: "Lembur closing laporan keuangan bulanan periode Februari 2026",
-    details: {
-      "Tanggal Lembur": "15 Maret 2026",
-      "Jam Mulai": "17:00",
-      "Jam Selesai": "21:00",
-      "Durasi": "4 jam",
-      "Alasan": "Closing laporan keuangan bulanan",
-      "Persetujuan Atasan": "Sudah",
-    },
-  },
-  {
-    id: "3",
-    employeeName: "Budi Santoso",
-    employeeNik: "198712052008011003",
-    employeeInitials: "BS",
-    unit: "Distribusi",
-    jabatan: "Supervisor Distribusi",
-    type: "mutasi",
-    title: "Usulan Mutasi",
-    date: "Efektif 1 Apr 2026",
-    submittedDate: "10 Mar 2026",
-    status: "pending",
-    priority: "normal",
-    slaHours: 48,
-    description: "Mutasi ke Cabang Utara sebagai Kepala Unit Distribusi",
-    details: {
-      "Unit Asal": "Distribusi - Kantor Pusat",
-      "Unit Tujuan": "Distribusi - Cabang Utara",
-      "Jabatan Baru": "Kepala Unit Distribusi",
-      "TMT": "1 April 2026",
-      "Alasan Mutasi": "Pengembangan karier dan kebutuhan organisasi",
-      "Status Keluarga": "Bersedia pindah bersama keluarga",
-    },
-  },
-  {
-    id: "4",
-    employeeName: "Dewi Lestari",
-    employeeNik: "199205152018012004",
-    employeeInitials: "DL",
-    unit: "Pelayanan",
-    jabatan: "Customer Service",
-    type: "pangkat",
-    title: "Kenaikan Pangkat",
-    date: "Periode Q1 2026",
-    submittedDate: "01 Mar 2026",
-    status: "pending",
-    priority: "overdue",
-    slaHours: 0,
-    description: "Usulan kenaikan pangkat dari A/III ke B/III",
-    details: {
-      "Pangkat Lama": "Penata Muda (A/III)",
-      "Pangkat Baru": "Penata Muda Tk.I (B/III)",
-      "Masa Kerja Pangkat": "4 tahun",
-      "Nilai SKP": "Sangat Baik (91)",
-      "Pendidikan": "S1 Komunikasi",
-      "Kursus/Diklat": "Pelayanan Prima, Customer Care",
-    },
-  },
-  {
-    id: "5",
-    employeeName: "Eko Prasetyo",
-    employeeNik: "198008152005011005",
-    employeeInitials: "EP",
-    unit: "Produksi",
-    jabatan: "Operator IPA",
-    type: "gaji",
-    title: "Kenaikan Gaji Berkala",
-    date: "TMT 1 Apr 2026",
-    submittedDate: "05 Mar 2026",
-    status: "pending",
-    priority: "normal",
-    slaHours: 24,
-    description: "KGB masa kerja 2 tahun sesuai ketentuan",
-    details: {
-      "Gaji Pokok Lama": "Rp 4.250.000",
-      "Gaji Pokok Baru": "Rp 4.425.000",
-      "Kenaikan": "Rp 175.000 (4.1%)",
-      "TMT": "1 April 2026",
-      "Masa Kerja": "21 tahun",
-      "Golongan": "II/d",
-    },
-  },
-  {
-    id: "6",
-    employeeName: "Fitri Handayani",
-    employeeNik: "199308202020012006",
-    employeeInitials: "FH",
-    unit: "SDM & Umum",
-    jabatan: "Staff SDM",
-    type: "dokumen",
-    title: "Approval SK Mutasi",
-    date: "17 Mar 2026",
-    submittedDate: "16 Mar 2026",
-    status: "pending",
-    priority: "normal",
-    slaHours: 8,
-    description: "SK Mutasi Budi Santoso memerlukan tanda tangan Direktur",
-    details: {
-      "Nomor SK": "SK/2026/03/MUT-015",
-      "Perihal": "Mutasi Pegawai",
-      "Atas Nama": "Budi Santoso",
-      "Pemohon TTE": "Ka. Bagian SDM",
-      "Status": "Menunggu Tanda Tangan Direktur",
-    },
-  },
-  {
-    id: "7",
-    employeeName: "Gunawan Wibowo",
-    employeeNik: "197506101998011007",
-    employeeInitials: "GW",
-    unit: "Produksi",
-    jabatan: "Manager Produksi",
-    type: "cuti",
-    title: "Izin Tidak Masuk",
-    date: "19 Mar 2026",
-    submittedDate: "17 Mar 2026",
-    status: "pending",
-    priority: "urgent",
-    slaHours: 2,
-    description: "Keperluan mendadak - mengantar keluarga ke rumah sakit",
-    details: {
-      "Jenis Izin": "Izin Tidak Masuk",
-      "Tanggal": "19 Maret 2026",
-      "Alasan": "Keperluan keluarga mendadak",
-      "Pengganti": "Eko Prasetyo (Operator Senior)",
-    },
-  },
-  {
-    id: "8",
-    employeeName: "Hendra Kusuma",
-    employeeNik: "198904152012011008",
-    employeeInitials: "HK",
-    unit: "Distribusi",
-    jabatan: "Teknisi Distribusi",
-    type: "payroll",
-    title: "Koreksi Payroll",
-    date: "Periode Feb 2026",
-    submittedDate: "12 Mar 2026",
-    status: "pending",
-    priority: "normal",
-    slaHours: 16,
-    description: "Koreksi tunjangan transport yang kurang pada periode Februari",
-    details: {
-      "Periode": "Februari 2026",
-      "Jenis Koreksi": "Tunjangan Transport",
-      "Nominal Seharusnya": "Rp 750.000",
-      "Nominal Dibayar": "Rp 500.000",
-      "Selisih": "Rp 250.000",
-      "Alasan": "Tugas luar kota tidak terinput",
-    },
-  },
-]
-
-const approvedItems: ApprovalItem[] = [
-  {
-    id: "a1",
-    employeeName: "Indah Permata",
-    employeeNik: "199105152019012001",
-    employeeInitials: "IP",
-    unit: "Pelayanan",
-    jabatan: "Staff Pelayanan",
-    type: "cuti",
-    title: "Cuti Melahirkan",
-    date: "1 Mar - 30 May 2026",
-    submittedDate: "20 Feb 2026",
-    status: "approved",
-    priority: "normal",
-    description: "Cuti melahirkan selama 3 bulan",
-    details: {},
-  },
-  {
-    id: "a2",
-    employeeName: "Joko Susilo",
-    employeeNik: "198805152015011001",
-    employeeInitials: "JS",
-    unit: "IT & Sistem",
-    jabatan: "System Analyst",
-    type: "lembur",
-    title: "Lembur Maintenance",
-    date: "10 Mar 2026",
-    submittedDate: "09 Mar 2026",
-    status: "approved",
-    priority: "normal",
-    description: "Maintenance server malam",
-    details: {},
-  },
-]
-
-const rejectedItems: ApprovalItem[] = [
-  {
-    id: "r1",
-    employeeName: "Kiki Amelia",
-    employeeNik: "199505152021012001",
-    employeeInitials: "KA",
-    unit: "Keuangan",
-    jabatan: "Staff Akuntansi",
-    type: "cuti",
-    title: "Cuti Tahunan",
-    date: "5-10 Mar 2026",
-    submittedDate: "01 Mar 2026",
-    status: "rejected",
-    priority: "normal",
-    description: "Cuti ditolak karena periode closing",
-    details: {},
-  },
-]
-
-const typeConfig: Record<ApprovalType, { label: string; icon: React.ElementType; color: string }> = {
-  cuti: { label: "Cuti/Izin", icon: Plane, color: "bg-blue-100 text-blue-700" },
-  lembur: { label: "Lembur", icon: Clock, color: "bg-amber-100 text-amber-700" },
-  mutasi: { label: "Mutasi", icon: ArrowRightLeft, color: "bg-purple-100 text-purple-700" },
-  payroll: { label: "Payroll", icon: Wallet, color: "bg-emerald-100 text-emerald-700" },
-  dokumen: { label: "Dokumen", icon: FileText, color: "bg-gray-100 text-gray-700" },
-  pangkat: { label: "Pangkat", icon: Star, color: "bg-orange-100 text-orange-700" },
-  gaji: { label: "Gaji", icon: TrendingUp, color: "bg-teal-100 text-teal-700" },
+const getPriorityBadge = (priority: string) => {
+  switch (priority) {
+    case "urgent":
+      return <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 rounded-md py-0 text-[10px] uppercase font-bold tracking-wider">Urgent</Badge>
+    case "overdue":
+      return <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 rounded-md py-0 text-[10px] uppercase font-bold tracking-wider">Overdue</Badge>
+    default:
+      return null
+  }
 }
 
-const priorityConfig = {
-  normal: { label: "Normal", className: "bg-secondary text-secondary-foreground" },
-  urgent: { label: "Urgent", className: "bg-orange-100 text-orange-700 border-orange-200" },
-  overdue: { label: "Overdue", className: "bg-red-100 text-red-700 border-red-200" },
-}
-
-export default function ApprovalCenterPage() {
+export default function ApprovalDashboardPage() {
   const { data: session } = useSession()
   const user = session?.user
-  const [items, setItems] = useState<ApprovalItem[]>(approvalItems as ApprovalItem[])
-  const [selectedTab, setSelectedTab] = useState("pending")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [selectedItem, setSelectedItem] = useState<ApprovalItem | null>(null)
-  const [showDetailDialog, setShowDetailDialog] = useState(false)
-  const [showApproveDialog, setShowApproveDialog] = useState(false)
-  const [showRejectDialog, setShowRejectDialog] = useState(false)
-  const [rejectReason, setRejectReason] = useState("")
-  const [approveNote, setApproveNote] = useState("")
+  const isHRD = user?.role === "HRD" || user?.role === "SUPERADMIN" || user?.role === "DIREKSI"
 
-  const filteredItems = items.filter((item) => {
-    if (selectedTab === "pending" && item.status !== "pending") return false
-    if (selectedTab === "approved" && item.status !== "approved") return false
-    if (selectedTab === "rejected" && item.status !== "rejected") return false
-    
-    const matchesSearch =
-      (item.employeeName || item.pengajuName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesType = typeFilter === "all" || item.type === typeFilter
-    return matchesSearch && matchesType
+  const [items, setItems] = useState<UnifiedApprovalItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  
+  const [activeTab, setActiveTab] = useState("all")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const [selectedItem, setSelectedItem] = useState<UnifiedApprovalItem | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const data = await getPendingApprovals()
+      // Sort so overdue/urgent is at the top
+      data.sort((a, b) => {
+        if (a.priority === "overdue" && b.priority !== "overdue") return -1
+        if (b.priority === "overdue" && a.priority !== "overdue") return 1
+        if (a.priority === "urgent" && b.priority !== "urgent") return -1
+        if (b.priority === "urgent" && a.priority !== "urgent") return 1
+        return 0
+      })
+      setItems(data)
+    } catch (e: any) {
+      toast.error("Gagal memuat task approval")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const filteredItems = items.filter(item => {
+    const matchesTab = activeTab === "all" || item.type === activeTab
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          item.employeeName.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesTab && matchesSearch
   })
 
-  const handleApprove = async () => {
-    if (!selectedItem || !user) return
-    // Simple mock update for compatibility with existing data
-    setItems(prev => prev.map(i => i.id === selectedItem.id ? { ...i, status: "approved" as const } : i))
-    setShowApproveDialog(false); setApproveNote(""); setSelectedItem(null)
-    toast.success(`Pengajuan ${selectedItem.employeeName || selectedItem.pengajuName} disetujui`)
+  const stats = {
+    all: items.length,
+    cuti: items.filter(i => i.type === "cuti").length,
+    mutasi: items.filter(i => i.type === "mutasi").length,
+    pangkat: items.filter(i => i.type === "pangkat").length,
+    kgb: items.filter(i => i.type === "kgb").length,
+    urgent: items.filter(i => i.priority === "urgent" || i.priority === "overdue").length,
+  }
+
+  const handleApprove = async (item: UnifiedApprovalItem) => {
+    setIsSubmitting(true)
+    try {
+      const res = await processUnifiedApproval(item.type, item.originalId, true, user?.id || "")
+      if (res.error) throw new Error(res.error)
+      
+      toast.success("Pengajuan berhasil disetujui")
+      setIsDetailOpen(false)
+      loadData()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menyetujui")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleReject = async () => {
-    if (!selectedItem || !user) return
-    setItems(prev => prev.map(i => i.id === selectedItem.id ? { ...i, status: "rejected" as const } : i))
-    setShowRejectDialog(false); setRejectReason(""); setSelectedItem(null)
-    toast.error(`Pengajuan ditolak`)
+    if (!selectedItem) return
+    if (!rejectReason.trim()) {
+      toast.error("Alasan penolakan wajib diisi")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const res = await processUnifiedApproval(selectedItem.type, selectedItem.originalId, false, user?.id || "", rejectReason)
+      if (res.error) throw new Error(res.error)
+      
+      toast.success("Pengajuan telah ditolak")
+      setIsRejectOpen(false)
+      setIsDetailOpen(false)
+      loadData()
+      setRejectReason("")
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menolak")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const openApproveDialog = (item: ApprovalItem) => {
+  const viewDetails = (item: UnifiedApprovalItem) => {
     setSelectedItem(item)
-    setShowApproveDialog(true)
+    setIsDetailOpen(true)
   }
 
-  const openRejectDialog = (item: ApprovalItem) => {
-    setSelectedItem(item)
-    setShowRejectDialog(true)
-  }
-
-  const openDetailDialog = (item: ApprovalItem) => {
-    setSelectedItem(item)
-    setShowDetailDialog(true)
+  if (!isHRD) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
+        <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-slate-200">
+          <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-slate-900">Akses Dibatasi</h2>
+          <p className="text-sm text-slate-500 mt-2">Hanya Admin, HRD, atau Direksi yang dapat melihat Approval Dashboard.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-slate-50/50">
       <SidebarNav />
       <div className="flex flex-1 flex-col sidebar-offset">
-        <TopBar breadcrumb={["Dashboard", "Approval Center"]} />
-        <main className="flex-1 overflow-auto p-6">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground">Approval Center</h1>
-            <p className="text-sm text-muted-foreground">
-              Kelola seluruh pengajuan yang memerlukan persetujuan Anda
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="card-premium">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100">
-                  <Clock className="h-6 w-6 text-amber-700" />
+        <TopBar breadcrumb={["Approval Panel", "Dashboard"]} />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">
+            
+            {/* Header */}
+            <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Task Approval</h1>
+                <p className="text-slate-500 text-sm mt-1 sm:mt-2">
+                  Tinjau dan putuskan berbagai pengajuan kepegawaian yang masuk.
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-sm font-medium">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{stats.urgent} Urgent Task</span>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{approvalItems.length}</p>
-                  <p className="text-xs text-muted-foreground">Menunggu Approval</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="card-premium">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
-                  <AlertCircle className="h-6 w-6 text-orange-700" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">
-                    {approvalItems.filter((i) => i.priority === "urgent").length}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Urgent</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="card-premium">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-700" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{approvedItems.length}</p>
-                  <p className="text-xs text-muted-foreground">Disetujui Hari Ini</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="card-premium">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100">
-                  <XCircle className="h-6 w-6 text-red-700" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">
-                    {approvalItems.filter((i) => i.priority === "overdue").length}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Melewati SLA</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Tabs */}
-          <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <TabsList>
-                <TabsTrigger value="pending" className="gap-2">
-                  <Clock className="h-4 w-4" />
-                  Pending
-                  <Badge variant="secondary" className="ml-1">
-                    {approvalItems.length}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="approved" className="gap-2">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Disetujui
-                </TabsTrigger>
-                <TabsTrigger value="rejected" className="gap-2">
-                  <XCircle className="h-4 w-4" />
-                  Ditolak
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Filters */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari pengajuan..."
-                    value={searchQuery}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                    className="w-[250px] pl-10"
-                  />
-                </div>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Tipe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Tipe</SelectItem>
-                    <SelectItem value="cuti">Cuti/Izin</SelectItem>
-                    <SelectItem value="lembur">Lembur</SelectItem>
-                    <SelectItem value="mutasi">Mutasi</SelectItem>
-                    <SelectItem value="payroll">Payroll</SelectItem>
-                    <SelectItem value="dokumen">Dokumen</SelectItem>
-                    <SelectItem value="pangkat">Pangkat</SelectItem>
-                    <SelectItem value="gaji">Gaji</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
-                </Button>
               </div>
             </div>
 
-            <TabsContent value="pending" className="mt-0">
-              <Card className="card-premium">
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[calc(100vh-380px)]">
-                    <div className="divide-y divide-border">
-                      {filteredItems.map((item) => {
-                        const TypeIcon = typeConfig[item.type].icon
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex items-start gap-4 p-4 transition-colors hover:bg-muted/30"
-                          >
-                            <Avatar className="h-12 w-12 shrink-0">
-                              <AvatarImage src={item.employeeAvatar} />
-                              <AvatarFallback className="bg-primary/10 text-primary">
-                                {item.employeeInitials}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold text-foreground">
-                                      {item.employeeName}
-                                    </h4>
-                                    <Badge
-                                      variant="outline"
-                                      className={priorityConfig[item.priority as keyof typeof priorityConfig].className}
-                                    >
-                                      {priorityConfig[item.priority as keyof typeof priorityConfig].label}
-                                    </Badge>
+            {/* Content Area */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              
+              {/* Left Column: Filters */}
+              <div className="lg:col-span-1 space-y-4">
+                <Card className="border-slate-200 shadow-sm">
+                  <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="font-semibold text-slate-800 text-sm">Kategori Pengajuan</h3>
+                  </div>
+                  <div className="p-2 flex flex-col gap-1">
+                    <button 
+                      onClick={() => setActiveTab("all")}
+                      className={cn(
+                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
+                        activeTab === "all" ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-slate-500"/> Semua Pengajuan</span>
+                      <Badge variant="secondary" className="bg-slate-200 text-slate-700 font-mono text-xs">{stats.all}</Badge>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("cuti")}
+                      className={cn(
+                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
+                        activeTab === "cuti" ? "bg-blue-50 text-blue-900 font-medium" : "text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-blue-500"/> Cuti Pegawai</span>
+                      <Badge variant="secondary" className="bg-blue-100 hover:bg-blue-100 text-blue-700 font-mono text-xs">{stats.cuti}</Badge>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("mutasi")}
+                      className={cn(
+                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
+                        activeTab === "mutasi" ? "bg-amber-50 text-amber-900 font-medium" : "text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="flex items-center gap-2"><ArrowRightLeft className="w-4 h-4 text-amber-500"/> Mutasi & Rotasi</span>
+                      <Badge variant="secondary" className="bg-amber-100 hover:bg-amber-100 text-amber-700 font-mono text-xs">{stats.mutasi}</Badge>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("pangkat")}
+                      className={cn(
+                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
+                        activeTab === "pangkat" ? "bg-emerald-50 text-emerald-900 font-medium" : "text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="flex items-center gap-2"><Star className="w-4 h-4 text-emerald-500"/> Kenaikan Pangkat</span>
+                      <Badge variant="secondary" className="bg-emerald-100 hover:bg-emerald-100 text-emerald-700 font-mono text-xs">{stats.pangkat}</Badge>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("kgb")}
+                      className={cn(
+                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
+                        activeTab === "kgb" ? "bg-emerald-50 text-emerald-900 font-medium" : "text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-600"/> KGB</span>
+                      <Badge variant="secondary" className="bg-emerald-100 hover:bg-emerald-100 text-emerald-700 font-mono text-xs">{stats.kgb}</Badge>
+                    </button>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Right Column: List */}
+              <div className="lg:col-span-3 flex flex-col gap-4">
+                
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input 
+                    placeholder="Cari berdasarkan nama, unit, atau judul pengajuan..." 
+                    className="pl-10 h-11 bg-white border-slate-200 shadow-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-slate-200 shadow-sm min-h-[300px]">
+                     <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+                     <p className="text-slate-500 font-medium">Memuat antrian task...</p>
+                  </div>
+                ) : filteredItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-xl border border-slate-200 shadow-sm min-h-[300px]">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Semua Selesai!</h3>
+                    <p className="text-slate-500 max-w-sm">
+                      Tidak ada task approval tertunda yang perlu ditangani saat ini pada kategori ini.
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[calc(100vh-280px)] pr-4 -mr-4">
+                    <div className="space-y-3 pb-8">
+                      {filteredItems.map(item => (
+                        <Card key={item.id} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group">
+                          <CardContent className="p-0">
+                            <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:gap-6 w-full">
+                              
+                              {/* Icon logic */}
+                              <div className="hidden sm:flex flex-col items-center justify-start shrink-0 pt-1">
+                                <div className={cn(
+                                  "w-12 h-12 rounded-full flex items-center justify-center border shadow-sm",
+                                  item.type === 'cuti' ? "bg-blue-50 border-blue-100" :
+                                  item.type === 'lembur' ? "bg-indigo-50 border-indigo-100" :
+                                  item.type === 'mutasi' ? "bg-amber-50 border-amber-100" :
+                                  item.type === 'pangkat' ? "bg-emerald-50 border-emerald-100" :
+                                  "bg-slate-50 border-slate-100"
+                                )}>
+                                  {getTypeIcon(item.type)}
+                                </div>
+                              </div>
+
+                              {/* Main info */}
+                              <div className="flex-1 flex flex-col">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-base font-bold text-slate-900 leading-tight">
+                                      {item.title}
+                                    </h3>
+                                    {getPriorityBadge(item.priority)}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {item.jabatan} - {item.unit}
-                                  </p>
+                                  <span className="text-xs text-slate-500 whitespace-nowrap hidden sm:inline-flex bg-slate-100 px-2 py-1 rounded-md font-medium">
+                                    {item.submittedDate}
+                                  </span>
                                 </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-muted-foreground">
-                                    Diajukan: {item.submittedDate}
-                                  </p>
-                                  {item.slaHours !== undefined && item.slaHours > 0 && (
-                                    <p
-                                      className={cn(
-                                        "text-xs",
-                                        item.slaHours <= 4
-                                          ? "text-orange-600"
-                                          : "text-muted-foreground"
-                                      )}
-                                    >
-                                      SLA: {item.slaHours} jam
-                                    </p>
-                                  )}
-                                  {item.slaHours === 0 && (
-                                    <p className="flex items-center justify-end gap-1 text-xs text-red-600">
-                                      <AlertCircle className="h-3 w-3" />
-                                      Melewati SLA
-                                    </p>
-                                  )}
+                                
+                                <p className="text-sm text-slate-600 line-clamp-1 mb-3">
+                                  {item.description}
+                                </p>
+
+                                <div className="flex items-center gap-3 mt-auto flex-wrap">
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="w-6 h-6 border bg-white">
+                                      <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-semibold">{item.employeeInitials}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-semibold text-slate-800 leading-none">{item.employeeName}</span>
+                                      <span className="text-[10px] text-slate-500">{item.unit}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="w-1 h-1 bg-slate-300 rounded-full mx-1 hidden sm:block"></div>
+                                  
+                                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-50 border px-2 py-1 rounded-md">
+                                    <Calendar className="w-3.5 h-3.5" />
+                                    <span>{item.date}</span>
+                                  </div>
                                 </div>
                               </div>
-                              <div className="mt-2 flex items-center gap-2">
-                                <Badge className={cn("gap-1", typeConfig[item.type].color)}>
-                                  <TypeIcon className="h-3 w-3" />
-                                  {typeConfig[item.type].label}
-                                </Badge>
-                                <span className="font-medium text-foreground">{item.title}</span>
-                              </div>
-                              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                {item.date}
-                              </div>
-                              <div className="mt-3 flex items-center gap-2">
-                                {user?.role !== "PEGAWAI" && item.status === "pending" && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      className="h-8 gap-1"
-                                      onClick={() => openApproveDialog(item)}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                      Setujui
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 gap-1"
-                                      onClick={() => openRejectDialog(item)}
-                                    >
-                                      <X className="h-3 w-3" />
-                                      Tolak
-                                    </Button>
-                                  </>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 gap-1"
-                                  onClick={() => openDetailDialog(item)}
+
+                              {/* Actions */}
+                              <div className="flex sm:flex-col items-center justify-end gap-2 shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-5 sm:ml-2">
+                                <Button 
+                                  className="w-full sm:w-auto font-medium" 
+                                  onClick={() => viewDetails(item)}
                                 >
-                                  <Eye className="h-3 w-3" />
-                                  Detail
+                                  Tinjau Data
                                 </Button>
                               </div>
                             </div>
-                          </div>
-                        )
-                      })}
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                )}
+              </div>
+            </div>
 
-            <TabsContent value="approved" className="mt-0">
-              <Card className="card-premium">
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[calc(100vh-380px)]">
-                    <div className="divide-y divide-border">
-                      {filteredItems.map((item) => {
-                        const TypeIcon = typeConfig[item.type].icon
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex items-start gap-4 p-4 transition-colors hover:bg-muted/30"
-                          >
-                            <Avatar className="h-12 w-12 shrink-0">
-                              <AvatarImage src={item.employeeAvatar} />
-                              <AvatarFallback className="bg-primary/10 text-primary">
-                                {item.employeeInitials}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-foreground">{item.employeeName}</h4>
-                                <Badge className="gap-1 bg-emerald-100 text-emerald-700">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  Disetujui
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {item.jabatan} - {item.unit}
-                              </p>
-                              <div className="mt-2 flex items-center gap-2">
-                                <Badge className={cn("gap-1", typeConfig[item.type].color)}>
-                                  <TypeIcon className="h-3 w-3" />
-                                  {typeConfig[item.type].label}
-                                </Badge>
-                                <span className="font-medium text-foreground">{item.title}</span>
-                              </div>
-                              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="rejected" className="mt-0">
-              <Card className="card-premium">
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[calc(100vh-380px)]">
-                    <div className="divide-y divide-border">
-                      {filteredItems.map((item) => {
-                        const TypeIcon = typeConfig[item.type].icon
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex items-start gap-4 p-4 transition-colors hover:bg-muted/30"
-                          >
-                            <Avatar className="h-12 w-12 shrink-0">
-                              <AvatarImage src={item.employeeAvatar} />
-                              <AvatarFallback className="bg-primary/10 text-primary">
-                                {item.employeeInitials}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-foreground">{item.employeeName}</h4>
-                                <Badge className="gap-1 bg-red-100 text-red-700">
-                                  <XCircle className="h-3 w-3" />
-                                  Ditolak
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {item.jabatan} - {item.unit}
-                              </p>
-                              <div className="mt-2 flex items-center gap-2">
-                                <Badge className={cn("gap-1", typeConfig[item.type].color)}>
-                                  <TypeIcon className="h-3 w-3" />
-                                  {typeConfig[item.type].label}
-                                </Badge>
-                                <span className="font-medium text-foreground">{item.title}</span>
-                              </div>
-                              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          </div>
         </main>
       </div>
 
-      {/* Detail Dialog */}
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detail Pengajuan</DialogTitle>
-            <DialogDescription>
-              Informasi lengkap pengajuan {selectedItem?.title}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedItem && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarFallback className="bg-primary/10 text-lg text-primary">
-                    {selectedItem.employeeInitials}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedItem.employeeName}</h3>
-                  <p className="text-sm text-muted-foreground">NIK: {selectedItem.employeeNik}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedItem.jabatan} - {selectedItem.unit}
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-lg border border-border p-4">
-                <h4 className="mb-3 font-semibold">Detail Pengajuan</h4>
-                <div className="grid gap-2">
-                  {Object.entries(selectedItem.details as Record<string, string>).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{key}</span>
-                      <span className="font-medium text-foreground">{value}</span>
+      {/* DETAIL DIALOG */}
+      {selectedItem && (
+        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+          <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-slate-50/50">
+            {/* ... Modal Header ... */}
+            <div className="bg-white px-6 py-5 border-b border-slate-200">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-14 h-14 rounded-xl flex items-center justify-center border shadow-sm",
+                    selectedItem.type === 'cuti' ? "bg-blue-50 border-blue-100" :
+                    selectedItem.type === 'mutasi' ? "bg-amber-50 border-amber-100" :
+                    selectedItem.type === 'pangkat' ? "bg-emerald-50 border-emerald-100" :
+                    "bg-slate-50 border-slate-100"
+                  )}>
+                    {getTypeIcon(selectedItem.type)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">{selectedItem.title}</DialogTitle>
+                      {getPriorityBadge(selectedItem.priority)}
                     </div>
-                  ))}
+                    <p className="text-sm text-slate-500 font-medium">Diajukan pada tanggal {selectedItem.submittedDate}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
-              Tutup
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowDetailDialog(false)
-                if (selectedItem) openRejectDialog(selectedItem)
-              }}
-            >
-              <X className="mr-2 h-4 w-4" />
-              Tolak
-            </Button>
-            <Button
-              onClick={() => {
-                setShowDetailDialog(false)
-                if (selectedItem) openApproveDialog(selectedItem)
-              }}
-            >
-              <Check className="mr-2 h-4 w-4" />
-              Setujui
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* Approve Dialog */}
-      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Setujui Pengajuan</DialogTitle>
-            <DialogDescription>
-              Anda akan menyetujui pengajuan {selectedItem?.title} dari {selectedItem?.employeeName}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium">Catatan (Opsional)</label>
-              <Textarea
-                placeholder="Tambahkan catatan jika diperlukan..."
-                value={approveNote}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setApproveNote(e.target.value)}
-              />
+            <ScrollArea className="max-h-[60vh]">
+              <div className="p-6 space-y-6">
+                
+                {/* Section: Employee Info */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4" /> Informasi Pegawai
+                  </h4>
+                  <div className="bg-white border text-sm border-slate-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
+                    <Avatar className="w-12 h-12 border bg-white shadow-sm">
+                      <AvatarFallback className="text-sm bg-slate-100 text-slate-700 font-bold">{selectedItem.employeeInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 grid grid-cols-2 gap-y-2 gap-x-4">
+                      <div>
+                        <p className="text-xs text-slate-500 mb-0.5">Nama Lengkap</p>
+                        <p className="font-semibold text-slate-900">{selectedItem.employeeName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 mb-0.5">NIK Karyawan</p>
+                        <p className="font-semibold text-slate-900 font-mono">{selectedItem.employeeNik}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 mb-0.5">Jabatan Lengkap</p>
+                        <p className="font-semibold text-slate-900">{selectedItem.jabatan}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 mb-0.5">Unit Kerja / Bidang</p>
+                        <p className="font-semibold text-slate-900">{selectedItem.unit}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Request Details */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Detail Pengajuan
+                  </h4>
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <div className="p-4 bg-slate-50/80 border-b border-slate-100">
+                      <p className="text-slate-800 text-sm font-medium leading-relaxed">"{selectedItem.description}"</p>
+                    </div>
+                    <div className="p-0">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                            <td className="py-3 px-4 text-slate-500 w-1/3 font-medium bg-slate-50/50">Tanggal Terkait</td>
+                            <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-slate-400" />
+                              {selectedItem.date}
+                            </td>
+                          </tr>
+                          {Object.entries(selectedItem.details).map(([key, value], idx) => (
+                            <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                              <td className="py-3 px-4 text-slate-500 w-1/3 font-medium bg-slate-50/50">{key}</td>
+                              <td className="py-3 px-4 font-semibold text-slate-900">{value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </ScrollArea>
+
+            {/* Footer / Actions */}
+            <div className="bg-white px-6 py-4 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-10">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsDetailOpen(false)}>
+                Tutup Review
+              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button 
+                  variant="destructive" 
+                  className="w-full sm:w-auto font-medium shadow-sm hover:bg-rose-600 text-white" 
+                  onClick={() => setIsRejectOpen(true)}
+                  disabled={isSubmitting}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Tolak Pengajuan
+                </Button>
+                <Button 
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 font-medium shadow-sm text-white border-transparent" 
+                  onClick={() => handleApprove(selectedItem)}
+                  disabled={isSubmitting}
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  {isSubmitting ? "Memproses..." : "Setujui Pengajuan"}
+                </Button>
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
-              Batal
-            </Button>
-            <Button onClick={handleApprove}>
-              <Check className="mr-2 h-4 w-4" />
-              Setujui
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* Reject Dialog */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
+      {/* REJECT DIALOG */}
+      <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Tolak Pengajuan</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <AlertCircle className="w-5 h-5" />
+              Tolak Pengajuan
+            </DialogTitle>
             <DialogDescription>
-              Anda akan menolak pengajuan {selectedItem?.title} dari {selectedItem?.employeeName}
+              Berikan alasan penolakan. Pesan ini akan dikirim ke pegawai yang bersangkutan.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium">
-                Alasan Penolakan <span className="text-red-500">*</span>
-              </label>
-              <Textarea
-                placeholder="Masukkan alasan penolakan..."
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reason">Alasan Penolakan <span className="text-red-500">*</span></Label>
+              <Textarea 
+                id="reason" 
+                placeholder="Contoh: Dokumen lampiran tidak valid, kuota cuti tidak mencukupi..." 
+                className="min-h-[100px] resize-none focus-visible:ring-rose-500"
                 value={rejectReason}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectReason(e.target.value)}
-                required
+                onChange={(e) => setRejectReason(e.target.value)}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!rejectReason}>
-              <X className="mr-2 h-4 w-4" />
-              Tolak
+            <Button variant="outline" onClick={() => { setIsRejectOpen(false); setRejectReason("") }}>Batal</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !rejectReason.trim()}>
+              {isSubmitting ? "Memproses..." : "Konfirmasi Penolakan"}
             </Button>
           </DialogFooter>
         </DialogContent>

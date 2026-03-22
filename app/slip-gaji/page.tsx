@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { toast } from "sonner"
 import Image from "next/image"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
@@ -25,39 +25,9 @@ import {
   User,
   CreditCard,
   CheckCircle2,
+  AlertCircle
 } from "lucide-react"
-
-const slipData = {
-  employee: {
-    name: "Ahmad Rizki Pratama, S.Kom., M.T.",
-    nik: "198501152010011001",
-    jabatan: "Kepala Bagian Teknologi Informasi",
-    unitKerja: "IT & Sistem",
-    golongan: "C/II",
-    masaKerja: "16 tahun 2 bulan",
-    bank: "Bank Mandiri",
-    noRekening: "1234567890123",
-  },
-  period: "Maret 2026",
-  payDate: "25 Maret 2026",
-  pendapatan: [
-    { kode: "001", nama: "Gaji Pokok", jumlah: 5850000 },
-    { kode: "002", nama: "Tunjangan Jabatan", jumlah: 1500000 },
-    { kode: "003", nama: "Tunjangan Keluarga", jumlah: 585000 },
-    { kode: "004", nama: "Tunjangan Transport", jumlah: 650000 },
-    { kode: "005", nama: "Tunjangan Makan", jumlah: 465000 },
-    { kode: "006", nama: "Insentif Kinerja", jumlah: 750000 },
-    { kode: "007", nama: "Lembur", jumlah: 450000 },
-  ],
-  potongan: [
-    { kode: "P01", nama: "BPJS Kesehatan (4%)", jumlah: 234000 },
-    { kode: "P02", nama: "BPJS Ketenagakerjaan JHT (2%)", jumlah: 117000 },
-    { kode: "P03", nama: "BPJS Ketenagakerjaan JP (1%)", jumlah: 58500 },
-    { kode: "P04", nama: "PPh 21", jumlah: 485500 },
-    { kode: "P05", nama: "Iuran Koperasi", jumlah: 150000 },
-    { kode: "P06", nama: "Cicilan Pinjaman", jumlah: 200000 },
-  ],
-}
+import { getMyPayroll } from "@/lib/actions/payroll"
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -67,12 +37,42 @@ const formatCurrency = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount)
 
+interface MySlipData {
+  pegawaiId: string
+  nik: string
+  nama: string
+  unit: string
+  golongan: string
+  bank: string
+  noRekening: string
+  gajiPokok: number
+  tunjangan: number
+  potongan: number
+  gajiBersih: number
+  status: string
+}
+
 export default function SlipGajiPage() {
   const [selectedPeriod, setSelectedPeriod] = useState("mar-2026")
+  const [slipData, setSlipData] = useState<MySlipData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const totalPendapatan = useMemo(() => slipData.pendapatan.reduce((sum, item) => sum + item.jumlah, 0), [])
-  const totalPotongan = useMemo(() => slipData.potongan.reduce((sum, item) => sum + item.jumlah, 0), [])
-  const gajiBersih = totalPendapatan - totalPotongan
+  const fetchMySlip = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const res = await getMyPayroll(selectedPeriod)
+      setSlipData(res as MySlipData)
+    } catch (e) {
+      toast.error("Gagal mengambil data slip gaji Anda.")
+      setSlipData(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedPeriod])
+
+  useEffect(() => {
+    fetchMySlip()
+  }, [fetchMySlip])
 
   const handlePrint = () => {
     toast.success("Membuka mode print slip gaji")
@@ -80,33 +80,30 @@ export default function SlipGajiPage() {
   }
 
   const handleDownload = () => {
+    if (!slipData) return
     const lines = [
-      `Periode: ${slipData.period}`,
-      `Nama: ${slipData.employee.name}`,
-      `NIK: ${slipData.employee.nik}`,
-      `Jabatan: ${slipData.employee.jabatan}`,
-      `Unit Kerja: ${slipData.employee.unitKerja}`,
-      `Golongan: ${slipData.employee.golongan}`,
-      `Bank: ${slipData.employee.bank}`,
-      `No Rekening: ${slipData.employee.noRekening}`,
-      `Total Pendapatan: ${formatCurrency(totalPendapatan)}`,
-      `Total Potongan: ${formatCurrency(totalPotongan)}`,
-      `Gaji Bersih: ${formatCurrency(gajiBersih)}`,
+      `Periode: ${selectedPeriod.toUpperCase()}`,
+      `Nama: ${slipData.nama}`,
+      `NIK: ${slipData.nik}`,
+      `Unit Kerja: ${slipData.unit}`,
+      `Golongan: ${slipData.golongan}`,
+      `Bank: ${slipData.bank}`,
+      `No Rekening: ${slipData.noRekening}`,
+      `Gaji Pokok: ${formatCurrency(slipData.gajiPokok)}`,
+      `Tunjangan: ${formatCurrency(slipData.tunjangan)}`,
+      `Potongan: ${formatCurrency(slipData.potongan)}`,
+      `Total Gaji Bersih: ${formatCurrency(slipData.gajiBersih)}`,
       "",
-      "Rincian Pendapatan:",
-      ...slipData.pendapatan.map((item) => `- ${item.nama}: ${formatCurrency(item.jumlah)}`),
-      "",
-      "Rincian Potongan:",
-      ...slipData.potongan.map((item) => `- ${item.nama}: ${formatCurrency(item.jumlah)}`),
+      "Slip gaji ini digenerate secara resmi dari HRIS PDAM Tirta Ardhia Rinjani",
     ]
     downloadSimplePdf(`slip-gaji-${selectedPeriod}.pdf`, "Slip Gaji Pegawai", lines)
     toast.success("PDF slip gaji berhasil diunduh")
   }
 
   const handleEmail = () => {
-    toast.success("Mengirim slip gaji ke ahmad.rizki@example.com")
+    toast.success("Mengirim slip gaji ke email terdaftar Anda...")
     window.setTimeout(() => {
-      toast.success("Slip gaji berhasil dikirim lewat email")
+      toast.success("Slip gaji berhasil dikirim")
     }, 1200)
   }
 
@@ -119,7 +116,7 @@ export default function SlipGajiPage() {
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Slip Gaji Digital</h1>
-              <p className="text-sm text-muted-foreground">Lihat dan download slip gaji Anda</p>
+              <p className="text-sm text-muted-foreground">Lihat dan download slip gaji Anda (Data Live dari Database)</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
@@ -127,129 +124,214 @@ export default function SlipGajiPage() {
                   <SelectValue placeholder="Pilih periode" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="apr-2026">April 2026</SelectItem>
                   <SelectItem value="mar-2026">Maret 2026</SelectItem>
                   <SelectItem value="feb-2026">Februari 2026</SelectItem>
                   <SelectItem value="jan-2026">Januari 2026</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
-              <Button variant="outline" onClick={handleEmail}><Mail className="mr-2 h-4 w-4" />Kirim Email</Button>
-              <Button onClick={handleDownload}><Download className="mr-2 h-4 w-4" />Download PDF</Button>
+              <Button variant="outline" onClick={handlePrint} disabled={!slipData || slipData.status === "draft"}><Printer className="mr-2 h-4 w-4" />Print</Button>
+              <Button variant="outline" onClick={handleEmail} disabled={!slipData || slipData.status === "draft"}><Mail className="mr-2 h-4 w-4" />Kirim Email</Button>
+              <Button onClick={handleDownload} disabled={!slipData || slipData.status === "draft"}><Download className="mr-2 h-4 w-4" />Download PDF</Button>
             </div>
           </div>
 
-          <div className="mx-auto max-w-4xl">
-            <Card className="overflow-hidden border shadow-sm">
-              <div className="bg-gradient-to-r from-primary to-primary/80 p-6 text-primary-foreground">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white overflow-hidden">
-                      <Image src="/logo-tar.png" alt="Logo TAR" width={56} height={56} className="object-contain" />
+          <div className="mx-auto max-w-4xl space-y-6">
+            <Card className="card-premium overflow-hidden border-b-4 border-b-primary">
+              {isLoading ? (
+                <CardContent className="p-12 text-center text-muted-foreground">
+                  <p className="animate-pulse">Mengambil data slip gaji dari server...</p>
+                </CardContent>
+              ) : !slipData ? (
+                <CardContent className="p-12 text-center text-muted-foreground flex flex-col items-center">
+                  <AlertCircle className="h-12 w-12 mb-4 text-amber-500/50" />
+                  <p>Anda belum terdaftar sebagai pegawai, atau session login expired.</p>
+                </CardContent>
+              ) : (
+                <CardContent className="p-0">
+                  {/* Print / View Mode */}
+                  <div className="bg-primary/5 p-6 sm:px-10 sm:py-8" id="slip-gaji-container">
+                    {/* Slip Header */}
+                    <div className="flex flex-col items-center justify-between gap-6 border-b border-primary/20 pb-6 sm:flex-row">
+                      <div className="flex w-full flex-col items-center gap-4 text-center sm:w-auto sm:flex-row sm:text-left">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-black/5">
+                          <Image
+                            src="/logo-tar.png"
+                            alt="Logo TAR"
+                            width={56}
+                            height={56}
+                            className="object-contain"
+                          />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold tracking-tight text-foreground">
+                            PDAM Tirta Ardhia Rinjani
+                          </h2>
+                          <p className="text-sm text-muted-foreground">
+                            Slip Gaji Karyawan — Rahasia
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center sm:items-end">
+                        <Badge variant="outline" className="mb-2 bg-white px-3 py-1 font-mono text-sm shadow-sm ring-1 ring-black/5">
+                          {selectedPeriod.toUpperCase()}
+                        </Badge>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Ditransfer: Tanggal 25
+                        </p>
+                        {slipData.status === "draft" && (
+                          <Badge variant="destructive" className="mt-2">BELUM DISAHKAN HRD</Badge>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold">PDAM Tirta Ardhia Rinjani</h2>
-                      <p className="text-sm text-primary-foreground/80">Jl. Merdeka No. 123, Jakarta Selatan 12430</p>
-                      <p className="text-sm text-primary-foreground/80">Telp: (021) 1234567 | info@pdamtiara.co.id</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-white/20 text-white hover:bg-white/30">
-                    <CheckCircle2 className="mr-1 h-3 w-3" />Terverifikasi
-                  </Badge>
-                </div>
-                <Separator className="my-4 bg-white/20" />
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold">SLIP GAJI PEGAWAI</h3>
-                  <p className="text-primary-foreground/80">Periode: {slipData.period}</p>
-                </div>
-              </div>
 
-              <CardContent className="p-6">
-                <div className="mb-6 grid gap-4 rounded-lg bg-muted/50 p-4 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Nama:</span><span className="font-medium">{slipData.employee.name}</span></div>
-                    <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">NIK:</span><span className="font-mono font-medium">{slipData.employee.nik}</span></div>
-                    <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Jabatan:</span><span className="font-medium">{slipData.employee.jabatan}</span></div>
-                    <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Unit Kerja:</span><span className="font-medium">{slipData.employee.unitKerja}</span></div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2"><span className="text-sm text-muted-foreground">Golongan:</span><Badge variant="outline">{slipData.employee.golongan}</Badge></div>
-                    <div className="flex items-center gap-2"><span className="text-sm text-muted-foreground">Masa Kerja:</span><span className="font-medium">{slipData.employee.masaKerja}</span></div>
-                    <div className="flex items-center gap-2"><span className="text-sm text-muted-foreground">Bank:</span><span className="font-medium">{slipData.employee.bank}</span></div>
-                    <div className="flex items-center gap-2"><span className="text-sm text-muted-foreground">No. Rekening:</span><span className="font-mono font-medium">{slipData.employee.noRekening}</span></div>
-                  </div>
-                </div>
+                    {/* Employee Info */}
+                    <div className="grid gap-6 py-6 sm:grid-cols-2">
+                      <div className="rounded-xl border border-primary/10 bg-white/50 p-4 backdrop-blur-sm">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary">
+                          <User className="h-4 w-4" />
+                          Data Pegawai
+                        </div>
+                        <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
+                          <span className="text-muted-foreground">Nama</span>
+                          <span className="font-medium text-foreground">{slipData.nama}</span>
+                          <span className="text-muted-foreground">NIK</span>
+                          <span className="font-medium text-foreground">{slipData.nik}</span>
+                          <span className="text-muted-foreground">Unit Kerja</span>
+                          <span className="font-medium text-foreground">{slipData.unit}</span>
+                          <span className="text-muted-foreground">Golongan</span>
+                          <span className="font-medium text-foreground">{slipData.golongan}</span>
+                        </div>
+                      </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <h4 className="mb-3 text-lg font-semibold text-emerald-600">Pendapatan</h4>
-                    <div className="rounded-lg border">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b bg-muted/50">
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Kode</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Keterangan</th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Jumlah</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {slipData.pendapatan.map((item) => (
-                            <tr key={item.kode} className="border-b last:border-0">
-                              <td className="px-3 py-2 font-mono text-xs">{item.kode}</td>
-                              <td className="px-3 py-2 text-sm">{item.nama}</td>
-                              <td className="px-3 py-2 text-right font-mono text-sm">{formatCurrency(item.jumlah)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div className="rounded-xl border border-primary/10 bg-white/50 p-4 backdrop-blur-sm">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary">
+                          <Building2 className="h-4 w-4" />
+                          Informasi Pembayaran
+                        </div>
+                        <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
+                          <span className="text-muted-foreground">Bank</span>
+                          <span className="font-medium text-foreground">{slipData.bank}</span>
+                          <span className="text-muted-foreground">No Rekening</span>
+                          <span className="font-medium text-foreground">{slipData.noRekening}</span>
+                          <span className="text-muted-foreground">Status</span>
+                          <span className="font-medium text-emerald-600">
+                            <span className="flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {slipData.status === "draft" ? "Draft Baru" : "Lunas / Terproses"}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <h4 className="mb-3 text-lg font-semibold text-red-600">Potongan</h4>
-                    <div className="rounded-lg border">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b bg-muted/50">
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Kode</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Keterangan</th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Jumlah</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {slipData.potongan.map((item) => (
-                            <tr key={item.kode} className="border-b last:border-0">
-                              <td className="px-3 py-2 font-mono text-xs">{item.kode}</td>
-                              <td className="px-3 py-2 text-sm">{item.nama}</td>
-                              <td className="px-3 py-2 text-right font-mono text-sm">{formatCurrency(item.jumlah)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+                    {/* Slip Details Table */}
+                    <div className="rounded-xl border border-primary/10 bg-white shadow-sm ring-1 ring-black/5">
+                      <div className="grid gap-0 sm:grid-cols-2">
+                        {/* Pendapatan */}
+                        <div className="border-b border-primary/10 p-5 sm:border-b-0 sm:border-r">
+                          <h3 className="mb-4 flex items-center gap-2 font-semibold text-emerald-700">
+                            <TrendingUp className="h-4 w-4" />
+                            Penerimaan
+                          </h3>
+                          <div className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Gaji Pokok</span>
+                              <span className="font-medium">{formatCurrency(slipData.gajiPokok)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Tunjangan</span>
+                              <span className="font-medium">{formatCurrency(slipData.tunjangan)}</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between font-bold text-emerald-700">
+                              <span>Total Penerimaan</span>
+                              <span>{formatCurrency(slipData.gajiPokok + slipData.tunjangan)}</span>
+                            </div>
+                          </div>
+                        </div>
 
-                <div className="mt-6 rounded-xl border bg-muted/40 p-4">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div>
-                      <div className="text-sm text-muted-foreground">Total Pendapatan</div>
-                      <div className="mt-1 text-lg font-bold text-emerald-600">{formatCurrency(totalPendapatan)}</div>
+                        {/* Potongan */}
+                        <div className="p-5">
+                          <h3 className="mb-4 flex items-center gap-2 font-semibold text-rose-700">
+                            <TrendingDown className="h-4 w-4" />
+                            Potongan
+                          </h3>
+                          <div className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Total Potongan Karyawan</span>
+                              <span className="font-medium">{formatCurrency(slipData.potongan)}</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between font-bold text-rose-700">
+                              <span>Total Potongan</span>
+                              <span>{formatCurrency(slipData.potongan)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Gaji Bersih */}
+                      <div className="bg-primary/5 p-6 border-t border-primary/10">
+                        <div className="flex flex-col items-center justify-between gap-4 rounded-xl bg-primary px-6 py-4 text-primary-foreground sm:flex-row">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                              <Wallet className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-primary-foreground/80">
+                                Penerimaan Bersih (Take Home Pay)
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-2xl font-bold tracking-tight">
+                            {formatCurrency(slipData.gajiBersih)}
+                          </div>
+                        </div>
+                        <p className="mt-4 text-center text-xs text-muted-foreground">
+                          Terbilang: (Sistem generate otomatis terbilang rupiah)
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Total Potongan</div>
-                      <div className="mt-1 text-lg font-bold text-red-600">{formatCurrency(totalPotongan)}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Gaji Bersih</div>
-                      <div className="mt-1 text-xl font-bold text-primary">{formatCurrency(gajiBersih)}</div>
+                    
+                    {/* Footer / Ttd */}
+                    <div className="mt-8 flex justify-end">
+                       <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Mengetahui,</p>
+                          <p className="font-medium mt-1">HRD Manager</p>
+                          <div className="h-20 w-32 border-b border-dashed border-gray-300 mx-auto opacity-50 my-2 rounded-lg bg-[url('/signature-placeholder.png')] bg-cover bg-center"></div>
+                          <p className="text-sm font-bold">Fitri Handayani</p>
+                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
+
+            <div className="rounded-lg bg-orange-50 p-4 border border-orange-100 print:hidden text-sm text-orange-800">
+              <strong className="block mb-1">Pemberitahuan:</strong>
+              Jika ada ketidaksesuaian pada slip gaji Anda, silakan hubungi pihak HRD selambatnya 3 hari setelah payroll diterbitkan.
+            </div>
           </div>
         </main>
       </div>
     </div>
+  )
+}
+
+// Additional icons
+function TrendingUp(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+  )
+}
+function TrendingDown(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+  )
+}
+function Wallet(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
   )
 }

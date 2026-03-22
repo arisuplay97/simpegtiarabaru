@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Table,
@@ -25,25 +25,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
   Search,
-  Filter,
   Download,
-  Star,
   Calendar,
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   FileText,
   User,
   Building2,
@@ -51,7 +41,7 @@ import {
   Send,
   Eye,
   MoreHorizontal,
-  RefreshCw,
+  Star,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -60,644 +50,444 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-
-// Daftar pangkat berurutan
-const daftarPangkat = [
-  { id: 1, nama: "Juru Muda", golongan: "A/I" },
-  { id: 2, nama: "Juru Muda Tingkat I", golongan: "B/I" },
-  { id: 3, nama: "Juru", golongan: "C/I" },
-  { id: 4, nama: "Juru Tingkat I", golongan: "D/I" },
-  { id: 5, nama: "Pengatur Muda", golongan: "A/II" },
-  { id: 6, nama: "Pengatur Muda Tingkat I", golongan: "B/II" },
-  { id: 7, nama: "Pengatur", golongan: "C/II" },
-  { id: 8, nama: "Pengatur Tingkat I", golongan: "D/II" },
-  { id: 9, nama: "Penata Muda", golongan: "A/III" },
-  { id: 10, nama: "Penata Muda Tingkat I", golongan: "B/III" },
-  { id: 11, nama: "Penata", golongan: "C/III" },
-  { id: 12, nama: "Penata Tingkat I", golongan: "D/III" },
-  { id: 13, nama: "Pembina", golongan: "A/IV" },
-  { id: 14, nama: "Pembina Tingkat I", golongan: "B/IV" },
-  { id: 15, nama: "Pembina Utama Muda", golongan: "C/IV" },
-  { id: 16, nama: "Pembina Utama Madya", golongan: "D/IV" },
-  { id: 17, nama: "Pembina Utama", golongan: "E/IV" },
-]
-
-// Data pangkat default list for reference if needed
-// (Moved to lib/actions/pangkat.ts)
-
-import { getEligibleKenaikanPangkat, getPengajuanKenaikanPangkat } from "@/lib/actions/pangkat"
-import { useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { getPangkatData, ajukanPangkat, updateStatusPangkat } from "@/lib/actions/pangkat"
 
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case "eligible":
-      return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Eligible</Badge>
-    case "diajukan":
-      return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Diajukan</Badge>
-    case "menunggu_direksi":
-      return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Menunggu Direksi</Badge>
-    case "disetujui":
-      return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Disetujui</Badge>
-    case "ditolak":
-      return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Ditolak</Badge>
+    case "APPROVED":
+      return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none"><CheckCircle2 className="w-3 h-3 mr-1" /> Disetujui</Badge>
+    case "REJECTED":
+      return <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-200 border-none"><XCircle className="w-3 h-3 mr-1" /> Ditolak</Badge>
+    case "PENDING":
+      return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none"><Clock className="w-3 h-3 mr-1" /> Diproses</Badge>
     default:
-      return <Badge variant="secondary">{status}</Badge>
+      return <Badge variant="outline">{status}</Badge>
   }
 }
 
 export default function KenaikanPangkatPage() {
   const { data: session } = useSession()
   const isHRD = session?.user?.role === "HRD" || session?.user?.role === "SUPERADMIN"
-
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showPengajuanDialog, setShowPengajuanDialog] = useState(false)
-  const [showDetailDialog, setShowDetailDialog] = useState(false)
   
-  const [eligiblePangkat, setEligiblePangkat] = useState<any[]>([])
-  const [pengajuanPangkat, setPengajuanPangkat] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState("eligible")
+  const [searchTerm, setSearchTerm] = useState("")
+  
+  const [eligibleList, setEligibleList] = useState<any[]>([])
+  const [riwayatList, setRiwayatList] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const [selectedPegawai, setSelectedPegawai] = useState<any | null>(null)
-  const [selectedPengajuan, setSelectedPengajuan] = useState<any | null>(null)
-  const [activeTab, setActiveTab] = useState("eligible")
+  const [showAjukanDialog, setShowAjukanDialog] = useState(false)
+  const [showDetailDialog, setShowDetailDialog] = useState(false)
+  const [selectedPegawai, setSelectedPegawai] = useState<any>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    async function loadData() {
-      setIsLoading(true)
-      try {
-        const [eligibleData, pengajuanData] = await Promise.all([
-          getEligibleKenaikanPangkat(),
-          getPengajuanKenaikanPangkat()
-        ])
-        setEligiblePangkat(eligibleData)
-        setPengajuanPangkat(pengajuanData)
-      } catch (error: any) {
-        console.error("Gagal memuat data", error)
-        toast.error(`Gagal memuat data kenaikan pangkat: ${error.message}`)
-      } finally {
-        setIsLoading(false)
-      }
+  const [ajukanForm, setAjukanForm] = useState({
+    tanggalBerlaku: "",
+    keterangan: ""
+  })
+
+  // Load live data
+  const fetchData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const { eligible, riwayat } = await getPangkatData()
+      setEligibleList(eligible || [])
+      setRiwayatList(riwayat || [])
+    } catch (e) {
+      toast.error("Gagal memuat data Kenaikan Pangkat")
+    } finally {
+      setIsLoading(false)
     }
-    loadData()
   }, [])
 
-  const filteredEligible = eligiblePangkat.filter(
-    (p) =>
-      p.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.nik.includes(searchTerm)
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const filteredEligible = eligibleList.filter(item =>
+    item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.nik.includes(searchTerm)
   )
 
-  const filteredPengajuan = pengajuanPangkat.filter(
-    (p) =>
-      p.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.nik.includes(searchTerm)
+  const filteredRiwayat = riwayatList.filter(item =>
+    item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.nik.includes(searchTerm)
   )
 
-  const handleAjukan = (pegawai: typeof eligiblePangkat[0]) => {
+  const handleAjukanClick = (pegawai: any) => {
     setSelectedPegawai(pegawai)
-    setShowPengajuanDialog(true)
+    setAjukanForm({
+      tanggalBerlaku: pegawai.eligibleDate,
+      keterangan: ""
+    })
+    setShowAjukanDialog(true)
   }
 
-  const handleLihatDetail = (pengajuan: typeof pengajuanPangkat[0]) => {
-    setSelectedPengajuan(pengajuan)
-    setShowDetailDialog(true)
+  const submitPengajuan = async () => {
+    if(!selectedPegawai) return
+    setIsSubmitting(true)
+    try {
+      const payload = {
+        pegawaiId: selectedPegawai.pegawaiId,
+        tanggalBerlaku: ajukanForm.tanggalBerlaku,
+        pangkatLama: selectedPegawai.pangkatSaatIni,
+        golonganLama: selectedPegawai.golonganSaatIni,
+        pangkatBaru: selectedPegawai.pangkatBaru,
+        golonganBaru: selectedPegawai.golonganBaru,
+        keterangan: ajukanForm.keterangan || null
+      }
+      
+      const res = await ajukanPangkat(payload)
+      if (res.error) throw new Error(res.error)
+      
+      toast.success("Pengajuan Kenaikan Pangkat berhasil disimpan untuk diproses.")
+      setShowAjukanDialog(false)
+      fetchData()
+    } catch (error: any) {
+      toast.error(error.message || "Gagal mengajukan kenaikan pangkat")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  const handleStatusUpdate = async (id: string, isApprove: boolean) => {
+    try {
+      const res = await updateStatusPangkat(id, isApprove)
+      if (res.error) throw new Error(res.error)
+      
+      toast.success(`Pengajuan pangkat berhasil di${isApprove ? 'setujui' : 'tolak'}.`)
+      fetchData()
+      setShowDetailDialog(false)
+    } catch (e: any) {
+      toast.error(e.message || "Gagal memproses pengajuan pangkat")
+    }
+  }
+
+  const summaryStats = [
+    {
+      title: "Eligible Tahun Ini",
+      value: eligibleList.length.toString(),
+      icon: TrendingUp,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+    {
+      title: "Menunggu Approval",
+      value: riwayatList.filter(r => r.status === "PENDING").length.toString(),
+      icon: Clock,
+      color: "text-amber-600",
+      bgColor: "bg-amber-100",
+    },
+    {
+      title: "Pangkat Naik (YTD)",
+      value: riwayatList.filter(r => r.status === "APPROVED").length.toString(),
+      icon: CheckCircle2,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
+    },
+  ]
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <SidebarNav />
-      <div className="flex-1 sidebar-offset">
-        <TopBar breadcrumb={["Kinerja & Karier", "Kenaikan Pangkat"]} />
-        <main className="p-6">
-          {/* Header */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Kenaikan Pangkat</h1>
-              <p className="text-sm text-muted-foreground">
-                Kelola kenaikan pangkat pegawai (periode 4 tahun sekali)
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
-              <Button variant="outline" size="sm">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="mb-6 grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">12</p>
-                    <p className="text-xs text-muted-foreground">Eligible Tahun Ini</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30">
-                    <Clock className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">5</p>
-                    <p className="text-xs text-muted-foreground">Proses Pengajuan</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30">
-                    <AlertCircle className="h-6 w-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">3</p>
-                    <p className="text-xs text-muted-foreground">Menunggu Approval</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30">
-                    <Star className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">28</p>
-                    <p className="text-xs text-muted-foreground">Disetujui YTD</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Info Card */}
-          <Card className="mb-6 border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20">
-            <CardContent className="flex items-start gap-4 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">
-                <Star className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-900 dark:text-blue-100">Ketentuan Kenaikan Pangkat</h3>
-                <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                  Kenaikan pangkat dilakukan setiap <strong>4 tahun sekali</strong> sejak TMT pangkat terakhir.
-                  Syarat: Nilai kinerja minimal &quot;Baik&quot;, tidak dalam masa hukuman disiplin, dan telah memenuhi
-                  persyaratan pendidikan untuk golongan yang dituju.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Search & Filter */}
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Cari NIK atau nama pegawai..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select defaultValue="all">
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Unit Kerja" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Unit</SelectItem>
-                  <SelectItem value="produksi">Bagian Produksi</SelectItem>
-                  <SelectItem value="distribusi">Bagian Distribusi</SelectItem>
-                  <SelectItem value="keuangan">Bagian Keuangan</SelectItem>
-                  <SelectItem value="sdm">Bagian SDM</SelectItem>
-                  <SelectItem value="pelayanan">Bagian Pelayanan</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="eligible" className="gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Eligible ({filteredEligible.length})
-              </TabsTrigger>
-              <TabsTrigger value="pengajuan" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Pengajuan ({filteredPengajuan.length})
-              </TabsTrigger>
-              <TabsTrigger value="riwayat" className="gap-2">
-                <Clock className="h-4 w-4" />
-                Riwayat
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab: Eligible */}
-            <TabsContent value="eligible">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pegawai Eligible Kenaikan Pangkat</CardTitle>
-                  <CardDescription>
-                    Daftar pegawai yang sudah memenuhi masa kerja 4 tahun dalam pangkat saat ini
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Pegawai</TableHead>
-                        <TableHead>Pangkat Saat Ini</TableHead>
-                        <TableHead>Pangkat Baru</TableHead>
-                        <TableHead>TMT Pangkat</TableHead>
-                        <TableHead>Eligible Date</TableHead>
-                        <TableHead>Nilai Kinerja</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredEligible.map((pegawai: any) => (
-                        <TableRow key={pegawai.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={pegawai?.avatar || undefined} />
-                                <AvatarFallback className="bg-primary/10 text-primary">
-                                  {pegawai.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{pegawai.nama}</p>
-                                <p className="text-xs text-muted-foreground">{pegawai.nik}</p>
-                                <p className="text-xs text-muted-foreground">{pegawai.jabatan}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{pegawai.pangkatSaatIni}</p>
-                              <p className="text-xs text-muted-foreground">Gol. {pegawai.golonganSaatIni}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <TrendingUp className="h-4 w-4 text-emerald-500" />
-                              <div>
-                                <p className="font-medium text-emerald-600">{pegawai.pangkatBaru}</p>
-                                <p className="text-xs text-muted-foreground">Gol. {pegawai.golonganBaru}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">{new Date(pegawai.tmtPangkat).toLocaleDateString("id-ID")}</p>
-                            <p className="text-xs text-muted-foreground">{pegawai.masaKerja}</p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">{new Date(pegawai.eligibleDate).toLocaleDateString("id-ID")}</p>
-                            {pegawai.sisaHari > 0 ? (
-                              <p className="text-xs text-amber-600">{pegawai.sisaHari} hari lagi</p>
-                            ) : (
-                              <p className="text-xs text-emerald-600">Sudah eligible</p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 w-16 overflow-hidden rounded-full bg-secondary">
-                                <div
-                                  className="h-full bg-emerald-500"
-                                  style={{ width: `${pegawai.nilaiKinerja}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium">{pegawai.nilaiKinerja}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(pegawai.status)}</TableCell>
-                          <TableCell className="text-right">
-                            {pegawai.status === "eligible" && pegawai.sisaHari === 0 ? (
-                              <Button size="sm" onClick={() => handleAjukan(pegawai)}>
-                                <Send className="mr-2 h-4 w-4" />
-                                Ajukan
-                              </Button>
-                            ) : pegawai.status === "diajukan" ? (
-                              <Badge variant="secondary">Sudah Diajukan</Badge>
-                            ) : (
-                              <Button size="sm" variant="outline" disabled>
-                                Belum Eligible
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Tab: Pengajuan */}
-            <TabsContent value="pengajuan">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Daftar Pengajuan Kenaikan Pangkat</CardTitle>
-                  <CardDescription>
-                    Status pengajuan kenaikan pangkat yang sedang diproses
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Pegawai</TableHead>
-                        <TableHead>Pangkat Lama</TableHead>
-                        <TableHead>Pangkat Baru</TableHead>
-                        <TableHead>Tanggal Pengajuan</TableHead>
-                        <TableHead>TMT Usulan</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPengajuan.map((pengajuan: any) => (
-                        <TableRow key={pengajuan.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={pengajuan.avatar || undefined} />
-                                <AvatarFallback className="bg-primary/10 text-primary">
-                                  {pengajuan.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{pengajuan.nama}</p>
-                                <p className="text-xs text-muted-foreground">{pengajuan.nik}</p>
-                                <p className="text-xs text-muted-foreground">{pengajuan.jabatan}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">{pengajuan.pangkatLama}</p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm font-medium text-emerald-600">{pengajuan.pangkatBaru}</p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">{new Date(pengajuan.tanggalPengajuan).toLocaleDateString("id-ID")}</p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">{new Date(pengajuan.tmtUsulan).toLocaleDateString("id-ID")}</p>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(pengajuan.status)}</TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleLihatDetail(pengajuan)}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Lihat Detail
-                                </DropdownMenuItem>
-                                {isHRD && pengajuan.status !== "disetujui" && (
-                                  <>
-                                    <DropdownMenuItem className="text-emerald-600 font-medium cursor-pointer" onClick={() => {
-                                      toast.success(`Kenaikan pangkat ${pengajuan.nama} berhasil disetujui_`)
-                                    }}>
-                                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                                      Setujui Pengajuan
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600 font-medium cursor-pointer" onClick={() => {
-                                      toast.error(`Kenaikan pangkat ${pengajuan.nama} ditolak`)
-                                    }}>
-                                      <XCircle className="mr-2 h-4 w-4" />
-                                      Tolak Pengajuan
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                                <DropdownMenuItem>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  Cetak SK
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Tab: Riwayat */}
-            <TabsContent value="riwayat">
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <Clock className="mb-4 h-12 w-12 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold">Riwayat Kenaikan Pangkat</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Arsip seluruh kenaikan pangkat yang telah disetujui
+    <>
+      <div className="flex min-h-screen bg-slate-50">
+        <SidebarNav />
+        <div className="flex flex-1 flex-col sidebar-offset">
+          <TopBar breadcrumb={["Kepegawaian", "Kenaikan Pangkat"]} />
+          <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            <div className="mx-auto max-w-7xl space-y-6">
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-900">Kenaikan Pangkat Reguler</h1>
+                  <p className="text-slate-500 text-sm mt-1">
+                    Administrasi kenaikan pangkat, penyesuaian ijazah, dan pengusulan SK
                   </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </main>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline">
+                    <Download className="w-4 h-4 mr-2" /> Export
+                  </Button>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {summaryStats.map((stat, i) => (
+                  <Card key={i} className="border-slate-200 shadow-sm">
+                    <CardContent className="p-6 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 mb-1">{stat.title}</p>
+                        <h3 className="text-2xl font-bold text-slate-900">{isLoading ? "-" : stat.value}</h3>
+                      </div>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${stat.bgColor}`}>
+                        <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                  <TabsList className="bg-white border p-1 rounded-lg">
+                    <TabsTrigger value="eligible" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Star className="w-4 h-4 mr-2" />
+                      Daftar Eligible ({eligibleList.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="pengajuan" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Proses & Riwayat ({riwayatList.length})
+                    </TabsTrigger>
+                  </TabsList>
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input 
+                      placeholder="Cari Pegawai..." 
+                      className="pl-9 bg-white"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* TAB 1: ELIGIBLE */}
+                <TabsContent value="eligible" className="m-0">
+                  <Card className="border-slate-200 shadow-sm">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-slate-50/80">
+                          <TableRow>
+                            <TableHead className="w-[280px]">Pegawai</TableHead>
+                            <TableHead>Pangkat/Gol Lama</TableHead>
+                            <TableHead>Pangkat/Gol Baru</TableHead>
+                            <TableHead>TMT Diusulkan</TableHead>
+                            <TableHead className="text-center">Aksi</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {isLoading ? (
+                            <TableRow><TableCell colSpan={5} className="h-32 text-center text-slate-500">Memuat data...</TableCell></TableRow>
+                          ) : filteredEligible.length === 0 ? (
+                            <TableRow><TableCell colSpan={5} className="h-32 text-center text-slate-500">Tidak ada data pegawai eligible (minimal 4 tahun masa kerja).</TableCell></TableRow>
+                          ) : (
+                            filteredEligible.map((pegawai) => (
+                              <TableRow key={pegawai.pegawaiId} className="hover:bg-slate-50/50">
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-9 w-9 border">
+                                      <AvatarFallback className="bg-primary/10 text-primary">
+                                        {(pegawai.nama||"P").substring(0,2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="font-medium text-slate-900">{pegawai.nama}</p>
+                                      <p className="text-xs text-slate-500 font-mono">{pegawai.nik}</p>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-700">{pegawai.pangkatSaatIni}</p>
+                                    <Badge variant="outline" className="mt-1 font-mono">{pegawai.golonganSaatIni}</Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div>
+                                    <p className="text-sm font-medium text-emerald-700">{pegawai.pangkatBaru}</p>
+                                    <Badge className="mt-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none font-mono">{pegawai.golonganBaru}</Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                    <div>
+                                      <p className="text-sm font-medium">{pegawai.eligibleDate}</p>
+                                      <p className="text-xs text-amber-600 font-medium">Sisa {pegawai.sisaHari} hari</p>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Button size="sm" onClick={() => handleAjukanClick(pegawai)} disabled={!isHRD}>
+                                    <Send className="w-4 h-4 mr-2" /> Usulkan
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
+                </TabsContent>
+
+                {/* TAB 2: RIWAYAT / PENGAJUAN */}
+                <TabsContent value="pengajuan" className="m-0">
+                  <Card className="border-slate-200 shadow-sm">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-slate-50/80">
+                          <TableRow>
+                            <TableHead className="w-[250px]">Pegawai</TableHead>
+                            <TableHead>Gol. Lama</TableHead>
+                            <TableHead>Gol. Baru</TableHead>
+                            <TableHead>Pengajuan</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="w-[80px] text-center"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {isLoading ? (
+                            <TableRow><TableCell colSpan={6} className="h-32 text-center text-slate-500">Memuat data...</TableCell></TableRow>
+                          ) : filteredRiwayat.length === 0 ? (
+                            <TableRow><TableCell colSpan={6} className="h-32 text-center text-slate-500">Belum ada riwayat pengajuan Kenaikan Pangkat.</TableCell></TableRow>
+                          ) : (
+                            filteredRiwayat.map((p) => (
+                              <TableRow key={p.id} className="hover:bg-slate-50/50">
+                                <TableCell>
+                                  <p className="font-medium text-slate-900">{p.nama}</p>
+                                  <p className="text-xs text-slate-500">{p.unit}</p>
+                                </TableCell>
+                                <TableCell>
+                                  <p className="text-sm font-medium">{p.pangkatLama}</p>
+                                  <p className="text-xs text-muted-foreground">{p.golonganLama}</p>
+                                </TableCell>
+                                <TableCell>
+                                  <p className="text-sm font-medium text-emerald-700">{p.pangkatBaru}</p>
+                                  <p className="text-xs text-emerald-600">{p.golonganBaru}</p>
+                                </TableCell>
+                                <TableCell>
+                                  <p className="text-sm">{p.tanggalPengajuan}</p>
+                                  <p className="text-xs text-muted-foreground">TMT: {p.tmtBaru}</p>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {getStatusBadge(p.status)}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => {
+                                        setSelectedPegawai(p)
+                                        setShowDetailDialog(true)
+                                      }}>
+                                        <Eye className="w-4 h-4 mr-2" /> Detail
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </main>
+        </div>
       </div>
 
-      {/* Dialog Pengajuan */}
-      <Dialog open={showPengajuanDialog} onOpenChange={setShowPengajuanDialog}>
-        <DialogContent className="max-w-lg">
+      {/* DIALOG USULKAN PANGKAT */}
+      <Dialog open={showAjukanDialog} onOpenChange={setShowAjukanDialog}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Ajukan Kenaikan Pangkat</DialogTitle>
+            <DialogTitle>Pengajuan Kenaikan Pangkat</DialogTitle>
             <DialogDescription>
-              Pastikan semua dokumen persyaratan sudah lengkap sebelum mengajukan
+              Usulkan penyesuaian pangkat reguler ke Direksi.
             </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+             <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border">
+                <div>
+                   <p className="text-xs text-slate-500 uppercase">Saat Ini</p>
+                   <p className="font-medium text-sm mt-1">{selectedPegawai?.pangkatSaatIni}</p>
+                   <p className="text-xs text-muted-foreground">{selectedPegawai?.golonganSaatIni}</p>
+                </div>
+                <div>
+                   <p className="text-xs text-emerald-600 uppercase">Usulan Baru</p>
+                   <p className="font-bold text-sm text-emerald-700 mt-1">{selectedPegawai?.pangkatBaru}</p>
+                   <p className="text-xs text-emerald-600">{selectedPegawai?.golonganBaru}</p>
+                </div>
+             </div>
+             
+             <div className="space-y-2">
+                <Label>Tanggal Mulai Tugas (TMT) Baru</Label>
+                <Input 
+                   type="date" 
+                   value={ajukanForm.tanggalBerlaku}
+                   onChange={e => setAjukanForm({...ajukanForm, tanggalBerlaku: e.target.value})}
+                />
+             </div>
+             <div className="space-y-2">
+                <Label>Catatan Pengajuan</Label>
+                <Textarea 
+                   placeholder="Catatan prestasi, atau info tambahan lain terkait pengajuan ini..."
+                   value={ajukanForm.keterangan}
+                   onChange={e => setAjukanForm({...ajukanForm, keterangan: e.target.value})}
+                />
+             </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAjukanDialog(false)}>Batal</Button>
+            <Button onClick={submitPengajuan} disabled={isSubmitting}>
+              {isSubmitting ? "Memproses..." : "Ajukan Kenaikan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* DIALOG DETAIL / APPROVAL */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Validasi Kenaikan Pangkat</DialogTitle>
+            <DialogDescription>Tinjuau usulan dan berikan persetujuan.</DialogDescription>
           </DialogHeader>
           {selectedPegawai && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 rounded-lg bg-secondary/50 p-4">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    {selectedPegawai.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">{selectedPegawai.nama}</p>
-                  <p className="text-sm text-muted-foreground">{selectedPegawai.nik}</p>
-                  <p className="text-sm text-muted-foreground">{selectedPegawai.jabatan}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Pangkat Saat Ini</Label>
-                  <div className="rounded-lg bg-secondary/50 p-3">
-                    <p className="font-medium">{selectedPegawai.pangkatSaatIni}</p>
-                    <p className="text-sm text-muted-foreground">Gol. {selectedPegawai.golonganSaatIni}</p>
+             <div className="py-4 space-y-4">
+               <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-lg">{selectedPegawai.nama}</h4>
+                    <p className="text-sm text-muted-foreground">{selectedPegawai.nik}</p>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Pangkat Baru (Usulan)</Label>
-                  <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/20">
-                    <p className="font-medium text-emerald-700 dark:text-emerald-400">{selectedPegawai.pangkatBaru}</p>
-                    <p className="text-sm text-emerald-600 dark:text-emerald-500">Gol. {selectedPegawai.golonganBaru}</p>
+                  {getStatusBadge(selectedPegawai.status)}
+               </div>
+               <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border">
+                  <div>
+                     <p className="text-xs text-muted-foreground">Golongan Lama</p>
+                     <p className="font-medium">{selectedPegawai.pangkatLama} - {selectedPegawai.golonganLama}</p>
                   </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>TMT Kenaikan Pangkat</Label>
-                <Input type="date" defaultValue={selectedPegawai.eligibleDate} />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Dokumen Persyaratan</Label>
-                <div className="space-y-2">
-                  {["SK Pangkat Terakhir", "Penilaian Kinerja 2 Tahun Terakhir", "Ijazah Terakhir", "DP3/SKP"].map((doc) => (
-                    <div key={doc} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{doc}</span>
-                      </div>
-                      <Button variant="outline" size="sm">Upload</Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Catatan Tambahan</Label>
-                <Textarea placeholder="Masukkan catatan tambahan jika diperlukan..." />
-              </div>
-            </div>
+                  <div>
+                     <p className="text-xs text-emerald-600">Usulan Golongan Baru</p>
+                     <p className="font-bold text-emerald-700">{selectedPegawai.pangkatBaru} - {selectedPegawai.golonganBaru}</p>
+                  </div>
+               </div>
+               {selectedPegawai.keterangan && (
+                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-md">
+                   <p className="text-xs font-semibold text-blue-800">Catatan/Alasan:</p>
+                   <p className="text-sm mt-1 text-slate-700">{selectedPegawai.keterangan}</p>
+                 </div>
+               )}
+             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPengajuanDialog(false)}>
-              Batal
-            </Button>
-            <Button onClick={() => setShowPengajuanDialog(false)}>
-              <Send className="mr-2 h-4 w-4" />
-              Ajukan
-            </Button>
+             <Button variant="outline" onClick={() => setShowDetailDialog(false)}>Tutup</Button>
+             {selectedPegawai?.status === "PENDING" && isHRD && (
+                <>
+                  <Button variant="destructive" onClick={() => handleStatusUpdate(selectedPegawai.id, false)}>Tolak Usulan</Button>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStatusUpdate(selectedPegawai.id, true)}>Setujui Kenaikan</Button>
+                </>
+             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Dialog Detail Pengajuan */}
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detail Pengajuan Kenaikan Pangkat</DialogTitle>
-            <DialogDescription>
-              Informasi lengkap dan status approval pengajuan
-            </DialogDescription>
-          </DialogHeader>
-          {selectedPengajuan && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 rounded-lg bg-secondary/50 p-4">
-                <Avatar className="h-14 w-14">
-                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                    {selectedPengajuan.nama.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="text-lg font-semibold">{selectedPengajuan.nama}</p>
-                  <p className="text-sm text-muted-foreground">{selectedPengajuan.nik}</p>
-                  <p className="text-sm text-muted-foreground">{selectedPengajuan.jabatan} - {selectedPengajuan.unit}</p>
-                </div>
-                {getStatusBadge(selectedPengajuan.status)}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Pangkat Lama</p>
-                  <p className="font-medium">{selectedPengajuan.pangkatLama}</p>
-                </div>
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
-                  <p className="text-sm text-emerald-600">Pangkat Baru</p>
-                  <p className="font-medium text-emerald-700 dark:text-emerald-400">{selectedPengajuan.pangkatBaru}</p>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="mb-3 font-semibold">Alur Persetujuan</h4>
-                <div className="space-y-3">
-                  {selectedPengajuan.approvals.map((approval: any, index: number) => (
-                    <div key={index} className="flex items-center gap-4 rounded-lg border p-3">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                        approval.status === "approved" ? "bg-emerald-100 text-emerald-600" :
-                        approval.status === "rejected" ? "bg-red-100 text-red-600" :
-                        "bg-secondary text-muted-foreground"
-                      }`}>
-                        {approval.status === "approved" ? <CheckCircle2 className="h-5 w-5" /> :
-                         approval.status === "rejected" ? <XCircle className="h-5 w-5" /> :
-                         <Clock className="h-5 w-5" />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{approval.level}</p>
-                        <p className="text-sm text-muted-foreground">{approval.nama}</p>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={
-                          approval.status === "approved" ? "default" :
-                          approval.status === "rejected" ? "destructive" :
-                          "secondary"
-                        }>
-                          {approval.status === "approved" ? "Disetujui" :
-                           approval.status === "rejected" ? "Ditolak" :
-                           "Menunggu"}
-                        </Badge>
-                        {approval.tanggal && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {new Date(approval.tanggal).toLocaleDateString("id-ID")}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-lg bg-secondary/50 p-4">
-                <p className="text-sm font-medium">Catatan</p>
-                <p className="mt-1 text-sm text-muted-foreground">{selectedPengajuan.catatan}</p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
-              Tutup
-            </Button>
-            {selectedPengajuan?.status === "disetujui" && (
-              <Button>
-                <FileText className="mr-2 h-4 w-4" />
-                Cetak SK Pangkat
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </>
   )
 }

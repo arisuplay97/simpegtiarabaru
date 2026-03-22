@@ -63,6 +63,8 @@ model Pegawai {
   subBidang             SubBidang?  @relation(fields: [subBidangId], references: [id])
   jabatan               String
   saldoCuti             Int         @default(12)
+  gajiPokok             Decimal     @default(0)
+  tunjangan             Decimal     @default(0)
   tipeJabatan           TipeJabatan @default(STAFF)
   golongan              String    // Format: A/I, B/II, dst
   pangkat               String?
@@ -105,6 +107,17 @@ model Pegawai {
   mutasiDari            Mutasi[]  @relation("MutasiDari")
   mutasiKe              Mutasi[]  @relation("MutasiKe")
   slipGaji              SlipGaji[]
+  
+  // Phase 4 New Relations
+  kgb                   KGB[]
+  riwayatPangkat        KenaikanPangkat[]
+  suratPeringatan       SuratPeringatan[]
+  keluarga              PegawaiKeluarga[]
+  pendidikan            PegawaiPendidikan[]
+  riwayatJabatan        PegawaiJabatan[]
+  riwayatPangkatDetail  PegawaiPangkat[]
+  pelatihan             PegawaiPelatihan[]
+  dokumen               PegawaiDokumen[]
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -283,6 +296,12 @@ enum StatusCuti {
   REJECTED
 }
 
+enum StatusPengajuan {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ============ LOKASI ABSENSI (GEO-FENCING) ============
 model LokasiAbsensi {
   id              String    @id @default(cuid())
@@ -330,4 +349,123 @@ model Pengaturan {
   namaPenandatangan String   @default("Direktur Utama")
 
   updatedAt         DateTime @updatedAt
+}
+
+// ============ KGB (Kenaikan Gaji Berkala) ============
+model KGB {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  tanggalBerlaku  DateTime
+  gajiPokokLama   Decimal
+  gajiPokokBaru   Decimal
+  status          StatusPengajuan @default(PENDING)
+  keterangan      String?
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ KENAIKAN PANGKAT ============
+model KenaikanPangkat {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  pangkatLama     String
+  pangkatBaru     String
+  golonganLama    String
+  golonganBaru    String
+  tanggalBerlaku  DateTime
+  status          StatusPengajuan @default(PENDING)
+  keterangan      String?
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ SURAT PERINGATAN (SP) ============
+model SuratPeringatan {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  jenis           StatusSP
+  alasan          String
+  tanggalDiberikan DateTime
+  berlakuHingga   DateTime
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ PROFIL: KELUARGA ============
+model PegawaiKeluarga {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  nama            String
+  hubungan        String
+  pekerjaan       String?
+  telepon         String?
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ PROFIL: PENDIDIKAN ============
+model PegawaiPendidikan {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  tingkat         TingkatPendidikan
+  institusi       String
+  jurusan         String?
+  tahunLulus      String
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ PROFIL: JABATAN ============
+model PegawaiJabatan {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  jabatan         String
+  unitDefinitif   String
+  tanggalMulai    DateTime
+  tanggalSelesai  DateTime?
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ PROFIL: PANGKAT ============
+model PegawaiPangkat {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  pangkat         String
+  golongan        String
+  tanggalBerlaku  DateTime
+  nomorSK         String?
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ PROFIL: PELATIHAN ============
+model PegawaiPelatihan {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  namaPelatihan   String
+  penyelenggara   String
+  tahun           String
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ PROFIL: DOKUMEN ============
+model PegawaiDokumen {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  namaDokumen     String
+  jenisDokumen    String   // KTP, Ijazah, SK, dl
+  fileUrl         String
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

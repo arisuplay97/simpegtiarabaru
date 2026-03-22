@@ -207,61 +207,7 @@ const attendanceData: AttendanceRecord[] = [
   },
 ]
 
-const statsCards = [
-  {
-    title: "Total Pegawai",
-    value: "1,247",
-    icon: Users,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "Hadir",
-    value: "1,156",
-    percentage: "92.7%",
-    icon: UserCheck,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-100",
-    trend: "+2.3%",
-    trendUp: true,
-  },
-  {
-    title: "Terlambat",
-    value: "34",
-    percentage: "2.7%",
-    icon: Timer,
-    color: "text-amber-600",
-    bgColor: "bg-amber-100",
-    trend: "-0.5%",
-    trendUp: true,
-  },
-  {
-    title: "Izin/Sakit",
-    value: "28",
-    percentage: "2.2%",
-    icon: AlertCircle,
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
-  },
-  {
-    title: "Cuti",
-    value: "24",
-    percentage: "1.9%",
-    icon: Plane,
-    color: "text-purple-600",
-    bgColor: "bg-purple-100",
-  },
-  {
-    title: "Alpha",
-    value: "5",
-    percentage: "0.4%",
-    icon: UserX,
-    color: "text-red-600",
-    bgColor: "bg-red-100",
-    trend: "-1.2%",
-    trendUp: true,
-  },
-]
+
 
 const statusConfig = {
   hadir: { label: "Hadir", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -344,6 +290,51 @@ export default function AttendancePage() {
     }
     loadData()
   }, [date])
+
+  const statsCards = [
+    {
+      title: "Total Pegawai",
+      value: records.length.toString(),
+      icon: Users,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Hadir",
+      value: records.filter(r => r.status === "hadir").length.toString(),
+      icon: UserCheck,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
+    },
+    {
+      title: "Terlambat",
+      value: records.filter(r => r.lateMinutes > 0).length.toString(),
+      icon: Timer,
+      color: "text-amber-600",
+      bgColor: "bg-amber-100",
+    },
+    {
+      title: "Izin/Sakit",
+      value: records.filter(r => r.status === "izin" || r.status === "sakit").length.toString(),
+      icon: AlertCircle,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+    {
+      title: "Cuti",
+      value: records.filter(r => r.status === "cuti").length.toString(),
+      icon: Plane,
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
+    },
+    {
+      title: "Alpha",
+      value: records.filter(r => r.status === "alpha").length.toString(),
+      icon: UserX,
+      color: "text-red-600",
+      bgColor: "bg-red-100",
+    },
+  ]
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5

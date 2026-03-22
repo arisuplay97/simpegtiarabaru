@@ -65,21 +65,21 @@ export default function DashboardPage() {
               value={stats?.approvalPending || "0"} 
               description="Menunggu verifikasi Anda"
               icon={<FileCheck className="w-5 h-5 text-amber-600" />}
-              trend="Segera proses"
+              trend={`${stats?.detail?.cuti || 0} Cuti, ${stats?.detail?.mutasi || 0} Mutasi`}
             />
             <StatsCard 
-              title="Koreksi Absensi" 
-              value="12" 
-              description="Permohonan hari ini"
+              title="System Users" 
+              value={stats?.totalUser || "0"} 
+              description="Akun Pengguna Aktif"
               icon={<AlertCircle className="w-5 h-5 text-rose-600" />}
-              trend="Butuh penanganan"
+              trend="Akses Terkendali"
             />
             <StatsCard 
-              title="Efisiensi Kerja" 
-              value="94%" 
-              description="Berdasarkan KPI rata-rata"
+              title="Unit Tertinggi" 
+              value="IT & Sist" 
+              description="Berdasarkan kehadiran"
               icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
-              trend="↑ 1.5% peningkatan"
+              trend="94% Kehadiran"
             />
           </div>
 

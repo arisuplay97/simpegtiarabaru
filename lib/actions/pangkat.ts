@@ -23,66 +23,145 @@ const daftarPangkat = [
   { id: 17, nama: "Pembina Utama", golongan: "E/IV" },
 ]
 
-export async function getEligibleKenaikanPangkat() {
+export async function getPangkatData() {
   const pegawais = await prisma.pegawai.findMany({
     where: { status: "AKTIF" },
-    orderBy: { tanggalMasuk: 'asc' }
+    include: {
+      bidang: true,
+      kenaikanPangkat: {
+        orderBy: { createdAt: 'desc' }
+      }
+    },
+    orderBy: { nama: 'asc' }
   })
 
   const now = new Date()
-  const eligiblePegawai = []
+  const eligiblePangkat = []
+  const riwayatPangkat = []
 
-  for (const pegawai of pegawais) {
-    if (!pegawai.tanggalMasuk) continue;
+  for (const emp of pegawais) {
+    if (!emp.tanggalMasuk) continue;
     
-    const masaKerjaMs = now.getTime() - pegawai.tanggalMasuk.getTime()
-    const masaKerjaTahun = masaKerjaMs / (1000 * 60 * 60 * 24 * 365.25)
+    const lastPangkat = emp.kenaikanPangkat.length > 0 ? emp.kenaikanPangkat[0] : null
     
-    // Asumsi: Eligible jika masa kerja >= 4 tahun
-    if (masaKerjaTahun >= 4) {
-      // Cari pangkat saat ini di daftarPangkat
-      const currentLabel = pegawai.pangkat || "Juru Muda"
-      const currentGolongan = pegawai.golongan || "A/I"
-      const currentIndex = daftarPangkat.findIndex(p => p.golongan === currentGolongan || p.nama === currentLabel)
-      
-      let pangkatBaru = "-"
-      let golonganBaru = "-"
-      
-      if (currentIndex !== -1 && currentIndex < daftarPangkat.length - 1) {
-        pangkatBaru = daftarPangkat[currentIndex + 1].nama
-        golonganBaru = daftarPangkat[currentIndex + 1].golongan
-      }
+    // TMT Pangkat Terakhir adalah either the last approved promotion or their join date
+    const tmtPangkatTerakhir = (lastPangkat?.status === "APPROVED") 
+      ? lastPangkat.tanggalBerlaku 
+      : emp.tanggalMasuk
 
-      // Hitung sisa hari menuju Kenaikan Pangkat ke-4, ke-8, dsb
-      // Karena kita cek >= 4, dia mungkin udah 5 tahun. 
-      // Anggap saja statusnya "eligible" (sisa hari = 0) jika lebih dari kelipatan 4 terdekat
-      const nextMasaKerjaBulan = Math.floor(masaKerjaTahun * 12)
-      
-      eligiblePegawai.push({
-        id: pegawai.id,
-        nama: pegawai.nama,
-        nik: pegawai.nik,
-        jabatan: pegawai.jabatan || "-",
+    const masaKerjaMs = now.getTime() - tmtPangkatTerakhir.getTime()
+    const diffDays = Math.ceil((tmtPangkatTerakhir.getTime() + (4 * 365.25 * 24 * 60 * 60 * 1000) - now.getTime()) / (1000 * 60 * 60 * 24))
+    
+    // Eligible if 4 years have passed since last promotion
+    const isEligibleTime = diffDays <= 60 
+
+    const currentLabel = emp.pangkat || "Juru Muda"
+    const currentGolongan = emp.golongan || "A/I"
+    const currentIndex = daftarPangkat.findIndex(p => p.golongan === currentGolongan || p.nama === currentLabel)
+    
+    let pangkatBaru = "-"
+    let golonganBaru = "-"
+    
+    if (currentIndex !== -1 && currentIndex < daftarPangkat.length - 1) {
+      pangkatBaru = daftarPangkat[currentIndex + 1].nama
+      golonganBaru = daftarPangkat[currentIndex + 1].golongan
+    }
+
+    const hasPending = emp.kenaikanPangkat.some(k => k.status === "PENDING")
+
+    // Hanya masukkan ke eligible kalau belum ada yg pending, ada jenjang karir selanjutnya, dan waktunya masuk
+    if (isEligibleTime && !hasPending && currentIndex !== -1 && currentIndex < daftarPangkat.length - 1) {
+      eligiblePangkat.push({
+        pegawaiId: emp.id,
+        nama: emp.nama,
+        nik: emp.nik,
+        jabatan: emp.jabatan || "-",
+        unit: emp.bidang?.nama || "Umum",
         golonganSaatIni: currentGolongan,
         pangkatSaatIni: currentLabel,
-        golonganBaru: golonganBaru,
-        pangkatBaru: pangkatBaru,
-        tmtPangkat: pegawai.tanggalMasuk.toISOString(), // proxy for now
-        masaKerja: `${Math.floor(masaKerjaTahun)} tahun ${nextMasaKerjaBulan % 12} bulan`,
-        eligibleDate: new Date(pegawai.tanggalMasuk.getTime() + (4 * 365.25 * 24 * 60 * 60 * 1000)).toISOString(),
-        sisaHari: 0,
-        nilaiKinerja: 85, // Dummy default for now
-        status: "eligible",
-        avatar: pegawai.fotoUrl,
+        golonganBaru,
+        pangkatBaru,
+        tmtPangkat: tmtPangkatTerakhir.toISOString().split('T')[0],
+        masaKerja: `${Math.floor(masaKerjaMs / (1000 * 60 * 60 * 24 * 365.25))} tahun`,
+        eligibleDate: new Date(tmtPangkatTerakhir.getTime() + (4 * 365.25 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+        sisaHari: diffDays < 0 ? 0 : diffDays,
+        nilaiKinerja: 85 + Math.floor(Math.random() * 10), // mock performance
+      })
+    }
+
+    // Riwayat pengajuan pangkat
+    for (const p of emp.kenaikanPangkat) {
+      riwayatPangkat.push({
+        id: p.id,
+        pegawaiId: emp.id,
+        nama: emp.nama,
+        nik: emp.nik,
+        unit: emp.bidang?.nama || "Umum",
+        tmtBaru: p.tanggalBerlaku.toISOString().split('T')[0],
+        pangkatLama: p.pangkatLama,
+        golonganLama: p.golonganLama,
+        pangkatBaru: p.pangkatBaru,
+        golonganBaru: p.golonganBaru,
+        status: p.status,
+        tanggalPengajuan: p.createdAt.toISOString().split('T')[0],
+        keterangan: p.keterangan || "",
       })
     }
   }
 
-  return eligiblePegawai
+  return {
+    eligible: eligiblePangkat,
+    riwayat: riwayatPangkat
+  }
 }
 
-// Untuk sementara kita kembalikan array kosong jika belum ada tabel pengajuan
-export async function getPengajuanKenaikanPangkat() {
-  // TODO: Create a model for KenaikanPangkat if needed in the future
-  return []
+// ==== PENGAJUAN PANGKAT ====
+export async function ajukanPangkat(data: any) {
+  try {
+    const pangkat = await prisma.kenaikanPangkat.create({
+      data: {
+        pegawaiId: data.pegawaiId,
+        tanggalBerlaku: new Date(data.tanggalBerlaku),
+        pangkatLama: data.pangkatLama,
+        golonganLama: data.golonganLama,
+        pangkatBaru: data.pangkatBaru,
+        golonganBaru: data.golonganBaru,
+        keterangan: data.keterangan || null,
+        status: "PENDING"
+      }
+    })
+    revalidatePath("/kenaikan-pangkat")
+    return { success: true, data: pangkat }
+  } catch (error: any) {
+    return { error: error.message || "Gagal mengajukan kenaikan pangkat" }
+  }
+}
+
+// ==== APPROVE / REJECT PANGKAT ====
+export async function updateStatusPangkat(id: string, isApprove: boolean) {
+  try {
+    const status = isApprove ? "APPROVED" : "REJECTED"
+    
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.kenaikanPangkat.update({
+        where: { id },
+        data: { status }
+      })
+
+      if (isApprove) {
+        await tx.pegawai.update({
+          where: { id: updated.pegawaiId },
+          data: {
+            pangkat: updated.pangkatBaru,
+            golongan: updated.golonganBaru
+          }
+        })
+      }
+    })
+
+    revalidatePath("/kenaikan-pangkat")
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || "Gagal memproses aksi Pangkat" }
+  }
 }

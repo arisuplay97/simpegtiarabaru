@@ -16,14 +16,14 @@ export async function GET() {
     if (userId.startsWith("demo-")) {
       // Demo user — cari pegawai pertama dari database sebagai fallback
       pegawai = await prisma.pegawai.findFirst({
-        select: { id: true },
+        select: { id: true, nama: true },
         orderBy: { createdAt: "asc" }
       })
     } else {
       // Real user — cari berdasarkan userId
       pegawai = await prisma.pegawai.findUnique({
         where: { userId },
-        select: { id: true }
+        select: { id: true, nama: true }
       })
     }
 

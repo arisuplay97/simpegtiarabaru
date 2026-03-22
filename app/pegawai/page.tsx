@@ -202,7 +202,7 @@ export default function EmployeeListPage() {
     if (!form.nik || form.nik.length !== 16) errors.nik = "NIK harus 16 digit"
     if (!form.bidangId) errors.bidangId = "Unit kerja wajib dipilih"
     if (!form.golongan) errors.golongan = "Golongan wajib dipilih"
-    if (form.email && !form.email.includes("@")) errors.email = "Format email tidak valid"
+    if (!form.email || !form.email.includes("@")) errors.email = "Email valid wajib diisi"
     if (form.telepon && form.telepon.length < 10) errors.telepon = "Nomor telepon tidak valid"
     const dup = employees.find(e => e.nik === form.nik && e.id !== editingEmployee?.id)
     if (dup) errors.nik = "NIK sudah terdaftar"
@@ -212,13 +212,12 @@ export default function EmployeeListPage() {
 
   // Handlers
   const handleCreate = async () => {
-    if (!form.nama || !form.nik) {
-      toast.error("Nama dan NIK wajib diisi")
+    if (!form.nama || !form.nik || !form.email) {
+      toast.error("Nama, NIK, dan Email wajib diisi")
       return
     }
     
-    // Auto-fill form email if empty, using NIK
-    const safeForm = { ...form, email: form.email || `${form.nik}@pdamtirta.com` }
+    const safeForm = { ...form }
     
     setIsLoading(true)
     try {
@@ -238,13 +237,12 @@ export default function EmployeeListPage() {
   }
 
   const handleUpdate = async () => {
-    if (!editingEmployee || !form.nama || !form.nik) {
-      toast.error("Nama dan NIK wajib diisi")
+    if (!editingEmployee || !form.nama || !form.nik || !form.email) {
+      toast.error("Nama, NIK, dan Email wajib diisi")
       return
     }
     
-    // Auto-fill form email if empty, using NIK
-    const safeForm = { ...form, email: form.email || `${form.nik}@pdamtirta.com` }
+    const safeForm = { ...form }
 
     setIsLoading(true)
     try {
@@ -690,7 +688,7 @@ export default function EmployeeListPage() {
                           </Avatar>
                           <div>
                             <div className="flex items-center gap-2">
-                              <Link href={`/pegawai/${emp.id}`} className="font-medium hover:text-primary hover:underline">{emp.nama}</Link>
+                              <Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}-${emp.id}`} className="font-medium hover:text-primary hover:underline">{emp.nama}</Link>
                               {emp.sp && spConfig[emp.sp as keyof typeof spConfig] && (
                                 <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${spConfig[emp.sp as keyof typeof spConfig].className}`}>
                                   {spConfig[emp.sp as keyof typeof spConfig].label}
@@ -721,7 +719,7 @@ export default function EmployeeListPage() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild><Link href={`/pegawai/${emp.id}`}><Eye className="mr-2 h-4 w-4"/>Lihat Detail</Link></DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}-${emp.id}`}><Eye className="mr-2 h-4 w-4"/>Lihat Detail</Link></DropdownMenuItem>
                             <DropdownMenuItem onClick={()=>openEdit(emp)}><Edit className="mr-2 h-4 w-4"/>Edit Data</DropdownMenuItem>
                             <DropdownMenuSeparator/>
                             <DropdownMenuItem className="text-destructive" onClick={()=>{setDeletingEmployee(emp);setShowDeleteDialog(true)}}><Trash2 className="mr-2 h-4 w-4"/>Hapus</DropdownMenuItem>

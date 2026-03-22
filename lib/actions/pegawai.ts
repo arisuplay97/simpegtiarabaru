@@ -87,6 +87,10 @@ export async function createEmployee(data: any, fotoFile?: File) {
   // Hash password default
   const hashedPassword = await bcrypt.hash(data.password || "123456", 10)
 
+  // Ambil pengaturan untuk saldo cuti default
+  const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+  const defaultCuti = pengaturan?.jatahCutiTahunan ?? 12
+
   // --- BUILD PAYLOAD SECARA AMAN ---
   // Field WAJIB — selalu ada
   const payload: any = {
@@ -97,6 +101,7 @@ export async function createEmployee(data: any, fotoFile?: File) {
     tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
     golongan: clean(data.golongan) || "A/I",
     status: data.status || "AKTIF",
+    saldoCuti: defaultCuti,
     tanggalMasuk: data.tanggalMasuk ? new Date(data.tanggalMasuk) : new Date(),
     user: {
       create: {

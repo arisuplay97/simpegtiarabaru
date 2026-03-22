@@ -34,28 +34,21 @@ import {
   Eye, EyeOff,
 } from "lucide-react"
 import { toast } from "sonner"
+import { getSystemUsers, updateSystemUser, deleteSystemUser, resetUserPassword } from "@/lib/actions/user"
 
-// ============ DATA DUMMY ============
+// Types
 interface SystemUser {
   id: string
-  name: string
-  username: string
   email: string
-  password: string
-  nik: string
   role: string
-  unitKerja: string
-  jabatan: string
-  status: "active" | "inactive"
-  createdAt: string
+  createdAt: string | Date
+  pegawai?: {
+    nama: string
+    nik: string
+    jabatan: string
+    bidang?: { nama: string }
+  } | null
 }
-
-const initialUsers: SystemUser[] = [
-  { id: "1", name: "Dwiky Firmansyah",     username: "superadmin", email: "superadmin@tiara.com", password: "admin123",     nik: "3201010101900001", role: "SUPERADMIN", unitKerja: "IT & Sistem", jabatan: "Super Admin HRIS",      status: "active", createdAt: "01 Jan 2026" },
-  { id: "2", name: "Fitri Handayani",      username: "hrd",        email: "hrd@tiara.com",        password: "hrd123",       nik: "3201010101930002", role: "HRD",        unitKerja: "SDM & Umum",  jabatan: "Staff HRD",              status: "active", createdAt: "01 Jan 2026" },
-  { id: "3", name: "Ir. Gunawan Wibowo",   username: "direktur",   email: "direktur@tiara.com",   password: "direktur123",  nik: "3201010101750003", role: "DIREKSI",    unitKerja: "Direksi",     jabatan: "Direktur Utama",         status: "active", createdAt: "01 Jan 2026" },
-  { id: "4", name: "Ahmad Rizki Pratama",  username: "pegawai",    email: "pegawai@tiara.com",    password: "pegawai123",   nik: "3201150115850001", role: "PEGAWAI",    unitKerja: "IT & Sistem", jabatan: "Kepala Bagian IT",        status: "active", createdAt: "01 Jan 2026" },
-]
 
 const roleBadgeClass: Record<string, string> = {
   SUPERADMIN: "bg-purple-100 text-purple-700 border-purple-200",
@@ -69,15 +62,28 @@ export default function UserManagementPage() {
   const { data: session } = useSession()
   const user = session?.user as any
 
-  const [users, setUsers] = useState<SystemUser[]>(initialUsers)
+  const [users, setUsers] = useState<SystemUser[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [showDialog, setShowDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null)
   const [deletingUser, setDeletingUser] = useState<SystemUser | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  React.useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  const fetchUsers = async () => {
+    setIsLoading(true)
+    const res = await getSystemUsers()
+    if (res.data) setUsers(res.data as any)
+    else if (res.error) toast.error(res.error)
+    setIsLoading(false)
+  }
 
   // Form state
   const [form, setForm] = useState({
@@ -103,9 +109,10 @@ export default function UserManagementPage() {
 
   // ---- Filter ----
   const filtered = users.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const name = u.pegawai?.nama || ""
+    const email = u.email || ""
+    const matchSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase())
     const matchRole = roleFilter === "all" || u.role === roleFilter
     return matchSearch && matchRole
   })
@@ -122,7 +129,17 @@ export default function UserManagementPage() {
   // ---- Buka dialog edit ----
   const handleOpenEdit = (u: SystemUser) => {
     setEditingUser(u)
-    setForm({ name: u.name, username: u.username, email: u.email, password: "", nik: u.nik, role: u.role, unitKerja: u.unitKerja, jabatan: u.jabatan, status: u.status })
+    setForm({ 
+        name: u.pegawai?.nama || "", 
+        username: u.email.split("@")[0], 
+        email: u.email, 
+        password: "", 
+        nik: u.pegawai?.nik || "", 
+        role: u.role, 
+        unitKerja: u.pegawai?.bidang?.nama || "", 
+        jabatan: u.pegawai?.jabatan || "", 
+        status: "active" 
+    })
     setFormErrors({})
     setShowPassword(false)
     setShowDialog(true)
@@ -151,69 +168,55 @@ export default function UserManagementPage() {
   // ---- Simpan ----
   const handleSave = async () => {
     if (!validate()) return
-    setIsLoading(true)
-    await new Promise(r => setTimeout(r, 700))
+    setIsSaving(true)
 
     if (editingUser) {
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? {
-        ...u,
-        name: form.name,
-        username: form.username,
-        email: form.email,
-        password: form.password || u.password,
-        nik: form.nik,
+      const res = await updateSystemUser(editingUser.id, {
         role: form.role,
-        unitKerja: form.unitKerja,
-        jabatan: form.jabatan,
-        status: form.status,
-      } : u))
-      toast.success(`Data ${form.name} berhasil diperbarui`)
-    } else {
-      const newUser: SystemUser = {
-        id: String(Date.now()),
-        name: form.name,
-        username: form.username,
-        email: form.email,
-        password: form.password,
-        nik: form.nik,
-        role: form.role,
-        unitKerja: form.unitKerja,
-        jabatan: form.jabatan,
-        status: form.status,
-        createdAt: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+        password: form.password || undefined
+      })
+      if (res.success) {
+        toast.success(`Data ${form.name} berhasil diperbarui`)
+        fetchUsers()
+        setShowDialog(false)
+      } else {
+        toast.error(res.error || "Gagal memperbarui user")
       }
-      setUsers(prev => [newUser, ...prev])
-      toast.success(`User ${form.name} berhasil ditambahkan`)
+    } else {
+        toast.error("Penambahan user baru dilakukan melalui Menu Pegawai agar data sinkron.")
     }
 
-    setShowDialog(false)
-    setIsLoading(false)
+    setIsSaving(false)
   }
 
   // ---- Reset Password ----
-  const handleResetPassword = (u: SystemUser) => {
-    const newPass = "password123"
-    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, password: newPass } : x))
-    toast.success(`Password ${u.name} direset → ${newPass}`)
+  const handleResetPassword = async (u: SystemUser) => {
+    const res = await resetUserPassword(u.id)
+    if (res.success) {
+      toast.success(res.message)
+    } else {
+      toast.error(res.error || "Gagal reset password")
+    }
   }
 
   // ---- Toggle Status ----
   const handleToggleStatus = (u: SystemUser) => {
-    const newStatus = u.status === "active" ? "inactive" : "active"
-    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, status: newStatus } : x))
-    toast.success(`${u.name} → ${newStatus === "active" ? "Aktif" : "Non-aktif"}`)
+    toast.info("Status user terikat dengan status kepegawaian. Silakan ubah status di menu Pegawai.")
   }
 
   // ---- Hapus ----
   const handleDelete = async () => {
     if (!deletingUser) return
-    setIsLoading(true)
-    await new Promise(r => setTimeout(r, 500))
-    setUsers(prev => prev.filter(u => u.id !== deletingUser.id))
-    setShowDeleteDialog(false)
-    setDeletingUser(null)
-    setIsLoading(false)
-    toast.success(`User ${deletingUser.name} berhasil dihapus`)
+    setIsSaving(true)
+    const res = await deleteSystemUser(deletingUser.id)
+    if (res.success) {
+      toast.success(`User berhasil dihapus`)
+      fetchUsers()
+      setShowDeleteDialog(false)
+    } else {
+      toast.error(res.error || "Gagal menghapus user")
+    }
+    setIsSaving(false)
   }
 
   return (
@@ -312,17 +315,17 @@ export default function UserManagementPage() {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
                               <AvatarFallback className="bg-primary/10 text-xs text-primary">
-                                {(u.name || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                                {(u.pegawai?.nama || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-sm">{u.name}</p>
+                              <p className="font-medium text-sm">{u.pegawai?.nama || "User"}</p>
                               <p className="text-xs text-muted-foreground">{u.email}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono text-sm">{u.username}</span>
+                          <span className="font-mono text-sm">{u.email.split("@")[0]}</span>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={roleBadgeClass[u.role]}>
@@ -330,18 +333,18 @@ export default function UserManagementPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <p className="text-sm">{u.unitKerja}</p>
-                          <p className="text-xs text-muted-foreground">{u.jabatan}</p>
+                          <p className="text-sm">{u.pegawai?.bidang?.nama || "-"}</p>
+                          <p className="text-xs text-muted-foreground">{u.pegawai?.jabatan || "-"}</p>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant="outline"
-                            className={u.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}
+                            className="bg-emerald-100 text-emerald-700"
                           >
-                            {u.status === "active" ? "Aktif" : "Non-aktif"}
+                            Aktif
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{u.createdAt}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{u.createdAt ? new Date(u.createdAt).toLocaleDateString("id-ID") : "-"}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
                             {hasPermission(user?.role, "users.manage") && (
@@ -376,7 +379,7 @@ export default function UserManagementPage() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingUser ? `Edit User — ${editingUser.name}` : "Tambah User Baru"}</DialogTitle>
+            <DialogTitle>{editingUser ? `Edit User — ${editingUser.pegawai?.nama}` : "Tambah User Baru"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -471,8 +474,8 @@ export default function UserManagementPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Batal</Button>
-            <Button onClick={handleSave} disabled={isLoading}>
-              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : editingUser ? "Simpan Perubahan" : "Tambah User"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : editingUser ? "Simpan Perubahan" : "Tambah User"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -490,7 +493,7 @@ export default function UserManagementPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menghapus...</> : "Ya, Hapus"}
+              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menghapus...</> : "Ya, Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

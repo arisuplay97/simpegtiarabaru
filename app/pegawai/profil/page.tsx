@@ -28,7 +28,8 @@ export default function ProfilBasePage() {
         if (res.ok) {
           const data = await res.json()
           if (data?.id) {
-            router.replace(`/pegawai/${data.id}`)
+            const slug = `${(data.nama || "pegawai").toLowerCase().replace(/ /g, "-")}-${data.id}`
+            router.replace(`/pegawai/${slug}`)
             return
           }
         }

@@ -67,7 +67,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useParams } from "next/navigation"
-import { getEmployee, updateEmployee, uploadFotoPegawai } from "@/lib/actions/pegawai"
+import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai } from "@/lib/actions/pegawai"
+import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
 import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
@@ -160,7 +161,8 @@ const documents = [
 
 export default function EmployeeDetailPage() {
   const params = useParams()
-  const id = params.id as string
+  const slug = params.slug as string
+  const id = slug?.includes("-") ? slug.split("-").pop() : slug
   const [activeTab, setActiveTab] = useState("profil")
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -172,16 +174,52 @@ export default function EmployeeDetailPage() {
   const [formData, setFormData] = useState<any>({})
 
   useEffect(() => {
-    fetchEmployee()
+    if (id) {
+      fetchEmployee()
+    }
   }, [id])
 
   const fetchEmployee = async () => {
     setIsLoading(true)
     try {
-      const data = await getEmployee(id)
-      if (data) {
-        setEmployee(data)
-        setFormData({ ...data })
+      const res = await getEmployeeProfile(id as string)
+      if (res.error) {
+        toast.error(res.error)
+      } else {
+        setEmployee(res.data)
+        // Set form initial state for editing
+        if (res.data) {
+          setFormData({
+            nik: res.data.nik,
+            nama: res.data.nama,
+            email: res.data.email,
+            telepon: res.data.telepon,
+            bidangId: res.data.bidangId,
+            tipeJabatan: res.data.tipeJabatan,
+            jabatan: res.data.jabatan,
+            atasanLangsung: res.data.atasanLangsung,
+            golongan: res.data.golongan,
+            pangkat: res.data.pangkat,
+            status: res.data.status,
+            sp: res.data.sp,
+            tanggalMasuk: res.data.tanggalMasuk ? new Date(res.data.tanggalMasuk).toISOString().split("T")[0] : "",
+            jenisKelamin: res.data.jenisKelamin,
+            tempatLahir: res.data.tempatLahir,
+            tanggalLahir: res.data.tanggalLahir ? new Date(res.data.tanggalLahir).toISOString().split("T")[0] : "",
+            agama: res.data.agama,
+            statusNikah: res.data.statusNikah,
+            alamat: res.data.alamat,
+            npwp: res.data.npwp,
+            pendidikanTerakhir: res.data.pendidikanTerakhir,
+            jurusan: res.data.jurusan,
+            institusi: res.data.institusi,
+            tahunLulus: res.data.tahunLulus,
+            bank: res.data.bank,
+            noRekening: res.data.noRekening,
+            bpjsKesehatan: res.data.bpjsKesehatan,
+            bpjsKetenagakerjaan: res.data.bpjsKetenagakerjaan,
+          })
+        }
       }
     } catch (error) {
       toast.error("Gagal mengambil data pegawai")
@@ -604,21 +642,19 @@ export default function EmployeeDetailPage() {
                         <TableHead>Hubungan</TableHead>
                         <TableHead>Tanggal Lahir</TableHead>
                         <TableHead>Pekerjaan</TableHead>
-                        <TableHead>Tanggungan</TableHead>
+                        <TableHead>Telepon</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {familyMembers.map((member, index) => (
-                        <TableRow key={index}>
+                      {(employee?.keluarga || []).length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center text-slate-500 py-6">Belum ada data keluarga</TableCell></TableRow>
+                      ) : (employee?.keluarga || []).map((member: any, index: number) => (
+                        <TableRow key={member.id || index}>
                           <TableCell className="font-medium">{member.nama}</TableCell>
                           <TableCell>{member.hubungan}</TableCell>
-                          <TableCell>{member.tanggalLahir}</TableCell>
-                          <TableCell>{member.pekerjaan}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={member.statusTanggungan === "Ya" ? "bg-emerald-100 text-emerald-700" : ""}>
-                              {member.statusTanggungan}
-                            </Badge>
-                          </TableCell>
+                          <TableCell>-</TableCell>
+                          <TableCell>{member.pekerjaan || "-"}</TableCell>
+                          <TableCell>{member.telepon || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -645,15 +681,17 @@ export default function EmployeeDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {educationHistory.map((edu, index) => (
-                        <TableRow key={index}>
+                      {(employee?.pendidikan || []).length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center text-slate-500 py-6">Belum ada data pendidikan</TableCell></TableRow>
+                      ) : (employee?.pendidikan || []).map((edu: any, index: number) => (
+                        <TableRow key={edu.id || index}>
                           <TableCell>
-                            <Badge variant="outline">{edu.jenjang}</Badge>
+                            <Badge variant="outline">{edu.tingkat}</Badge>
                           </TableCell>
                           <TableCell className="font-medium">{edu.institusi}</TableCell>
-                          <TableCell>{edu.jurusan}</TableCell>
+                          <TableCell>{edu.jurusan || "-"}</TableCell>
                           <TableCell>{edu.tahunLulus}</TableCell>
-                          <TableCell className="font-mono">{edu.ipk}</TableCell>
+                          <TableCell className="font-mono">-</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -680,17 +718,19 @@ export default function EmployeeDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {positionHistory.map((pos, index) => (
-                        <TableRow key={index}>
+                      {(employee?.riwayatJabatan || []).length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center text-slate-500 py-6">Belum ada data riwayat jabatan</TableCell></TableRow>
+                      ) : (employee?.riwayatJabatan || []).map((pos: any, index: number) => (
+                        <TableRow key={pos.id || index}>
                           <TableCell className="font-medium">{pos.jabatan}</TableCell>
-                          <TableCell>{pos.unitKerja}</TableCell>
-                          <TableCell>{pos.tmtMulai}</TableCell>
+                          <TableCell>{pos.unitDefinitif}</TableCell>
+                          <TableCell>{pos.tanggalMulai ? new Date(pos.tanggalMulai).toLocaleDateString("id-ID") : "-"}</TableCell>
                           <TableCell>
-                            {pos.tmtSelesai === "Sekarang" ? (
+                            {!pos.tanggalSelesai ? (
                               <Badge className="bg-emerald-100 text-emerald-700">Aktif</Badge>
-                            ) : pos.tmtSelesai}
+                            ) : new Date(pos.tanggalSelesai).toLocaleDateString("id-ID")}
                           </TableCell>
-                          <TableCell className="font-mono text-xs">{pos.nomorSK}</TableCell>
+                          <TableCell className="font-mono text-xs">-</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -716,14 +756,16 @@ export default function EmployeeDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rankHistory.map((rank, index) => (
-                        <TableRow key={index}>
+                      {(employee?.riwayatPangkatDetail || []).length === 0 ? (
+                        <TableRow><TableCell colSpan={4} className="text-center text-slate-500 py-6">Belum ada data riwayat pangkat</TableCell></TableRow>
+                      ) : (employee?.riwayatPangkatDetail || []).map((rank: any, index: number) => (
+                        <TableRow key={rank.id || index}>
                           <TableCell className="font-medium">{rank.pangkat}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{rank.golongan}</Badge>
                           </TableCell>
-                          <TableCell>{rank.tmtPangkat}</TableCell>
-                          <TableCell className="font-mono text-xs">{rank.nomorSK}</TableCell>
+                          <TableCell>{rank.tanggalBerlaku ? new Date(rank.tanggalBerlaku).toLocaleDateString("id-ID") : "-"}</TableCell>
+                          <TableCell className="font-mono text-xs">{rank.nomorSK || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -908,20 +950,26 @@ export default function EmployeeDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {documents.map((doc, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{doc.nama}</TableCell>
+                      {(employee?.dokumen || []).length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center text-slate-500 py-6">Belum ada dokumen</TableCell></TableRow>
+                      ) : (employee?.dokumen || []).map((doc: any, index: number) => (
+                        <TableRow key={doc.id || index}>
+                          <TableCell className="font-medium">{doc.namaDokumen}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{doc.jenis}</Badge>
+                            <Badge variant="outline">{doc.jenisDokumen}</Badge>
                           </TableCell>
-                          <TableCell>{doc.tanggal}</TableCell>
+                          <TableCell>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("id-ID") : "-"}</TableCell>
                           <TableCell>
-                            <Badge className="bg-emerald-100 text-emerald-700">{doc.status}</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700">Valid</Badge>
                           </TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            {doc.fileUrl ? (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a href={doc.fileUrl} target="_blank" rel="noreferrer">
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : "-"}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -949,23 +997,18 @@ export default function EmployeeDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {trainingHistory.map((training, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{training.nama}</TableCell>
+                      {(employee?.pelatihan || []).length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center text-slate-500 py-6">Belum ada riwayat pelatihan</TableCell></TableRow>
+                      ) : (employee?.pelatihan || []).map((training: any, index: number) => (
+                        <TableRow key={training.id || index}>
+                          <TableCell className="font-medium">{training.namaPelatihan}</TableCell>
                           <TableCell>{training.penyelenggara}</TableCell>
-                          <TableCell>{training.tanggal}</TableCell>
+                          <TableCell>{training.tahun}</TableCell>
                           <TableCell>
-                            <Badge className="bg-emerald-100 text-emerald-700">{training.status}</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700">Selesai</Badge>
                           </TableCell>
                           <TableCell>
-                            {training.sertifikat ? (
-                              <Button variant="ghost" size="sm" className="gap-1">
-                                <Award className="h-4 w-4" />
-                                Lihat
-                              </Button>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
+                            <span className="text-muted-foreground">-</span>
                           </TableCell>
                         </TableRow>
                       ))}
