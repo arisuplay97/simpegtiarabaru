@@ -1025,7 +1025,7 @@ export default function EmployeeDetailPage() {
                     <AvatarImage src={previewUrl || formData.fotoUrl} className="object-cover" />
                   ) : null}
                   <AvatarFallback className="bg-primary/5 text-2xl text-primary">
-                    {formData.nama?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    {(formData.nama || "P").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-2">

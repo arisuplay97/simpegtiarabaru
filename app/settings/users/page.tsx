@@ -312,7 +312,7 @@ export default function UserManagementPage() {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
                               <AvatarFallback className="bg-primary/10 text-xs text-primary">
-                                {u.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                                {(u.name || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div>
