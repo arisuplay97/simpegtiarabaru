@@ -159,6 +159,16 @@ const documents = [
   { nama: "BPJS Kesehatan", jenis: "Dokumen", tanggal: "01 Jan 2014", status: "Aktif" },
 ]
 
+function F({ label, children, error }: { label: string, children: React.ReactNode, error?: string }) {
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground mb-1 block">{label}</Label>
+      {children}
+      {error && <p className="text-destructive text-[10px] mt-1">{error}</p>}
+    </div>
+  )
+}
+
 export default function EmployeeDetailPage() {
   const params = useParams()
   const slug = params.slug as string
@@ -273,31 +283,37 @@ export default function EmployeeDetailPage() {
 
   // Hitung sisa pensiun (Umur 56)
   const getPensiunInfo = () => {
-    if (!employee?.tanggalLahir) return null
+    if (!employee?.tanggalLahir || !employee?.tanggalMasuk) return null
     const birthDate = new Date(employee.tanggalLahir)
     const pensiunDate = new Date(birthDate.getFullYear() + 56, birthDate.getMonth(), birthDate.getDate())
+    const joinDate = new Date(employee.tanggalMasuk)
     const today = new Date()
     
     const diffTime = pensiunDate.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
+    const totalDuration = pensiunDate.getTime() - joinDate.getTime()
+    const elapsedDuration = today.getTime() - joinDate.getTime()
+    const percentage = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100))
+
     if (diffDays <= 0) {
-      return { status: "Sudah Pensiun", color: "text-red-700 bg-red-100" }
+      return { status: "Sudah Pensiun", color: "text-red-700 bg-red-100", percentage: 100 }
     }
     
     const years = Math.floor(diffDays / 365)
     let sisaText = ""
-    if (years > 0) sisaText = `${years} Tahun`
-    else {
-      const months = Math.floor(diffDays / 30)
-      if (months > 0) sisaText = `${months} Bulan`
-      else sisaText = `${diffDays} Hari`
+    if (years > 0) {
+      const remainingDays = diffDays % 365
+      sisaText = `${years} Tahun${remainingDays > 0 ? ` ${remainingDays} Hari` : ''}`
+    } else {
+      sisaText = `${diffDays} Hari`
     }
     
     return { 
       tanggal: format(pensiunDate, "dd MMMM yyyy", { locale: idLocale }),
       sisaText: `(sisa ${sisaText})`,
-      color: diffDays < 365 * 2 ? "text-amber-700 bg-amber-100" : "text-emerald-700 bg-emerald-100"
+      color: diffDays < 365 * 2 ? "text-amber-700 bg-amber-100" : "text-emerald-700 bg-emerald-100",
+      percentage
     }
   }
 
@@ -547,6 +563,11 @@ export default function EmployeeDetailPage() {
                             <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-sm font-semibold mt-0.5 ${pensiunInfo.color}`}>
                               {pensiunInfo.status || pensiunInfo.sisaText} 
                             </span>
+                            {pensiunInfo.percentage !== undefined && (
+                              <div className="mt-2 w-full pr-4">
+                                <Progress value={pensiunInfo.percentage} className="h-1.5 bg-secondary" indicatorClassName={pensiunInfo.color.split(' ')[0] === 'text-red-700' ? 'bg-red-500' : (pensiunInfo.color.split(' ')[0] === 'text-amber-700' ? 'bg-amber-500' : 'bg-emerald-500')} />
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <p className="font-medium">-</p>
@@ -677,7 +698,6 @@ export default function EmployeeDetailPage() {
                         <TableHead>Institusi</TableHead>
                         <TableHead>Jurusan</TableHead>
                         <TableHead>Tahun Lulus</TableHead>
-                        <TableHead>IPK</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -691,7 +711,6 @@ export default function EmployeeDetailPage() {
                           <TableCell className="font-medium">{edu.institusi}</TableCell>
                           <TableCell>{edu.jurusan || "-"}</TableCell>
                           <TableCell>{edu.tahunLulus}</TableCell>
-                          <TableCell className="font-mono">-</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1050,342 +1069,221 @@ export default function EmployeeDetailPage() {
       </div>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Data Pegawai</DialogTitle>
-            <DialogDescription>
-              Perbarui data pegawai. Klik simpan setelah selesai.
-            </DialogDescription>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
+            <DialogTitle className="text-xl font-semibold">Edit Data Pegawai</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
-            {/* Foto Pegawai */}
-            <section>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Foto Pegawai</p>
-              <div className="flex items-center gap-6">
-                <Avatar className="h-24 w-24 border-2 border-primary/20">
-                  {previewUrl || formData.fotoUrl ? (
-                    <AvatarImage src={previewUrl || formData.fotoUrl} className="object-cover" />
-                  ) : null}
-                  <AvatarFallback className="bg-primary/5 text-2xl text-primary">
-                    {(formData.nama || "P").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <div className="flex items-center gap-2 rounded-lg border-2 border-dashed border-primary/20 p-4 transition-colors hover:bg-primary/5">
-                      {isUploading ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      ) : (
-                        <Download className="h-5 w-5 text-primary" />
-                      )}
-                      <span className="text-sm font-medium text-primary">
-                        {isUploading ? "Mengunggah..." : "Klik untuk unggah foto"}
-                      </span>
-                      <Input
-                        id="avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        disabled={isUploading}
-                      />
-                    </div>
-                  </Label>
-                  <p className="text-[10px] text-muted-foreground">Rekomendasi: File gambar (JPG, PNG) maks. 2MB</p>
+          <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <div className="space-y-6">
+              {/* Section 1: Foto + Nama + NIK */}
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-dashed border-muted-foreground/30">
+                    {previewUrl || formData.fotoUrl ? (
+                      <AvatarImage src={previewUrl || formData.fotoUrl} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                        <Camera className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                    <span className="text-xs text-primary underline">{isUploading ? 'Mengunggah...' : 'Upload Foto'}</span>
+                  </label>
+                </div>
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <F label="Nama Lengkap">
+                    <Input value={formData.nama || ""} onChange={e => handleChange("nama", e.target.value)} placeholder="Nama Lengkap" />
+                  </F>
+                  <F label="NIK">
+                    <Input value={formData.nik || ""} onChange={e => handleChange("nik", e.target.value)} placeholder="16 Digit NIK" maxLength={16} />
+                  </F>
+                  <F label="Email">
+                    <Input value={formData.email || ""} onChange={e => handleChange("email", e.target.value)} placeholder="email@perusahaan.com" />
+                  </F>
+                  <F label="Telepon">
+                    <Input value={formData.telepon || ""} onChange={e => handleChange("telepon", e.target.value)} placeholder="0812..." />
+                  </F>
                 </div>
               </div>
-            </section>
 
-            {/* Nama */}
-            <div>
-              <Label>Nama Lengkap</Label>
-              <Input
-                className="mt-1"
-                value={formData.nama || ""}
-                onChange={e => handleChange("nama", e.target.value)}
-              />
-            </div>
+              <Separator />
 
-            {/* NIK & NPWP */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>NIK (16 digit)</Label>
-                <Input
-                  className="mt-1 font-mono"
-                  value={formData.nik}
-                  onChange={e => handleChange("nik", e.target.value)}
-                  maxLength={16}
-                />
-              </div>
-              <div>
-                <Label>NPWP</Label>
-                <Input
-                  className="mt-1 font-mono"
-                  value={formData.npwp}
-                  onChange={e => handleChange("npwp", e.target.value)}
-                />
-              </div>
-            </div>
+              {/* Section 2: Kepegawaian */}
+              <section>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <F label="Bidang / Unit Kerja">
+                    <Select value={formData.bidangId || "NONE"} onValueChange={v => {
+                      const val = v === "NONE" ? null : v;
+                      handleChange("bidangId", val)
+                      handleChange("subBidangId", null)
+                      handleChange("jabatan", "")
+                      handleChange("atasanLangsung", "")
+                    }}>
+                      <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate">
+                        <SelectValue placeholder="Pilih Bidang" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Pilih Bidang —</SelectItem>
+                        {bidangList.map(b => <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </F>
+                  <F label="Jabatan">
+                    <Input className="bg-muted" value={formData.jabatan || ""} readOnly disabled placeholder="Otomatis" />
+                  </F>
 
-            {/* Bidang / Unit Kerja */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Bidang</Label>
-                <Select
-                  value={formData.bidangId || "NONE"}
-                  onValueChange={v => {
-                    const val = v === "NONE" ? null : v;
-                    handleChange("bidangId", val)
-                    handleChange("subBidangId", null)
-                    handleChange("jabatan", "")
-                    handleChange("atasanLangsung", "")
-                  }}
-                >
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih bidang" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NONE">— Pilih —</SelectItem>
-                    {bidangList.map(b => (
-                      <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Jabatan */}
-              {formData.bidangId && (
-                <div>
-                  <Label>Jabatan</Label>
-                  <Input
-                    className="mt-1 bg-muted"
-                    value={formData.jabatan || ""}
-                    readOnly
-                    disabled
-                    placeholder="Otomatis"
-                  />
+                  <F label="Golongan">
+                    <Select value={formData.golongan || "NONE"} onValueChange={v => handleChange("golongan", v === "NONE" ? null : v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Pilih —</SelectItem>
+                        {["A/I","A/II","A/III","A/IV",
+                          "B/I","B/II","B/III","B/IV",
+                          "C/I","C/II","C/III","C/IV",
+                          "D/I","D/II","D/III","D/IV","E/IV"].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </F>
+                  <F label="Status Pegawai">
+                    <Select value={formData.status || "AKTIF"} onValueChange={v => handleChange("status", v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AKTIF">Aktif</SelectItem>
+                        <SelectItem value="CUTI">Cuti</SelectItem>
+                        <SelectItem value="NON_AKTIF">Non-Aktif</SelectItem>
+                        <SelectItem value="PENSIUN">Pensiun</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </F>
+                  <F label="SP (Jika Ada)">
+                    <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
+                      <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">Tidak Ada</SelectItem>
+                        <SelectItem value="SP1">SP 1</SelectItem>
+                        <SelectItem value="SP2">SP 2</SelectItem>
+                        <SelectItem value="SP3">SP 3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </F>
                 </div>
-              )}
+                {formData.atasanLangsung && formData.atasanLangsung !== "-" && (
+                  <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center gap-2">
+                    <span className="text-xs text-emerald-800 font-medium">✓ Atasan langsung otomatis: <strong>{formData.atasanLangsung}</strong></span>
+                  </div>
+                )}
+              </section>
+
+              <Separator />
+
+              {/* Section 3: Data Pribadi */}
+              <section>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Pribadi</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <F label="Tempat Lahir">
+                    <Input value={formData.tempatLahir || ""} onChange={e => handleChange("tempatLahir", e.target.value)} placeholder="Kota Kelahiran" />
+                  </F>
+                  <F label="Tanggal Lahir">
+                    <Input type="date" value={formData.tanggalLahir || ""} onChange={e => handleChange("tanggalLahir", e.target.value)} />
+                  </F>
+                  <F label="Jenis Kelamin">
+                    <Select value={formData.jenisKelamin || "NONE"} onValueChange={v => handleChange("jenisKelamin", v === "NONE" ? null : v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih JKL" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Pilih —</SelectItem>
+                        <SelectItem value="L">Laki-laki</SelectItem>
+                        <SelectItem value="P">Perempuan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </F>
+                  <F label="Agama">
+                    <Select value={formData.agama || "NONE"} onValueChange={v => handleChange("agama", v === "NONE" ? null : v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Agama" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Pilih —</SelectItem>
+                        {["ISLAM","KRISTEN","KATOLIK","HINDU","BUDDHA","KONGHUCU"].map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </F>
+                  <F label="Status Nikah">
+                    <Select value={formData.statusNikah || "NONE"} onValueChange={v => handleChange("statusNikah", v === "NONE" ? null : v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Pilih —</SelectItem>
+                        <SelectItem value="BELUM_MENIKAH">Belum Menikah</SelectItem>
+                        <SelectItem value="MENIKAH">Menikah</SelectItem>
+                        <SelectItem value="CERAI">Cerai</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </F>
+                </div>
+                <div className="mt-4">
+                  <F label="Alamat Domisili">
+                    <Textarea value={formData.alamat || ""} onChange={e => handleChange("alamat", e.target.value)} placeholder="Alamat lengkap tempat tinggal saat ini" />
+                  </F>
+                </div>
+              </section>
+
+              <Separator />
+
+              {/* Section 4: Pendidikan */}
+              <section>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pendidikan Terakhir</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <F label="Tingkat Pendidikan">
+                    <Input value={formData.pendidikanTerakhir || ""} onChange={e => handleChange("pendidikanTerakhir", e.target.value)} placeholder="e.g. S1" />
+                  </F>
+                </div>
+              </section>
+
+              <Separator />
+
+              {/* Section 5: Keuangan & Dokumen */}
+              <section>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Keuangan & Dokumen</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <F label="Bank">
+                    <Select value={formData.bank || "NONE"} onValueChange={v => handleChange("bank", v === "NONE" ? "" : v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Bank" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Pilih Bank —</SelectItem>
+                        {["Bank Mandiri", "Bank BNI", "Bank BRI", "Bank BCA", "Bank BTN", "Lainnya"].map(b => (
+                          <SelectItem key={b} value={b}>{b}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </F>
+                  <F label="No. Rekening">
+                    <Input value={formData.noRekening || ""} onChange={e => handleChange("noRekening", e.target.value)} placeholder="000111222" />
+                  </F>
+                  <F label="NPWP">
+                    <Input value={formData.npwp || ""} onChange={e => handleChange("npwp", e.target.value)} placeholder="NPWP" />
+                  </F>
+                  <F label="BPJS Kesehatan">
+                    <Input value={formData.bpjsKesehatan || ""} onChange={e => handleChange("bpjsKesehatan", e.target.value)} placeholder="No. BPJS Kes" />
+                  </F>
+                  <F label="BPJS Ketenagakerjaan">
+                    <Input value={formData.bpjsKetenagakerjaan || ""} onChange={e => handleChange("bpjsKetenagakerjaan", e.target.value)} placeholder="No. BPJS TK" />
+                  </F>
+                </div>
+              </section>
             </div>
-
-            {/* Preview Atasan Otomatis */}
-            {formData.atasanLangsung && formData.atasanLangsung !== "-" && (
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
-                <p className="text-xs text-emerald-700">
-                  ✓ Atasan langsung otomatis: <strong>{formData.atasanLangsung}</strong>
-                </p>
-              </div>
-            )}
-
-            {/* Golongan & Status */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Golongan</Label>
-                <Select value={formData.golongan || "NONE"} onValueChange={v => handleChange("golongan", v === "NONE" ? null : v)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NONE">— Pilih —</SelectItem>
-                    {["A/I","A/II","A/III","A/IV",
-                      "B/I","B/II","B/III","B/IV",
-                      "C/I","C/II","C/III","C/IV",
-                      "D/I","D/II","D/III","D/IV","E/IV"].map(g => (
-                      <SelectItem key={g} value={g}>{g}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Status</Label>
-                <Select value={formData.status || "AKTIF"} onValueChange={v => handleChange("status", v)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AKTIF">Aktif</SelectItem>
-                    <SelectItem value="CUTI">Cuti</SelectItem>
-                    <SelectItem value="NON_AKTIF">Non-Aktif</SelectItem>
-                    <SelectItem value="PENSIUN">Pensiun</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* SP Status */}
-            <div>
-              <Label>Surat Peringatan (SP)</Label>
-              <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Tidak ada SP" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NONE">Tidak Ada SP</SelectItem>
-                  <SelectItem value="SP1">SP-1 (Peringatan Pertama)</SelectItem>
-                  <SelectItem value="SP2">SP-2 (Peringatan Kedua)</SelectItem>
-                  <SelectItem value="SP3">SP-3 (Peringatan Ketiga)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Tempat & Tanggal Lahir */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Tempat Lahir</Label>
-                <Input
-                  className="mt-1"
-                  value={formData.tempatLahir}
-                  onChange={e => handleChange("tempatLahir", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Tanggal Lahir</Label>
-                <Input
-                  className="mt-1"
-                  value={formData.tanggalLahir}
-                  onChange={e => handleChange("tanggalLahir", e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Jenis Kelamin, Status Nikah, Agama */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Jenis Kelamin</Label>
-                <Select value={formData.jenisKelamin || "NONE"} onValueChange={v => handleChange("jenisKelamin", v === "NONE" ? null : v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NONE">— Pilih —</SelectItem>
-                    <SelectItem value="L">Laki-laki</SelectItem>
-                    <SelectItem value="P">Perempuan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Status Nikah</Label>
-                <Select value={formData.statusNikah || "NONE"} onValueChange={v => handleChange("statusNikah", v === "NONE" ? null : v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NONE">— Pilih —</SelectItem>
-                    <SelectItem value="BELUM_MENIKAH">Belum Menikah</SelectItem>
-                    <SelectItem value="MENIKAH">Menikah</SelectItem>
-                    <SelectItem value="CERAI">Cerai</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Agama</Label>
-                <Select value={formData.agama || "NONE"} onValueChange={v => handleChange("agama", v === "NONE" ? null : v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NONE">— Pilih —</SelectItem>
-                    <SelectItem value="ISLAM">Islam</SelectItem>
-                    <SelectItem value="KRISTEN">Kristen</SelectItem>
-                    <SelectItem value="KATOLIK">Katolik</SelectItem>
-                    <SelectItem value="HINDU">Hindu</SelectItem>
-                    <SelectItem value="BUDDHA">Buddha</SelectItem>
-                    <SelectItem value="KONGHUCU">Konghucu</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Email & Telepon */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Email</Label>
-                <Input
-                  className="mt-1"
-                  type="email"
-                  value={formData.email}
-                  onChange={e => handleChange("email", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Telepon</Label>
-                <Input
-                  className="mt-1"
-                  value={formData.telepon}
-                  onChange={e => handleChange("telepon", e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Bank & Rekening */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Bank</Label>
-                <Select value={formData.bank} onValueChange={v => handleChange("bank", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Bank Mandiri">Bank Mandiri</SelectItem>
-                    <SelectItem value="Bank BNI">Bank BNI</SelectItem>
-                    <SelectItem value="Bank BRI">Bank BRI</SelectItem>
-                    <SelectItem value="Bank BCA">Bank BCA</SelectItem>
-                    <SelectItem value="Bank BTN">Bank BTN</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>No. Rekening</Label>
-                <Input
-                  className="mt-1 font-mono"
-                  value={formData.noRekening}
-                  onChange={e => handleChange("noRekening", e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* BPJS */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>BPJS Kesehatan</Label>
-                <Input
-                  className="mt-1 font-mono"
-                  value={formData.bpjsKesehatan}
-                  onChange={e => handleChange("bpjsKesehatan", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>BPJS Ketenagakerjaan</Label>
-                <Input
-                  className="mt-1 font-mono"
-                  value={formData.bpjsKetenagakerjaan}
-                  onChange={e => handleChange("bpjsKetenagakerjaan", e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Pendidikan */}
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label>Pendidikan Terakhir</Label>
-                <Input
-                  className="mt-1"
-                  value={formData.pendidikanTerakhir}
-                  onChange={e => handleChange("pendidikanTerakhir", e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Alamat */}
-            <div>
-              <Label>Alamat</Label>
-              <Textarea
-                className="mt-1"
-                rows={3}
-                value={formData.alamat}
-                onChange={e => handleChange("alamat", e.target.value)}
-              />
-            </div>
-
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Batal
-            </Button>
+          <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Batal</Button>
             <Button onClick={handleSaveEdit} disabled={isLoading}>
-              {isLoading
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</>
-                : "Simpan Perubahan"}
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Perubahan"}
             </Button>
           </DialogFooter>
         </DialogContent>

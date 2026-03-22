@@ -1,90 +1,16 @@
-Penyebab error saat klik Tambah Pegawai
+REVISI
+1. Search bar GLOBAL sudah ada tapi belum berfungsi. 
 
-Di file:
+2.Dashboard Pegawai Personal
+Saat login sebagai pegawai, dashboard menampilkan:
+- Sisa cuti saya: X hari
+- Status absensi hari ini
+- Slip gaji terbaru
+- Pengajuan saya yang pending
 
-app/pegawai/page.tsx
+3. FORCE CHANGE PASSWORD FIRST LOGIN
+SETIAP AKUN Pegawai YANG BARU DIBUAT wajib ganti password saat pertama kali login
+DAN TAMBAHKAN Validasi yang Disarankan
 
-ada ini di form dialog:
-
-<SelectItem value="">Tidak Ada</SelectItem>
-
-Lokasinya sekitar bagian field SP (Jika Ada).
-
-Masalahnya: komponen Select dari shadcn/radix tidak boleh punya SelectItem dengan value string kosong "".
-Begitu dialog Tambah Pegawai dibuka dan komponen itu dirender, page bisa crash dengan error client-side seperti yang kamu screenshot.
-
-Bug yang sama juga ada di:
-
-app/pegawai/[id]/page.tsx
-
-dengan pola serupa:
-
-<SelectItem value="">Tidak Ada SP</SelectItem>
-Kenapa ini bikin blank putih
-
-Karena saat modal/dialog dibuka:
-
-field form ikut dirender
-
-SelectItem value="" dilempar ke Radix Select
-
-Radix menganggap itu invalid
-
-result-nya bisa jadi client-side exception
-
-akhirnya halaman putih dengan pesan:
-Application error: a client-side exception has occurred
-
-Fix yang benar
-
-Jangan pakai empty string untuk opsi “tidak ada”.
-
-Ganti dari ini:
-<Select value={form.sp || ""} onValueChange={v => setForm({...form, sp: v === "" ? null : v})}>
-  <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
-  <SelectContent>
-    <SelectItem value="">Tidak Ada</SelectItem>
-    <SelectItem value="SP1">SP 1</SelectItem>
-    <SelectItem value="SP2">SP 2</SelectItem>
-    <SelectItem value="SP3">SP 3</SelectItem>
-  </SelectContent>
-</Select>
-Menjadi ini:
-<Select
-  value={form.sp ?? "NONE"}
-  onValueChange={(v) => setForm({ ...form, sp: v === "NONE" ? null : v })}
->
-  <SelectTrigger>
-    <SelectValue placeholder="Tidak Ada SP" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="NONE">Tidak Ada</SelectItem>
-    <SelectItem value="SP1">SP 1</SelectItem>
-    <SelectItem value="SP2">SP 2</SelectItem>
-    <SelectItem value="SP3">SP 3</SelectItem>
-  </SelectContent>
-</Select>
-Wajib dibenerkan di 2 file
-1. app/pegawai/page.tsx
-
-Cari:
-
-<SelectItem value="">Tidak Ada</SelectItem>
-
-ganti jadi:
-
-<SelectItem value="NONE">Tidak Ada</SelectItem>
-
-dan ubah value + onValueChange seperti contoh di atas.
-
-2. app/pegawai/[id]/page.tsx
-
-Cari:
-
-<SelectItem value="">Tidak Ada SP</SelectItem>
-
-ganti jadi:
-
-<SelectItem value="NONE">Tidak Ada SP</SelectItem>
-
-lalu ubah logic value dan onValueChange juga.
+4. HAPUS IPK DI PENDIDIAKN PEGAWAI
+5. perbaiki tombol edit data di profil pegawai karna tidak sesuai dengan saat tambah pegawai

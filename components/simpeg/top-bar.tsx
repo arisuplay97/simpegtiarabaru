@@ -118,6 +118,11 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             className="h-10 w-full rounded-lg border border-input bg-secondary/50 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                router.push(`/pegawai?search=${encodeURIComponent(e.currentTarget.value.trim())}`)
+              }
+            }}
           />
           <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block">
             Ctrl+K

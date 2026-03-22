@@ -9,10 +9,10 @@ import { id } from "date-fns/locale"
 import { KPICards } from "@/components/simpeg/dashboard/kpi-cards"
 import { AnalyticsCharts } from "@/components/simpeg/dashboard/analytics-charts"
 import { ApprovalPanel } from "@/components/simpeg/dashboard/approval-panel"
-import { getDashboardStats } from "@/lib/actions/dashboard"
+import { getDashboardStats, getPegawaiDashboardStats } from "@/lib/actions/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, FileCheck, AlertCircle, TrendingUp } from "lucide-react"
+import { Users, FileCheck, AlertCircle, TrendingUp, Clock, Wallet, Calendar, ShieldCheck } from "lucide-react"
 
 export default function DashboardPage() {
   const { data: session } = useSession()
@@ -22,11 +22,17 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true)
     async function loadStats() {
-      const data = await getDashboardStats()
-      setStats(data)
+      if (!session) return;
+      if (session.user?.role === "PEGAWAI") {
+        const data = await getPegawaiDashboardStats((session.user as any).id)
+        setStats(data)
+      } else {
+        const data = await getDashboardStats()
+        setStats(data)
+      }
     }
     loadStats()
-  }, [])
+  }, [session])
 
   if (!mounted) return null
 
@@ -52,57 +58,94 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatsCard 
-              title="Total Pegawai" 
-              value={stats?.totalPegawai || "0"} 
-              description="Keseluruhan SDM Aktif"
-              icon={<Users className="w-5 h-5 text-blue-600" />}
-              trend="+2% dari bulan lalu"
-            />
-            <StatsCard 
-              title="Approval Pending" 
-              value={stats?.approvalPending || "0"} 
-              description="Menunggu verifikasi Anda"
-              icon={<FileCheck className="w-5 h-5 text-amber-600" />}
-              trend={`${stats?.detail?.cuti || 0} Cuti, ${stats?.detail?.mutasi || 0} Mutasi`}
-            />
-            <StatsCard 
-              title="System Users" 
-              value={stats?.totalUser || "0"} 
-              description="Akun Pengguna Aktif"
-              icon={<AlertCircle className="w-5 h-5 text-rose-600" />}
-              trend="Akses Terkendali"
-            />
-            <StatsCard 
-              title="Unit Tertinggi" 
-              value="IT & Sist" 
-              description="Berdasarkan kehadiran"
-              icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
-              trend="94% Kehadiran"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <Card className="xl:col-span-2 shadow-sm border-neutral-200 dark:border-neutral-800">
-              <CardHeader>
-                <CardTitle>Analitik Kepegawaian</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AnalyticsCharts />
-              </CardContent>
-            </Card>
+          {session?.user?.role === "PEGAWAI" ? (
             <div className="space-y-8">
-              <Card className="shadow-sm border-neutral-200 dark:border-neutral-800">
-                <CardHeader>
-                  <CardTitle>Approval Center</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ApprovalPanel />
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatsCard 
+                  title="Sisa Cuti Tahunan" 
+                  value={`${stats?.sisaCuti ?? 0} Hari`}
+                  description="Hak cuti Anda tahun ini"
+                  icon={<Calendar className="w-5 h-5 text-blue-600" />}
+                  trend="Ajukan cuti jika perlu"
+                />
+                <StatsCard 
+                  title="Status Kehadiran" 
+                  value={stats?.statusAbsensi || "-"} 
+                  description={stats?.waktuAbsen ? `Jam masuk: ${stats.waktuAbsen}` : "Belum ada data hari ini"}
+                  icon={<Clock className="w-5 h-5 text-emerald-600" />}
+                  trend={stats?.statusAbsensi === "HADIR" ? "+ Tepat Waktu" : "Perhatikan absensi"}
+                />
+                <StatsCard 
+                  title="Slip Gaji Terbaru" 
+                  value={stats?.gajiTerbaru ? `Rp ${stats.gajiTerbaru.toLocaleString('id-ID')}` : "Rp 0"} 
+                  description={`Periode: ${stats?.periodeGaji || "-"}`}
+                  icon={<Wallet className="w-5 h-5 text-indigo-600" />}
+                  trend="Gaji bulan terakhir"
+                />
+                <StatsCard 
+                  title="Pengajuan Anda" 
+                  value={stats?.pengajuanPending || "0"} 
+                  description="Proses approval PENDING"
+                  icon={<ShieldCheck className="w-5 h-5 text-amber-600" />}
+                  trend="Menunggu HR/Atasan"
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatsCard 
+                  title="Total Pegawai" 
+                  value={stats?.totalPegawai || "0"} 
+                  description="Keseluruhan SDM Aktif"
+                  icon={<Users className="w-5 h-5 text-blue-600" />}
+                  trend="+2% dari bulan lalu"
+                />
+                <StatsCard 
+                  title="Approval Pending" 
+                  value={stats?.approvalPending || "0"} 
+                  description="Menunggu verifikasi Anda"
+                  icon={<FileCheck className="w-5 h-5 text-amber-600" />}
+                  trend={`${stats?.detail?.cuti || 0} Cuti, ${stats?.detail?.mutasi || 0} Mutasi`}
+                />
+                <StatsCard 
+                  title="System Users" 
+                  value={stats?.totalUser || "0"} 
+                  description="Akun Pengguna Aktif"
+                  icon={<AlertCircle className="w-5 h-5 text-rose-600" />}
+                  trend="Akses Terkendali"
+                />
+                <StatsCard 
+                  title="Unit Tertinggi" 
+                  value="IT & Sist" 
+                  description="Berdasarkan kehadiran"
+                  icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
+                  trend="94% Kehadiran"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <Card className="xl:col-span-2 shadow-sm border-neutral-200 dark:border-neutral-800">
+                  <CardHeader>
+                    <CardTitle>Analitik Kepegawaian</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AnalyticsCharts />
+                  </CardContent>
+                </Card>
+                <div className="space-y-8">
+                  <Card className="shadow-sm border-neutral-200 dark:border-neutral-800">
+                    <CardHeader>
+                      <CardTitle>Approval Center</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <ApprovalPanel />
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </>
+          )}
         </main>
       </div>
     </div>
