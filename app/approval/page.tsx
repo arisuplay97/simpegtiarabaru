@@ -38,6 +38,7 @@ import {
   CheckCircle2,
   XCircle,
   TrendingUp,
+  User,
 } from "lucide-react"
 
 import { getPendingApprovals, processUnifiedApproval, UnifiedApprovalItem } from "@/lib/actions/approval"
