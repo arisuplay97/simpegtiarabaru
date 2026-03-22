@@ -39,6 +39,7 @@ import {
   XCircle,
   TrendingUp,
   User,
+  FileText,
 } from "lucide-react"
 
 import { getPendingApprovals, processUnifiedApproval, UnifiedApprovalItem } from "@/lib/actions/approval"
