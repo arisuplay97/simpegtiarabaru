@@ -171,7 +171,121 @@ export async function processUnifiedApproval(
     const status = isApprove ? "APPROVED" : "REJECTED"
 
     if (type === "cuti") {
-      await prisma.cuti.update({ where: { id: originalId }, data: { status } })
+      if (isApprove) {
+        // Ambil data cuti lengkap
+        const cuti = await prisma.cuti.findUnique({
+          where: { id: originalId },
+          include: { pegawai: true }
+        })
+
+        if (!cuti) throw new Error("Data cuti tidak ditemukan")
+
+        await prisma.cuti.update({ where: { id: originalId }, data: { status: "APPROVED" } })
+
+        // Isi absensi CUTI untuk setiap hari di periode cuti (termasuk weekend → opsional skip)
+        const start = new Date(cuti.tanggalMulai)
+        const end = new Date(cuti.tanggalSelesai)
+        start.setHours(0, 0, 0, 0)
+        end.setHours(23, 59, 59, 999)
+
+        let workingDays = 0
+        const current = new Date(start)
+        while (current <= end) {
+          const day = current.getDay()
+          const isWeekend = day === 0 || day === 6 // Minggu = 0, Sabtu = 6
+          if (!isWeekend) {
+            workingDays++
+            // Upsert: kalau sudah ada record absensi di hari itu, update saja
+            await prisma.absensi.upsert({
+              where: {
+                // Gunakan composite by manual search karena tidak ada unique constraint on (pegawaiId, tanggal)
+                // fallback: crate jika belum ada, update jika sudah ada
+                id: (await prisma.absensi.findFirst({
+                  where: {
+                    pegawaiId: cuti.pegawaiId,
+                    tanggal: {
+                      gte: new Date(current.setHours(0, 0, 0, 0)),
+                      lte: new Date(current.setHours(23, 59, 59, 999))
+                    }
+                  },
+                  select: { id: true }
+                }))?.id || "new-placeholder-will-fail",
+              },
+              update: { status: "CUTI" },
+              create: {
+                pegawaiId: cuti.pegawaiId,
+                tanggal: new Date(current),
+                status: "CUTI"
+              }
+            }).catch(async () => {
+              // Jika upsert gagal (ID placeholder tidak valid), create baru
+              const tanggalHari = new Date(current)
+              const exists = await prisma.absensi.findFirst({
+                where: {
+                  pegawaiId: cuti.pegawaiId,
+                  tanggal: { gte: new Date(tanggalHari.setHours(0,0,0,0)), lte: new Date(tanggalHari.setHours(23,59,59,999)) }
+                }
+              })
+              if (exists) {
+                await prisma.absensi.update({ where: { id: exists.id }, data: { status: "CUTI" } })
+              } else {
+                await prisma.absensi.create({
+                  data: { pegawaiId: cuti.pegawaiId, tanggal: new Date(current), status: "CUTI" }
+                })
+              }
+            })
+          }
+          current.setDate(current.getDate() + 1)
+          current.setHours(0, 0, 0, 0)
+        }
+
+        // Kurangi saldo cuti pegawai
+        if (workingDays > 0) {
+          await prisma.pegawai.update({
+            where: { id: cuti.pegawaiId },
+            data: { saldoCuti: { decrement: workingDays } }
+          })
+        }
+
+        // Kirim notifikasi ke pegawai
+        try {
+          if (cuti.pegawai.userId) {
+            await prisma.notifikasi.create({
+              data: {
+                userId: cuti.pegawai.userId,
+                title: "Cuti Anda Disetujui ✅",
+                message: `Permohonan cuti ${cuti.jenisCuti.replace(/_/g, " ")} selama ${workingDays} hari kerja telah disetujui. Absensi Anda otomatis tercatat sebagai CUTI.`,
+                link: "/cuti"
+              }
+            })
+          }
+        } catch (_) {}
+
+        revalidatePath("/absensi")
+        revalidatePath("/cuti")
+      } else {
+        // Rejected — hanya update status cuti, tidak perlu sentuh absensi
+        await prisma.cuti.update({ where: { id: originalId }, data: { status: "REJECTED" } })
+
+        // Notifikasi penolakan ke pegawai
+        try {
+          const cuti = await prisma.cuti.findUnique({
+            where: { id: originalId },
+            include: { pegawai: true }
+          })
+          if (cuti?.pegawai.userId) {
+            await prisma.notifikasi.create({
+              data: {
+                userId: cuti.pegawai.userId,
+                title: "Cuti Anda Ditolak ❌",
+                message: `Permohonan cuti ${cuti.jenisCuti.replace(/_/g, " ")} Anda telah ditolak.`,
+                link: "/cuti"
+              }
+            })
+          }
+        } catch (_) {}
+      }
+
     } else if (type === "mutasi") {
       // Import from mutasi module logic to safely handle unit assignments
       const { processMutasi } = await import("@/lib/actions/mutasi")
