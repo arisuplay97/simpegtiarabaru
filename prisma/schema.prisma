@@ -17,6 +17,7 @@ model User {
   role               Role     @default(PEGAWAI)
   mustChangePassword Boolean  @default(true)
   pegawai            Pegawai?
+  notifikasi         Notifikasi[]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -469,4 +470,17 @@ model PegawaiDokumen {
   pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ============ NOTIFIKASI ============
+model Notifikasi {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

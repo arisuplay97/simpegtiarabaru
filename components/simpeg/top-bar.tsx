@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import { getUnreadCount } from "@/lib/actions/notifikasi"
 import {
   Search,
   Bell,
@@ -61,6 +62,14 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
 
   const user = session?.user
   const userRole = user?.role as string | undefined
+
+  const [unreadNotif, setUnreadNotif] = useState(0)
+
+  useEffect(() => {
+    if (user?.id) {
+      getUnreadCount(user.id).then(setUnreadNotif).catch(() => {})
+    }
+  }, [user?.id])
 
   const roleLabels: Record<string, string> = {
     SUPERADMIN: "Super Admin",
@@ -152,12 +161,18 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
         <div className="h-6 w-px bg-border hidden sm:block" />
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative h-9 w-9">
-          <Bell className="h-5 w-5" />
-          <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center rounded-full bg-red-500 px-1 text-[9px] text-white">
-            5
-          </Badge>
-        </Button>
+        <Link href="/notifikasi" passHref legacyBehavior>
+          <Button variant="ghost" size="icon" className="relative h-9 w-9" asChild>
+            <a href="/notifikasi">
+              <Bell className="h-5 w-5" />
+              {unreadNotif > 0 && (
+                <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center rounded-full bg-red-500 px-1 text-[9px] text-white">
+                  {unreadNotif > 99 ? '99+' : unreadNotif}
+                </Badge>
+              )}
+            </a>
+          </Button>
+        </Link>
 
         {/* Messages — hidden on mobile */}
         <Button variant="ghost" size="icon" className="relative h-9 w-9 hidden sm:flex">

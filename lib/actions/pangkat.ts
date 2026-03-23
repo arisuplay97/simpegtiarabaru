@@ -141,14 +141,23 @@ export async function ajukanPangkat(data: any) {
 export async function updateStatusPangkat(id: string, isApprove: boolean) {
   try {
     const status = isApprove ? "APPROVED" : "REJECTED"
-    
-    await prisma.$transaction(async (tx) => {
+
+    const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.kenaikanPangkat.update({
         where: { id },
-        data: { status }
+        data: { status },
+        include: {
+          pegawai: {
+            include: {
+              user: true,
+              bidang: true
+            }
+          }
+        }
       })
 
       if (isApprove) {
+        // 1. Update pangkat & golongan pegawai
         await tx.pegawai.update({
           where: { id: updated.pegawaiId },
           data: {
@@ -156,10 +165,69 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
             golongan: updated.golonganBaru
           }
         })
+
+        // 2. Buat record Mutasi berjenis PROMOSI agar muncul di modul Promosi
+        //    (gunakan pegawaiId sendiri sebagai approvedById karena self-promotion by admin)
+        await tx.mutasi.create({
+          data: {
+            pegawaiId: updated.pegawaiId,
+            type: "PROMOSI",
+            jabatanAsal: updated.pegawai.jabatan,
+            unitAsal: updated.pegawai.bidang?.nama || "Umum",
+            jabatanTujuan: updated.pegawai.jabatan, // jabatan tetap, hanya pangkat yang naik
+            unitTujuan: updated.pegawai.bidang?.nama || "Umum",
+            alasan: `Kenaikan Pangkat dari ${updated.pangkatLama} (${updated.golonganLama}) ke ${updated.pangkatBaru} (${updated.golonganBaru})`,
+            tanggalEfektif: updated.tanggalBerlaku,
+            status: "APPROVED",
+            catatan: updated.keterangan || "Disetujui oleh Direksi"
+          }
+        })
       }
+
+      return updated
     })
 
+    // 3. Kirim notifikasi ke semua User ber-role HRD dan ke pegawai yg bersangkutan
+    //    (Di luar transaction agar tidak blocking)
+    try {
+      const aksiLabel = isApprove ? "disetujui" : "ditolak"
+      const pegawaiNama = result.pegawai.nama
+
+      // Notifikasi untuk pegawai itu sendiri
+      if (result.pegawai.userId) {
+        await prisma.notifikasi.create({
+          data: {
+            userId: result.pegawai.userId,
+            title: `Kenaikan Pangkat ${isApprove ? "Disetujui ✅" : "Ditolak ❌"}`,
+            message: `Pengajuan kenaikan pangkat Anda ke ${result.pangkatBaru} (${result.golonganBaru}) telah ${aksiLabel} oleh Direksi.`,
+            link: "/kenaikan-pangkat"
+          }
+        })
+      }
+
+      // Notifikasi ke semua HRD
+      const hrdUsers = await prisma.user.findMany({
+        where: { role: "HRD" }
+      })
+      for (const hrdUser of hrdUsers) {
+        await prisma.notifikasi.create({
+          data: {
+            userId: hrdUser.id,
+            title: `Kenaikan Pangkat ${pegawaiNama} ${isApprove ? "Disetujui" : "Ditolak"}`,
+            message: `Direksi telah ${aksiLabel} kenaikan pangkat ${pegawaiNama} ke ${result.pangkatBaru} (${result.golonganBaru}).`,
+            link: "/kenaikan-pangkat"
+          }
+        })
+      }
+    } catch (notifErr) {
+      // Gagal kirim notifikasi tidak boleh membatalkan proses approval
+      console.error("Gagal mengirim notifikasi:", notifErr)
+    }
+
     revalidatePath("/kenaikan-pangkat")
+    revalidatePath("/mutasi")
+    revalidatePath("/approval")
+    revalidatePath("/notifikasi")
     return { success: true }
   } catch (error: any) {
     return { error: error.message || "Gagal memproses aksi Pangkat" }
