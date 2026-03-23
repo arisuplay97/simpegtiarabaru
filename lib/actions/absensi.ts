@@ -100,7 +100,7 @@ export async function checkDeviceAndAbsen(
 
       // Validasi jam minimum checkout dari Pengaturan (default 16:00)
       const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
-      const jamKeluarConfig = pengaturan?.jamKeluar || "16:00"
+      const jamKeluarConfig = pengaturan?.jamPulang || "16:00"
       const [jamMin, menitMin] = jamKeluarConfig.split(":").map(Number)
       const batasMinCheckout = new Date(now)
       batasMinCheckout.setHours(jamMin, menitMin, 0, 0)
@@ -221,7 +221,7 @@ export async function getStatusAbsensiHariIni() {
       } : null,
       shift: {
         jamMasuk: pengaturan?.jamMasuk || "08:00",
-        jamKeluar: pengaturan?.jamKeluar || "16:00",
+        jamKeluar: pengaturan?.jamPulang || "17:00",
       }
     }
   } catch (e) {
