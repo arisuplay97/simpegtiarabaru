@@ -248,7 +248,7 @@ export default function EmployeeDetailPage() {
     setIsUploading(true)
     toast.loading("Mengupload foto...")
     try {
-      const url = await uploadFotoPegawai(id as string, file)
+      const url = await uploadFotoPegawai(employee.id, file)
       setEmployee((prev: any) => ({ ...prev, fotoUrl: url }))
       setPreviewUrl(url)
       toast.dismiss()
@@ -264,7 +264,7 @@ export default function EmployeeDetailPage() {
   const handleSaveEdit = async () => {
     setIsSaving(true)
     try {
-      await updateEmployee(id as string, formData)
+      await updateEmployee(employee.id, formData)
       await fetchEmployee()
       setShowEditDialog(false)
       toast.success("Data pegawai berhasil diperbarui")
@@ -307,10 +307,14 @@ export default function EmployeeDetailPage() {
       sisaText = `${diffDays} Hari`
     }
     
+    let color = "text-emerald-700 bg-emerald-100"
+    if (years <= 1) color = "text-red-700 bg-red-100"
+    else if (years <= 5) color = "text-amber-700 bg-amber-100"
+
     return { 
       tanggal: format(pensiunDate, "dd MMMM yyyy", { locale: idLocale }),
-      sisaText: `(sisa ${sisaText})`,
-      color: diffDays < 365 * 2 ? "text-amber-700 bg-amber-100" : "text-emerald-700 bg-emerald-100",
+      sisaText: sisaText,
+      color: color,
       percentage
     }
   }
@@ -424,16 +428,34 @@ export default function EmployeeDetailPage() {
                   </div>
                 </div>
 
-                {/* Right - Actions */}
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download CV
-                  </Button>
-                  <Button size="sm" className="gap-2" onClick={handleOpenEdit}>
-                    <Edit className="h-4 w-4" />
-                    Edit Data
-                  </Button>
+                {/* Right - Actions & Masa Pensiun */}
+                <div className="flex flex-col items-end gap-3">
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Download CV
+                    </Button>
+                    <Button size="sm" className="gap-2" onClick={handleOpenEdit}>
+                      <Edit className="h-4 w-4" />
+                      Edit Data
+                    </Button>
+                  </div>
+                  {pensiunInfo && (
+                    <div className="w-64 mt-1 p-3 rounded-xl border border-primary/10 bg-card shadow-sm flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground mr-2">Masa Pensiun</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap ${pensiunInfo.color}`}>
+                          {pensiunInfo.status || `< ${pensiunInfo.sisaText}`} 
+                        </span>
+                      </div>
+                      <Progress 
+                        value={pensiunInfo.percentage} 
+                        className="h-2 bg-secondary" 
+                        indicatorClassName={pensiunInfo.color.includes('red') ? 'bg-red-500' : (pensiunInfo.color.includes('amber') ? 'bg-amber-500' : 'bg-emerald-500')} 
+                      />
+                      <span className="text-[10px] text-muted-foreground text-right">{pensiunInfo.tanggal ?? "-"}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -547,29 +569,14 @@ export default function EmployeeDetailPage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Tempat, Tanggal Lahir</p>
-                        <p className="font-medium">{employee.tempatLahir || "-"}, {employee.tanggalLahir || "-"}</p>
+                        <p className="font-medium">{employee.tempatLahir || "-"}, {employee.tanggalLahir ? format(new Date(employee.tanggalLahir), "dd MMMM yyyy", { locale: idLocale }) : "-"}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Usia</p>
-                        <p className="font-medium">{employee.usia}</p>
+                        <p className="font-medium">{employee.usia || "-"}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Masa Pensiun (56 Thn)</p>
-                        {pensiunInfo ? (
-                          <div className="flex flex-col mt-0.5">
-                            <span className="font-medium text-sm">{pensiunInfo.tanggal ?? "-"}</span>
-                            <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-sm font-semibold mt-0.5 ${pensiunInfo.color}`}>
-                              {pensiunInfo.status || pensiunInfo.sisaText} 
-                            </span>
-                            {pensiunInfo.percentage !== undefined && (
-                              <div className="mt-2 w-full pr-4">
-                                <Progress value={pensiunInfo.percentage} className="h-1.5 bg-secondary" indicatorClassName={pensiunInfo.color.split(' ')[0] === 'text-red-700' ? 'bg-red-500' : (pensiunInfo.color.split(' ')[0] === 'text-amber-700' ? 'bg-amber-500' : 'bg-emerald-500')} />
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="font-medium">-</p>
-                        )}
+                      <div className="hidden">
+                        {/* dipindahkan ke header kanan */}
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Jenis Kelamin</p>
