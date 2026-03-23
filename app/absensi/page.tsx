@@ -429,6 +429,8 @@ export default function AttendancePage() {
     currentPage * itemsPerPage
   )
 
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+
   const renderTable = () => (
     <Card className="card-premium">
       <CardContent className="p-0">
