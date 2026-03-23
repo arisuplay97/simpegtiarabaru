@@ -115,24 +115,33 @@ export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "
       // Buat record Absensi otomatis untuk setiap hari cuti
       const currentDate = new Date(cuti.tanggalMulai)
       while (currentDate <= cuti.tanggalSelesai) {
-        await prisma.absensi.upsert({
+        const startOfDay = new Date(currentDate)
+        startOfDay.setHours(0, 0, 0, 0)
+        
+        const endOfDay = new Date(currentDate)
+        endOfDay.setHours(23, 59, 59, 999)
+
+        const absensiExist = await prisma.absensi.findFirst({
           where: {
-            pegawaiId_tanggal: {
-              pegawaiId: cuti.pegawaiId,
-              tanggal: new Date(currentDate)
-            }
-          },
-          update: {
-            status: "CUTI",
-          },
-          create: {
             pegawaiId: cuti.pegawaiId,
-            tanggal: new Date(currentDate),
-            status: "CUTI",
-            metode: "MANUAL",
-            location: "Cuti Terjadwal"
+            tanggal: { gte: startOfDay, lte: endOfDay }
           }
         })
+
+        if (absensiExist) {
+          await prisma.absensi.update({
+            where: { id: absensiExist.id },
+            data: { status: "CUTI" }
+          })
+        } else {
+          await prisma.absensi.create({
+            data: {
+              pegawaiId: cuti.pegawaiId,
+              tanggal: new Date(currentDate),
+              status: "CUTI",
+            }
+          })
+        }
         currentDate.setDate(currentDate.getDate() + 1)
       }
     }
