@@ -25,7 +25,7 @@ import {
 import Link from "next/link"
 import { toast } from "sonner"
 import { cekDalamRadius, hitungJarak, type LokasiAbsensi } from "@/lib/data/lokasi-store"
-import { checkDeviceAndAbsen } from "@/lib/actions/absensi"
+import { checkDeviceAndAbsen, getStatusAbsensiHariIni } from "@/lib/actions/absensi"
 import { getLokasiList } from "@/lib/actions/lokasi"
 
 type CaptureStep = "idle" | "ready" | "capturing" | "verifying" | "success" | "checkout_success"
@@ -45,6 +45,12 @@ export default function SelfieAttendancePage() {
   const [checkOutTime, setCheckOutTime] = useState<string | null>(null)
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
 
+  // Real data state
+  const [pegawaiData, setPegawaiData] = useState<any>(null)
+  const [absensiData, setAbsensiData] = useState<any>(null)
+  const [shiftData, setShiftData] = useState({ jamMasuk: "08:00", jamKeluar: "16:00" })
+  const [isDataLoading, setIsDataLoading] = useState(true)
+
   // GPS state
   const [gpsStatus, setGpsStatus] = useState<"checking" | "valid" | "invalid">("checking")
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null)
@@ -60,6 +66,27 @@ export default function SelfieAttendancePage() {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
+
+  // Load status absensi hari ini
+  const fetchStatus = useCallback(async () => {
+    const data = await getStatusAbsensiHariIni()
+    if (data) {
+      setPegawaiData(data.pegawai)
+      setAbsensiData(data.absensi)
+      setShiftData(data.shift)
+      
+      if (data.absensi?.jamMasuk) {
+        setCheckInTime(new Date(data.absensi.jamMasuk).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }))
+        // Jika sudah check-in tapi belum checkout, default ke checkout mode
+        if (!data.absensi.jamKeluar) setCheckType("checkout")
+      }
+      if (data.absensi?.jamKeluar) {
+        setCheckOutTime(new Date(data.absensi.jamKeluar).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }))
+        setCaptureStep(checkType === "checkin" ? "success" : "checkout_success")
+      }
+    }
+    setIsDataLoading(false)
+  }, [checkType])
 
   // Cek GPS & Device ID saat halaman dibuka
   useEffect(() => {
@@ -133,7 +160,8 @@ export default function SelfieAttendancePage() {
       }
     }
     run()
-  }, [])
+    fetchStatus()
+  }, [fetchStatus])
 
   // Buka kamera
   const startCamera = useCallback(async () => {
@@ -225,6 +253,7 @@ export default function SelfieAttendancePage() {
       
       toast.success(result.success)
       setIsCameraOn(false)
+      fetchStatus() // Refresh data
     }
   }
 
@@ -469,9 +498,20 @@ export default function SelfieAttendancePage() {
                       )}
 
                       {captureStep === "ready" && (
-                        <Button size="lg" className="w-full gap-3 py-6 text-lg" onClick={handleCapture}>
+                        <Button 
+                          size="lg" 
+                          className="w-full gap-3 py-6 text-lg" 
+                          onClick={handleCapture}
+                          disabled={
+                            checkType === "checkout" && 
+                            currentTime.getHours() < Number(shiftData.jamKeluar.split(":")[0])
+                          }
+                        >
                           <Camera className="h-6 w-6" />
-                          Ambil Selfie & {checkType === "checkin" ? "Check-in" : "Check-out"}
+                          {checkType === "checkout" && currentTime.getHours() < Number(shiftData.jamKeluar.split(":")[0])
+                            ? `Checkout Jam ${shiftData.jamKeluar}`
+                            : `Ambil Selfie & ${checkType === "checkin" ? "Check-in" : "Check-out"}`
+                          }
                         </Button>
                       )}
 
@@ -510,15 +550,26 @@ export default function SelfieAttendancePage() {
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <Avatar className="h-14 w-14">
-                        <AvatarFallback className="bg-primary text-lg text-primary-foreground">DF</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-lg text-primary-foreground">
+                          {pegawaiData?.nama?.split(" ").map((n: any) => n[0]).join("").substring(0, 2) || "..."}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold">Dwiky Firmansyah</p>
-                        <p className="text-sm text-muted-foreground">Super Admin HRIS</p>
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                          <Building2 className="h-3 w-3" />
-                          Kantor Pusat
-                        </div>
+                        {isDataLoading ? (
+                          <div className="space-y-2">
+                            <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                            <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                          </div>
+                        ) : (
+                          <>
+                            <p className="font-semibold">{pegawaiData?.nama || "Pegawai"}</p>
+                            <p className="text-sm text-muted-foreground">{pegawaiData?.jabatan || "Jabatan"}</p>
+                            <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                              <Building2 className="h-3 w-3" />
+                              {pegawaiData?.unit || "Unit Kerja"}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -544,7 +595,7 @@ export default function SelfieAttendancePage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Shift</span>
-                      <span className="text-sm font-medium">08:00 - 17:00</span>
+                      <span className="text-sm font-medium">{shiftData.jamMasuk} - {shiftData.jamKeluar}</span>
                     </div>
                   </CardContent>
                 </Card>

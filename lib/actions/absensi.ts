@@ -7,7 +7,6 @@ import { auth } from "@/lib/auth"
 function getTodayRange(date?: Date) {
   const targetDate = date || new Date()
   
-  // Gunakan local time boundary agar record yang di-submit pagi buta (misal 06:00 local, yang masih UTC hari sblmnya) tidak terfilter
   const startOfDay = new Date(targetDate)
   startOfDay.setHours(0, 0, 0, 0)
   
@@ -38,7 +37,6 @@ export async function checkDeviceAndAbsen(
     }
 
     // 1. DEVICE BINDING LOGIC
-    // Jika pegawai belum punya deviceId, daftarkan device ini sbg perangkat utama
     let currentDeviceId = pegawai.deviceId
     if (!currentDeviceId) {
       await prisma.pegawai.update({
@@ -48,7 +46,6 @@ export async function checkDeviceAndAbsen(
       currentDeviceId = clientDeviceId
     }
 
-    // Bandingkan deviceId
     if (currentDeviceId !== clientDeviceId) {
       return { 
         error: "PERANGKAT TIDAK DIKENALI! Anda hanya bisa melakukan absensi dari perangkat utama (Ponsel) Anda sendiri. Titip absen melalui perangkat rekan dilarang keras." 
@@ -58,14 +55,10 @@ export async function checkDeviceAndAbsen(
     // 2. ABSENSI LOGIC
     const { startOfDay, endOfDay, now } = getTodayRange()
 
-    // Cek apakah sudah absen hari ini
     const absensiHariIni = await prisma.absensi.findFirst({
       where: {
         pegawaiId: pegawai.id,
-        tanggal: {
-          gte: startOfDay,
-          lte: endOfDay,
-        }
+        tanggal: { gte: startOfDay, lte: endOfDay }
       }
     })
 
@@ -74,7 +67,6 @@ export async function checkDeviceAndAbsen(
         return { error: "Anda sudah melakukan Check-in hari ini." }
       }
 
-      // Hitung keterlambatan berdasarkan Pengaturan
       const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
       let statusAbsensi: any = "HADIR"
 
@@ -106,11 +98,26 @@ export async function checkDeviceAndAbsen(
         return { error: "Anda sudah melakukan Check-out hari ini." }
       }
 
+      // Validasi jam minimum checkout dari Pengaturan (default 16:00)
+      const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+      const jamKeluarConfig = pengaturan?.jamKeluar || "16:00"
+      const [jamMin, menitMin] = jamKeluarConfig.split(":").map(Number)
+      const batasMinCheckout = new Date(now)
+      batasMinCheckout.setHours(jamMin, menitMin, 0, 0)
+
+      if (now < batasMinCheckout) {
+        const sisaMenit = Math.ceil((batasMinCheckout.getTime() - now.getTime()) / 60000)
+        const sisaJam = Math.floor(sisaMenit / 60)
+        const sisaMenitSisa = sisaMenit % 60
+        const sisaText = sisaJam > 0 ? `${sisaJam} jam ${sisaMenitSisa} menit` : `${sisaMenit} menit`
+        return {
+          error: `Check-out belum diizinkan. Anda baru bisa checkout pukul ${jamKeluarConfig} (${sisaText} lagi).`
+        }
+      }
+
       await prisma.absensi.update({
         where: { id: absensiHariIni.id },
-        data: {
-          jamKeluar: now
-        }
+        data: { jamKeluar: now }
       })
       return { success: "Check-out berhasil disimpan ke sistem!" }
     }
@@ -122,40 +129,103 @@ export async function checkDeviceAndAbsen(
   }
 }
 
+// Untuk halaman absensi umum (HRD/Admin)
 export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
   try {
     const whereClause: any = {}
     if (dateStart && dateEnd) {
-      whereClause.tanggal = {
-        gte: dateStart,
-        lte: dateEnd
-      }
+      whereClause.tanggal = { gte: dateStart, lte: dateEnd }
     } else {
-      // Default to today if no date range is provided
       const { startOfDay, endOfDay } = getTodayRange()
-      whereClause.tanggal = {
-        gte: startOfDay,
-        lte: endOfDay
-      }
+      whereClause.tanggal = { gte: startOfDay, lte: endOfDay }
     }
 
     const absensiList = await prisma.absensi.findMany({
       where: whereClause,
-      include: {
-        pegawai: {
-          include: {
-            bidang: true
-          }
-        }
-      },
-      orderBy: [
-        { jamMasuk: 'desc' },
-        { tanggal: 'desc' }
-      ]
+      include: { pegawai: { include: { bidang: true } } },
+      orderBy: [{ jamMasuk: 'desc' }, { tanggal: 'desc' }]
     })
     return absensiList
   } catch (error) {
     console.error("Error fetching absensi list:", error)
     return []
+  }
+}
+
+// Untuk halaman absensi VIEW PEGAWAI sendiri
+export async function getAbsensiSaya(bulan?: number, tahun?: number) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return []
+
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { userId: session.user.id }
+    })
+    if (!pegawai) return []
+
+    const now = new Date()
+    const month = bulan ?? now.getMonth() + 1
+    const year = tahun ?? now.getFullYear()
+
+    const startDate = new Date(year, month - 1, 1, 0, 0, 0)
+    const endDate = new Date(year, month, 0, 23, 59, 59)
+
+    return await prisma.absensi.findMany({
+      where: {
+        pegawaiId: pegawai.id,
+        tanggal: { gte: startDate, lte: endDate }
+      },
+      orderBy: { tanggal: 'desc' }
+    })
+  } catch (e) {
+    console.error("Error getAbsensiSaya:", e)
+    return []
+  }
+}
+
+// Status absensi hari ini untuk pegawai yang login (buat ditampilkan di selfie page)
+export async function getStatusAbsensiHariIni() {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return null
+
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { userId: session.user.id },
+      include: { bidang: true }
+    })
+    if (!pegawai) return null
+
+    const { startOfDay, endOfDay } = getTodayRange()
+    const absensiHariIni = await prisma.absensi.findFirst({
+      where: {
+        pegawaiId: pegawai.id,
+        tanggal: { gte: startOfDay, lte: endOfDay }
+      }
+    })
+
+    // Ambil jam kerja dari pengaturan
+    const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+
+    return {
+      pegawai: {
+        id: pegawai.id,
+        nama: pegawai.nama,
+        jabatan: pegawai.jabatan,
+        unit: pegawai.bidang?.nama || "Umum"
+      },
+      absensi: absensiHariIni ? {
+        id: absensiHariIni.id,
+        status: absensiHariIni.status,
+        jamMasuk: absensiHariIni.jamMasuk?.toISOString() || null,
+        jamKeluar: absensiHariIni.jamKeluar?.toISOString() || null,
+      } : null,
+      shift: {
+        jamMasuk: pengaturan?.jamMasuk || "08:00",
+        jamKeluar: pengaturan?.jamKeluar || "16:00",
+      }
+    }
+  } catch (e) {
+    console.error("Error getStatusAbsensiHariIni:", e)
+    return null
   }
 }
