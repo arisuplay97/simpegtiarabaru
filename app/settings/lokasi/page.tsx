@@ -50,7 +50,7 @@ const defaultForm = {
   alamat: "", latitude: "", longitude: "",
   radius: "100", aktif: true,
   tanggalMulai: "", tanggalSelesai: "",
-  wajibHadir: false, keterangan: "",
+  wajibHadir: false, targetPegawai: "semua", keterangan: "",
 }
 
 interface LokasiItem {
@@ -65,6 +65,7 @@ interface LokasiItem {
   tanggalMulai?: string | null
   tanggalSelesai?: string | null
   wajibHadir: boolean
+  targetPegawai?: string | null
   keterangan?: string | null
 }
 
@@ -141,6 +142,7 @@ export default function LokasiAbsensiPage() {
       tanggalMulai: item.tanggalMulai ?? "",
       tanggalSelesai: item.tanggalSelesai ?? "",
       wajibHadir: item.wajibHadir ?? false,
+      targetPegawai: item.targetPegawai ?? "semua",
       keterangan: item.keterangan ?? "",
     })
     setFormErrors({})
@@ -163,6 +165,7 @@ export default function LokasiAbsensiPage() {
         tanggalMulai: form.tipe === "acara" ? form.tanggalMulai || null : null,
         tanggalSelesai: form.tipe === "acara" ? form.tanggalSelesai || null : null,
         wajibHadir: form.tipe === "acara" ? form.wajibHadir : false,
+        targetPegawai: (form.tipe === "acara" && form.wajibHadir) ? (form.targetPegawai || "semua") : null,
         keterangan: form.tipe === "acara" ? form.keterangan || null : null,
       }
 
@@ -335,11 +338,18 @@ export default function LokasiAbsensiPage() {
                             <div>
                               <p className="font-medium text-sm">{item.nama}</p>
                               <p className="text-xs text-muted-foreground">{item.alamat}</p>
-                              {item.wajibHadir && (
-                                <Badge variant="outline" className="mt-1 text-[10px] bg-red-50 text-red-600 border-red-200">
-                                  Wajib Hadir
-                                </Badge>
-                              )}
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {item.wajibHadir && (
+                                  <Badge variant="outline" className="text-[10px] bg-red-50 text-red-600 border-red-200">
+                                    ⚠️ Wajib Hadir
+                                  </Badge>
+                                )}
+                                {item.wajibHadir && item.targetPegawai && (
+                                  <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-200">
+                                    {item.targetPegawai === "pusat" ? "Kantor Pusat" : item.targetPegawai === "cabang" ? "Kantor Cabang" : "Semua Pegawai"}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -565,10 +575,37 @@ export default function LokasiAbsensiPage() {
                 </div>
 
                 {form.wajibHadir && (
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                    <p className="text-xs text-red-700 font-medium">
-                      ⚠️ Saat aktif: lokasi kantor dinonaktifkan sementara, semua pegawai wajib absen di sini
-                    </p>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium">Target Pegawai Wajib Hadir *</Label>
+                      <p className="text-xs text-muted-foreground mb-1">Pilih siapa yang wajib hadir di lokasi acara ini</p>
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        {[
+                          { value: "pusat", label: "Kantor Pusat", desc: "Hanya pegawai Pusat" },
+                          { value: "cabang", label: "Kantor Cabang", desc: "Hanya pegawai Cabang" },
+                          { value: "semua", label: "Semua Pegawai", desc: "Pusat & Cabang" },
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setForm(p => ({ ...p, targetPegawai: opt.value }))}
+                            className={`rounded-lg border-2 p-2 text-left transition-all ${
+                              form.targetPegawai === opt.value
+                                ? "border-primary bg-primary/10"
+                                : "border-muted hover:border-primary/50 hover:bg-muted/30"
+                            }`}
+                          >
+                            <p className={`text-xs font-semibold ${form.targetPegawai === opt.value ? "text-primary" : ""}`}>{opt.label}</p>
+                            <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                      <p className="text-xs text-red-700 font-medium">
+                        ⚠️ Saat aktif: absensi di lokasi kantor {form.targetPegawai === "pusat" ? "pusat" : form.targetPegawai === "cabang" ? "cabang" : "pusat dan cabang"} dinonaktifkan sementara untuk hari acara ini.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

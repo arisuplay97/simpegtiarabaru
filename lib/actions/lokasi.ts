@@ -10,6 +10,20 @@ export async function getLokasiList() {
   })
 }
 
+// GET lokasi acara yang sedang aktif hari ini (untuk validasi absensi)
+export async function getActiveEventForToday() {
+  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+  return prisma.lokasiAbsensi.findMany({
+    where: {
+      tipe: "acara",
+      aktif: true,
+      wajibHadir: true,
+      tanggalMulai: { lte: today },
+      tanggalSelesai: { gte: today }
+    }
+  })
+}
+
 // CREATE lokasi baru
 export async function createLokasi(data: {
   nama: string
@@ -22,6 +36,7 @@ export async function createLokasi(data: {
   tanggalMulai?: string | null
   tanggalSelesai?: string | null
   wajibHadir?: boolean
+  targetPegawai?: string | null
   keterangan?: string | null
 }) {
   const result = await prisma.lokasiAbsensi.create({
@@ -36,6 +51,7 @@ export async function createLokasi(data: {
       tanggalMulai: data.tanggalMulai || null,
       tanggalSelesai: data.tanggalSelesai || null,
       wajibHadir: data.wajibHadir ?? false,
+      targetPegawai: data.wajibHadir ? (data.targetPegawai || "semua") : null,
       keterangan: data.keterangan || null,
     }
   })
@@ -55,6 +71,7 @@ export async function updateLokasi(id: string, data: {
   tanggalMulai?: string | null
   tanggalSelesai?: string | null
   wajibHadir?: boolean
+  targetPegawai?: string | null
   keterangan?: string | null
 }) {
   const result = await prisma.lokasiAbsensi.update({
@@ -70,6 +87,7 @@ export async function updateLokasi(id: string, data: {
       tanggalMulai: data.tanggalMulai || null,
       tanggalSelesai: data.tanggalSelesai || null,
       wajibHadir: data.wajibHadir ?? false,
+      targetPegawai: data.wajibHadir ? (data.targetPegawai || "semua") : null,
       keterangan: data.keterangan || null,
     }
   })

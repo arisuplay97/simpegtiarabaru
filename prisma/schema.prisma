@@ -317,6 +317,7 @@ model LokasiAbsensi {
   tanggalMulai    String?   // YYYY-MM-DD, khusus acara
   tanggalSelesai  String?   // YYYY-MM-DD, khusus acara
   wajibHadir      Boolean   @default(false)
+  targetPegawai   String?   // "pusat" | "cabang" | "semua" — khusus acara wajib hadir
   keterangan      String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
