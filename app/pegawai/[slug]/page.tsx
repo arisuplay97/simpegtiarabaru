@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -66,8 +67,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { useParams } from "next/navigation"
-import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai } from "@/lib/actions/pegawai"
+import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai, updateBebasAbsensi, updateLokasiPegawai } from "@/lib/actions/pegawai"
 import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
 import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
@@ -171,6 +173,7 @@ function F({ label, children, error }: { label: string, children: React.ReactNod
 
 export default function EmployeeDetailPage() {
   const params = useParams()
+  const { data: session } = useSession()
   const slug = params.slug as string
   const id = slug
   const [activeTab, setActiveTab] = useState("profil")
@@ -181,13 +184,25 @@ export default function EmployeeDetailPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const [employee, setEmployee] = useState<any>(null)
+  const [lokasiList, setLokasiList] = useState<any[]>([])
   const [formData, setFormData] = useState<any>({})
 
   useEffect(() => {
     if (id) {
       fetchEmployee()
+      fetchLokasi()
     }
   }, [id])
+
+  const fetchLokasi = async () => {
+    try {
+      const res = await fetch("/api/lokasi")
+      if (res.ok) {
+        const data = await res.json()
+        setLokasiList(data)
+      }
+    } catch (e) {}
+  }
 
   const fetchEmployee = async () => {
     setIsLoading(true)
@@ -649,6 +664,77 @@ export default function EmployeeDetailPage() {
                         <p className="font-mono font-medium">{employee.bpjsKetenagakerjaan}</p>
                       </div>
                     </div>
+
+                    {/* ============ REVISI ABSENSI: FITUR 2 & 3 ============ */}
+                    {(session?.user as any)?.role === "SUPERADMIN" && (
+                      <div className="mt-6 space-y-4 border-t pt-6">
+                        <div className="rounded-lg border border-orange-200 bg-orange-50/50 p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-orange-800 flex items-center gap-2">
+                                <Shield className="h-4 w-4" />
+                                🔓 Absensi Bebas Lokasi
+                              </p>
+                              <p className="text-[11px] text-orange-700 mt-1 leading-relaxed">
+                                Pegawai ini bisa absen dari lokasi manapun tanpa validasi GPS.
+                                Gunakan hanya untuk pegawai yang sering bertugas di luar area.
+                              </p>
+                            </div>
+                            <Switch
+                              checked={employee.bebasAbsensi || false}
+                              onCheckedChange={async (checked) => {
+                                try {
+                                  await updateBebasAbsensi(employee.id, checked)
+                                  setEmployee((prev: any) => ({ ...prev, bebasAbsensi: checked }))
+                                  toast.success(checked ? "Absensi bebas lokasi diaktifkan" : "Absensi bebas lokasi dinonaktifkan")
+                                } catch (e: any) {
+                                  toast.error(e.message)
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {!employee.bebasAbsensi && (
+                          <div className="rounded-lg border p-4 bg-background">
+                            <div className="mb-3">
+                              <p className="text-sm font-semibold flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-primary" />
+                                📍 Binding Lokasi Absensi
+                              </p>
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                Batasi pegawai ini agar hanya bisa absen di satu lokasi tertentu.
+                              </p>
+                            </div>
+                            <Select
+                              value={employee.lokasiAbsensiId || "semua"}
+                              onValueChange={async (val) => {
+                                try {
+                                  const lokasiId = val === "semua" ? null : val
+                                  await updateLokasiPegawai(employee.id, lokasiId)
+                                  setEmployee((prev: any) => ({ ...prev, lokasiAbsensiId: lokasiId }))
+                                  toast.success("Lokasi absensi berhasil diperbarui")
+                                } catch (e: any) {
+                                  toast.error(e.message)
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-full text-xs h-9">
+                                <SelectValue placeholder="Pilih Lokasi..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="semua">🌐 Semua Lokasi Aktif (Default)</SelectItem>
+                                {lokasiList.map((l: any) => (
+                                  <SelectItem key={l.id} value={l.id}>
+                                    {l.tipe === "kantor_pusat" ? "🏢" : "🏬"} {l.nama}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { put, del } from "@vercel/blob"
+import { auth } from "@/lib/auth"
 import bcrypt from "bcryptjs"
 
 // Helper: map lowercase tipeJabatan to DB enum
@@ -181,6 +182,8 @@ export async function createEmployee(data: any, fotoFile?: File) {
   optionalStr("bpjsKesehatan", data.bpjsKesehatan)
   optionalStr("bpjsKetenagakerjaan", data.bpjsKetenagakerjaan)
 
+  console.log("INVOKING PEGAWAI.CREATE WITH PAYLOAD:", JSON.stringify(payload, null, 2))
+
   const employee = await prisma.pegawai.create({
     data: payload,
   })
@@ -188,6 +191,7 @@ export async function createEmployee(data: any, fotoFile?: File) {
   revalidatePath("/pegawai")
   return employee
   } catch (error: any) {
+    console.error("PRISMA CREATE ERROR:", error)
     if (error.code === 'P2002') {
       return { error: "NIK atau Email sudah terdaftar dalam sistem." }
     }
@@ -290,7 +294,7 @@ export async function deleteEmployee(id: string) {
     prisma.pegawaiPangkat.deleteMany({ where: { pegawaiId: id } }),
     prisma.pegawaiPelatihan.deleteMany({ where: { pegawaiId: id } }),
     prisma.pegawaiDokumen.deleteMany({ where: { pegawaiId: id } }),
-    prisma.kGB.deleteMany({ where: { pegawaiId: id } }),
+    prisma.kgb.deleteMany({ where: { pegawaiId: id } }),
     prisma.kenaikanPangkat.deleteMany({ where: { pegawaiId: id } }),
     prisma.suratPeringatan.deleteMany({ where: { pegawaiId: id } }),
     prisma.pegawai.delete({ where: { id } }),
@@ -518,4 +522,36 @@ export async function uploadAvatar(formData: FormData) {
 
   revalidatePath("/pegawai/profil")
   return blob.url
+}
+
+// ============ REVISI ABSENSI: FITUR 2 & 3 ============
+
+// Update toggle bebas absensi (superadmin only)
+export async function updateBebasAbsensi(pegawaiId: string, bebasAbsensi: boolean) {
+  const session = await auth()
+  if ((session?.user as any)?.role !== "SUPERADMIN") {
+    throw new Error("Hanya Superadmin yang bisa mengubah pengaturan ini")
+  }
+  
+  await prisma.pegawai.update({
+    where: { id: pegawaiId },
+    data: { bebasAbsensi }
+  })
+  
+  revalidatePath(`/pegawai`)
+}
+
+// Update lokasi absensi pegawai (superadmin only)
+export async function updateLokasiPegawai(pegawaiId: string, lokasiId: string | null) {
+  const session = await auth()
+  if ((session?.user as any)?.role !== "SUPERADMIN") {
+    throw new Error("Hanya Superadmin yang bisa mengubah pengaturan ini")
+  }
+  
+  await prisma.pegawai.update({
+    where: { id: pegawaiId },
+    data: { lokasiAbsensiId: lokasiId }
+  })
+  
+  revalidatePath(`/pegawai`)
 }

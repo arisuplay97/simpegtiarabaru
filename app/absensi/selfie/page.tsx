@@ -97,16 +97,25 @@ export default function SelfieAttendancePage() {
       localStorage.setItem("tris_device_id", deviceId)
     }
 
-    // 2. Fetch lokasi dari database, lalu cek GPS
+    // 2. Fetch status absensi & lokasi dari database, lalu cek GPS
     const run = async () => {
       try {
+        const statusRes = await getStatusAbsensiHariIni()
         const dbLokasi = await getLokasiList()
+        
+        // Simpan data pegawai ke state agar sinkron
+        if (statusRes) {
+          setPegawaiData(statusRes.pegawai)
+          setAbsensiData(statusRes.absensi)
+          setShiftData(statusRes.shift)
+        }
+
         // Map ke tipe LokasiAbsensi
         const lokasiList: LokasiAbsensi[] = dbLokasi.map((l: any) => ({
           id: l.id,
           nama: l.nama,
           tipe: l.tipe as any,
-          alamat: l.alamat,
+          alamat: l.alamat || "",
           latitude: l.latitude,
           longitude: l.longitude,
           radius: l.radius,
@@ -138,21 +147,61 @@ export default function SelfieAttendancePage() {
           return
         }
 
+        // Jika BEBAS ABSENSI aktif, langsung set valid
+        if (statusRes?.pegawai?.bebasAbsensi) {
+          setGpsStatus("valid")
+          setLokasiValid({
+            id: "bebas",
+            nama: "Bebas Lokasi (Akses Khusus)",
+            tipe: "kantor_pusat",
+            alamat: "Akses Global",
+            latitude: 0,
+            longitude: 0,
+            radius: 999999,
+            aktif: true
+          })
+          return
+        }
+
+        // Jika ada LOKASI TERIKAT (Binding)
+        let lokasiFilter = lokasiUntukCek
+        if (statusRes?.pegawai?.lokasiAbsensi) {
+          lokasiFilter = [statusRes.pegawai.lokasiAbsensi as any]
+          toast.info(`Lokasi Terikat: ${statusRes.pegawai.lokasiAbsensi.nama}`)
+        }
+
         navigator.geolocation.getCurrentPosition(
           (pos) => {
+            const lat = pos.coords.latitude
+            const lng = pos.coords.longitude
             setGpsAccuracy(Math.round(pos.coords.accuracy))
-            const hasil = cekDalamRadius(pos.coords.latitude, pos.coords.longitude, lokasiUntukCek)
+            const hasil = cekDalamRadius(lat, lng, lokasiFilter)
+            
             if (hasil.valid) {
               setGpsStatus("valid")
               setLokasiValid(hasil.lokasi ?? null)
               setJarakMeter(hasil.jarak ?? null)
+              toast.success(`Lokasi Terdeteksi: ${hasil.lokasi?.nama} (${hasil.jarak}m)`)
             } else {
               setGpsStatus("invalid")
               setLokasiValid(null)
+              // DEBUG INFO UNTUK USER
+              if (lokasiFilter.length > 0) {
+                const distances = lokasiFilter.map(l => ({
+                   nama: l.nama,
+                   jarak: Math.round(hitungJarak(lat, lng, l.latitude, l.longitude))
+                })).sort((a, b) => a.jarak - b.jarak)
+                const terdekat = distances[0]
+                setJarakMeter(terdekat.jarak)
+                toast.error(`Di luar area. Terdekat: ${terdekat.nama} (${terdekat.jarak}m).`, { duration: 10000 })
+              }
             }
           },
-          () => setGpsStatus("invalid"),
-          { enableHighAccuracy: true, timeout: 10000 }
+          () => {
+            setGpsStatus("invalid")
+            toast.error("Gagal mendapatkan posisi GPS. Pastikan GPS aktif dan izin diberikan.")
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         )
       } catch {
         setGpsStatus("invalid")

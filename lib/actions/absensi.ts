@@ -19,24 +19,23 @@ function getTodayRange(date?: Date) {
 export async function checkDeviceAndAbsen(
   checkType: "checkin" | "checkout",
   clientDeviceId: string,
-  photoDataUrl: string, 
+  photoDataUrl: string,
   jarakMeter: number | null
 ) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
-      return { error: "Anda belum login." }
-    }
+    if (!session?.user?.id) return { error: "Anda belum login." }
 
     const pegawai = await prisma.pegawai.findUnique({
-      where: { userId: session.user.id }
+      where: { userId: session.user.id },
+      include: { lokasiAbsensi: true }
     })
 
-    if (!pegawai) {
-      return { error: "Profil Pegawai tidak ditemukan. Hubungi HRD." }
-    }
+    if (!pegawai) return { error: "Profil Pegawai tidak ditemukan. Hubungi HRD." }
 
-    // 1. DEVICE BINDING LOGIC
+    // =============================================
+    // FITUR 2: BEBAS ABSENSI & DEVICE BINDING
+    // =============================================
     let currentDeviceId = pegawai.deviceId
     if (!currentDeviceId) {
       await prisma.pegawai.update({
@@ -46,15 +45,42 @@ export async function checkDeviceAndAbsen(
       currentDeviceId = clientDeviceId
     }
 
-    if (currentDeviceId !== clientDeviceId) {
-      return { 
-        error: "PERANGKAT TIDAK DIKENALI! Anda hanya bisa melakukan absensi dari perangkat utama (Ponsel) Anda sendiri. Titip absen melalui perangkat rekan dilarang keras." 
+    if (currentDeviceId !== clientDeviceId && !pegawai.bebasAbsensi) {
+      return {
+        error: "PERANGKAT TIDAK DIKENALI! Anda hanya bisa absen dari perangkat utama Anda."
       }
     }
 
-    // 2. ABSENSI LOGIC
+    // =============================================
+    // FITUR 3: VALIDASI LOKASI PER PEGAWAI
+    // =============================================
+    if (!pegawai.bebasAbsensi) {
+      if (jarakMeter === null || jarakMeter === undefined) {
+        return { error: "Anda berada di luar area absensi atau GPS tidak aktif." }
+      }
+      
+      // Jarak maksimal yang diizinkan (default 100m)
+      const maxRadius = pegawai.lokasiAbsensi?.radius || 100
+      if (jarakMeter > maxRadius) {
+         return { error: `Anda berada di luar radius absensi (${jarakMeter}m > ${maxRadius}m).` }
+      }
+    }
+
+    // =============================================
+    // AMBIL PENGATURAN JAM
+    // =============================================
+    const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+    
+    const jamMasukSetting  = pengaturan?.jamMasuk    || "08:00"
+    const jamPulangSetting = pengaturan?.jamPulang   || "17:00"
+    const batasCheckin     = pengaturan?.batasCheckin || "16:00"
+    const batasTerlambat   = pengaturan?.batasTerlambat || 15
+
     const { startOfDay, endOfDay, now } = getTodayRange()
 
+    // =============================================
+    // CEK ABSENSI HARI INI
+    // =============================================
     const absensiHariIni = await prisma.absensi.findFirst({
       where: {
         pegawaiId: pegawai.id,
@@ -62,23 +88,31 @@ export async function checkDeviceAndAbsen(
       }
     })
 
+    // =============================================
+    // PROSES CHECKIN
+    // =============================================
     if (checkType === "checkin") {
       if (absensiHariIni && absensiHariIni.jamMasuk) {
         return { error: "Anda sudah melakukan Check-in hari ini." }
       }
 
-      const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
-      let statusAbsensi: any = "HADIR"
+      // FITUR 1: BATAS JAM CHECKIN
+      const [batasJam, batasMenit] = batasCheckin.split(":").map(Number)
+      const batasCheckinTime = new Date(now)
+      batasCheckinTime.setHours(batasJam, batasMenit, 0, 0)
 
-      if (pengaturan && pengaturan.jamMasuk) {
-        const [jam, menit] = pengaturan.jamMasuk.split(":").map(Number)
-        const batasTerlambatTime = new Date(now)
-        batasTerlambatTime.setHours(jam, menit + (pengaturan.batasTerlambat || 0), 0, 0)
-
-        if (now > batasTerlambatTime) {
-          statusAbsensi = "TERLAMBAT"
+      if (now > batasCheckinTime) {
+        return {
+          error: `Sudah melewati batas waktu check-in (${batasCheckin}). Silakan absen besok hari kerja.`
         }
       }
+
+      // Hitung status: HADIR atau TERLAMBAT
+      const [jamMasukH, jamMasukM] = jamMasukSetting.split(":").map(Number)
+      const batasTerlambatTime = new Date(now)
+      batasTerlambatTime.setHours(jamMasukH, jamMasukM + batasTerlambat, 0, 0)
+
+      const statusAbsensi = now > batasTerlambatTime ? "TERLAMBAT" : "HADIR"
 
       await prisma.absensi.create({
         data: {
@@ -88,41 +122,43 @@ export async function checkDeviceAndAbsen(
           jamMasuk: now,
         }
       })
-      return { success: `Check-in berhasil disimpan! Status: ${statusAbsensi}` }
-      
+
+      const pesanTerlambat = statusAbsensi === "TERLAMBAT"
+        ? ` (Terlambat ${Math.round((now.getTime() - batasTerlambatTime.getTime()) / 60000)} menit)`
+        : ""
+
+      return { success: `Check-in berhasil! Status: ${statusAbsensi}${pesanTerlambat}` }
+
+    // =============================================
+    // PROSES CHECKOUT
+    // =============================================
     } else if (checkType === "checkout") {
       if (!absensiHariIni) {
-        return { error: "Anda belum melakukan Check-in hari ini, tidak bisa Check-out." }
+        return { error: "Anda belum melakukan Check-in hari ini." }
       }
       if (absensiHariIni.jamKeluar) {
         return { error: "Anda sudah melakukan Check-out hari ini." }
       }
 
-      // Validasi jam minimum checkout dari Pengaturan (default 16:00)
-      const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
-      const jamKeluarConfig = pengaturan?.jamPulang || "16:00"
-      const [jamMin, menitMin] = jamKeluarConfig.split(":").map(Number)
+      // Tetap gunakan validasi jam pulang minimal jika ada
+      const [jamMin, menitMin] = jamPulangSetting.split(":").map(Number)
       const batasMinCheckout = new Date(now)
       batasMinCheckout.setHours(jamMin, menitMin, 0, 0)
 
       if (now < batasMinCheckout) {
-        const sisaMenit = Math.ceil((batasMinCheckout.getTime() - now.getTime()) / 60000)
-        const sisaJam = Math.floor(sisaMenit / 60)
-        const sisaMenitSisa = sisaMenit % 60
-        const sisaText = sisaJam > 0 ? `${sisaJam} jam ${sisaMenitSisa} menit` : `${sisaMenit} menit`
-        return {
-          error: `Check-out belum diizinkan. Anda baru bisa checkout pukul ${jamKeluarConfig} (${sisaText} lagi).`
-        }
+        return { error: `Check-out belum diizinkan. Anda baru bisa checkout pukul ${jamPulangSetting}.` }
       }
 
       await prisma.absensi.update({
         where: { id: absensiHariIni.id },
         data: { jamKeluar: now }
       })
-      return { success: "Check-out berhasil disimpan ke sistem!" }
+
+      return { success: "Check-out berhasil disimpan!" }
     }
 
     return { error: "Aksi tidak valid" }
+
   } catch (error: any) {
     console.error("Absen error:", error)
     return { error: `Sistem gagal merekam absensi: ${error.message}` }
@@ -211,7 +247,15 @@ export async function getStatusAbsensiHariIni() {
         id: pegawai.id,
         nama: pegawai.nama,
         jabatan: pegawai.jabatan,
-        unit: pegawai.bidang?.nama || "Umum"
+        unit: pegawai.bidang?.nama || "Umum",
+        bebasAbsensi: pegawai.bebasAbsensi,
+        lokasiAbsensi: pegawai.lokasiAbsensi ? {
+          id: pegawai.lokasiAbsensi.id,
+          nama: pegawai.lokasiAbsensi.nama,
+          latitude: pegawai.lokasiAbsensi.latitude,
+          longitude: pegawai.lokasiAbsensi.longitude,
+          radius: pegawai.lokasiAbsensi.radius,
+        } : null
       },
       absensi: absensiHariIni ? {
         id: absensiHariIni.id,
@@ -222,6 +266,7 @@ export async function getStatusAbsensiHariIni() {
       shift: {
         jamMasuk: pengaturan?.jamMasuk || "08:00",
         jamKeluar: pengaturan?.jamPulang || "17:00",
+        batasCheckin: pengaturan?.batasCheckin || "16:00",
       }
     }
   } catch (e) {

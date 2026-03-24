@@ -75,6 +75,11 @@ model Pegawai {
   sp                    StatusSP?
   tanggalMasuk          DateTime
 
+  // Toggle bebas absensi & Binding lokasi
+  bebasAbsensi          Boolean   @default(false)
+  lokasiAbsensiId       String?
+  lokasiAbsensi         LokasiAbsensi? @relation(fields: [lokasiAbsensiId], references: [id])
+
   // Data Pribadi
   jenisKelamin          JenisKelamin?
   tempatLahir           String?
@@ -319,6 +324,9 @@ model LokasiAbsensi {
   wajibHadir      Boolean   @default(false)
   targetPegawai   String?   // "pusat" | "cabang" | "semua" — khusus acara wajib hadir
   keterangan      String?
+  
+  pegawai         Pegawai[] // Relasi balik untuk binding lokasi
+  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -330,6 +338,7 @@ model Pengaturan {
   // Absensi
   jamMasuk          String   @default("08:00")
   jamPulang         String   @default("17:00")
+  batasCheckin      String   @default("16:00")
   batasTerlambat    Int      @default(15)
   lokasiPusat       String?
   

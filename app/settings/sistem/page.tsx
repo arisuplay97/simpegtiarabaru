@@ -141,11 +141,26 @@ export default function PengaturanSistemPage() {
                       <Input type="time" id="jamPulang" name="jamPulang" value={formData.jamPulang || ""} onChange={handleChange} />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="batasTerlambat">Batas Terlambat (Menit)</Label>
-                    <Input type="number" id="batasTerlambat" name="batasTerlambat" value={formData.batasTerlambat} onChange={handleChange} />
-                    <p className="text-xs text-muted-foreground">Lebih dari menit ini akan dihitung terlambat.</p>
+                  <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+                    <div className="space-y-2">
+                       <Label htmlFor="batasCheckin" className="flex items-center gap-2">
+                         <Clock className="h-4 w-4 text-amber-500" />
+                         Batas Maksimal Check-in
+                       </Label>
+                       <Input 
+                         type="time" 
+                         id="batasCheckin" 
+                         name="batasCheckin" 
+                         value={formData.batasCheckin || "16:00"} 
+                         onChange={handleChange} 
+                         className="w-full sm:w-40"
+                       />
+                       <p className="text-xs text-muted-foreground italic">
+                         Pegawai tidak bisa check-in setelah jam ini. Contoh: jika diset 16:00, absen jam 16:01 akan ditolak.
+                       </p>
+                    </div>
                   </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="lokasiPusat">Titik Ordinat Koordinat Pusat (Opsional)</Label>
                     <Input id="lokasiPusat" name="lokasiPusat" value={formData.lokasiPusat || ""} onChange={handleChange} placeholder="-6.200000, 106.816666" />
