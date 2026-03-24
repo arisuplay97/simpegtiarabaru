@@ -10,13 +10,13 @@ export async function getPengaturan() {
     if (!session?.user) return { error: "Belum login" }
 
     // Selalu gunakan ID "1" untuk pengaturan global
-    let pengaturan = await prisma.pengaturan.findUnique({
+    let pengaturan = await (prisma as any).pengaturan.findUnique({
       where: { id: "1" }
     })
 
     // Jika belum ada, buat default
     if (!pengaturan) {
-      pengaturan = await prisma.pengaturan.create({
+      pengaturan = await (prisma as any).pengaturan.create({
         data: { id: "1" }
       })
     }

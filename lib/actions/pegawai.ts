@@ -281,23 +281,23 @@ export async function deleteEmployee(id: string) {
   }
 
   // Karena tidak ada onDelete: Cascade di schema, kita harus hapus manual relasinya
-  await prisma.$transaction([
-    prisma.absensi.deleteMany({ where: { pegawaiId: id } }),
-    prisma.mutasi.deleteMany({ where: { pegawaiId: id } }),
-    prisma.cuti.deleteMany({ where: { pegawaiId: id } }),
-    prisma.payroll.deleteMany({ where: { pegawaiId: id } }),
-    prisma.kPI.deleteMany({ where: { pegawaiId: id } }),
-    prisma.slipGaji.deleteMany({ where: { pegawaiId: id } }),
-    prisma.pegawaiKeluarga.deleteMany({ where: { pegawaiId: id } }),
-    prisma.pegawaiPendidikan.deleteMany({ where: { pegawaiId: id } }),
-    prisma.pegawaiJabatan.deleteMany({ where: { pegawaiId: id } }),
-    prisma.pegawaiPangkat.deleteMany({ where: { pegawaiId: id } }),
-    prisma.pegawaiPelatihan.deleteMany({ where: { pegawaiId: id } }),
-    prisma.pegawaiDokumen.deleteMany({ where: { pegawaiId: id } }),
-    prisma.kgb.deleteMany({ where: { pegawaiId: id } }),
-    prisma.kenaikanPangkat.deleteMany({ where: { pegawaiId: id } }),
-    prisma.suratPeringatan.deleteMany({ where: { pegawaiId: id } }),
-    prisma.pegawai.delete({ where: { id } }),
+  await (prisma as any).$transaction([
+    (prisma as any).absensi.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).mutasi.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).cuti.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).payroll.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).kPI.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).slipGaji.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).pegawaiKeluarga.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).pegawaiPendidikan.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).pegawaiJabatan.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).pegawaiPangkat.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).pegawaiPelatihan.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).pegawaiDokumen.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).kgb.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).kenaikanPangkat.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).suratPeringatan.deleteMany({ where: { pegawaiId: id } }),
+    (prisma as any).pegawai.delete({ where: { id } }),
   ])
   
   if (pegawai?.userId) {
