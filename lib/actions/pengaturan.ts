@@ -38,9 +38,9 @@ export async function updatePengaturan(payload: any) {
     // Pastikan ID selalu "1"
     const { id, createdAt, updatedAt, ...updateData } = payload
 
-    const updated = await prisma.pengaturan.update({
+    const updated = await (prisma as any).pengaturan.update({
       where: { id: "1" },
-      data: updateData
+      data: updateData as any
     })
 
     revalidatePath("/settings")

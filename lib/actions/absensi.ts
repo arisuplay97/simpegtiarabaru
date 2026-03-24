@@ -28,7 +28,7 @@ export async function checkDeviceAndAbsen(
 
     const pegawai = await prisma.pegawai.findUnique({
       where: { userId: session.user.id },
-      include: { lokasiAbsensi: true }
+      include: { lokasiAbsensi: true } as any
     })
 
     if (!pegawai) return { error: "Profil Pegawai tidak ditemukan. Hubungi HRD." }
@@ -45,7 +45,7 @@ export async function checkDeviceAndAbsen(
       currentDeviceId = clientDeviceId
     }
 
-    if (currentDeviceId !== clientDeviceId && !pegawai.bebasAbsensi) {
+    if (currentDeviceId !== clientDeviceId && !(pegawai as any).bebasAbsensi) {
       return {
         error: "PERANGKAT TIDAK DIKENALI! Anda hanya bisa absen dari perangkat utama Anda."
       }
@@ -54,13 +54,13 @@ export async function checkDeviceAndAbsen(
     // =============================================
     // FITUR 3: VALIDASI LOKASI PER PEGAWAI
     // =============================================
-    if (!pegawai.bebasAbsensi) {
+    if (!(pegawai as any).bebasAbsensi) {
       if (jarakMeter === null || jarakMeter === undefined) {
         return { error: "Anda berada di luar area absensi atau GPS tidak aktif." }
       }
       
       // Jarak maksimal yang diizinkan (default 100m)
-      const maxRadius = pegawai.lokasiAbsensi?.radius || 100
+      const maxRadius = (pegawai as any).lokasiAbsensi?.radius || 100
       if (jarakMeter > maxRadius) {
          return { error: `Anda berada di luar radius absensi (${jarakMeter}m > ${maxRadius}m).` }
       }
@@ -69,11 +69,11 @@ export async function checkDeviceAndAbsen(
     // =============================================
     // AMBIL PENGATURAN JAM
     // =============================================
-    const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+    const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
     
     const jamMasukSetting  = pengaturan?.jamMasuk    || "08:00"
     const jamPulangSetting = pengaturan?.jamPulang   || "17:00"
-    const batasCheckin     = pengaturan?.batasCheckin || "16:00"
+    const batasCheckin     = (pengaturan as any)?.batasCheckin || "16:00"
     const batasTerlambat   = pengaturan?.batasTerlambat || 15
 
     const { startOfDay, endOfDay, now } = getTodayRange()
@@ -240,7 +240,7 @@ export async function getStatusAbsensiHariIni() {
     })
 
     // Ambil jam kerja dari pengaturan
-    const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+    const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
 
     return {
       pegawai: {
@@ -248,13 +248,13 @@ export async function getStatusAbsensiHariIni() {
         nama: pegawai.nama,
         jabatan: pegawai.jabatan,
         unit: pegawai.bidang?.nama || "Umum",
-        bebasAbsensi: pegawai.bebasAbsensi,
-        lokasiAbsensi: pegawai.lokasiAbsensi ? {
-          id: pegawai.lokasiAbsensi.id,
-          nama: pegawai.lokasiAbsensi.nama,
-          latitude: pegawai.lokasiAbsensi.latitude,
-          longitude: pegawai.lokasiAbsensi.longitude,
-          radius: pegawai.lokasiAbsensi.radius,
+        bebasAbsensi: (pegawai as any).bebasAbsensi,
+        lokasiAbsensi: (pegawai as any).lokasiAbsensi ? {
+          id: (pegawai as any).lokasiAbsensi.id,
+          nama: (pegawai as any).lokasiAbsensi.nama,
+          latitude: (pegawai as any).lokasiAbsensi.latitude,
+          longitude: (pegawai as any).lokasiAbsensi.longitude,
+          radius: (pegawai as any).lokasiAbsensi.radius,
         } : null
       },
       absensi: absensiHariIni ? {

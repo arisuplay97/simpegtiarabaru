@@ -535,7 +535,7 @@ export async function updateBebasAbsensi(pegawaiId: string, bebasAbsensi: boolea
   
   await prisma.pegawai.update({
     where: { id: pegawaiId },
-    data: { bebasAbsensi }
+    data: { bebasAbsensi } as any
   })
   
   revalidatePath(`/pegawai`)
@@ -550,7 +550,7 @@ export async function updateLokasiPegawai(pegawaiId: string, lokasiId: string | 
   
   await prisma.pegawai.update({
     where: { id: pegawaiId },
-    data: { lokasiAbsensiId: lokasiId }
+    data: { lokasiAbsensiId: lokasiId } as any
   })
   
   revalidatePath(`/pegawai`)
