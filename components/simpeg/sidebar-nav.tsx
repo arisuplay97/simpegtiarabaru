@@ -13,7 +13,7 @@ import {
   Navigation, Wallet, Receipt, ArrowUpCircle, Target, Star,
   FolderOpen, FileSignature, ShieldCheck, UserCog, Bell,
   CheckSquare, BarChart3, AlertTriangle, ChevronDown, ChevronRight,
-  ChevronLeft, LogOut, X, Menu, Settings
+  ChevronLeft, LogOut, X, Menu, Settings, Upload, Shield
 } from "lucide-react"
 
 type NavItem = {
@@ -57,12 +57,15 @@ const navigation: NavGroup[] = [
       { title: "Cuti & Izin", href: "/cuti", icon: CalendarDays },
       { title: "Koreksi Absensi", href: "/absensi/koreksi", icon: FileCheck, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Lokasi Absensi", href: "/settings/lokasi", icon: Navigation, allowedRoles: ["super_admin", "hrd"] },
+      { title: "Shift & Lembur", href: "/shift", icon: Clock, allowedRoles: ["super_admin", "hrd"] },
+      { title: "Import Fingerprint", href: "/absensi/import-fingerprint", icon: Upload, allowedRoles: ["super_admin", "hrd"] },
     ],
   },
   {
     label: "Remunerasi",
     items: [
       { title: "Payroll", href: "/payroll", icon: Wallet, allowedRoles: ["super_admin", "hrd"] },
+      { title: "PPh 21", href: "/pph21", icon: Receipt, allowedRoles: ["super_admin", "hrd"] },
       { title: "Slip Gaji", href: "/slip-gaji", icon: Receipt },
       { title: "Kenaikan Gaji Berkala", href: "/kgb", icon: ArrowUpCircle, allowedRoles: ["super_admin", "hrd", "direktur"] },
     ],
@@ -89,6 +92,7 @@ const navigation: NavGroup[] = [
       { title: "Kelola Bidang", href: "/settings/bidang", icon: Building2, allowedRoles: ["super_admin"] },
       { title: "User Management", href: "/settings/users", icon: UserCog, allowedRoles: ["super_admin", "hrd"] },
       { title: "Role & Permission", href: "/settings/role", icon: ShieldCheck, allowedRoles: ["super_admin", "hrd"] },
+      { title: "Audit Log", href: "/audit-log", icon: Shield, allowedRoles: ["super_admin"] },
     ],
   },
 ]

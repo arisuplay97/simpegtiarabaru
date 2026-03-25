@@ -7,6 +7,7 @@ import { put, del } from "@vercel/blob"
 import { auth } from "@/lib/auth"
 import bcrypt from "bcryptjs"
 import { getAtasanOtomatis, parseTipeJabatan } from "@/lib/data/bidang-store"
+import { logAudit } from "./audit-log"
 
 // Helper: map lowercase tipeJabatan to DB enum
 const mapTipeJabatan = (val: string): string => {
@@ -198,6 +199,14 @@ export async function createEmployee(data: any, fotoFile?: File) {
     data: payload,
   })
 
+  await logAudit({
+    action: "CREATE",
+    module: "pegawai",
+    targetId: employee.id,
+    targetName: employee.nama,
+    newData: employee as any,
+  })
+
   revalidatePath("/pegawai")
   return employee
   } catch (error: any) {
@@ -211,13 +220,14 @@ export async function createEmployee(data: any, fotoFile?: File) {
 
 export async function updateEmployee(id: string, data: any, fotoFile?: File) {
   try {
+  // Get existing data for Audit Log
+  const oldData = await prisma.pegawai.findUnique({ where: { id } })
+
   // Upload foto baru jika ada
   let fotoUrl: string | undefined
   if (fotoFile && fotoFile.size > 0) {
-    // Hapus foto lama jika ada
-    const existing = await prisma.pegawai.findUnique({ where: { id }, select: { fotoUrl: true } })
-    if (existing?.fotoUrl) {
-      try { await del(existing.fotoUrl) } catch {}
+    if (oldData?.fotoUrl) {
+      try { await del(oldData.fotoUrl) } catch {}
     }
     const blob = await put(`pegawai/${data.nik}-${Date.now()}.${fotoFile.name.split(".").pop()}`, fotoFile, {
       access: "public",
@@ -269,6 +279,16 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
 
   revalidatePath("/pegawai")
   revalidatePath(`/pegawai/${id}`)
+
+  await logAudit({
+    action: "UPDATE",
+    module: "pegawai",
+    targetId: id,
+    targetName: employee.nama,
+    oldData: oldData as any,
+    newData: employee as any,
+  })
+
   return employee
   } catch (error: any) {
     if (error.code === 'P2002') {
@@ -282,11 +302,13 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
 export async function deleteEmployee(id: string) {
   const pegawai = await prisma.pegawai.findUnique({
     where: { id },
-    select: { fotoUrl: true, userId: true },
+    include: { user: true }
   })
 
+  if (!pegawai) return
+
   // Hapus foto dari Blob
-  if (pegawai?.fotoUrl) {
+  if (pegawai.fotoUrl) {
     try { await del(pegawai.fotoUrl) } catch {}
   }
 
@@ -310,9 +332,17 @@ export async function deleteEmployee(id: string) {
     (prisma as any).pegawai.delete({ where: { id } }),
   ])
   
-  if (pegawai?.userId) {
+  if (pegawai.userId) {
     await prisma.user.delete({ where: { id: pegawai.userId } })
   }
+
+  await logAudit({
+    action: "DELETE",
+    module: "pegawai",
+    targetId: id,
+    targetName: pegawai.nama,
+    oldData: pegawai as any,
+  })
 
   revalidatePath("/pegawai")
 }

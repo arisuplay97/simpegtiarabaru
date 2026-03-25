@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { startOfMonth, endOfMonth, parse } from "date-fns"
+import { logAudit } from "./audit-log"
+import { prosesPPh21Batch } from "./pph21"
 
 // Helper to get month boundaries from a string like "2026-03" or "mar-2026"
 function getMonthBounds(periodStr: string) {
@@ -55,15 +57,22 @@ export async function getPayrollList(periodStr: string) {
     orderBy: { nama: 'asc' }
   })
 
-  // Format the response so the frontend receives a clean array
-  return pegawai.map(emp => {
-    // If they have a payroll record for this month, use it
+  // Format the response and include approved overtime (Lembur)
+  const results = await Promise.all(pegawai.map(async (emp) => {
     const pr = emp.payroll.length > 0 ? emp.payroll[0] : null
-
-    // Otherwise, generate a draft based on their base profile
     const baseGaji = Number(emp.gajiPokok || 0)
     const baseTunjangan = Number(emp.tunjangan || 0)
     const basePotongan = 0
+
+    const gajiPokok = pr ? Number(pr.gajiPokok) : baseGaji
+    const tunjangan = pr ? Number(pr.tunjangan) : baseTunjangan
+    const potongan = pr ? Number(pr.potongan) : basePotongan
+
+    // Fetch approved overtime pay for this employee in this month
+    const lemburApproved = await (prisma as any).lembur.findMany({
+      where: { pegawaiId: emp.id, status: "APPROVED", tanggal: { gte: start, lte: end } }
+    })
+    const lemburBayar = lemburApproved.reduce((s: number, l: any) => s + Number(l.totalBayar), 0)
 
     return {
       pegawaiId: emp.id,
@@ -72,18 +81,19 @@ export async function getPayrollList(periodStr: string) {
       unit: emp.bidang?.nama || "Umum",
       golongan: emp.golongan,
       
-      // If Payroll exists in DB, use it, else use base Profile data
-      gajiPokok: pr ? Number(pr.gajiPokok) : baseGaji,
-      tunjangan: pr ? Number(pr.tunjangan) : baseTunjangan,
-      potongan: pr ? Number(pr.potongan) : basePotongan,
-      lembur: 0, // In this version, lembur is part of tunjangan or calculated separately
+      gajiPokok,
+      tunjangan,
+      potongan,
+      lembur: lemburBayar,
       
-      gajiBersih: pr ? Number(pr.total) : (baseGaji + baseTunjangan - basePotongan),
-      status: pr ? "approved" : "draft", // "draft" means it hasn't been saved to Payroll table yet
+      gajiBersih: (pr ? Number(pr.total) : (gajiPokok + tunjangan - potongan)) + lemburBayar,
+      status: pr ? "approved" : "draft",
       
       payrollId: pr?.id
     }
-  })
+  }))
+
+  return results
 }
 
 // ============ UPSERT PAYROLL (Save Edit) ============
@@ -139,6 +149,14 @@ export async function savePayroll(data: {
       }
     })
 
+    await logAudit({
+      action: existing ? "UPDATE" : "CREATE",
+      module: "payroll",
+      targetId: data.pegawaiId,
+      targetName: `Payroll ${data.periodStr}`,
+      newData: { ...data, total } as any,
+    })
+
     revalidatePath("/payroll")
     return { success: true }
   } catch (error: any) {
@@ -183,6 +201,15 @@ export async function processAllPayroll(periodStr: string) {
       await prisma.payroll.createMany({
         data: batch
       })
+
+      await logAudit({
+        action: "CREATE",
+        module: "payroll",
+        targetName: `Process Batch Payroll ${periodStr} (${batch.length} pegawai)`,
+      })
+
+      // OTOMATIS: Hitung PPh 21 setelah payroll beres
+      await prosesPPh21Batch(periodStr)
     }
 
     revalidatePath("/payroll")
@@ -216,6 +243,12 @@ export async function getMyPayroll(periodStr: string) {
 
   if (!pegawai) return null
 
+  // Fetch approved overtime for this user
+  const lemburApproved = await (prisma as any).lembur.findMany({
+    where: { pegawaiId: pegawai.id, status: "APPROVED", tanggal: { gte: start, lte: end } }
+  })
+  const lemburBayar = lemburApproved.reduce((s: number, l: any) => s + Number(l.totalBayar), 0)
+
   const pr = pegawai.payroll.length > 0 ? pegawai.payroll[0] : null
   const baseGaji = Number(pegawai.gajiPokok || 0)
   const baseTunjangan = Number(pegawai.tunjangan || 0)
@@ -231,7 +264,8 @@ export async function getMyPayroll(periodStr: string) {
     gajiPokok: pr ? Number(pr.gajiPokok) : baseGaji,
     tunjangan: pr ? Number(pr.tunjangan) : baseTunjangan,
     potongan: pr ? Number(pr.potongan) : 0,
-    gajiBersih: pr ? Number(pr.total) : (baseGaji + baseTunjangan),
+    lembur: lemburBayar,
+    gajiBersih: (pr ? Number(pr.total) : (baseGaji + baseTunjangan)) + lemburBayar,
     status: pr ? "approved" : "draft",
     payrollId: pr?.id
   }

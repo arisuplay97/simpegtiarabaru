@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
+import { logAudit } from "./audit-log"
 
 export async function getCutiList() {
   try {
@@ -71,6 +72,15 @@ export async function createCuti(payload: any) {
         status: "PENDING"
       }
     })
+
+    await logAudit({
+      action: "CREATE",
+      module: "cuti",
+      targetId: newCuti.id,
+      targetName: `Pengajuan Cuti ${newCuti.jenisCuti}`,
+      newData: newCuti as any,
+    })
+    
 
     revalidatePath("/cuti")
     return { success: true, data: newCuti }
@@ -149,6 +159,14 @@ export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "
     const updatedCuti = await prisma.cuti.update({
       where: { id: cutiId },
       data: { status: newStatus }
+    })
+
+    await logAudit({
+      action: newStatus === "APPROVED" ? "APPROVE" : "REJECT",
+      module: "cuti",
+      targetId: cutiId,
+      targetName: `Status Cuti ${cuti.pegawai.nama}`,
+      newData: updatedCuti as any,
     })
 
     revalidatePath("/cuti")

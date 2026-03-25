@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { TipeMutasi, StatusMutasi } from "@prisma/client"
+import { logAudit } from "./audit-log"
 
 export async function getMutasiList() {
   const mutasiList = await prisma.mutasi.findMany({
@@ -57,7 +58,7 @@ export async function saveMutasi(data: {
     if (data.type === "demosi") mappedType = "DEMOSI"
     if (data.type === "rotasi") mappedType = "ROTASI"
 
-    await prisma.mutasi.create({
+    const result = await prisma.mutasi.create({
       data: {
         pegawaiId: pegawai.id,
         type: mappedType,
@@ -69,6 +70,14 @@ export async function saveMutasi(data: {
         tanggalEfektif: new Date(data.tanggalEfektif),
         status: "PENDING",
       }
+    })
+
+    await logAudit({
+      action: "CREATE",
+      module: "mutasi",
+      targetId: result.id,
+      targetName: `Mutasi ${pegawai.nama}`,
+      newData: result as any
     })
 
     revalidatePath("/mutasi")
@@ -113,6 +122,13 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
       }
     })
 
+    await logAudit({
+      action: isApprove ? "APPROVE" : "REJECT",
+      module: "mutasi",
+      targetId: id,
+      targetName: `Proses Mutasi ${id}`,
+    })
+
     revalidatePath("/mutasi")
     return { success: true }
   } catch (error: any) {
@@ -122,9 +138,19 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
 
 export async function deleteMutasi(id: string) {
   try {
+     const old = await prisma.mutasi.findUnique({ where: { id } })
      await prisma.mutasi.delete({
        where: { id }
      })
+
+     await logAudit({
+       action: "DELETE",
+       module: "mutasi",
+       targetId: id,
+       targetName: `Hapus Mutasi ${old?.pegawaiId || id}`,
+       oldData: old as any
+     })
+
      revalidatePath("/mutasi")
      return { success: true }
   } catch(error:any) {
