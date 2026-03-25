@@ -7,9 +7,7 @@ import { auth } from "@/lib/auth"
 import { logAudit } from "./audit-log"
 import { startOfMonth, endOfMonth } from "date-fns"
 
-// ============================================================
-// PTKP 2024 (Peraturan Menteri Keuangan terbaru)
-// ============================================================
+// PTKP 2024
 const PTKP: Record<string, number> = {
   "TK/0": 54_000_000,
   "TK/1": 58_500_000,
@@ -19,12 +17,9 @@ const PTKP: Record<string, number> = {
   "K/1":  63_000_000,
   "K/2":  67_500_000,
   "K/3":  72_000_000,
-  "HB/0": 112_500_000, // Kawin + istri berpenghasilan
+  "HB/0": 112_500_000, 
 }
 
-// ============================================================
-// Tarif PPh 21 Progresif (UU HPP 2021) — berlaku s.d. sekarang
-// ============================================================
 function hitungPPh21Progresif(pkp: number): number {
   let pajak = 0
   if (pkp <= 60_000_000)        { pajak = pkp * 0.05 }
@@ -35,9 +30,6 @@ function hitungPPh21Progresif(pkp: number): number {
   return Math.round(pajak)
 }
 
-// ============================================================
-// HITUNG PPh 21 satu pegawai untuk satu bulan
-// ============================================================
 export async function hitungPPh21Pegawai({
   gajiPokok,
   tunjangan,
@@ -55,35 +47,24 @@ export async function hitungPPh21Pegawai({
 }) {
   const penghasilanBrutoSebulan = gajiPokok + tunjangan + lemburBayar
   const penghasilanBrutoSetahun = penghasilanBrutoSebulan * 12
-
-  // Biaya jabatan: 5%, maks Rp 6.000.000/tahun
   const biayaJabatan = Math.min(penghasilanBrutoSetahun * 0.05, 6_000_000)
-
-  // Iuran pensiun pegawai (jika ada)
   const iuranSetahun = iuranPensiunEmp * 12
-
   const penghasilanNettoSetahun = penghasilanBrutoSetahun - biayaJabatan - iuranSetahun
-
   const ptkpNilai = PTKP[ptkpKode] ?? PTKP["TK/0"]
   const pkp = Math.max(0, Math.floor((penghasilanNettoSetahun - ptkpNilai) / 1000) * 1000)
-
   let pph21Setahun = hitungPPh21Progresif(pkp)
 
-  // Gross-up: naikkan gaji agar PPh 21 pas dibayar dari tambahan gaji
   if (metode === "GROSS_UP") {
-    // Iterasi pendekatan gross-up
     let grossUpAmount = pph21Setahun
     for (let i = 0; i < 5; i++) {
-      const newBruto = penghasilanBrutoSetahun + grossUpAmount
-      const newBiaya = Math.min(newBruto * 0.05, 6_000_000)
-      const newNetto = newBruto - newBiaya - iuranSetahun
-      const newPkp = Math.max(0, Math.floor((newNetto - ptkpNilai) / 1000) * 1000)
-      grossUpAmount = hitungPPh21Progresif(newPkp)
+        const newBruto = penghasilanBrutoSetahun + grossUpAmount
+        const newBiaya = Math.min(newBruto * 0.05, 6_000_000)
+        const newNetto = newBruto - newBiaya - iuranSetahun
+        const newPkp = Math.max(0, Math.floor((newNetto - ptkpNilai) / 1000) * 1000)
+        grossUpAmount = hitungPPh21Progresif(newPkp)
     }
     pph21Setahun = grossUpAmount
   }
-
-  const pph21Sebulan = Math.round(pph21Setahun / 12)
 
   return {
     penghasilanBruto: penghasilanBrutoSebulan,
@@ -94,52 +75,44 @@ export async function hitungPPh21Pegawai({
     ptkpNilai,
     pkp,
     pph21Setahun,
-    pph21Sebulan,
+    pph21Sebulan: Math.round(pph21Setahun / 12),
   }
 }
 
-// ============================================================
-// PROSES PPh 21 SELURUH PEGAWAI (batch per periode)
-// ============================================================
 export async function prosesPPh21Batch(periodStr: string) {
   const session = await auth()
   if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
     return { error: "Akses ditolak" }
   }
-
   const date = new Date(periodStr + "-01")
   const start = startOfMonth(date)
   const end = endOfMonth(date)
 
-  // Ambil semua pegawai aktif + data payroll bulan ini
   const pegawaiList = await prisma.pegawai.findMany({
     where: { status: "AKTIF" },
-    include: {
-      payroll: { where: { bulan: { gte: start, lte: end } } },
-    },
+    include: { payroll: { where: { bulan: { gte: start, lte: end } } } },
   })
 
   let berhasil = 0
   let gagal = 0
-  const errors: string[] = []
-
   for (const peg of pegawaiList) {
     try {
       const pr = peg.payroll[0]
       const gajiPokok = pr ? Number(pr.gajiPokok) : Number(peg.gajiPokok)
       const tunjangan = pr ? Number(pr.tunjangan) : Number(peg.tunjangan)
-      const lemburBayar = 0 // TODO: sambungkan ke tabel Lembur nanti
+      
+      const lemburApproved = await (prisma as any).lembur.findMany({
+        where: { pegawaiId: peg.id, status: "APPROVED", tanggal: { gte: start, lte: end } }
+      })
+      const lemburBayar = lemburApproved.reduce((s: number, l: any) => s + Number(l.totalBayar), 0)
 
-      // Tentukan PTKP dari status nikah & tipe jabatan
-      let ptkpKode = "TK/0"
-      if (peg.statusNikah === "MENIKAH") ptkpKode = "K/0"
-
+      let ptkpKode = peg.statusNikah === "MENIKAH" ? "K/0" : "TK/0"
       const hasil = await hitungPPh21Pegawai({ gajiPokok, tunjangan, lemburBayar, ptkpKode })
 
       await prisma.pPh21.upsert({
         where: { pegawaiId_periode: { pegawaiId: peg.id, periode: start } },
         update: {
-          gajiPokok, tunjangan, lemburBayar: lemburBayar,
+          gajiPokok, tunjangan, lemburBayar,
           penghasilanBruto: hasil.penghasilanBruto,
           biayaJabatan: hasil.biayaJabatan,
           iuranPensiunEmp: hasil.iuranPensiunEmp,
@@ -152,7 +125,7 @@ export async function prosesPPh21Batch(periodStr: string) {
         },
         create: {
           pegawaiId: peg.id, periode: start,
-          gajiPokok, tunjangan, lemburBayar: lemburBayar,
+          gajiPokok, tunjangan, lemburBayar,
           penghasilanBruto: hasil.penghasilanBruto,
           biayaJabatan: hasil.biayaJabatan,
           iuranPensiunEmp: hasil.iuranPensiunEmp,
@@ -166,86 +139,38 @@ export async function prosesPPh21Batch(periodStr: string) {
         },
       })
       berhasil++
-    } catch (e: any) {
+    } catch (e) {
       gagal++
-      errors.push(`${peg.nama}: ${e.message}`)
     }
   }
 
-  await logAudit({
-    action: "CREATE",
-    module: "pph21",
-    targetName: `Proses PPh21 Batch ${periodStr} — ${berhasil} berhasil, ${gagal} gagal`,
-  })
-
-  return { berhasil, gagal, errors }
+  await logAudit({ action: "CREATE", module: "pph21", targetName: `Batch PPh21 ${periodStr}: ${berhasil} Success` })
+  return { berhasil, gagal }
 }
 
-// ============================================================
-// GET DAFTAR PPh 21 per periode
-// ============================================================
 export async function getPPh21List(periodStr: string) {
-  const session = await auth()
-  if (!session?.user) return { error: "Belum login" }
-
   const date = new Date(periodStr + "-01")
   const start = startOfMonth(date)
-  const end = endOfMonth(date)
-
   const data = await prisma.pPh21.findMany({
-    where: { periode: { gte: start, lte: end } },
+    where: { periode: start },
     include: { pegawai: { include: { bidang: true } } },
     orderBy: { pegawai: { nama: "asc" } },
   })
-
   return {
     data: data.map((r) => ({
       id: r.id,
-      pegawaiId: r.pegawaiId,
       nama: r.pegawai.nama,
       nik: r.pegawai.nik,
       unit: r.pegawai.bidang?.nama || "Umum",
-      golongan: r.pegawai.golongan,
-      gajiPokok: Number(r.gajiPokok),
-      tunjangan: Number(r.tunjangan),
-      penghasilanBruto: Number(r.penghasilanBruto),
-      biayaJabatan: Number(r.biayaJabatan),
-      penghasilanNetto: Number(r.penghasilanNetto),
-      ptkpKode: r.ptkpKode,
-      ptkpNilai: Number(r.ptkpNilai),
-      pkp: Number(r.pkp),
-      pph21Setahun: Number(r.pph21Setahun),
       pph21Sebulan: Number(r.pph21Sebulan),
-      metode: r.metodePotong,
     })),
   }
 }
 
-// ============================================================
-// EXPORT e-SPT / Bukti Potong (format CSV untuk DJP Online)
-// ============================================================
 export async function exportESPT(periodStr: string) {
-  const session = await auth()
-  if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
-    return { error: "Akses ditolak" }
-  }
-
-  const result = await getPPh21List(periodStr)
-  if ("error" in result) return result
-
-  const header = "No,NPWP Pegawai,Nama Pegawai,Golongan,PTKP,Penghasilan Bruto,Biaya Jabatan,Penghasilan Netto,PKP,PPh21 Sebulan\n"
-  const rows = result.data.map((r, i) =>
-    [i + 1, "-", r.nama, r.golongan, r.ptkpKode,
-      r.penghasilanBruto, r.biayaJabatan, r.penghasilanNetto,
-      r.pkp, r.pph21Sebulan]
-      .map((v) => `"${v}"`).join(",")
-  )
-
-  await logAudit({
-    action: "EXPORT",
-    module: "pph21",
-    targetName: `Export e-SPT PPh21 ${periodStr}`,
-  })
-
+  const res = await getPPh21List(periodStr)
+  const header = "No,NIK,Nama,PPh21\n"
+  const rows = res.data.map((r, i) => `${i + 1},${r.nik},${r.nama},${r.pph21Sebulan}`)
+  await logAudit({ action: "EXPORT", module: "pph21", targetName: `Export e-SPT ${periodStr}` })
   return { csv: header + rows.join("\n") }
 }
