@@ -119,12 +119,12 @@ export async function hapusJadwalShift(id: string) {
 // ======== LEMBUR ============================================
 // ============================================================
 
-export function hitungTarifLembur(
+export async function hitungTarifLembur(
   gajiPokok: number, 
   tunjangan: number, 
   durasiJam: number, 
   jenisHari: "HARI_KERJA" | "HARI_LIBUR" | "HARI_BESAR"
-): number {
+): Promise<number> {
   const upahSeJam = (gajiPokok + tunjangan) / 173
 
   if (jenisHari === "HARI_KERJA") {
@@ -157,7 +157,7 @@ export async function ajukanLembur(data: {
   if (!pegawai) return { error: "Pegawai tidak ditemukan" }
 
   const tarifPerJam = (Number(pegawai.gajiPokok) + Number(pegawai.tunjangan)) / 173
-  const totalBayar = hitungTarifLembur(Number(pegawai.gajiPokok), Number(pegawai.tunjangan), data.durasiJam, data.jenis)
+  const totalBayar = await hitungTarifLembur(Number(pegawai.gajiPokok), Number(pegawai.tunjangan), data.durasiJam, data.jenis)
 
   const lembur = await prisma.lembur.create({
     data: {
@@ -228,7 +228,7 @@ export async function getLemburList({
     orderBy: { tanggal: "desc" },
   })
 
-  return data.map((l) => ({
+  return data.map((l: any) => ({
     id: l.id,
     nama: l.pegawai.nama,
     nik: l.pegawai.nik,
