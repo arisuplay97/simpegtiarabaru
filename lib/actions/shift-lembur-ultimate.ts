@@ -119,7 +119,12 @@ export async function hapusJadwalShift(id: string) {
 // ======== LEMBUR ============================================
 // ============================================================
 
-export function hitungTarifLembur(gajiPokok: number, tunjangan: number, durasiJam: number, jenisHari: "HARI_KERJA" | "HARI_LIBUR" | "HARI_BESAR"): number {
+export function hitungTarifLembur(
+  gajiPokok: number, 
+  tunjangan: number, 
+  durasiJam: number, 
+  jenisHari: "HARI_KERJA" | "HARI_LIBUR" | "HARI_BESAR"
+): number {
   const upahSeJam = (gajiPokok + tunjangan) / 173
 
   if (jenisHari === "HARI_KERJA") {
