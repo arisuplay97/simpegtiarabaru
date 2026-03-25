@@ -339,7 +339,7 @@ export default function EmployeeDetailPage() {
     if (formData.bidangId && formData.tipeJabatan) {
       const atasan = getAtasanOtomatis(formData.tipeJabatan, formData.bidangId)
       if (atasan && atasan !== formData.atasanLangsung) {
-        setFormData(prev => ({ ...prev, atasanLangsung: atasan }))
+        setFormData((prev: any) => ({ ...prev, atasanLangsung: atasan }))
       }
     }
   }, [formData.bidangId, formData.tipeJabatan])
