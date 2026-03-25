@@ -229,7 +229,7 @@ const methodConfig = {
 
 export default function AttendancePage() {
   const { data: session } = useSession()
-  const isAdmin = session?.user?.role === "HRD" || session?.user?.role === "ADMIN" || session?.user?.role === "DIREKSI"
+  const isAdmin = ["SUPERADMIN", "HRD", "ADMIN", "DIREKSI"].includes(session?.user?.role || "")
 
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)

@@ -334,6 +334,16 @@ export default function EmployeeDetailPage() {
     }
   }
 
+  // Real-time Atasan Calculation
+  useEffect(() => {
+    if (formData.bidangId && formData.tipeJabatan) {
+      const atasan = getAtasanOtomatis(formData.tipeJabatan, formData.bidangId)
+      if (atasan && atasan !== formData.atasanLangsung) {
+        setFormData(prev => ({ ...prev, atasanLangsung: atasan }))
+      }
+    }
+  }, [formData.bidangId, formData.tipeJabatan])
+
   const pensiunInfo = getPensiunInfo()
 
   if (isLoading) {
@@ -1226,6 +1236,20 @@ export default function EmployeeDetailPage() {
                       <SelectContent>
                         <SelectItem value="NONE">— Pilih Bidang —</SelectItem>
                         {bidangList.map(b => <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </F>
+                  <F label="Tipe Jabatan">
+                    <Select value={formData.tipeJabatan || "STAFF"} onValueChange={v => handleChange("tipeJabatan", v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="STAFF">Staff</SelectItem>
+                        <SelectItem value="KASUBBID">Kasubbid</SelectItem>
+                        <SelectItem value="KEPALA_BIDANG">Kepala Bidang</SelectItem>
+                        <SelectItem value="STAFF_CABANG">Staff Cabang</SelectItem>
+                        <SelectItem value="KASUBBID_CABANG">Kasubbid Cabang</SelectItem>
+                        <SelectItem value="KEPALA_CABANG">Kepala Cabang</SelectItem>
+                        <SelectItem value="KONTRAK">Kontrak</SelectItem>
                       </SelectContent>
                     </Select>
                   </F>
