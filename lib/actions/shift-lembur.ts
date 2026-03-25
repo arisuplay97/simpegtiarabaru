@@ -53,7 +53,6 @@ export async function updateShift(id: string, data: Partial<{
   await logAudit({ action: "UPDATE", module: "shift", targetId: id, targetName: shift.nama, oldData: old as any, newData: shift as any })
   return { success: true }
 }
-
 export async function deleteShift(id: string) {
   const session = await auth()
   if (!session?.user || (session.user as any).role !== "SUPERADMIN") return { error: "Akses ditolak" }
@@ -68,7 +67,6 @@ export async function deleteShift(id: string) {
 // ============================================================
 
 export async function getJadwalMinggu(weekStartStr: string) {
-  // weekStartStr = "2026-03-23" (Senin)
   const weekStart = new Date(weekStartStr)
   const weekEnd = addDays(weekStart, 6)
 
@@ -106,7 +104,6 @@ export async function assignShift(pegawaiId: string, shiftId: string, tanggal: s
   })
   return { success: true }
 }
-
 export async function hapusJadwalShift(id: string) {
   const session = await auth()
   if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
@@ -120,19 +117,13 @@ export async function hapusJadwalShift(id: string) {
 // ======== LEMBUR ============================================
 // ============================================================
 
-// Tarif lembur sesuai Kepmenaker 102/2004:
-// Jam pertama: 1.5x upah sejam
-// Jam berikutnya: 2x upah sejam
-// Upah sejam = (1/173) * gaji sebulan (+ tunjangan tetap)
 export function hitungTarifLembur(gajiPokok: number, tunjangan: number, durasiJam: number, jenisHari: "HARI_KERJA" | "HARI_LIBUR" | "HARI_BESAR"): number {
   const upahSeJam = (gajiPokok + tunjangan) / 173
 
   if (jenisHari === "HARI_KERJA") {
-    // Jam ke-1: 1.5x, sisanya: 2x
     if (durasiJam <= 1) return Math.round(upahSeJam * 1.5 * durasiJam)
     return Math.round(upahSeJam * 1.5 + upahSeJam * 2 * (durasiJam - 1))
   } else {
-    // Hari libur: 7 jam pertama 2x, jam ke-8: 3x, jam ke-9+: 4x
     let total = 0
     for (let jam = 1; jam <= durasiJam; jam++) {
       if (jam <= 7) total += upahSeJam * 2
@@ -174,7 +165,6 @@ export async function ajukanLembur(data: {
       totalBayar,
     },
   })
-
   await logAudit({
     action: "CREATE",
     module: "lembur",
