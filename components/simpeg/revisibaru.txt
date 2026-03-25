@@ -1,0 +1,34 @@
+Perbaiki 3 masalah berikut:
+
+1. FILE: lib/actions/pegawai.ts — fungsi createEmployee dan updateEmployee
+   Pastikan field atasanLangsung ikut tersimpan ke database.
+   Jika atasanLangsung kosong, hitung otomatis dari:
+   - tipeJabatan + bidangId menggunakan getAtasanOtomatis()
+   dari lib/data/bidang-store.ts
+
+2. FILE: app/payroll/page.tsx — Dialog Edit Gaji
+   Perluas form edit gaji dengan komponen terpisah:
+   - Gaji Pokok
+   - Tunjangan Jabatan, Transport, Makan, Lainnya (4 field terpisah)
+   - Potongan BPJS Kesehatan (auto 1% dari gaji pokok, bisa override)
+   - Potongan BPJS TK (auto 2% dari gaji pokok, bisa override)  
+   - Potongan Kasbon, Lainnya
+   - Semua komponen tunjangan dijumlah otomatis → Total Tunjangan
+   - Semua potongan dijumlah otomatis → Total Potongan
+   - Gaji Bersih = Gaji Pokok + Total Tunjangan - Total Potongan
+
+3. FILE: lib/actions/absensi.ts — fungsi getAbsensiList
+   Tambah filter berdasarkan role:
+   - Jika SUPERADMIN atau HRD → tampilkan semua absensi
+   - Jika PEGAWAI → hanya tampilkan absensi sendiri
+   
+   Tambah auth check:
+   const session = await auth()
+   if (session?.user?.role === "PEGAWAI") {
+     const pegawai = await prisma.pegawai.findUnique({
+       where: { userId: session.user.id }
+     })
+     whereClause.pegawaiId = pegawai?.id
+   }
+
+Jangan ubah app/absensi/koreksi/page.tsx

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { put, del } from "@vercel/blob"
 import { auth } from "@/lib/auth"
 import bcrypt from "bcryptjs"
+import { getAtasanOtomatis, parseTipeJabatan } from "@/lib/data/bidang-store"
 
 // Helper: map lowercase tipeJabatan to DB enum
 const mapTipeJabatan = (val: string): string => {
@@ -158,7 +159,16 @@ export async function createEmployee(data: any, fotoFile?: File) {
   // Map pangkat to valid enum value
   const mappedPangkat = mapPangkat(data.pangkat)
   if (mappedPangkat) payload.pangkat = mappedPangkat
-  optionalStr("atasanLangsung", data.atasanLangsung)
+  
+  // LOGIKA ATASAN OTOMATIS
+  let atasan = clean(data.atasanLangsung)
+  const cleanBidangId = clean(data.bidangId)
+  if (!atasan && cleanBidangId) {
+    // getAtasanOtomatis expects lowercase TipeJabatan, data.tipeJabatan from form is likely lowercase
+    atasan = getAtasanOtomatis(data.tipeJabatan as any, cleanBidangId)
+  }
+  if (atasan) payload.atasanLangsung = atasan
+
   optionalStr("sp", data.sp)
 
   // Data Pribadi
@@ -228,7 +238,7 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
       golongan: clean(data.golongan) || "",
       pangkat: mapPangkat(data.pangkat) || undefined,
-      atasanLangsung: clean(data.atasanLangsung) || undefined,
+      atasanLangsung: clean(data.atasanLangsung) || (data.bidangId ? getAtasanOtomatis(data.tipeJabatan as any, data.bidangId as string) : undefined),
       status: data.status,
       sp: clean(data.sp) || undefined,
       tanggalMasuk: data.tanggalMasuk ? new Date(data.tanggalMasuk) : undefined,

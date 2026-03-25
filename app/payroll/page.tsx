@@ -112,7 +112,17 @@ export default function PayrollPage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   
   const [selectedEmployee, setSelectedEmployee] = useState<PayrollEmployee | null>(null)
-  const [editForm, setEditForm] = useState({ gajiPokok: 0, tunjangan: 0, potongan: 0 })
+  const [editForm, setEditForm] = useState({ 
+    gajiPokok: 0, 
+    tunjanganJabatan: 0, 
+    tunjanganTransport: 0, 
+    tunjanganMakan: 0, 
+    tunjanganLainnya: 0,
+    potonganBpjsKes: 0,
+    potonganBpjsTk: 0,
+    potonganKasbon: 0,
+    potonganLainnya: 0
+  })
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [processProgress, setProcessProgress] = useState(0)
@@ -135,6 +145,17 @@ export default function PayrollPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // Auto-calculate BPJS when gajiPokok changes
+  useEffect(() => {
+    if (showEditDialog) {
+      setEditForm(prev => ({
+        ...prev,
+        potonganBpjsKes: Math.round(prev.gajiPokok * 0.01),
+        potonganBpjsTk: Math.round(prev.gajiPokok * 0.02)
+      }))
+    }
+  }, [editForm.gajiPokok, showEditDialog])
 
   const filteredData = data.filter((emp) => {
     const matchesSearch =
@@ -189,8 +210,14 @@ export default function PayrollPage() {
     setSelectedEmployee(emp)
     setEditForm({
       gajiPokok: emp.gajiPokok,
-      tunjangan: emp.tunjangan,
-      potongan: emp.potongan
+      tunjanganJabatan: emp.tunjangan, // Default total into Jabatan field
+      tunjanganTransport: 0,
+      tunjanganMakan: 0,
+      tunjanganLainnya: 0,
+      potonganBpjsKes: Math.round(emp.gajiPokok * 0.01),
+      potonganBpjsTk: Math.round(emp.gajiPokok * 0.02),
+      potonganKasbon: emp.potongan, // Default total into Kasbon field
+      potonganLainnya: 0
     })
     setShowEditDialog(true)
   }
@@ -198,13 +225,17 @@ export default function PayrollPage() {
   const handleSaveSalary = async () => {
     if (!selectedEmployee) return
     setIsSaving(true)
+    
+    const totalTunjangan = editForm.tunjanganJabatan + editForm.tunjanganTransport + editForm.tunjanganMakan + editForm.tunjanganLainnya
+    const totalPotongan = editForm.potonganBpjsKes + editForm.potonganBpjsTk + editForm.potonganKasbon + editForm.potonganLainnya
+
     try {
       const res = await savePayroll({
         pegawaiId: selectedEmployee.pegawaiId,
         periodStr: selectedPeriod,
         gajiPokok: editForm.gajiPokok,
-        tunjangan: editForm.tunjangan,
-        potongan: editForm.potongan,
+        tunjangan: totalTunjangan,
+        potongan: totalPotongan,
       })
       
       if (res.error) throw new Error(res.error)
@@ -611,51 +642,150 @@ export default function PayrollPage() {
               Ubah rincian gaji untuk {selectedEmployee?.nama} bulan {selectedPeriod.toUpperCase()}. Mengubah angka ini akan sekaligus mengupdate profile {selectedEmployee?.nama}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-             <div className="grid gap-2">
-                <label className="text-sm font-medium">Gaji Pokok</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rp</span>
-                  <Input 
-                    type="number"
-                    className="pl-10" 
-                    value={editForm.gajiPokok} 
-                    onChange={e => setEditForm({...editForm, gajiPokok: Number(e.target.value)})} 
-                  />
-                </div>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-4">
+             {/* Kiri: Penghasilan */}
+             <div className="space-y-4">
+               <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground border-b pb-1">Penghasilan</h4>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium">Gaji Pokok</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10" 
+                      value={editForm.gajiPokok} 
+                      onChange={e => setEditForm({...editForm, gajiPokok: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium">Tunjangan Jabatan</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10" 
+                      value={editForm.tunjanganJabatan} 
+                      onChange={e => setEditForm({...editForm, tunjanganJabatan: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium">Tunjangan Transport</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10" 
+                      value={editForm.tunjanganTransport} 
+                      onChange={e => setEditForm({...editForm, tunjanganTransport: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium">Tunjangan Makan</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10" 
+                      value={editForm.tunjanganMakan} 
+                      onChange={e => setEditForm({...editForm, tunjanganMakan: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium">Tunjangan Lainnya</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10" 
+                      value={editForm.tunjanganLainnya} 
+                      onChange={e => setEditForm({...editForm, tunjanganLainnya: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="pt-2 flex justify-between items-center font-bold text-emerald-600">
+                  <span className="text-xs uppercase">Total Tunjangan:</span>
+                  <span>{formatCurrency(editForm.tunjanganJabatan + editForm.tunjanganTransport + editForm.tunjanganMakan + editForm.tunjanganLainnya)}</span>
+               </div>
              </div>
-             <div className="grid gap-2">
-                <label className="text-sm font-medium">Total Tunjangan</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rp</span>
-                  <Input 
-                    type="number"
-                    className="pl-10" 
-                    value={editForm.tunjangan} 
-                    onChange={e => setEditForm({...editForm, tunjangan: Number(e.target.value)})} 
-                  />
-                </div>
-             </div>
-             <div className="grid gap-2">
-                <label className="text-sm font-medium text-red-600">Total Potongan (Kasbon/Pinjaman)</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400">Rp</span>
-                  <Input 
-                    type="number"
-                    className="pl-10 border-red-200" 
-                    value={editForm.potongan} 
-                    onChange={e => setEditForm({...editForm, potongan: Number(e.target.value)})} 
-                  />
-                </div>
-             </div>
-             <div className="pt-4 border-t flex justify-between items-center">
-                <span className="font-semibold">Estimasi Bersih:</span>
-                <span className="font-bold text-primary text-xl">
-                  {formatCurrency((editForm.gajiPokok || 0) + (editForm.tunjangan || 0) - (editForm.potongan || 0))}
-                </span>
+
+             {/* Kanan: Potongan */}
+             <div className="space-y-4">
+               <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground border-b pb-1">Potongan</h4>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium text-red-600">BPJS Kesehatan (1%)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10 border-red-100" 
+                      value={editForm.potonganBpjsKes} 
+                      onChange={e => setEditForm({...editForm, potonganBpjsKes: Number(e.target.value)})} 
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic">*Auto-kalkulasi dari Gaji Pokok</p>
+               </div>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium text-red-600">BPJS TK (2%)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10 border-red-100" 
+                      value={editForm.potonganBpjsTk} 
+                      onChange={e => setEditForm({...editForm, potonganBpjsTk: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium text-red-600">Potongan Kasbon</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10 border-red-100" 
+                      value={editForm.potonganKasbon} 
+                      onChange={e => setEditForm({...editForm, potonganKasbon: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="grid gap-2">
+                  <label className="text-sm font-medium text-red-600">Potongan Lainnya</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400">Rp</span>
+                    <Input 
+                      type="number"
+                      className="pl-10 border-red-100" 
+                      value={editForm.potonganLainnya} 
+                      onChange={e => setEditForm({...editForm, potonganLainnya: Number(e.target.value)})} 
+                    />
+                  </div>
+               </div>
+               <div className="pt-2 flex justify-between items-center font-bold text-red-600">
+                  <span className="text-xs uppercase">Total Potongan:</span>
+                  <span>{formatCurrency(editForm.potonganBpjsKes + editForm.potonganBpjsTk + editForm.potonganKasbon + editForm.potonganLainnya)}</span>
+               </div>
              </div>
           </div>
-          <DialogFooter>
+
+          <div className="mt-4 pt-4 border-t-2 border-dashed flex justify-between items-center bg-primary/5 p-4 rounded-lg">
+             <div className="flex flex-col">
+               <span className="text-xs text-muted-foreground uppercase font-semibold">Estimasi Gaji Bersih</span>
+               <span className="text-xs text-muted-foreground tracking-tight">(Pokok + Tunjangan - Potongan)</span>
+             </div>
+             <span className="font-bold text-primary text-2xl">
+               {formatCurrency(
+                 editForm.gajiPokok + 
+                 (editForm.tunjanganJabatan + editForm.tunjanganTransport + editForm.tunjanganMakan + editForm.tunjanganLainnya) - 
+                 (editForm.potonganBpjsKes + editForm.potonganBpjsTk + editForm.potonganKasbon + editForm.potonganLainnya)
+               )}
+             </span>
+          </div>
+
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>Batal</Button>
             <Button onClick={handleSaveSalary} disabled={isSaving}>
               {isSaving ? "Menyimpan..." : "Simpan Gaji"}

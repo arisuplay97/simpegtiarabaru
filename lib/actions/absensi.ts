@@ -176,6 +176,17 @@ export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
       whereClause.tanggal = { gte: startOfDay, lte: endOfDay }
     }
 
+    // ROLE-BASED FILTERING
+    const session = await auth()
+    if (session?.user?.role === "PEGAWAI") {
+      const pegawai = await prisma.pegawai.findUnique({
+        where: { userId: session.user.id }
+      })
+      if (pegawai) {
+        whereClause.pegawaiId = pegawai.id
+      }
+    }
+
     const absensiList = await prisma.absensi.findMany({
       where: whereClause,
       include: { pegawai: { include: { bidang: true } } },
