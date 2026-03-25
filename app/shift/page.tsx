@@ -25,7 +25,7 @@ import { toast } from "sonner"
 import {
   getShiftList, createShift, updateShift, deleteShift,
   getLemburList, ajukanLembur, approveLembur,
-} from "@/lib/actions/shift-lembur"
+} from "@/lib/actions/shift-lembur-fixed"
 import {
   Clock, Plus, Edit, Trash2, CheckCircle2, XCircle,
   Calendar, Users, ChevronLeft, ChevronRight,
