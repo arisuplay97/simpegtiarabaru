@@ -600,14 +600,14 @@ export default function AttendancePage() {
           <Button 
             variant="outline" size="icon" className="h-7 w-7" 
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => prev - 1)}
+            onClick={() => setCurrentPage((prev: number) => prev - 1)}
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
           <Button 
             variant="outline" size="icon" className="h-7 w-7" 
             disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage(prev => prev + 1)}
+            onClick={() => setCurrentPage((prev: number) => prev + 1)}
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
