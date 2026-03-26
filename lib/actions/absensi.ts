@@ -600,3 +600,78 @@ export async function markAllPresentByDate(dateStr: string) {
     return { error: error.message || "Gagal mencatat kehadiran massal" }
   }
 }
+
+// ============================================================
+// REKAP BULANAN: Untuk tab Rekap Bulanan di Admin Dashboard
+// ============================================================
+export async function getRekapBulanan(bulan: number, tahun: number) {
+  try {
+    const session = await auth()
+    if (!session?.user) return []
+
+    const startDate = new Date(tahun, bulan - 1, 1, 0, 0, 0)
+    const endDate = new Date(tahun, bulan, 0, 23, 59, 59)
+
+    // Ambil semua absensi dalam bulan ini
+    const absensiList = await prisma.absensi.findMany({
+      where: { tanggal: { gte: startDate, lte: endDate } },
+      include: { pegawai: { include: { bidang: true } } },
+      orderBy: { tanggal: "asc" },
+    })
+
+    // Hitung hari kerja dalam bulan (Senin-Jumat)
+    let hariKerja = 0
+    const d = new Date(startDate)
+    while (d <= endDate) {
+      const day = d.getDay()
+      if (day !== 0 && day !== 6) hariKerja++
+      d.setDate(d.getDate() + 1)
+    }
+
+    // Group by pegawai
+    const pegawaiMap: Record<string, any> = {}
+    for (const a of absensiList) {
+      const pid = a.pegawaiId
+      if (!pegawaiMap[pid]) {
+        pegawaiMap[pid] = {
+          id: pid,
+          nama: a.pegawai.nama,
+          bidang: a.pegawai.bidang?.nama || "-",
+          jabatan: a.pegawai.jabatan,
+          hadir: 0,
+          alpha: 0,
+          izin: 0,
+          sakit: 0,
+          cuti: 0,
+          dinas: 0,
+          terlambat: 0,
+          totalJamMenit: 0,
+          hariKerja,
+        }
+      }
+      const r = pegawaiMap[pid]
+      const status = a.status as any
+      switch (status) {
+        case "HADIR":    r.hadir++;    break
+        case "TERLAMBAT": r.hadir++; r.terlambat++; break
+        case "ALPHA":    r.alpha++;    break
+        case "IZIN":     r.izin++;     break
+        case "SAKIT":    r.sakit++;    break
+        case "CUTI":     r.cuti++;     break
+        case "DINAS":    r.dinas++;    break
+      }
+      if (a.jamMasuk && a.jamKeluar) {
+        const diffMs = new Date(a.jamKeluar).getTime() - new Date(a.jamMasuk).getTime()
+        if (diffMs > 0) r.totalJamMenit += Math.floor(diffMs / 60000)
+      }
+    }
+
+    return Object.values(pegawaiMap).sort((a: any, b: any) =>
+      a.nama.localeCompare(b.nama)
+    )
+  } catch (e: any) {
+    console.error("getRekapBulanan error:", e)
+    return []
+  }
+}
+

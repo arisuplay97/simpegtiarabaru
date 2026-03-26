@@ -76,7 +76,8 @@ import { getAbsensiList,  getAbsensiSaya,
   deleteAbsensi,
   deleteAllAbsensiByMonth,
   markAllPresentByDate,
-  getSystemSettings
+  getSystemSettings,
+  getRekapBulanan
 } from "@/lib/actions/absensi"
 
 interface AttendanceRecord {
@@ -278,6 +279,13 @@ export default function AttendancePage() {
   const [showPhotoViewer, setShowPhotoViewer] = useState(false)
   const [viewerPhotoUrl, setViewerPhotoUrl] = useState<string | null>(null)
   const [viewerPhotoType, setViewerPhotoType] = useState<"Masuk" | "Pulang">("Masuk")
+
+  // Rekap Bulanan State
+  const [rekapBulanan, setRekapBulanan] = useState<any[]>([])
+  const [isLoadingRekap, setIsLoadingRekap] = useState(false)
+  const [rekapBulan, setRekapBulan] = useState(new Date().getMonth() + 1)
+  const [rekapTahun, setRekapTahun] = useState(new Date().getFullYear())
+  const [searchRekap, setSearchRekap] = useState("")
 
   const mapAbsensi = (data: any[], currentSettings: any): AttendanceRecord[] => {
     return data.map((d: any) => {
@@ -956,10 +964,157 @@ export default function AttendancePage() {
                 {renderTable()}
               </TabsContent>
               <TabsContent value="bulanan">
-                <Card className="card-premium h-40 flex items-center justify-center text-muted-foreground">
-                   Modul Rekap Bulanan sedang dalam pengembangan
+                {/* Filter Rekap Bulanan */}
+                <Card className="card-premium mb-4">
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Select value={String(rekapBulan)} onValueChange={(v) => setRekapBulan(Number(v))}>
+                        <SelectTrigger className="w-[150px]">
+                          <SelectValue placeholder="Bulan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <SelectItem key={i + 1} value={String(i + 1)}>
+                              {format(new Date(2026, i, 1), "MMMM", { locale: id })}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={String(rekapTahun)} onValueChange={(v) => setRekapTahun(Number(v))}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue placeholder="Tahun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[2024, 2025, 2026, 2027].map(y => (
+                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          setIsLoadingRekap(true)
+                          const data = await getRekapBulanan(rekapBulan, rekapTahun)
+                          setRekapBulanan(data)
+                          setIsLoadingRekap(false)
+                        }}
+                        disabled={isLoadingRekap}
+                        className="gap-2"
+                      >
+                        {isLoadingRekap ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
+                        Tampilkan Rekap
+                      </Button>
+                      <div className="relative flex-1 min-w-[200px]">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Cari nama pegawai..."
+                          className="pl-9"
+                          value={searchRekap}
+                          onChange={(e) => setSearchRekap(e.target.value)}
+                        />
+                      </div>
+                      {rekapBulanan.length > 0 && (
+                        <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                          const headers = ["Nama","Unit","Jabatan","Hari Kerja","Hadir","Alpha","Izin","Sakit","Cuti","Dinas","Terlambat","% Hadir"]
+                          const rows = rekapBulanan.map((r: any) => [
+                            r.nama, r.bidang, r.jabatan, r.hariKerja, r.hadir, r.alpha, r.izin, r.sakit, r.cuti, r.dinas, r.terlambat,
+                            `${Math.round((r.hadir / (r.hariKerja || 1)) * 100)}%`
+                          ].join(","))
+                          const csv = [headers.join(","), ...rows].join("\n")
+                          const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+                          const link = document.createElement("a")
+                          link.href = URL.createObjectURL(blob)
+                          link.download = `rekap_${rekapBulan}_${rekapTahun}.csv`
+                          link.click()
+                          toast.success("File CSV berhasil diunduh")
+                        }}>
+                          <Download className="h-4 w-4" /> Export CSV
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
                 </Card>
+
+                {rekapBulanan.length === 0 ? (
+                  <Card className="card-premium">
+                    <CardContent className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
+                      <TrendingUp className="h-10 w-10 opacity-20" />
+                      <p className="text-sm">Pilih bulan & tahun, lalu klik <strong>Tampilkan Rekap</strong></p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="card-premium">
+                    <CardHeader className="pb-2 pt-4 px-5">
+                      <CardTitle className="text-base">
+                        Rekap Kehadiran — {format(new Date(rekapTahun, rekapBulan - 1, 1), "MMMM yyyy", { locale: id })}
+                        <span className="ml-2 text-sm font-normal text-muted-foreground">({rekapBulanan.length} pegawai)</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50 text-xs">
+                              <TableHead className="w-[180px]">Pegawai</TableHead>
+                              <TableHead>Unit</TableHead>
+                              <TableHead className="text-center text-xs text-muted-foreground">Hari Kerja</TableHead>
+                              <TableHead className="text-center text-emerald-700">Hadir</TableHead>
+                              <TableHead className="text-center text-red-600">Alpha</TableHead>
+                              <TableHead className="text-center text-blue-600">Izin</TableHead>
+                              <TableHead className="text-center text-amber-600">Sakit</TableHead>
+                              <TableHead className="text-center text-purple-600">Cuti</TableHead>
+                              <TableHead className="text-center text-cyan-600">Dinas</TableHead>
+                              <TableHead className="text-center text-orange-600">Terlambat</TableHead>
+                              <TableHead className="text-center">% Hadir</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {rekapBulanan
+                              .filter((r: any) => r.nama.toLowerCase().includes(searchRekap.toLowerCase()))
+                              .map((r: any) => {
+                                const persen = Math.round((r.hadir / (r.hariKerja || 1)) * 100)
+                                const persenColor = persen >= 90
+                                  ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                  : persen >= 75
+                                  ? "bg-amber-100 text-amber-700 border-amber-200"
+                                  : "bg-red-100 text-red-700 border-red-200"
+                                return (
+                                  <TableRow key={r.id} className="hover:bg-muted/30">
+                                    <TableCell>
+                                      <div>
+                                        <p className="font-medium text-sm">{r.nama}</p>
+                                        <p className="text-[11px] text-muted-foreground">{r.jabatan}</p>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">{r.bidang}</TableCell>
+                                    <TableCell className="text-center font-mono text-sm text-muted-foreground">{r.hariKerja}</TableCell>
+                                    <TableCell className="text-center font-bold text-emerald-600">{r.hadir}</TableCell>
+                                    <TableCell className="text-center font-bold text-red-500">{r.alpha || "-"}</TableCell>
+                                    <TableCell className="text-center font-semibold text-blue-500">{r.izin || "-"}</TableCell>
+                                    <TableCell className="text-center font-semibold text-amber-500">{r.sakit || "-"}</TableCell>
+                                    <TableCell className="text-center font-semibold text-purple-500">{r.cuti || "-"}</TableCell>
+                                    <TableCell className="text-center font-semibold text-cyan-500">{r.dinas || "-"}</TableCell>
+                                    <TableCell className="text-center">
+                                      {r.terlambat > 0 ? (
+                                        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-mono">
+                                          {r.terlambat}x
+                                        </Badge>
+                                      ) : <span className="text-muted-foreground">-</span>}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <Badge variant="outline" className={persenColor}>{persen}%</Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
+
               <TabsContent value="anomali">
                <Card className="card-premium h-40 flex items-center justify-center text-muted-foreground">
                    Analisis anomali sedang dalam pemrosesan data
