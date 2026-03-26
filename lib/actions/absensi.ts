@@ -543,11 +543,17 @@ export async function markAllPresentByDate(dateStr: string) {
       return { success: true, count: 0, message: "Semua pegawai aktif sudah terdata hadir di tanggal ini." }
     }
 
-    const jamMasuk = new Date(targetDate)
-    jamMasuk.setHours(8, 0, 0, 0)
+    const settings = await getSystemSettings()
     
-    const jamKeluar = new Date(targetDate)
-    jamKeluar.setHours(17, 0, 0, 0)
+    const parseTimeStr = (t: string, baseDate: Date) => {
+      const [h, m] = (t || "08:00").split(":").map(Number)
+      const d = new Date(baseDate)
+      d.setHours(h, m, 0, 0)
+      return d
+    }
+
+    const jamMasuk = parseTimeStr(settings.jamMasuk, targetDate)
+    const jamKeluar = parseTimeStr(settings.jamPulang, targetDate)
 
     const dataToInsert = toInsert.map(p => ({
       pegawaiId: p.id,
