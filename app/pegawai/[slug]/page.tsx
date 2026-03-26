@@ -776,10 +776,12 @@ export default function EmployeeDetailPage() {
                         <p className="text-xs text-muted-foreground">Unit Kerja</p>
                         <p className="font-medium">{employee.bidang?.nama || "-"}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Golongan</p>
-                        <p className="font-medium">{employee.golongan}</p>
-                      </div>
+                      {employee.tipeJabatan !== 'KONTRAK' && employee.tipeJabatan !== 'MAGANG' && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Golongan</p>
+                          <p className="font-medium">{employee.golongan}</p>
+                        </div>
+                      )}
                     </div>
                     <Separator />
                     <div className="grid grid-cols-2 gap-4">

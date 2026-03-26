@@ -207,7 +207,7 @@ export default function EmployeeListPage() {
     if (!form.nama.trim()) errors.nama = "Nama wajib diisi"
     if (!form.nik || form.nik.length !== 16) errors.nik = "NIK harus 16 digit"
     if (!form.bidangId) errors.bidangId = "Unit kerja wajib dipilih"
-    if (!form.golongan) errors.golongan = "Golongan wajib dipilih"
+    if (!form.golongan && form.tipeKepegawaian !== 'kontrak' && form.tipeKepegawaian !== 'magang') errors.golongan = "Golongan wajib dipilih"
     if (!form.email || !form.email.includes("@")) errors.email = "Email valid wajib diisi"
     if (form.telepon && form.telepon.length < 10) errors.telepon = "Nomor telepon tidak valid"
     const dup = employees.find(e => e.nik === form.nik && e.id !== editingEmployee?.id)
@@ -467,15 +467,17 @@ export default function EmployeeListPage() {
               </SelectContent>
             </Select>
           </F>
-          <F label="Golongan">
-            <Select value={form.golongan || "NONE"} onValueChange={v => setForm({...form, golongan: v === "NONE" ? "" : v})}>
-              <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NONE">— Pilih —</SelectItem>
-                {golonganOptions.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </F>
+          {form.tipeKepegawaian !== 'kontrak' && form.tipeKepegawaian !== 'magang' && (
+            <F label="Golongan">
+              <Select value={form.golongan || "NONE"} onValueChange={v => setForm({...form, golongan: v === "NONE" ? "" : v})}>
+                <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">— Pilih —</SelectItem>
+                  {golonganOptions.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </F>
+          )}
           <F label="Status Pegawai">
             <Select value={form.status || "AKTIF"} onValueChange={v => setForm({...form, status: v})}>
               <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>

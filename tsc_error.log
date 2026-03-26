@@ -1,0 +1,6 @@
+app/api/pegawai/upload-foto/route.ts(50,7): error TS2345: Argument of type '{ addRandomSuffix: true; }' is not assignable to parameter of type 'PutCommandOptions'.
+  Property 'access' is missing in type '{ addRandomSuffix: true; }' but required in type 'PutCommandOptions'.
+lib/actions/dokumen.ts(58,44): error TS2345: Argument of type '{ addRandomSuffix: true; }' is not assignable to parameter of type 'PutCommandOptions'.
+  Property 'access' is missing in type '{ addRandomSuffix: true; }' but required in type 'PutCommandOptions'.
+lib/actions/pegawai.ts(590,5): error TS2345: Argument of type '{ addRandomSuffix: true; }' is not assignable to parameter of type 'PutCommandOptions'.
+  Property 'access' is missing in type '{ addRandomSuffix: true; }' but required in type 'PutCommandOptions'.

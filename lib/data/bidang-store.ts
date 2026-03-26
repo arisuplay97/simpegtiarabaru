@@ -154,17 +154,14 @@ export const direkturList = [
 
 // Ambil label jabatan berdasarkan tipe dan bidang
 export const getJabatanLabel = (tipe: TipeJabatan, namaBidang: string): string => {
-  const isCabang = namaBidang.toLowerCase().includes('cabang')
-  const areaName = isCabang ? namaBidang.replace(/cabang/i, '').trim() : namaBidang
-
   switch (tipe) {
-    case "kepala_bidang": return `Kepala Bidang ${namaBidang}`
-    case "kasubbid":      return `Kasubbid ${namaBidang}`
-    case "staff":         return `Staff ${namaBidang}`
-    case "kepala_cabang": return `Kepala Cabang ${areaName}`
-    case "kasubbid_cabang": return `Kasubbid Cabang ${areaName}`
-    case "staff_cabang":  return `Staff Cabang ${areaName}`
-    default:              return namaBidang
+    case "kepala_bidang": return `Kepala Bidang`
+    case "kasubbid":      return `Kasubbid`
+    case "staff":         return `Staff`
+    case "kepala_cabang": return `Kepala Cabang`
+    case "kasubbid_cabang": return `Kasubbid Cabang`
+    case "staff_cabang":  return `Staff Cabang`
+    default:              return ""
   }
 }
 
@@ -194,20 +191,19 @@ export const getJabatanOptions = (bidangId: string, bidangData: Bidang[] = bidan
   if (!bidang) return []
 
   const isCabang = bidang.nama.toLowerCase().includes('cabang')
-  const areaName = isCabang ? bidang.nama.replace(/cabang/i, '').trim() : bidang.nama
 
   if (isCabang) {
     return [
-      { value: "kepala_cabang", label: `Kepala Cabang ${areaName}` },
-      { value: "kasubbid_cabang", label: `Kasubbid Cabang ${areaName}` },
-      { value: "staff_cabang", label: `Staff Cabang ${areaName}` },
+      { value: "kepala_cabang", label: `Kepala Cabang` },
+      { value: "kasubbid_cabang", label: `Kasubbid Cabang` },
+      { value: "staff_cabang", label: `Staff Cabang` },
     ]
   }
 
   return [
-    { value: "kepala_bidang", label: `Kepala Bidang ${bidang.nama || "-"}` },
-    { value: "kasubbid",      label: `Kasubbid ${bidang.nama || "-"}` },
-    { value: "staff",         label: `Staff ${bidang.nama || "-"}` },
+    { value: "kepala_bidang", label: `Kepala Bidang` },
+    { value: "kasubbid",      label: `Kasubbid` },
+    { value: "staff",         label: `Staff` },
   ]
 }
 

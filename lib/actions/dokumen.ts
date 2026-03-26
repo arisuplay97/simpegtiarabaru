@@ -55,7 +55,7 @@ export async function uploadDokumen(pegawaiId: string, payload: any, file: File)
       return { error: "Ukuran file maksimal 5MB" }
     }
 
-    const blob = await put(fileName, file, { access: "public" })
+    const blob = await put(fileName, file, { access: "public", addRandomSuffix: true })
 
     const newDokumen = await prisma.pegawaiDokumen.create({
       data: {

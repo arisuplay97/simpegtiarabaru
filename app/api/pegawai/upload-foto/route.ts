@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const blob = await put(
       `pegawai/${existing.nik}-${Date.now()}.${ext}`,
       fotoFile,
-      { access: "public" }
+      { access: "public", addRandomSuffix: true }
     )
 
     await prisma.pegawai.update({

@@ -111,7 +111,7 @@ export async function createEmployee(data: any, fotoFile?: File) {
   let fotoUrl: string | null = null
   if (fotoFile && fotoFile.size > 0) {
     const blob = await put(`pegawai/${data.nik}-${Date.now()}.${fotoFile.name.split(".").pop()}`, fotoFile, {
-      access: "public",
+      access: "public" as any,
     })
     fotoUrl = blob.url
   }
@@ -262,7 +262,7 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       try { await del(oldData.fotoUrl) } catch {}
     }
     const blob = await put(`pegawai/${data.nik}-${Date.now()}.${fotoFile.name.split(".").pop()}`, fotoFile, {
-      access: "public",
+      access: "public" as any,
     })
     fotoUrl = blob.url
   }
@@ -587,7 +587,7 @@ export async function uploadAvatar(formData: FormData) {
   const blob = await put(
     `pegawai/${employee.nik}-${Date.now()}.${file.name.split(".").pop()}`,
     file,
-    { access: "public" }
+    { access: "public", addRandomSuffix: true }
   )
 
   await prisma.pegawai.update({
