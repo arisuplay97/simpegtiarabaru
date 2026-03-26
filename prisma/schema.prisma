@@ -344,6 +344,7 @@ model LokasiAbsensi {
 // ============ PENGATURAN UMUM ============
 model Pengaturan {
   id                String   @id @default("1")
+  // Konfigurasi Gaji & Penalti
   
   // Absensi
   jamMasuk          String   @default("08:00")
