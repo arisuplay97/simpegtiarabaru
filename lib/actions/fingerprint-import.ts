@@ -181,16 +181,17 @@ export async function importFingerprint(formData: FormData) {
       const pegawai = await prisma.pegawai.findUnique({ where: { nik: row.nik } })
       if (!pegawai) throw new Error(`NIK ${row.nik} tidak terdaftar`)
 
-      const tanggal = new Date(row.tanggal)
-      const startDay = new Date(tanggal); startDay.setHours(0, 0, 0, 0)
-      const endDay = new Date(tanggal); endDay.setHours(23, 59, 59, 999)
+      // Parse tanggal (sudah dinormalisasi ke YYYY-MM-DD oleh parseCSV)
+      const [y, mm, dd] = row.tanggal.split("-").map(Number)
+      const tanggal = new Date(y, mm - 1, dd) // Local time
+      
+      const startDay = new Date(y, mm - 1, dd, 0, 0, 0, 0)
+      const endDay = new Date(y, mm - 1, dd, 23, 59, 59, 999)
 
       // Parse jam
       const parseJam = (jam: string) => {
         const [h, m] = jam.split(":").map(Number)
-        const d = new Date(tanggal)
-        d.setHours(h, m, 0, 0)
-        return d
+        return new Date(y, mm - 1, dd, h, m, 0) // Local time
       }
 
       const jamMasuk = row.jamMasuk ? parseJam(row.jamMasuk) : undefined
