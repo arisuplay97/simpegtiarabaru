@@ -214,7 +214,7 @@ export async function importFingerprint(formData: FormData) {
       if (existing) {
         await prisma.absensi.update({
           where: { id: existing.id },
-          data: { status, jamMasuk, jamKeluar },
+          data: { status, jamMasuk, jamKeluar, metode: "FINGERPRINT" },
         })
       } else {
         await prisma.absensi.create({
@@ -224,6 +224,7 @@ export async function importFingerprint(formData: FormData) {
             status,
             jamMasuk,
             jamKeluar,
+            metode: "FINGERPRINT",
           },
         })
       }

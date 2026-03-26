@@ -161,14 +161,15 @@ model Mutasi {
 
 // ============ ABSENSI ============
 model Absensi {
-  id        String        @id @default(cuid())
+  id        String          @id @default(cuid())
   pegawaiId String
   tanggal   DateTime
   status    StatusAbsensi
+  metode    MetodeAbsensi   @default(SELFIE)
   jamMasuk  DateTime?
   jamKeluar DateTime?
-  pegawai   Pegawai       @relation(fields: [pegawaiId], references: [id])
-  createdAt DateTime      @default(now())
+  pegawai   Pegawai         @relation(fields: [pegawaiId], references: [id])
+  createdAt DateTime        @default(now())
 }
 
 // ============ CUTI ============
@@ -675,4 +676,11 @@ enum StatusKontrak {
   SELESAI
   DIPERPANJANG
   DIBATALKAN
+}
+
+enum MetodeAbsensi {
+  SELFIE
+  FINGERPRINT
+  GPS
+  MANUAL
 }

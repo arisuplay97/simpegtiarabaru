@@ -120,6 +120,7 @@ export async function checkDeviceAndAbsen(
           tanggal: now,
           status: statusAbsensi,
           jamMasuk: now,
+          metode: (pegawai as any).bebasAbsensi ? "GPS" : "SELFIE",
         }
       })
 

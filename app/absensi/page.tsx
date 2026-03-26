@@ -279,6 +279,11 @@ export default function AttendancePage() {
             return `${diffHrs}j ${diffMins}m`
           }
 
+          const methodMap: Record<string, string> = {
+            SELFIE: "selfie", FINGERPRINT: "fingerprint",
+            GPS: "gps", MANUAL: "manual"
+          }
+
           const name = d.pegawai?.nama || "Tanpa Nama"
           return {
             id: d.id,
@@ -291,7 +296,7 @@ export default function AttendancePage() {
             status: (statusMap[d.status] || "alpha") as AttendanceRecord["status"],
             lateMinutes: d.status === "TERLAMBAT" ? 15 : 0,
             earlyMinutes: 0,
-            method: "selfie",
+            method: (methodMap[d.metode] || "selfie") as AttendanceRecord["method"],
             location: d.location || "Gedung Utama",
             workHours: calculateHours(d.jamMasuk, d.jamKeluar)
           }
