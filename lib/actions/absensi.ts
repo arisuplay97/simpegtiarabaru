@@ -328,6 +328,17 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
 
     const startDate = new Date(y, m - 1, 1, 0, 0, 0)
     const endDate = new Date(y, m, 0, 23, 59, 59)
+    
+    const isCurrentMonth = (m === now.getMonth() + 1 && y === now.getFullYear())
+    const limitDate = isCurrentMonth ? now : endDate
+
+    let hariKerjaAktif = 0
+    for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay()
+      if (day !== 0 && day !== 6) { // 0 = Minggu, 6 = Sabtu
+        hariKerjaAktif++
+      }
+    }
 
     const absensi = await prisma.absensi.findMany({
       where: {
@@ -389,6 +400,12 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
         }
       }
     })
+
+    // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja
+    // Jika jumlah record absensi kurang dari jumlah hari kerja berjalan, selisihnya dianggap Alpa.
+    const totalRecordedAbsen = summary.hadir + summary.sakit + summary.izin + summary.cuti + summary.alpha
+    const autoAlpha = Math.max(0, hariKerjaAktif - totalRecordedAbsen)
+    summary.alpha += autoAlpha
 
     return summary
   } catch (error) {
