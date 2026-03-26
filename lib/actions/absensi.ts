@@ -316,3 +316,70 @@ export async function deleteAbsensi(id: string) {
     return { error: "Gagal menghapus data" }
   }
 }
+
+export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: number, year?: number) {
+  try {
+    const now = new Date()
+    const m = month ?? now.getMonth() + 1
+    const y = year ?? now.getFullYear()
+
+    const startDate = new Date(y, m - 1, 1, 0, 0, 0)
+    const endDate = new Date(y, m, 0, 23, 59, 59)
+
+    const absensi = await prisma.absensi.findMany({
+      where: {
+        pegawaiId,
+        tanggal: { gte: startDate, lte: endDate }
+      }
+    })
+
+    const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
+    const jamPulangSetting = pengaturan?.jamPulang || "17:00"
+    const [pjh, pjm] = jamPulangSetting.split(":").map(Number)
+
+    const summary = {
+      hadir: 0,
+      izin: 0,
+      sakit: 0,
+      alpha: 0,
+      terlambat: 0,
+      cuti: 0,
+      pulangCepat: 0,
+      totalRecord: absensi.length
+    }
+
+    absensi.forEach(a => {
+      // Status Mapping
+      if (a.status === "HADIR") {
+        summary.hadir++
+      } else if (a.status === "TERLAMBAT") {
+        summary.hadir++
+        summary.terlambat++
+      } else if (a.status === "ALPA") {
+        summary.alpha++
+      } else if (a.status === "SAKIT") {
+        summary.sakit++
+      } else if (a.status === "IZIN") {
+        summary.izin++
+      } else if (a.status === "CUTI") {
+        summary.cuti++
+      }
+
+      // Hitung pulang cepat
+      if (a.jamKeluar) {
+        const jk = new Date(a.jamKeluar)
+        // Bandingkan jam & menit dengan setting jam pulang
+        if (jk.getHours() < pjh || (jk.getHours() === pjh && jk.getMinutes() < pjm)) {
+          summary.pulangCepat++
+        }
+      }
+    })
+
+    return summary
+  } catch (error) {
+    console.error("Error getEmployeeAttendanceSummary:", error)
+    return {
+      hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0
+    }
+  }
+}

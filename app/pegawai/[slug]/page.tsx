@@ -71,7 +71,8 @@ import { Switch } from "@/components/ui/switch"
 import { useParams } from "next/navigation"
 import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai, updateBebasAbsensi, updateLokasiPegawai } from "@/lib/actions/pegawai"
 import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
-import { bidangList, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, type TipeJabatan } from "@/lib/data/bidang-store"
+import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
+import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -120,15 +121,7 @@ const salaryHistory = [
   { periode: "Januari 2026", gajiPokok: "Rp 5.850.000", tunjangan: "Rp 3.100.000", potongan: "Rp 1.218.000", gajiBersih: "Rp 7.732.000" },
 ]
 
-const attendanceSummary = {
-  hadir: 21,
-  izin: 1,
-  sakit: 0,
-  cuti: 0,
-  alpha: 0,
-  terlambat: 2,
-  pulangCepat: 0,
-}
+// Ini akan diganti dengan state
 
 const leaveBalance = {
   cutiTahunan: { total: 12, terpakai: 4, sisa: 8 },
@@ -186,6 +179,9 @@ export default function EmployeeDetailPage() {
   const [employee, setEmployee] = useState<any>(null)
   const [lokasiList, setLokasiList] = useState<any[]>([])
   const [formData, setFormData] = useState<any>({})
+  const [attendanceSummary, setAttendanceSummary] = useState<any>({
+    hadir: 0, izin: 0, sakit: 0, cuti: 0, alpha: 0, terlambat: 0, pulangCepat: 0
+  })
 
   useEffect(() => {
     if (id) {
@@ -193,6 +189,13 @@ export default function EmployeeDetailPage() {
       fetchLokasi()
     }
   }, [id])
+
+  const fetchAttendanceSummary = async (pegawaiId: string) => {
+    try {
+      const res = await getEmployeeAttendanceSummary(pegawaiId)
+      setAttendanceSummary(res)
+    } catch (e) {}
+  }
 
   const fetchLokasi = async () => {
     try {
@@ -212,6 +215,7 @@ export default function EmployeeDetailPage() {
         toast.error("Pegawai tidak ditemukan")
       } else {
         setEmployee(res)
+        fetchAttendanceSummary(res.id)
         // Set form initial state for editing
         setFormData({
           nik: res.nik,

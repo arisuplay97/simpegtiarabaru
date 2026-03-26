@@ -304,6 +304,7 @@ enum StatusAbsensi {
   ALPA
   CUTI
   SAKIT
+  IZIN
 }
 
 enum StatusCuti {
