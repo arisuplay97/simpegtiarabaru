@@ -170,7 +170,9 @@ export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
   try {
     const whereClause: any = {}
     if (dateStart && dateEnd) {
-      whereClause.tanggal = { gte: dateStart, lte: dateEnd }
+      const start = new Date(dateStart); start.setHours(0, 0, 0, 0)
+      const end = new Date(dateEnd); end.setHours(23, 59, 59, 999)
+      whereClause.tanggal = { gte: start, lte: end }
     } else {
       const { startOfDay, endOfDay } = getTodayRange()
       whereClause.tanggal = { gte: startOfDay, lte: endOfDay }
@@ -222,6 +224,7 @@ export async function getAbsensiSaya(bulan?: number, tahun?: number) {
         pegawaiId: pegawai.id,
         tanggal: { gte: startDate, lte: endDate }
       },
+      include: { pegawai: { include: { bidang: true } } },
       orderBy: { tanggal: 'desc' }
     })
   } catch (e) {

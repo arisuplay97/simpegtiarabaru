@@ -279,10 +279,11 @@ export default function AttendancePage() {
             return `${diffHrs}j ${diffMins}m`
           }
 
+          const name = d.pegawai?.nama || "Tanpa Nama"
           return {
             id: d.id,
-            employeeName: d.pegawai?.nama || session?.user?.name || "Nama Pegawai",
-            employeeInitials: (d.pegawai?.nama || session?.user?.name || "U").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
+            employeeName: name,
+            employeeInitials: name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
             employeeUnit: d.pegawai?.bidang?.nama || "Umum",
             date: new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
             checkIn: formatTime(d.jamMasuk),
