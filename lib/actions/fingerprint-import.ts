@@ -33,28 +33,44 @@ function parseCSV(content: string): FingerprintRow[] {
   const result: FingerprintRow[] = []
 
   // Skip header jika ada
-  const startIdx = lines[0].toLowerCase().includes("nik") || lines[0].toLowerCase().includes("nama") ? 1 : 0
+  const firstLine = lines[0].toLowerCase()
+  const hasHeader = firstLine.includes("nik") || firstLine.includes("nama") || firstLine.includes("tanggal")
+  const startIdx = hasHeader ? 1 : 0
 
   for (let i = startIdx; i < lines.length; i++) {
     const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""))
     if (cols.length < 3) continue
 
-    // Support: NIK, Nama (opsional), Tanggal, Jam Masuk, Jam Keluar
-    // Deteksi kolom nama: jika col[1] bukan tanggal valid
     let nik = cols[0]
     let tanggal = ""
     let jamMasuk = ""
     let jamKeluar = ""
 
-    // Test apakah cols[1] adalah tanggal
-    if (/^\d{4}-\d{2}-\d{2}/.test(cols[1])) {
+    // Fungsi deteksi apakah string adalah tanggal (YYYY-MM-DD atau M/D/YYYY)
+    const isDate = (str: string) => {
+      return /^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}/.test(str)
+    }
+
+    if (isDate(cols[1])) {
+      // Format: NIK, Tanggal, Jam Masuk, Jam Keluar
       tanggal = cols[1]; jamMasuk = cols[2] || ""; jamKeluar = cols[3] || ""
-    } else {
-      // cols[1] = nama, cols[2] = tanggal
-      tanggal = cols[2] || ""; jamMasuk = cols[3] || ""; jamKeluar = cols[4] || ""
+    } else if (isDate(cols[2])) {
+      // Format: NIK, Nama, Tanggal, Jam Masuk, Jam Keluar
+      tanggal = cols[2]; jamMasuk = cols[3] || ""; jamKeluar = cols[4] || ""
     }
 
     if (!nik || !tanggal) continue
+
+    // Normalisasi tanggal jika format M/D/YYYY -> YYYY-MM-DD agar Date constructor aman
+    if (tanggal.includes("/")) {
+      const parts = tanggal.split("/")
+      if (parts.length === 3) {
+        // Asumsi M/D/YYYY (format umum US/Excel)
+        const [m, d, y] = parts
+        tanggal = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`
+      }
+    }
+
     result.push({ nik, tanggal, jamMasuk: jamMasuk || undefined, jamKeluar: jamKeluar || undefined })
   }
   return result
