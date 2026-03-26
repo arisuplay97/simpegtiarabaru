@@ -1,0 +1,11 @@
+lib/actions/absensi.ts(372,13): error TS2339: Property 'jamPulang' does not exist on type '{ id: string; status: StatusAbsensi; createdAt: Date; pegawaiId: string; tanggal: Date; metode: MetodeAbsensi; importId: string | null; jamMasuk: Date | null; jamKeluar: Date | null; }'.
+lib/actions/absensi.ts(377,22): error TS2339: Property 'jamPulang' does not exist on type '{ id: string; status: StatusAbsensi; createdAt: Date; pegawaiId: string; tanggal: Date; metode: MetodeAbsensi; importId: string | null; jamMasuk: Date | null; jamKeluar: Date | null; }'.
+lib/actions/absensi.ts(377,50): error TS2339: Property 'jamPulang' does not exist on type '{ id: string; status: StatusAbsensi; createdAt: Date; pegawaiId: string; tanggal: Date; metode: MetodeAbsensi; importId: string | null; jamMasuk: Date | null; jamKeluar: Date | null; }'.
+lib/actions/absensi.ts(378,27): error TS2339: Property 'jamPulang' does not exist on type '{ id: string; status: StatusAbsensi; createdAt: Date; pegawaiId: string; tanggal: Date; metode: MetodeAbsensi; importId: string | null; jamMasuk: Date | null; jamKeluar: Date | null; }'.
+lib/actions/absensi.ts(381,22): error TS2339: Property 'jamPulang' does not exist on type '{ id: string; status: StatusAbsensi; createdAt: Date; pegawaiId: string; tanggal: Date; metode: MetodeAbsensi; importId: string | null; jamMasuk: Date | null; jamKeluar: Date | null; }'.
+lib/actions/absensi.ts(382,18): error TS2339: Property 'jamPulang' does not exist on type '{ id: string; status: StatusAbsensi; createdAt: Date; pegawaiId: string; tanggal: Date; metode: MetodeAbsensi; importId: string | null; jamMasuk: Date | null; jamKeluar: Date | null; }'.
+lib/actions/absensi.ts(383,18): error TS2339: Property 'jamPulang' does not exist on type '{ id: string; status: StatusAbsensi; createdAt: Date; pegawaiId: string; tanggal: Date; metode: MetodeAbsensi; importId: string | null; jamMasuk: Date | null; jamKeluar: Date | null; }'.
+lib/actions/pegawai.ts(358,23): error TS2323: Cannot redeclare exported variable 'uploadFotoPegawai'.
+lib/actions/pegawai.ts(358,23): error TS2393: Duplicate function implementation.
+lib/actions/pegawai.ts(575,23): error TS2323: Cannot redeclare exported variable 'uploadFotoPegawai'.
+lib/actions/pegawai.ts(575,23): error TS2393: Duplicate function implementation.

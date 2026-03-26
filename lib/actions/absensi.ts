@@ -370,9 +370,21 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
 
       // Hitung pulang cepat
       if (a.jamKeluar) {
-        const jk = new Date(a.jamKeluar)
+        // Asumsikan jamKeluar tersimpan dalam format String, cth: "16:45"
+        let jh = 0, jm = 0
+        
+        // Bedakan jika jamKeluar berisi Date object (meski di prisma tipe nya date/string, parse dgn aman)
+        if (typeof a.jamKeluar === 'string' && (a.jamKeluar as string).includes(':')) {
+          const parts = (a.jamKeluar as string).split(':')
+          jh = Number(parts[0])
+          jm = Number(parts[1])
+        } else if (a.jamKeluar instanceof Date) {
+          jh = a.jamKeluar.getHours()
+          jm = a.jamKeluar.getMinutes()
+        }
+
         // Bandingkan jam & menit dengan setting jam pulang
-        if (jk.getHours() < pjh || (jk.getHours() === pjh && jk.getMinutes() < pjm)) {
+        if (jh < pjh || (jh === pjh && jm < pjm)) {
           summary.pulangCepat++
         }
       }

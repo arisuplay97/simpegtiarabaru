@@ -45,6 +45,10 @@ import {
   AlertCircle,
   TrendingUp,
   Loader2,
+  Trash2,
+  UploadCloud,
+  Plus,
+  File,
 } from "lucide-react"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -72,6 +76,7 @@ import { useParams } from "next/navigation"
 import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai, updateBebasAbsensi, updateLokasiPegawai } from "@/lib/actions/pegawai"
 import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
+import { getDokumenPegawai, uploadDokumen, deleteDokumen } from "@/lib/actions/dokumen"
 import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
@@ -183,6 +188,12 @@ export default function EmployeeDetailPage() {
     hadir: 0, izin: 0, sakit: 0, cuti: 0, alpha: 0, terlambat: 0, pulangCepat: 0
   })
 
+  // Dokumen State
+  const [dokumenList, setDokumenList] = useState<any[]>([])
+  const [showDocUpload, setShowDocUpload] = useState(false)
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false)
+  const [docPayload, setDocPayload] = useState({ namaDokumen: "", jenisDokumen: "KTP", file: null as File | null })
+
   useEffect(() => {
     if (id) {
       fetchEmployee()
@@ -216,6 +227,7 @@ export default function EmployeeDetailPage() {
       } else {
         setEmployee(res)
         fetchAttendanceSummary(res.id)
+        fetchDokumen(res.id)
         // Set form initial state for editing
         setFormData({
           nik: res.nik,
@@ -252,6 +264,59 @@ export default function EmployeeDetailPage() {
       toast.error(e.message || "Gagal memuat profil pegawai")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchDokumen = async (pegawaiId: string) => {
+    try {
+      const res = await getDokumenPegawai(pegawaiId)
+      if (res.data) setDokumenList(res.data)
+    } catch {}
+  }
+
+  const handleUploadDokumenAction = async () => {
+    if (!docPayload.namaDokumen || !docPayload.file) {
+      toast.error("Nama dokumen dan file harus diisi")
+      return
+    }
+    
+    setIsUploadingDoc(true)
+    toast.loading("Mengunggah dokumen...")
+    try {
+      const res = await uploadDokumen(employee.id, { 
+        namaDokumen: docPayload.namaDokumen, 
+        jenisDokumen: docPayload.jenisDokumen 
+      }, docPayload.file)
+      
+      toast.dismiss()
+      if (res.error) throw new Error(res.error)
+      
+      toast.success("Dokumen berhasil diunggah")
+      setShowDocUpload(false)
+      setDocPayload({ namaDokumen: "", jenisDokumen: "KTP", file: null })
+      fetchDokumen(employee.id)
+    } catch (e: any) {
+      toast.dismiss()
+      toast.error(e.message || "Gagal mengunggah dokumen")
+    } finally {
+      setIsUploadingDoc(false)
+    }
+  }
+
+  const handleDeleteDokumen = async (dokumenId: string) => {
+    if (!confirm("Yakin ingin menghapus dokumen ini?")) return
+    
+    toast.loading("Menghapus dokumen...")
+    try {
+      const res = await deleteDokumen(dokumenId)
+      toast.dismiss()
+      if (res.error) throw new Error(res.error)
+      
+      toast.success("Dokumen berhasil dihapus")
+      fetchDokumen(employee.id)
+    } catch (e: any) {
+      toast.dismiss()
+      toast.error(e.message || "Gagal menghapus dokumen")
     }
   }
 
@@ -1103,6 +1168,86 @@ export default function EmployeeDetailPage() {
               </Card>
             </TabsContent>
 
+            {/* Dokumen Tab */}
+            <TabsContent value="dokumen">
+              <Card className="card-premium">
+                <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Dokumen Kepegawaian
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Kelola arsip dan berkas pendukung milik {employee.nama}</p>
+                  </div>
+                  <Button size="sm" onClick={() => setShowDocUpload(true)} className="gap-2 shadow-sm shrink-0">
+                    <Plus className="h-4 w-4" /> Tambah Dokumen
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="pl-6">Nama Dokumen</TableHead>
+                        <TableHead>Jenis</TableHead>
+                        <TableHead>Tanggal Upload</TableHead>
+                        <TableHead className="text-right pr-6">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dokumenList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="h-32 text-center text-muted-foreground border-b-0">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <File className="h-8 w-8 text-muted-foreground/50" />
+                              <p>Belum ada dokumen yang diunggah</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        dokumenList.map((doc: any) => (
+                          <TableRow key={doc.id} className="hover:bg-muted/30">
+                            <TableCell className="font-medium pl-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                                  <FileText className="h-4 w-4 text-primary" />
+                                </div>
+                                <span className="line-clamp-1">{doc.namaDokumen}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-background">
+                                {doc.jenisDokumen}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {format(new Date(doc.createdAt), "dd MMM yyyy", { locale: idLocale })}
+                            </TableCell>
+                            <TableCell className="text-right pr-6">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button variant="outline" size="sm" asChild className="h-8 shadow-sm">
+                                  <a href={doc.fileUrl} target="_blank" rel="noreferrer">
+                                    <Download className="h-3.5 w-3.5 mr-1.5" /> Lihat/Unduh
+                                  </a>
+                                </Button>
+                                <Button 
+                                  variant="destructive" 
+                                  size="icon" 
+                                  className="h-8 w-8 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-0 shadow-none"
+                                  onClick={() => handleDeleteDokumen(doc.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Pelatihan Tab */}
             <TabsContent value="pelatihan">
               <Card className="card-premium">
@@ -1403,6 +1548,72 @@ export default function EmployeeDetailPage() {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>Batal</Button>
             <Button onClick={handleSaveEdit} disabled={isLoading}>
               {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Perubahan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Dokumen Dialog */}
+      <Dialog open={showDocUpload} onOpenChange={setShowDocUpload}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <UploadCloud className="h-5 w-5 text-primary" />
+              Upload Dokumen Pegawai
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 space-y-5">
+            <F label="Nama Dokumen (Keterangan)">
+              <Input 
+                placeholder="e.g. Ijazah S1 Teknik Informatika" 
+                value={docPayload.namaDokumen}
+                onChange={e => setDocPayload(p => ({ ...p, namaDokumen: e.target.value }))}
+              />
+            </F>
+            <F label="Jenis Dokumen">
+              <Select value={docPayload.jenisDokumen} onValueChange={v => setDocPayload(p => ({ ...p, jenisDokumen: v }))}>
+                <SelectTrigger><SelectValue placeholder="Pilih Jenis" /></SelectTrigger>
+                <SelectContent>
+                  {["KTP", "KK", "Ijazah", "Transkrip Nilai", "SK CPNS", "SK PNS", "SK Pangkat Terakhir", "SK Jabatan", "Sertifikat Pelatihan", "BPJS Kes", "BPJS TK", "NPWP", "Sertifikat Lainnya", "Lain-lain"].map(j => (
+                    <SelectItem key={j} value={j}>{j}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </F>
+            <F label="Pilih File Document (Max 5MB)">
+              <div className="flex items-center gap-4 mt-1">
+                <Button 
+                  variant="outline" 
+                  className="w-full relative overflow-hidden bg-muted/30 hover:bg-muted/50 border-dashed border-2 py-8"
+                  type="button"
+                >
+                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) setDocPayload(p => ({ ...p, file }))
+                      }} 
+                    />
+                    <UploadCloud className="h-6 w-6 text-muted-foreground mb-2" />
+                    <span className="text-sm font-medium text-foreground">
+                      {docPayload.file ? docPayload.file.name : "Klik untuk memilih file"}
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">PDF, JPG, PNG, DOCX (Maks 5MB)</span>
+                  </label>
+                </Button>
+              </div>
+            </F>
+          </div>
+          <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+            <Button variant="outline" onClick={() => {
+              setShowDocUpload(false)
+              setDocPayload({ namaDokumen: "", jenisDokumen: "KTP", file: null })
+            }}>Batal</Button>
+            <Button onClick={handleUploadDokumenAction} disabled={isUploadingDoc || !docPayload.namaDokumen || !docPayload.file}>
+              {isUploadingDoc ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengupload...</> : "Upload & Simpan"}
             </Button>
           </DialogFooter>
         </DialogContent>
