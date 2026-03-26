@@ -357,9 +357,14 @@ model Pengaturan {
   batasBawaCuti     Int      @default(0)
 
   // Payroll
-  tanggalGajian     Int      @default(25)
-  bpjsKesehatanPcs  Float    @default(1.0)
-  bpjsTkPcs         Float    @default(2.0)
+  tanggalGajian           Int      @default(25)
+  bpjsKesehatanPcs        Float    @default(1.0)
+  bpjsTkPcs               Float    @default(2.0)
+  dendaTerlambat          Int      @default(5000)
+  batasTerlambatDenda     Int      @default(5)
+  dendaAlpa               Int      @default(7500)
+  tunjanganTransport      Int      @default(120000)
+  batasAlpaDendaTransport Int      @default(3)
 
   // Organisasi
   namaPerusahaan    String   @default("Tirta Ardhia Rinjani")

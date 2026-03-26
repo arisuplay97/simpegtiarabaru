@@ -35,6 +35,11 @@ export default function PengaturanSistemPage() {
     logoUrl: "",
     formatNomorSK: "SK/[NOMOR]/[BULAN]/[TAHUN]",
     namaPenandatangan: "Direktur Utama",
+    dendaTerlambat: 5000,
+    batasTerlambatDenda: 5,
+    dendaAlpa: 7500,
+    tunjanganTransport: 120000,
+    batasAlpaDendaTransport: 3,
   })
 
   useEffect(() => {
@@ -71,6 +76,11 @@ export default function PengaturanSistemPage() {
       tanggalGajian: parseInt(formData.tanggalGajian) || 1,
       bpjsKesehatanPcs: parseFloat(formData.bpjsKesehatanPcs) || 0,
       bpjsTkPcs: parseFloat(formData.bpjsTkPcs) || 0,
+      dendaTerlambat: parseInt(formData.dendaTerlambat) || 0,
+      batasTerlambatDenda: parseInt(formData.batasTerlambatDenda) || 0,
+      dendaAlpa: parseInt(formData.dendaAlpa) || 0,
+      tunjanganTransport: parseInt(formData.tunjanganTransport) || 0,
+      batasAlpaDendaTransport: parseInt(formData.batasAlpaDendaTransport) || 0,
     }
 
     const res = await updatePengaturan(payload)
@@ -211,6 +221,38 @@ export default function PengaturanSistemPage() {
                       <Label htmlFor="bpjsTkPcs">Potongan BPJS Ketenagakerjaan (%)</Label>
                       <Input type="number" step="0.1" id="bpjsTkPcs" name="bpjsTkPcs" value={formData.bpjsTkPcs} onChange={handleChange} />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="tunjanganTransport">Tunjangan Transport (Rp)</Label>
+                      <Input type="number" id="tunjanganTransport" name="tunjanganTransport" value={formData.tunjanganTransport} onChange={handleChange} />
+                      <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Besaran tunjangan transport yang akan di-lock (default: 120.000)</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="batasAlpaDendaTransport">Batas Alpa Tunjangan Lenyap (Hari)</Label>
+                      <Input type="number" id="batasAlpaDendaTransport" name="batasAlpaDendaTransport" value={formData.batasAlpaDendaTransport} onChange={handleChange} />
+                      <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Jika alpa mencapai X kali, tunjangan transport Rp. {Number(formData.tunjanganTransport).toLocaleString('id-ID')} akan dipotong habis.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="dendaTerlambat">Denda Terlambat (Rp per Kejadian)</Label>
+                      <Input type="number" id="dendaTerlambat" name="dendaTerlambat" value={formData.dendaTerlambat} onChange={handleChange} />
+                      <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda flat setiap kali terlambat melebihi batas (misal: 5.000)</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="batasTerlambatDenda">Batas Menit Mulai Denda (Menit)</Label>
+                      <Input type="number" id="batasTerlambatDenda" name="batasTerlambatDenda" value={formData.batasTerlambatDenda} onChange={handleChange} />
+                      <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda baru dikenakan jika telat lebih dari X menit dari jadwal (misal: 5)</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 border-t pt-4">
+                    <Label htmlFor="dendaAlpa">Denda Alpa Harian (Rp)</Label>
+                    <Input type="number" id="dendaAlpa" name="dendaAlpa" value={formData.dendaAlpa} onChange={handleChange} />
+                    <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda per hari jika status ALPA (Tanpa Keterangan). (Misal: 7.500)</p>
                   </div>
                 </CardContent>
               </Card>

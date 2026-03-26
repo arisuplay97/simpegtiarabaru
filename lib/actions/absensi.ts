@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/audit-log"
 
 // Format YYYY-MM-DD to get start and end of day
@@ -391,6 +392,11 @@ export async function getSystemSettings() {
       jamMasuk: pengaturan?.jamMasuk || "08:00",
       jamPulang: pengaturan?.jamPulang || "17:00",
       batasTerlambat: pengaturan?.batasTerlambat || 0,
+      dendaTerlambat: pengaturan?.dendaTerlambat || 5000,
+      batasTerlambatDenda: pengaturan?.batasTerlambatDenda || 5,
+      dendaAlpa: pengaturan?.dendaAlpa || 7500,
+      tunjanganTransport: pengaturan?.tunjanganTransport || 120000,
+      batasAlpaDendaTransport: pengaturan?.batasAlpaDendaTransport || 3,
     }
   } catch (error) {
     console.error("Error getSystemSettings:", error)
@@ -398,6 +404,42 @@ export async function getSystemSettings() {
       jamMasuk: "08:00",
       jamPulang: "17:00",
       batasTerlambat: 0,
+      dendaTerlambat: 5000,
+      batasTerlambatDenda: 5,
+      dendaAlpa: 7500,
+      tunjanganTransport: 120000,
+      batasAlpaDendaTransport: 3,
     }
+  }
+}
+
+export async function updateSystemSettings(data: any) {
+  const session = await auth()
+  if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
+    return { error: "Akses ditolak" }
+  }
+
+  try {
+    const updated = await prisma.pengaturan.update({
+      where: { id: "1" },
+      data: {
+        jamMasuk: data.jamMasuk,
+        jamPulang: data.jamPulang,
+        batasTerlambat: Number(data.batasTerlambat),
+        dendaTerlambat: Number(data.dendaTerlambat),
+        batasTerlambatDenda: Number(data.batasTerlambatDenda),
+        dendaAlpa: Number(data.dendaAlpa),
+        tunjanganTransport: Number(data.tunjanganTransport),
+        batasAlpaDendaTransport: Number(data.batasAlpaDendaTransport),
+        namaPerusahaan: data.namaPerusahaan,
+        alamatPerusahaan: data.alamatPerusahaan,
+      }
+    })
+
+    revalidatePath("/settings")
+    return { success: true, data: updated }
+  } catch (error: any) {
+    console.error("Error updateSystemSettings:", error)
+    return { error: error.message || "Gagal memperbarui pengaturan" }
   }
 }

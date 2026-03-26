@@ -57,16 +57,62 @@ export async function getPayrollList(periodStr: string) {
     orderBy: { nama: 'asc' }
   })
 
+  // Pre-fetch settings for draft calculations
+  const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
+  const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
+  const [targetH, targetM] = jamMasukSetting.split(":").map(Number)
+  
+  const dendaTerlambatPerKejadian = pengaturan?.dendaTerlambat || 5000
+  const batasTerlambatDenda = pengaturan?.batasTerlambatDenda || 5
+  const dendaAlpaPerHari = pengaturan?.dendaAlpa || 7500
+  const tunjanganTransportLocked = pengaturan?.tunjanganTransport || 120000
+  const batasAlpaLenyapTransport = pengaturan?.batasAlpaDendaTransport || 3
+
   // Format the response and include approved overtime (Lembur)
   const results = await Promise.all(pegawai.map(async (emp) => {
     const pr = emp.payroll.length > 0 ? emp.payroll[0] : null
     const baseGaji = Number(emp.gajiPokok || 0)
     const baseTunjangan = Number(emp.tunjangan || 0)
-    const basePotongan = 0
+    
+    let calculatedPotongan = 0
+
+    if (!pr) {
+      // Calculate draft penalties
+      const absensiBulanIni = await prisma.absensi.findMany({
+        where: {
+          pegawaiId: emp.id,
+          tanggal: { gte: start, lte: end }
+        }
+      })
+
+      let countTerlambatDenda = 0
+      let countAlpa = 0
+
+      absensiBulanIni.forEach(abs => {
+        if (abs.status === "ALPA") {
+          countAlpa++
+        } else if (abs.status === "TERLAMBAT" && abs.jamMasuk) {
+          const checkIn = new Date(abs.jamMasuk)
+          const scheduled = new Date(checkIn)
+          scheduled.setHours(targetH, targetM, 0, 0)
+          
+          const diffMins = Math.floor((checkIn.getTime() - scheduled.getTime()) / 60000)
+          if (diffMins > batasTerlambatDenda) {
+            countTerlambatDenda++
+          }
+        }
+      })
+
+      const totalDendaTerlambat = countTerlambatDenda * dendaTerlambatPerKejadian
+      const totalDendaAlpa = countAlpa * dendaAlpaPerHari
+      const penaltiTransport = countAlpa >= batasAlpaLenyapTransport ? tunjanganTransportLocked : 0
+      
+      calculatedPotongan = totalDendaTerlambat + totalDendaAlpa + penaltiTransport
+    }
 
     const gajiPokok = pr ? Number(pr.gajiPokok) : baseGaji
     const tunjangan = pr ? Number(pr.tunjangan) : baseTunjangan
-    const potongan = pr ? Number(pr.potongan) : basePotongan
+    const potongan = pr ? Number(pr.potongan) : calculatedPotongan
 
     // Fetch approved overtime pay for this employee in this month
     const lemburApproved = await (prisma as any).lembur.findMany({
@@ -183,10 +229,51 @@ export async function processAllPayroll(periodStr: string) {
     })
 
     // Batch create their default payroll
-    const batch = employees.map(emp => {
+    const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
+    const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
+    const [targetH, targetM] = jamMasukSetting.split(":").map(Number)
+    
+    const dendaTerlambatPerKejadian = pengaturan?.dendaTerlambat || 5000
+    const batasTerlambatDenda = pengaturan?.batasTerlambatDenda || 5
+    const dendaAlpaPerHari = pengaturan?.dendaAlpa || 7500
+    const tunjanganTransportLocked = pengaturan?.tunjanganTransport || 120000
+    const batasAlpaLenyapTransport = pengaturan?.batasAlpaDendaTransport || 3
+
+    const batch = await Promise.all(employees.map(async (emp) => {
+      // Hitung keterlambatan dan alpa bulan ini
+      const absensiBulanIni = await prisma.absensi.findMany({
+        where: {
+          pegawaiId: emp.id,
+          tanggal: { gte: start, lte: end }
+        }
+      })
+
+      let countTerlambatDenda = 0
+      let countAlpa = 0
+
+      absensiBulanIni.forEach(abs => {
+        if (abs.status === "ALPA") {
+          countAlpa++
+        } else if (abs.status === "TERLAMBAT" && abs.jamMasuk) {
+          const checkIn = new Date(abs.jamMasuk)
+          const scheduled = new Date(checkIn)
+          scheduled.setHours(targetH, targetM, 0, 0)
+          
+          const diffMins = Math.floor((checkIn.getTime() - scheduled.getTime()) / 60000)
+          if (diffMins > batasTerlambatDenda) {
+            countTerlambatDenda++
+          }
+        }
+      })
+
+      const totalDendaTerlambat = countTerlambatDenda * dendaTerlambatPerKejadian
+      const totalDendaAlpa = countAlpa * dendaAlpaPerHari
+      const penaltiTransport = countAlpa >= batasAlpaLenyapTransport ? tunjanganTransportLocked : 0
+
       const gPokok = Number(emp.gajiPokok || 0)
       const tunj = Number(emp.tunjangan || 0)
-      const pot = 0
+      const pot = totalDendaTerlambat + totalDendaAlpa + penaltiTransport
+      
       return {
         pegawaiId: emp.id,
         bulan: date,
@@ -195,7 +282,7 @@ export async function processAllPayroll(periodStr: string) {
         potongan: pot,
         total: gPokok + tunj - pot
       }
-    })
+    }))
 
     if (batch.length > 0) {
       await prisma.payroll.createMany({
