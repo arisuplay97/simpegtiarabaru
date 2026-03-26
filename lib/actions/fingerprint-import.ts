@@ -38,7 +38,11 @@ function parseCSV(content: string): FingerprintRow[] {
   const startIdx = hasHeader ? 1 : 0
 
   for (let i = startIdx; i < lines.length; i++) {
-    const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""))
+    const line = lines[i]
+    // Support comma or semicolon
+    const sep = line.includes(";") ? ";" : ","
+    const cols = line.split(sep).map((c) => c.trim().replace(/^["']|["']$/g, ""))
+    
     if (cols.length < 3) continue
 
     let nik = cols[0]
@@ -46,7 +50,7 @@ function parseCSV(content: string): FingerprintRow[] {
     let jamMasuk = ""
     let jamKeluar = ""
 
-    // Fungsi deteksi apakah string adalah tanggal (YYYY-MM-DD atau M/D/YYYY)
+    // Fungsi deteksi apakah string adalah tanggal (YYYY-MM-DD atau M/D/YYYY atau D-M-YYYY)
     const isDate = (str: string) => {
       return /^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}/.test(str)
     }
@@ -54,7 +58,7 @@ function parseCSV(content: string): FingerprintRow[] {
     if (isDate(cols[1])) {
       // Format: NIK, Tanggal, Jam Masuk, Jam Keluar
       tanggal = cols[1]; jamMasuk = cols[2] || ""; jamKeluar = cols[3] || ""
-    } else if (isDate(cols[2])) {
+    } else if (cols.length > 2 && isDate(cols[2])) {
       // Format: NIK, Nama, Tanggal, Jam Masuk, Jam Keluar
       tanggal = cols[2]; jamMasuk = cols[3] || ""; jamKeluar = cols[4] || ""
     }
@@ -159,51 +163,61 @@ export async function importFingerprint(formData: FormData) {
 
   if (rows.length === 0) return { error: "Tidak ada data valid yang bisa diparse dari file" }
 
-  // Dapatkan timezoneOffset dari client (dalam menit)
-  const timezoneOffset = Number(formData.get("timezoneOffset")) || 0
-  
-  try {
-    const importRecord = await prisma.importFingerprint.create({
-      data: {
-        namaFile: fileName,
-        totalRecord: rows.length,
-        status: "PROCESSING",
-        uploadedBy: session.user.id!,
-      },
-    })
+    // Dapatkan timezoneOffset dari client (dalam menit)
+    const rawOffset = formData.get("timezoneOffset")
+    const timezoneOffset = Number(rawOffset) || 0
+    
+    // Fungsi konversi offset menit ke format [+HH:mm] atau [-HH:mm]
+    const getOffsetString = (offsetMinutes: number) => {
+      const sign = offsetMinutes <= 0 ? "+" : "-"
+      const abs = Math.abs(offsetMinutes)
+      const h = Math.floor(abs / 60).toString().padStart(2, "0")
+      const m = (abs % 60).toString().padStart(2, "0")
+      return `${sign}${h}:${m}`
+    }
+    const offsetStr = getOffsetString(timezoneOffset)
+    
+    // console.log(`[IMPORT] Received offset: ${timezoneOffset}m -> ${offsetStr}`)
 
-    let berhasil = 0
-    let gagal = 0
-    const errorLog: { row: number; nik: string; error: string }[] = []
+    try {
+      const importRecord = await prisma.importFingerprint.create({
+        data: {
+          namaFile: fileName,
+          totalRecord: rows.length,
+          status: "PROCESSING",
+          uploadedBy: session.user.id!,
+        },
+      })
 
-    // Proses baris per baris
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
-      try {
-        // Cari pegawai berdasarkan NIK
-        const pegawai = await prisma.pegawai.findUnique({ where: { nik: row.nik } })
-        if (!pegawai) throw new Error(`NIK ${row.nik} tidak terdaftar`)
+      let berhasil = 0
+      let gagal = 0
+      const errorLog: { row: number; nik: string; error: string }[] = []
 
-        // Parse tanggal (sudah dinormalisasi ke YYYY-MM-DD oleh parseCSV)
-        const [y, mm, dd] = row.tanggal.split("-").map(Number)
-        
-        // baseDateUTC represents the start of the day in UTC, corresponding to the local date
-        const baseDateUTC = new Date(Date.UTC(y, mm - 1, dd))
-        const tanggal = new Date(Date.UTC(y, mm - 1, dd))
-        
-        // Range pencarian dalam database (UTC)
-        // Jika user di +8, maka hari dimulai jam 22:00 UTC (hari sebelumnya)
-        const startDay = new Date(baseDateUTC.getTime() + (timezoneOffset * 60 * 1000))
-        const endDay = new Date(startDay.getTime() + (24 * 60 * 60 * 1000) - 1)
+      // Proses baris per baris
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        try {
+          const pegawai = await prisma.pegawai.findUnique({ where: { nik: row.nik } })
+          if (!pegawai) throw new Error(`NIK ${row.nik} tidak terdaftar`)
 
-        function parseJam(jamStr: string) {
-          const [h, m] = jamStr.split(/[:.]/).map(Number)
-          const d = new Date(Date.UTC(y, mm - 1, dd, h, m))
-          // UTCTime = LocalTime + Offset
-          return new Date(d.getTime() + (timezoneOffset * 60 * 1000))
-        }
+          const [y, mm, dd] = row.tanggal.split("-").map(Number)
+          const dateStr = `${y}-${mm.toString().padStart(2, "0")}-${dd.toString().padStart(2, "0")}`
+          
+          // Gunakan ISO format dengan offset agar diparse tepat ke UTC oleh Node.js/Prisma
+          const tanggal = new Date(`${dateStr}T00:00:00${offsetStr}`)
+          
+          // Range pencarian
+          const startDay = new Date(tanggal)
+          const endDay = new Date(tanggal.getTime() + (24 * 60 * 60 * 1000) - 1)
 
-        const jamMasuk = row.jamMasuk ? parseJam(row.jamMasuk) : undefined
+          function parseJam(jamStr: string) {
+            const cleanJam = jamStr.replace(/[.]/g, ":")
+            const [h, m] = cleanJam.split(":").map(Number)
+            const iso = `${dateStr}T${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00${offsetStr}`
+            return new Date(iso)
+          }
+
+          const jamMasuk = row.jamMasuk ? parseJam(row.jamMasuk) : undefined
         const jamKeluar = row.jamKeluar ? parseJam(row.jamKeluar) : undefined
 
         // Tentukan status absensi berdasarkan pengaturan
