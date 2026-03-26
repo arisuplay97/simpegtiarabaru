@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { getUnreadCount } from "@/lib/actions/notifikasi"
+import { getSearchSuggestions } from "@/lib/actions/pegawai"
 import {
   Search,
   Bell,
@@ -46,6 +47,9 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   const router = useRouter()
   const searchRef = useRef<HTMLInputElement>(null)
   const { setMobileOpen } = useSidebar()
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -125,11 +129,34 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             type="text"
             placeholder="Cari pegawai, dokumen, approval, payroll..."
             className="h-10 w-full rounded-lg border border-input bg-secondary/50 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 group-focus-within:pr-14"
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
+            onFocus={() => {
+              setSearchFocused(true)
+              if (searchRef.current?.value.length && searchRef.current.value.length >= 2) {
+                setShowSuggestions(true)
+              }
+            }}
+            onBlur={() => {
+              setSearchFocused(false)
+              // Delay hides to allow clicking suggestions
+              setTimeout(() => setShowSuggestions(false), 200)
+            }}
+            onChange={async (e) => {
+              const val = e.target.value
+              if (val.length >= 2) {
+                setIsSearching(true)
+                setShowSuggestions(true)
+                const res = await getSearchSuggestions(val)
+                setSuggestions(res)
+                setIsSearching(false)
+              } else {
+                setSuggestions([])
+                setShowSuggestions(false)
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                 router.push(`/pegawai?search=${encodeURIComponent(e.currentTarget.value.trim())}`)
+                setShowSuggestions(false)
               }
             }}
           />
@@ -142,11 +169,51 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             onClick={() => {
               if (searchRef.current?.value.trim()) {
                 router.push(`/pegawai?search=${encodeURIComponent(searchRef.current.value.trim())}`)
+                setShowSuggestions(false)
               }
             }}
           >
             Cari
           </Button>
+
+          {/* Search Suggestions Dropdown */}
+          {showSuggestions && (suggestions.length > 0 || isSearching) && (
+            <div className="absolute top-full left-0 right-0 mt-1 max-h-80 overflow-auto rounded-lg border border-border bg-card shadow-lg z-50 animate-in fade-in zoom-in duration-200">
+              {isSearching && suggestions.length === 0 ? (
+                <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                  Mencari...
+                </div>
+              ) : suggestions.length > 0 ? (
+                <div className="py-2">
+                  <p className="px-4 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Saran Pegawai
+                  </p>
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.id}
+                      className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-muted transition-colors"
+                      onMouseDown={(e) => {
+                        e.preventDefault() // Prevent blur before navigation
+                        router.push(`/pegawai/${s.id}`)
+                        setShowSuggestions(false)
+                        if (searchRef.current) searchRef.current.value = ""
+                      }}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={s.fotoUrl || ""} />
+                        <AvatarFallback className="text-[10px]">{s.nama.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{s.nama}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{s.nik} • {s.jabatan}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
 

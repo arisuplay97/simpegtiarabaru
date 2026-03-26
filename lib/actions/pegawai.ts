@@ -595,3 +595,30 @@ export async function updateLokasiPegawai(pegawaiId: string, lokasiId: string | 
   
   revalidatePath(`/pegawai`)
 }
+
+export async function getSearchSuggestions(query: string) {
+  if (!query || query.length < 2) return []
+
+  try {
+    const suggestions = await prisma.pegawai.findMany({
+      where: {
+        OR: [
+          { nama: { contains: query, mode: "insensitive" } },
+          { nik: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        nama: true,
+        nik: true,
+        jabatan: true,
+        fotoUrl: true,
+      },
+      take: 8,
+    })
+    return suggestions
+  } catch (error) {
+    console.error("Error fetching search suggestions:", error)
+    return []
+  }
+}
