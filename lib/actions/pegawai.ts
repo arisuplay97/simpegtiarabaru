@@ -355,7 +355,10 @@ export async function deleteEmployee(id: string) {
 }
 
 // ============ UPLOAD FOTO SAJA ============
-export async function uploadFotoPegawai(id: string, fotoFile: File) {
+export async function uploadFotoPegawai(id: string, formData: FormData) {
+  const fotoFile = formData.get("fotoFile") as File
+  if (!fotoFile || fotoFile.size === 0) throw new Error("File foto tidak valid")
+
   const existing = await prisma.pegawai.findUnique({ where: { id }, select: { fotoUrl: true, nik: true } })
 
   // Hapus foto lama

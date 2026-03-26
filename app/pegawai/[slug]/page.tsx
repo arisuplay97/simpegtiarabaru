@@ -332,7 +332,10 @@ export default function EmployeeDetailPage() {
     setIsUploading(true)
     toast.loading("Mengupload foto...")
     try {
-      const url = await uploadFotoPegawai(employee.id, file)
+      const formData = new FormData()
+      formData.append("fotoFile", file)
+      
+      const url = await uploadFotoPegawai(employee.id, formData)
       setEmployee((prev: any) => ({ ...prev, fotoUrl: url }))
       setPreviewUrl(url)
       toast.dismiss()
@@ -667,7 +670,16 @@ export default function EmployeeDetailPage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Usia</p>
-                        <p className="font-medium">{employee.usia || "-"}</p>
+                        <p className="font-medium">
+                          {employee.tanggalLahir ? (() => {
+                            const today = new Date()
+                            const birth = new Date(employee.tanggalLahir)
+                            let age = today.getFullYear() - birth.getFullYear()
+                            const m = today.getMonth() - birth.getMonth()
+                            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+                            return `${age} Tahun`
+                          })() : "-"}
+                        </p>
                       </div>
                       <div className="hidden">
                         {/* dipindahkan ke header kanan */}
@@ -1574,7 +1586,7 @@ export default function EmployeeDetailPage() {
               <Select value={docPayload.jenisDokumen} onValueChange={v => setDocPayload(p => ({ ...p, jenisDokumen: v }))}>
                 <SelectTrigger><SelectValue placeholder="Pilih Jenis" /></SelectTrigger>
                 <SelectContent>
-                  {["KTP", "KK", "Ijazah", "Transkrip Nilai", "SK CPNS", "SK PNS", "SK Pangkat Terakhir", "SK Jabatan", "Sertifikat Pelatihan", "BPJS Kes", "BPJS TK", "NPWP", "Sertifikat Lainnya", "Lain-lain"].map(j => (
+                  {["KTP", "KK", "Ijazah", "Transkrip Nilai", "SK Pangkat Terakhir", "SK Jabatan", "Sertifikat Pelatihan", "BPJS Kes", "BPJS TK", "NPWP", "Sertifikat Lainnya", "Lain-lain"].map(j => (
                     <SelectItem key={j} value={j}>{j}</SelectItem>
                   ))}
                 </SelectContent>
