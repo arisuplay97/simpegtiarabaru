@@ -333,16 +333,24 @@ export default function EmployeeDetailPage() {
     toast.loading("Mengupload foto...")
     try {
       const formData = new FormData()
+      formData.append("pegawaiId", employee.id)
       formData.append("fotoFile", file)
-      
-      const url = await uploadFotoPegawai(employee.id, formData)
-      setEmployee((prev: any) => ({ ...prev, fotoUrl: url }))
-      setPreviewUrl(url)
+
+      const res = await fetch("/api/pegawai/upload-foto", {
+        method: "POST",
+        body: formData,
+      })
+      const json = await res.json()
+
+      if (!res.ok) throw new Error(json.error || "Gagal upload")
+
+      setEmployee((prev: any) => ({ ...prev, fotoUrl: json.url }))
+      setPreviewUrl(json.url)
       toast.dismiss()
       toast.success("Foto berhasil diperbarui")
-    } catch (error) {
+    } catch (error: any) {
       toast.dismiss()
-      toast.error("Gagal mengunggah foto")
+      toast.error(error.message || "Gagal mengunggah foto")
     } finally {
       setIsUploading(false)
     }
@@ -368,7 +376,49 @@ export default function EmployeeDetailPage() {
 
   // Hitung sisa pensiun (Umur 56)
   const getPensiunInfo = () => {
-    if (!employee?.tanggalLahir || !employee?.tanggalMasuk) return null
+    if (!employee) return null
+
+    // Untuk pegawai KONTRAK / MAGANG — gunakan tanggal kontrak selesai
+    const tipe = employee.tipeJabatan
+    if (tipe === "KONTRAK" || tipe === "STAFF_CABANG" || tipe === "KASUBBID_CABANG" || tipe === "KEPALA_CABANG") {
+      // Cek apakah ada data kontrak aktif
+      const kontrakAktif = (employee.kontrak || []).find((k: any) => k.status === "AKTIF")
+      if (kontrakAktif) {
+        const endDate = new Date(kontrakAktif.tanggalSelesai)
+        const today = new Date()
+        const diffTime = endDate.getTime() - today.getTime()
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+        if (diffDays <= 0) {
+          return { status: "Kontrak Berakhir", color: "text-red-700 bg-red-100", percentage: 100, tanggal: format(endDate, "dd MMMM yyyy", { locale: idLocale }) }
+        }
+
+        const startDate = new Date(kontrakAktif.tanggalMulai)
+        const totalDuration = endDate.getTime() - startDate.getTime()
+        const elapsedDuration = today.getTime() - startDate.getTime()
+        const percentage = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100))
+
+        const years = Math.floor(diffDays / 365)
+        let sisaText = years > 0 ? `${years} Tahun ${diffDays % 365} Hari` : `${diffDays} Hari`
+
+        let color = "text-emerald-700 bg-emerald-100"
+        if (diffDays <= 30) color = "text-red-700 bg-red-100"
+        else if (diffDays <= 90) color = "text-amber-700 bg-amber-100"
+
+        return {
+          tanggal: format(endDate, "dd MMMM yyyy", { locale: idLocale }),
+          sisaText,
+          color,
+          percentage,
+          label: kontrakAktif.tipe === "MAGANG" ? "Masa Magang" : "Masa Kontrak"
+        }
+      }
+      // Tidak ada kontrak aktif
+      return null
+    }
+
+    // Pegawai tetap — pensiun 56 tahun
+    if (!employee.tanggalLahir || !employee.tanggalMasuk) return null
     const birthDate = new Date(employee.tanggalLahir)
     const pensiunDate = new Date(birthDate.getFullYear() + 56, birthDate.getMonth(), birthDate.getDate())
     const joinDate = new Date(employee.tanggalMasuk)
@@ -382,17 +432,11 @@ export default function EmployeeDetailPage() {
     const percentage = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100))
 
     if (diffDays <= 0) {
-      return { status: "Sudah Pensiun", color: "text-red-700 bg-red-100", percentage: 100 }
+      return { status: "Sudah Pensiun", color: "text-red-700 bg-red-100", percentage: 100, label: "Masa Pensiun" }
     }
     
     const years = Math.floor(diffDays / 365)
-    let sisaText = ""
-    if (years > 0) {
-      const remainingDays = diffDays % 365
-      sisaText = `${years} Tahun${remainingDays > 0 ? ` ${remainingDays} Hari` : ''}`
-    } else {
-      sisaText = `${diffDays} Hari`
-    }
+    let sisaText = years > 0 ? `${years} Tahun ${diffDays % 365} Hari` : `${diffDays} Hari`
     
     let color = "text-emerald-700 bg-emerald-100"
     if (years <= 1) color = "text-red-700 bg-red-100"
@@ -400,9 +444,10 @@ export default function EmployeeDetailPage() {
 
     return { 
       tanggal: format(pensiunDate, "dd MMMM yyyy", { locale: idLocale }),
-      sisaText: sisaText,
-      color: color,
-      percentage
+      sisaText,
+      color,
+      percentage,
+      label: "Masa Pensiun"
     }
   }
 
@@ -540,7 +585,7 @@ export default function EmployeeDetailPage() {
                   {pensiunInfo && (
                     <div className="w-64 mt-1 p-3 rounded-xl border border-primary/10 bg-card shadow-sm flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground mr-2">Masa Pensiun</span>
+                        <span className="text-xs font-medium text-muted-foreground mr-2">{pensiunInfo.label || "Masa Pensiun"}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap ${pensiunInfo.color}`}>
                           {pensiunInfo.status || `< ${pensiunInfo.sisaText}`} 
                         </span>

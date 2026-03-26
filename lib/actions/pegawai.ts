@@ -206,6 +206,30 @@ export async function createEmployee(data: any, fotoFile?: File) {
     data: payload,
   })
 
+  // Auto-create Kontrak jika tipe jabatan = KONTRAK (PKWT / Magang)
+  if (data.tipeJabatan === 'KONTRAK') {
+    const tanggalMulai = data.tanggalMasuk ? new Date(data.tanggalMasuk) : new Date()
+    // Jika ada tanggalKontrakSelesai dari form, gunakan; jika tidak, default 1 tahun
+    const tanggalSelesai = data.tanggalKontrakSelesai 
+      ? new Date(data.tanggalKontrakSelesai) 
+      : new Date(tanggalMulai.getFullYear() + 1, tanggalMulai.getMonth(), tanggalMulai.getDate())
+    
+    const durasiHari = Math.ceil((tanggalSelesai.getTime() - tanggalMulai.getTime()) / (1000 * 60 * 60 * 24))
+    
+    await prisma.kontrak.create({
+      data: {
+        pegawaiId: employee.id,
+        tipe: data.tipeKontrak === 'MAGANG' ? 'MAGANG' : 'PKWT',
+        tanggalMulai,
+        tanggalSelesai,
+        durasiHari,
+        posisi: data.jabatan || 'Staff Kontrak',
+        unitKerja: data.bidangNama || '-',
+        status: 'AKTIF',
+      }
+    })
+  }
+
   await logAudit({
     action: "CREATE",
     module: "pegawai",
@@ -215,6 +239,7 @@ export async function createEmployee(data: any, fotoFile?: File) {
   })
 
   revalidatePath("/pegawai")
+  revalidatePath("/kontrak")
   return employee
   } catch (error: any) {
     console.error("PRISMA CREATE ERROR:", error)

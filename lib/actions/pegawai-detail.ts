@@ -19,6 +19,7 @@ export async function getEmployeeProfile(slugOrId: string) {
       riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
       pelatihan: { orderBy: { tahun: 'desc' } },
       dokumen: { orderBy: { createdAt: 'desc' } },
+      kontrak: { orderBy: { tanggalSelesai: 'desc' } },
     }
   });
 
@@ -33,6 +34,7 @@ export async function getEmployeeProfile(slugOrId: string) {
         keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
         riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
         pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },
+        kontrak: { orderBy: { tanggalSelesai: 'desc' } },
       }
     });
   }
@@ -47,6 +49,7 @@ export async function getEmployeeProfile(slugOrId: string) {
         keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
         riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
         pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },
+        kontrak: { orderBy: { tanggalSelesai: 'desc' } },
       }
     });
   }
