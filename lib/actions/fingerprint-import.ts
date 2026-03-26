@@ -215,7 +215,7 @@ export async function importFingerprint(formData: FormData) {
       if (existing) {
         await prisma.absensi.update({
           where: { id: existing.id },
-          data: { status, jamMasuk, jamKeluar, metode: "FINGERPRINT" },
+          data: { status, jamMasuk, jamKeluar, metode: "FINGERPRINT", importId: importRecord.id },
         })
       } else {
         await prisma.absensi.create({
@@ -226,6 +226,7 @@ export async function importFingerprint(formData: FormData) {
             jamMasuk,
             jamKeluar,
             metode: "FINGERPRINT",
+            importId: importRecord.id,
           },
         })
       }
@@ -269,4 +270,42 @@ export async function getRiwayatImport() {
     orderBy: { createdAt: "desc" },
     take: 20,
   })
+}
+
+// ============================================================
+// HAPUS RIWAYAT IMPORT (ROLLBACK)
+// ============================================================
+export async function deleteImportRiwayat(importId: string) {
+  const session = await auth()
+  if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
+    return { error: "Akses ditolak" }
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // 1. Hapus data absensi yang terkait dengan import ini
+      // Note: Karena kita pakai onDelete: SetNull di schema, kita harus hapus manual 
+      // jika ingin benar-benar rollback.
+      await tx.absensi.deleteMany({
+        where: { importId: importId }
+      })
+
+      // 2. Hapus record riwayat import
+      await tx.importFingerprint.delete({
+        where: { id: importId }
+      })
+
+      await logAudit({
+        action: "DELETE",
+        module: "absensi",
+        targetId: importId,
+        targetName: `Hapus/Rollback Import Fingerprint`,
+      })
+
+      return { success: true }
+    })
+  } catch (error: any) {
+    console.error("Delete import error:", error)
+    return { error: `Gagal menghapus riwayat: ${error.message}` }
+  }
 }

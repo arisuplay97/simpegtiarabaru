@@ -166,9 +166,11 @@ model Absensi {
   tanggal   DateTime
   status    StatusAbsensi
   metode    MetodeAbsensi   @default(SELFIE)
+  importId  String?
   jamMasuk  DateTime?
   jamKeluar DateTime?
   pegawai   Pegawai         @relation(fields: [pegawaiId], references: [id])
+  import    ImportFingerprint? @relation(fields: [importId], references: [id], onDelete: SetNull)
   createdAt DateTime        @default(now())
 }
 
@@ -622,12 +624,13 @@ enum MetodePPh21 {
 model ImportFingerprint {
   id            String              @id @default(cuid())
   namaFile      String
-  totalRecord   Int                 @default(0)
+  totalRecord   Int
   berhasil      Int                 @default(0)
   gagal         Int                 @default(0)
   status        StatusImport        @default(PROCESSING)
   errorLog      Json?               // Array of { row, nik, error }
-  uploadedBy    String              // userId
+  uploadedBy    String
+  absensi       Absensi[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 }

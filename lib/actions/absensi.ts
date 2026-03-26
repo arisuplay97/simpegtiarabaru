@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { logAudit } from "@/lib/actions/audit-log"
 
 // Format YYYY-MM-DD to get start and end of day
 function getTodayRange(date?: Date) {
@@ -287,5 +288,31 @@ export async function getStatusAbsensiHariIni() {
   } catch (e) {
     console.error("Error getStatusAbsensiHariIni:", e)
     return null
+  }
+}
+
+export async function deleteAbsensi(id: string) {
+  const session = await auth()
+  if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
+    return { error: "Akses ditolak" }
+  }
+
+  try {
+    const absensi = await prisma.absensi.findUnique({ where: { id }, include: { pegawai: true } })
+    if (!absensi) return { error: "Data tidak ditemukan" }
+
+    await prisma.absensi.delete({ where: { id } })
+
+    await logAudit({
+      action: "DELETE",
+      module: "absensi",
+      targetId: id,
+      targetName: `Hapus Absensi: ${absensi.pegawai.nama} (${new Date(absensi.tanggal).toLocaleDateString()})`,
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete absensi error:", error)
+    return { error: "Gagal menghapus data" }
   }
 }

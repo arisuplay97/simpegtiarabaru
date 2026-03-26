@@ -59,6 +59,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -68,7 +69,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getAbsensiList, getAbsensiSaya } from "@/lib/actions/absensi"
+import { getAbsensiList, getAbsensiSaya, deleteAbsensi } from "@/lib/actions/absensi"
 
 interface AttendanceRecord {
   id: string
@@ -246,62 +247,65 @@ export default function AttendancePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
 
+  const mapAbsensi = (data: any[]): AttendanceRecord[] => {
+    return data.map((d: any) => {
+      const statusMap: Record<string, string> = {
+        HADIR: "hadir", IZIN: "izin", SAKIT: "sakit",
+        CUTI: "cuti", ALPHA: "alpha", DINAS: "dinas",
+        TERLAMBAT: "hadir"
+      }
+
+      const formatTime = (dateStr: any) => {
+        if (!dateStr) return null
+        const dt = new Date(dateStr)
+        return dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      }
+
+      const calculateHours = (inTime: any, outTime: any) => {
+        if (!inTime || !outTime) return "-"
+        const diffMs = new Date(outTime).getTime() - new Date(inTime).getTime()
+        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60))
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+        return `${diffHrs}j ${diffMins}m`
+      }
+
+      const methodMap: Record<string, string> = {
+        SELFIE: "selfie", FINGERPRINT: "fingerprint",
+        GPS: "gps", MANUAL: "manual"
+      }
+
+      const name = d.pegawai?.nama || "Tanpa Nama"
+      return {
+        id: d.id,
+        employeeName: name,
+        employeeInitials: name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
+        employeeUnit: d.pegawai?.bidang?.nama || "Umum",
+        date: new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+        checkIn: formatTime(d.jamMasuk),
+        checkOut: formatTime(d.jamKeluar),
+        status: (statusMap[d.status] || "alpha") as AttendanceRecord["status"],
+        lateMinutes: d.status === "TERLAMBAT" ? 15 : 0,
+        earlyMinutes: 0,
+        method: (methodMap[d.metode] || "selfie") as AttendanceRecord["method"],
+        location: d.location || "Gedung Utama",
+        workHours: calculateHours(d.jamMasuk, d.jamKeluar)
+      }
+    })
+  }
+
   React.useEffect(() => {
     async function loadData() {
       try {
         setIsLoading(true)
         let data: any[] = []
-        
+
         if (isAdmin) {
           data = await getAbsensiList(date, date)
         } else {
           data = await getAbsensiSaya(selectedMonth, selectedYear)
         }
 
-        const mappedData: AttendanceRecord[] = data.map((d: any) => {
-          const statusMap: Record<string, string> = {
-            HADIR: "hadir", IZIN: "izin", SAKIT: "sakit", 
-            CUTI: "cuti", ALPHA: "alpha", DINAS: "dinas",
-            TERLAMBAT: "hadir"
-          }
-          
-          const formatTime = (dateStr: any) => {
-            if (!dateStr) return null
-            const dt = new Date(dateStr)
-            return dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-          }
-          
-          const calculateHours = (inTime: any, outTime: any) => {
-            if (!inTime || !outTime) return "-"
-            const diffMs = new Date(outTime).getTime() - new Date(inTime).getTime()
-            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60))
-            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-            return `${diffHrs}j ${diffMins}m`
-          }
-
-          const methodMap: Record<string, string> = {
-            SELFIE: "selfie", FINGERPRINT: "fingerprint",
-            GPS: "gps", MANUAL: "manual"
-          }
-
-          const name = d.pegawai?.nama || "Tanpa Nama"
-          return {
-            id: d.id,
-            employeeName: name,
-            employeeInitials: name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
-            employeeUnit: d.pegawai?.bidang?.nama || "Umum",
-            date: new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-            checkIn: formatTime(d.jamMasuk),
-            checkOut: formatTime(d.jamKeluar),
-            status: (statusMap[d.status] || "alpha") as AttendanceRecord["status"],
-            lateMinutes: d.status === "TERLAMBAT" ? 15 : 0,
-            earlyMinutes: 0,
-            method: (methodMap[d.metode] || "selfie") as AttendanceRecord["method"],
-            location: d.location || "Gedung Utama",
-            workHours: calculateHours(d.jamMasuk, d.jamKeluar)
-          }
-        })
-        setRecords(mappedData)
+        setRecords(mapAbsensi(data))
       } catch (error: any) {
         toast.error(`Gagal memuat absensi: ${error.message}`)
       } finally {
@@ -390,13 +394,34 @@ export default function AttendancePage() {
     toast.success(`Data absensi ${selectedRecord.employeeName} berhasil diubah`)
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus data absensi ini?")) return
+
+    setIsLoading(true)
+    const res = await deleteAbsensi(id)
+    if (res.success) {
+      toast.success("Data absensi berhasil dihapus")
+      // Refresh data
+      if (isAdmin) {
+        const d = await getAbsensiList(date, date)
+        setRecords(mapAbsensi(d))
+      } else {
+        const d = await getAbsensiSaya(selectedMonth, selectedYear)
+        setRecords(mapAbsensi(d))
+      }
+    } else {
+      toast.error(res.error || "Gagal menghapus data")
+    }
+    setIsLoading(false)
+  }
+
   const handleBulkUpdate = (newStatus: AttendanceRecord["status"]) => {
     if (selectedIds.length === 0) {
       toast.error("Pilih minimal satu data")
       return
     }
 
-    setRecords((prev: AttendanceRecord[]) => prev.map((r: AttendanceRecord) => 
+    setRecords((prev: AttendanceRecord[]) => prev.map((r: AttendanceRecord) =>
       selectedIds.includes(r.id) ? { ...r, status: newStatus } : r
     ))
     setSelectedIds([])
@@ -405,7 +430,7 @@ export default function AttendancePage() {
 
   const handleExportCSV = () => {
     const headers = ["Nama", "Unit", "Check In", "Check Out", "Status", "Lokasi"]
-    const csvData = filteredData.map((r: AttendanceRecord) => 
+    const csvData = filteredData.map((r: AttendanceRecord) =>
       [r.employeeName, r.employeeUnit, r.checkIn || "-", r.checkOut || "-", r.status, r.location].join(",")
     )
     const csvContent = [headers.join(","), ...csvData].join("\n")
@@ -446,7 +471,7 @@ export default function AttendancePage() {
               <TableRow className="bg-muted/50">
                 {isAdmin && (
                   <TableHead className="w-[40px]">
-                    <Checkbox 
+                    <Checkbox
                       checked={selectedIds.length === paginatedData.length && paginatedData.length > 0}
                       onCheckedChange={(checked: boolean) => {
                         if (checked) {
@@ -467,13 +492,14 @@ export default function AttendancePage() {
                 <TableHead className="text-center">Keterlambatan</TableHead>
                 <TableHead>Metode</TableHead>
                 <TableHead>Lokasi</TableHead>
-                {isAdmin && <TableHead className="text-center">Aksi</TableHead>}
+                {isAdmin && <TableHead className="w-[100px] text-center">Aksi</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length > 0 ? (
                 paginatedData.map((record: AttendanceRecord) => {
-                  const MethodIcon = (methodConfig as any)[record.method].icon
+                  const methodInfo = (methodConfig as any)[record.method] || methodConfig.selfie
+                  const MethodIcon = methodInfo.icon
                   const isSelected = selectedIds.includes(record.id)
                   return (
                     <TableRow key={record.id} className={cn("hover:bg-muted/30", isSelected && "bg-primary/5")}>
@@ -510,29 +536,11 @@ export default function AttendancePage() {
                           {record.employeeUnit}
                         </TableCell>
                       )}
-                      <TableCell className="text-center">
-                        {record.checkIn ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            <span className="font-mono font-medium">{record.checkIn}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                      <TableCell className="text-center font-mono">
+                        {record.checkIn || "-"}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {record.checkOut ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            <span className="font-mono font-medium">{record.checkOut}</span>
-                          </div>
-                        ) : record.checkIn ? (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700">
-                            Belum
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                      <TableCell className="text-center font-mono">
+                        {record.checkOut || "-"}
                       </TableCell>
                       <TableCell className="text-center font-mono text-sm">
                         {record.workHours}
@@ -547,32 +555,38 @@ export default function AttendancePage() {
                       </TableCell>
                       <TableCell className="text-center">
                         {record.lateMinutes > 0 ? (
-                          <Badge variant="outline" className="bg-red-50 text-red-700">
+                          <Badge variant="outline" className="bg-red-50 text-red-700 font-mono">
                             {record.lateMinutes}m
                           </Badge>
                         ) : (
-                          <span className="text-emerald-600">-</span>
+                          <span className="text-emerald-600 font-mono">-</span>
                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <MethodIcon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs">{(methodConfig as any)[record.method].label}</span>
+                          <span className="text-xs uppercase font-medium">{methodInfo.label}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground truncate max-w-[120px]">
+                      <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]">
                         {record.location}
                       </TableCell>
                       {isAdmin && (
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleOpenEdit(record)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => handleOpenEdit(record)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDelete(record.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -580,8 +594,8 @@ export default function AttendancePage() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 11 : 8} className="h-24 text-center text-muted-foreground">
-                    Tidak ada data absensi untuk periode ini.
+                  <TableCell colSpan={isAdmin ? 11 : 8} className="h-24 text-center text-muted-foreground italic">
+                    Belum ada data absensi untuk periode ini.
                   </TableCell>
                 </TableRow>
               )}

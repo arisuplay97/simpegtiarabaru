@@ -14,10 +14,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { importFingerprint, getRiwayatImport } from "@/lib/actions/fingerprint-import"
+import { importFingerprint, getRiwayatImport, deleteImportRiwayat } from "@/lib/actions/fingerprint-import"
 import {
   Upload, FileText, CheckCircle2, XCircle, AlertCircle,
-  Clock, CloudUpload, RefreshCw, Download,
+  Clock, CloudUpload, RefreshCw, Download, Trash2,
 } from "lucide-react"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
@@ -59,6 +59,21 @@ export default function ImportFingerprintPage() {
     if ("error" in res) { toast.error(res.error!); return }
     toast.success(`Import selesai: ${res.berhasil} berhasil dari ${res.total} record`)
     fetchHistory()
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus/rollback riwayat import ini? Seluruh data absensi yang terkait dengan import ini juga akan dihapus.")) return
+    
+    setLoading(true)
+    const res = await deleteImportRiwayat(id)
+    setLoading(false)
+    
+    if ("error" in res) {
+      toast.error(res.error!)
+    } else {
+      toast.success("Riwayat import berhasil dihapus")
+      fetchHistory()
+    }
   }
 
   const successRate = result?.total > 0 ? Math.round((result.berhasil / result.total) * 100) : 0
@@ -216,6 +231,7 @@ export default function ImportFingerprintPage() {
                     <TableHead className="text-center">Gagal</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Waktu</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -240,6 +256,15 @@ export default function ImportFingerprintPage() {
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {format(new Date(h.createdAt), "dd MMM yyyy HH:mm", { locale: localeId })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDelete(h.id)}
+                            disabled={loading}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     )
