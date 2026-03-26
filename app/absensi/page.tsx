@@ -69,7 +69,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getAbsensiList, getAbsensiSaya, deleteAbsensi, getSystemSettings } from "@/lib/actions/absensi"
+import { getAbsensiList,  getAbsensiSaya,
+  checkDeviceAndAbsen,
+  deleteAbsensi,
+  deleteAllAbsensiByMonth,
+  getSystemSettings
+} from "@/lib/actions/absensi"
 
 interface AttendanceRecord {
   id: string
@@ -434,6 +439,28 @@ export default function AttendancePage() {
     setIsLoading(false)
   }
 
+  const handleDeleteAllMonth = async () => {
+    const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`
+    if (!confirm(`DANGER ZONE [KHUSUS TESTING]: Anda yakin ingin menghapus SELURUH data absensi pegawai untuk bulan ${format(new Date(selectedYear, selectedMonth - 1, 1), "MMMM yyyy", { locale: id })}?\n\nTindakan ini menghapus permanen seluruh absensi di bulan ini!`)) return
+
+    setIsLoading(true)
+    const res = await deleteAllAbsensiByMonth(monthStr)
+    if (res.success) {
+      toast.success(`${res.count} data absensi bulan ini berhasil dihapus permanen`)
+      // Refresh list for the current viewed date
+      if (isAdmin) {
+        const d = await getAbsensiList(date, date)
+        setRecords(mapAbsensi(d, settings))
+      } else {
+        const d = await getAbsensiSaya(selectedMonth, selectedYear)
+        setRecords(mapAbsensi(d, settings))
+      }
+    } else {
+      toast.error(res.error || "Gagal menghapus absensi")
+    }
+    setIsLoading(false)
+  }
+
   const handleBulkUpdate = (newStatus: AttendanceRecord["status"]) => {
     if (selectedIds.length === 0) {
       toast.error("Pilih minimal satu data")
@@ -692,10 +719,16 @@ export default function AttendancePage() {
                 </Link>
               )}
               {isAdmin && (
-                <Button variant="outline" size="sm" className="gap-2" onClick={handleExportCSV}>
-                  <Download className="h-4 w-4" />
-                  Export Rekap
-                </Button>
+                <>
+                  <Button variant="destructive" size="sm" className="gap-2" onClick={handleDeleteAllMonth}>
+                    <Trash2 className="h-4 w-4" />
+                    Hapus Absensi Bulan Ini
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={handleExportCSV}>
+                    <Download className="h-4 w-4" />
+                    Export Rekap
+                  </Button>
+                </>
               )}
             </div>
           </div>

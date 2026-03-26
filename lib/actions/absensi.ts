@@ -457,3 +457,48 @@ export async function updateSystemSettings(data: any) {
     return { error: error.message || "Gagal memperbarui pengaturan" }
   }
 }
+
+// =============================================
+// DELETE SEMUA ABSENSI PER BULAN (UNTUK TESTING)
+// =============================================
+export async function deleteAllAbsensiByMonth(monthStr: string) {
+  try {
+    const session = await auth()
+    if (!session?.user) return { error: "Belum login" }
+    
+    // Akses khusus admin
+    if ((session.user as any).role !== "SUPERADMIN" && (session.user as any).role !== "HRD") {
+      return { error: "Akses ditolak" }
+    }
+
+    const [year, month] = monthStr.split("-").map(Number)
+    if (!year || !month) return { error: "Format bulan tidak valid" }
+
+    // Dapatkan awal dan akhir bulan dari string YYYY-MM
+    const startDate = new Date(year, month - 1, 1)
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+
+    const result = await prisma.absensi.deleteMany({
+      where: {
+        tanggal: {
+          gte: startDate,
+          lte: endDate
+        }
+      }
+    })
+
+    await logAudit({
+      action: "DELETE",
+      module: "absensi",
+      targetId: "ALL",
+      targetName: `Hapus Massal Absensi Periode ${monthStr} (${result.count} data)`,
+    })
+
+    revalidatePath("/absensi")
+    revalidatePath("/laporan/absensi")
+    return { success: true, count: result.count }
+  } catch (error: any) {
+    console.error("Gagal menghapus absensi massal:", error)
+    return { error: error.message || "Gagal menghapus data" }
+  }
+}
