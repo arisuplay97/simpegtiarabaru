@@ -203,10 +203,10 @@ export async function importFingerprint(formData: FormData) {
           const [y, mm, dd] = row.tanggal.split("-").map(Number)
           const dateStr = `${y}-${mm.toString().padStart(2, "0")}-${dd.toString().padStart(2, "0")}`
           
-          // Gunakan ISO format dengan offset agar diparse tepat ke UTC oleh Node.js/Prisma
-          const tanggal = new Date(`${dateStr}T00:00:00${offsetStr}`)
+          // Tanggal utama untuk marker hari disimpan sebagai UTC midnight agar konsisten dengan fetcher di UI
+          const tanggal = new Date(Date.UTC(y, mm - 1, dd))
           
-          // Range pencarian
+          // Range pencarian existing (harus berbasis UTC midnight yang sama)
           const startDay = new Date(tanggal)
           const endDay = new Date(tanggal.getTime() + (24 * 60 * 60 * 1000) - 1)
 

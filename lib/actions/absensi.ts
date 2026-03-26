@@ -114,6 +114,9 @@ export async function checkDeviceAndAbsen(
       batasTerlambatTime.setHours(jamMasukH, jamMasukM + batasTerlambat, 0, 0)
 
       const statusAbsensi = now > batasTerlambatTime ? "TERLAMBAT" : "HADIR"
+      const pesanTerlambat = statusAbsensi === "TERLAMBAT"
+        ? ` (Terlambat ${Math.round((now.getTime() - batasTerlambatTime.getTime()) / 60000)} menit)`
+        : ""
 
       await prisma.absensi.create({
         data: {
@@ -124,10 +127,6 @@ export async function checkDeviceAndAbsen(
           metode: (pegawai as any).bebasAbsensi ? "GPS" : "SELFIE",
         }
       })
-
-      const pesanTerlambat = statusAbsensi === "TERLAMBAT"
-        ? ` (Terlambat ${Math.round((now.getTime() - batasTerlambatTime.getTime()) / 60000)} menit)`
-        : ""
 
       return { success: `Check-in berhasil! Status: ${statusAbsensi}${pesanTerlambat}` }
 
@@ -196,6 +195,7 @@ export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
       include: { pegawai: { include: { bidang: true } } },
       orderBy: [{ jamMasuk: 'desc' }, { tanggal: 'desc' }]
     })
+
     return absensiList
   } catch (error) {
     console.error("Error fetching absensi list:", error)
