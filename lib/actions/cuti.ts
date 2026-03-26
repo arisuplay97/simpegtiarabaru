@@ -53,10 +53,28 @@ export async function createCuti(payload: any) {
     
     if (!pegawai) return { error: "Profil pegawai tidak ditemukan" }
 
+    // Validasi input wajib
+    if (!payload.tanggalMulai || !payload.tanggalSelesai) {
+      return { error: "Tanggal mulai dan selesai wajib diisi." }
+    }
+    if (!payload.alasan || payload.alasan.trim().length < 5) {
+      return { error: "Alasan cuti wajib diisi (minimal 5 karakter)." }
+    }
+
     // Hitung durasi hari
     const start = new Date(payload.tanggalMulai)
     const end = new Date(payload.tanggalSelesai)
+
+    // Validasi urutan tanggal
+    if (end < start) {
+      return { error: "Tanggal selesai tidak boleh sebelum tanggal mulai." }
+    }
+
     const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+    if (duration < 1) {
+      return { error: "Durasi cuti minimal 1 hari." }
+    }
 
     if (duration > pegawai.saldoCuti && payload.jenisCuti === "Cuti Tahunan") {
       return { error: `Saldo cuti tidak mencukupi. Sisa saldo: ${pegawai.saldoCuti} hari.` }

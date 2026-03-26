@@ -89,16 +89,19 @@ export async function resetUserPassword(id: string) {
       return { error: "Akses ditolak" }
     }
 
-    const defaultPass = "123456"
-    const hashedPassword = await bcrypt.hash(defaultPass, 10)
+    const defaultPass = "Simpeg@2025"
+    const hashedPassword = await bcrypt.hash(defaultPass, 12)
 
     await prisma.user.update({
       where: { id },
-      data: { password: hashedPassword }
+      data: {
+        password: hashedPassword,
+        mustChangePassword: true // Paksa ganti password saat login berikutnya
+      }
     })
 
     revalidatePath("/settings/users")
-    return { success: true, message: `Password berhasil direset ke: ${defaultPass}` }
+    return { success: true, message: "Password berhasil direset. Pegawai wajib mengganti password saat login berikutnya." }
   } catch (error: any) {
     return { error: error.message }
   }

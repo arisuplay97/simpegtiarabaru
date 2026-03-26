@@ -9,23 +9,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Untuk demo users (id = "demo-1" dst), cari berdasarkan email
-    const userId = session.user.id
-    let pegawai = null
-
-    if (userId.startsWith("demo-")) {
-      // Demo user — cari pegawai pertama dari database sebagai fallback
-      pegawai = await prisma.pegawai.findFirst({
-        select: { id: true, nama: true },
-        orderBy: { createdAt: "asc" }
-      })
-    } else {
-      // Real user — cari berdasarkan userId
-      pegawai = await prisma.pegawai.findUnique({
-        where: { userId },
-        select: { id: true, nama: true }
-      })
-    }
+    // SECURITY FIX: Hapus logika demo-user yang bisa mengekspos data pegawai sembarang
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true, nama: true }
+    })
 
     if (!pegawai) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })

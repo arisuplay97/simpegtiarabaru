@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { auth } from "@/lib/auth"
 
 export type ApprovalType = "cuti" | "lembur" | "mutasi" | "kgb" | "pangkat"
 
@@ -26,6 +27,12 @@ export interface UnifiedApprovalItem {
 
 // Aggregation function
 export async function getPendingApprovals(): Promise<UnifiedApprovalItem[]> {
+  const session = await auth()
+  if (!session?.user) return []
+  // Hanya HRD, SUPERADMIN, dan DIREKSI yang bisa melihat semua approval
+  const allowedRoles = ["HRD", "SUPERADMIN", "DIREKSI"]
+  if (!allowedRoles.includes(session.user.role ?? "")) return []
+
   const items: UnifiedApprovalItem[] = []
 
   // 1. CUTI
@@ -168,6 +175,14 @@ export async function processUnifiedApproval(
   catatan?: string
 ) {
   try {
+    // SECURITY: Hanya peran yang berwenang yang boleh approve/reject
+    const session = await auth()
+    if (!session?.user) return { error: "Anda belum login." }
+    const allowedRoles = ["HRD", "SUPERADMIN", "DIREKSI"]
+    if (!allowedRoles.includes(session.user.role ?? "")) {
+      return { error: "Akses ditolak. Hanya HRD, Superadmin, atau Direksi yang dapat memproses persetujuan." }
+    }
+
     const status = isApprove ? "APPROVED" : "REJECTED"
 
     if (type === "cuti") {
@@ -192,48 +207,29 @@ export async function processUnifiedApproval(
         const current = new Date(start)
         while (current <= end) {
           const day = current.getDay()
-          const isWeekend = day === 0 || day === 6 // Minggu = 0, Sabtu = 6
+          const isWeekend = day === 0 || day === 6
           if (!isWeekend) {
             workingDays++
-            // Upsert: kalau sudah ada record absensi di hari itu, update saja
-            await prisma.absensi.upsert({
+            // FIXED: Ganti logika upsert berbahaya dengan findFirst + create/update
+            const startOfDay = new Date(current)
+            startOfDay.setHours(0, 0, 0, 0)
+            const endOfDay = new Date(current)
+            endOfDay.setHours(23, 59, 59, 999)
+
+            const absensiExist = await prisma.absensi.findFirst({
               where: {
-                // Gunakan composite by manual search karena tidak ada unique constraint on (pegawaiId, tanggal)
-                // fallback: crate jika belum ada, update jika sudah ada
-                id: (await prisma.absensi.findFirst({
-                  where: {
-                    pegawaiId: cuti.pegawaiId,
-                    tanggal: {
-                      gte: new Date(current.setHours(0, 0, 0, 0)),
-                      lte: new Date(current.setHours(23, 59, 59, 999))
-                    }
-                  },
-                  select: { id: true }
-                }))?.id || "new-placeholder-will-fail",
-              },
-              update: { status: "CUTI" },
-              create: {
                 pegawaiId: cuti.pegawaiId,
-                tanggal: new Date(current),
-                status: "CUTI"
-              }
-            }).catch(async () => {
-              // Jika upsert gagal (ID placeholder tidak valid), create baru
-              const tanggalHari = new Date(current)
-              const exists = await prisma.absensi.findFirst({
-                where: {
-                  pegawaiId: cuti.pegawaiId,
-                  tanggal: { gte: new Date(tanggalHari.setHours(0,0,0,0)), lte: new Date(tanggalHari.setHours(23,59,59,999)) }
-                }
-              })
-              if (exists) {
-                await prisma.absensi.update({ where: { id: exists.id }, data: { status: "CUTI" } })
-              } else {
-                await prisma.absensi.create({
-                  data: { pegawaiId: cuti.pegawaiId, tanggal: new Date(current), status: "CUTI" }
-                })
+                tanggal: { gte: startOfDay, lte: endOfDay }
               }
             })
+
+            if (absensiExist) {
+              await prisma.absensi.update({ where: { id: absensiExist.id }, data: { status: "CUTI" } })
+            } else {
+              await prisma.absensi.create({
+                data: { pegawaiId: cuti.pegawaiId, tanggal: new Date(current), status: "CUTI" }
+              })
+            }
           }
           current.setDate(current.getDate() + 1)
           current.setHours(0, 0, 0, 0)

@@ -50,6 +50,9 @@ const stripUndefined = (obj: any) => {
 
 // ============ GET SEMUA PEGAWAI ============
 export async function getEmployees() {
+  const session = await auth()
+  if (!session?.user) return []
+
   const data = await prisma.pegawai.findMany({
     include: { bidang: true, user: { select: { email: true, role: true } } },
     orderBy: { nama: "asc" },
@@ -78,6 +81,9 @@ export async function getEmployees() {
 
 // ============ GET SATU PEGAWAI ============
 export async function getEmployee(id: string) {
+  const session = await auth()
+  if (!session?.user) return null
+
   return await prisma.pegawai.findUnique({
     where: { id },
     include: { bidang: true, user: { select: { email: true, role: true } } },
@@ -86,6 +92,9 @@ export async function getEmployee(id: string) {
 
 // ============ STATS PEGAWAI ============
 export async function getEmployeeStats() {
+  const session = await auth()
+  if (!session?.user) return { total: 0, aktif: 0, cuti: 0, nonAktif: 0, sp: 0 }
+
   const [total, aktif, cuti, nonAktif, sp] = await Promise.all([
     prisma.pegawai.count(),
     prisma.pegawai.count({ where: { status: "AKTIF" } }),
@@ -192,8 +201,6 @@ export async function createEmployee(data: any, fotoFile?: File) {
   optionalStr("noRekening", data.noRekening)
   optionalStr("bpjsKesehatan", data.bpjsKesehatan)
   optionalStr("bpjsKetenagakerjaan", data.bpjsKetenagakerjaan)
-
-  console.log("INVOKING PEGAWAI.CREATE WITH PAYLOAD:", JSON.stringify(payload, null, 2))
 
   const employee = await prisma.pegawai.create({
     data: payload,

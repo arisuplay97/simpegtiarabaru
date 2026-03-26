@@ -125,7 +125,6 @@ export async function checkDeviceAndAbsen(
           tanggal: now,
           status: statusAbsensi,
           jamMasuk: now,
-          metode: (pegawai as any).bebasAbsensi ? "GPS" : "SELFIE",
         }
       })
 
@@ -170,6 +169,10 @@ export async function checkDeviceAndAbsen(
 // Untuk halaman absensi umum (HRD/Admin)
 export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
   try {
+    // SECURITY: Wajib login
+    const session = await auth()
+    if (!session?.user) return []
+
     const whereClause: any = {}
     if (dateStart && dateEnd) {
       const start = new Date(dateStart); start.setHours(0, 0, 0, 0)
@@ -180,9 +183,8 @@ export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
       whereClause.tanggal = { gte: startOfDay, lte: endOfDay }
     }
 
-    // ROLE-BASED FILTERING
-    const session = await auth()
-    if (session?.user?.role === "PEGAWAI") {
+    // ROLE-BASED FILTERING — PEGAWAI hanya lihat miliknya sendiri
+    if (session.user.role === "PEGAWAI") {
       const pegawai = await prisma.pegawai.findUnique({
         where: { userId: session.user.id }
       })
@@ -360,7 +362,7 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
         summary.alpha++
       } else if (a.status === "SAKIT") {
         summary.sakit++
-      } else if (a.status === "IZIN") {
+      } else if (a.status === "IZIN" as any) {
         summary.izin++
       } else if (a.status === "CUTI") {
         summary.cuti++
@@ -420,7 +422,7 @@ export async function updateSystemSettings(data: any) {
   }
 
   try {
-    const updated = await prisma.pengaturan.update({
+    const updated = await (prisma as any).pengaturan.update({
       where: { id: "1" },
       data: {
         jamMasuk: data.jamMasuk,
