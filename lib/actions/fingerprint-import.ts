@@ -159,103 +159,119 @@ export async function importFingerprint(formData: FormData) {
 
   if (rows.length === 0) return { error: "Tidak ada data valid yang bisa diparse dari file" }
 
-  // Buat record import
-  const importRecord = await prisma.importFingerprint.create({
-    data: {
-      namaFile: fileName,
-      totalRecord: rows.length,
-      status: "PROCESSING",
-      uploadedBy: session.user.id!,
-    },
-  })
+  // Dapatkan timezoneOffset dari client (dalam menit)
+  const timezoneOffset = Number(formData.get("timezoneOffset")) || 0
+  
+  try {
+    const importRecord = await prisma.importFingerprint.create({
+      data: {
+        namaFile: fileName,
+        totalRecord: rows.length,
+        status: "PROCESSING",
+        uploadedBy: session.user.id!,
+      },
+    })
 
-  let berhasil = 0
-  let gagal = 0
-  const errorLog: { row: number; nik: string; error: string }[] = []
+    let berhasil = 0
+    let gagal = 0
+    const errorLog: { row: number; nik: string; error: string }[] = []
 
-  // Proses baris per baris
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i]
-    try {
-      // Cari pegawai berdasarkan NIK
-      const pegawai = await prisma.pegawai.findUnique({ where: { nik: row.nik } })
-      if (!pegawai) throw new Error(`NIK ${row.nik} tidak terdaftar`)
+    // Proses baris per baris
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      try {
+        // Cari pegawai berdasarkan NIK
+        const pegawai = await prisma.pegawai.findUnique({ where: { nik: row.nik } })
+        if (!pegawai) throw new Error(`NIK ${row.nik} tidak terdaftar`)
 
-      // Parse tanggal (sudah dinormalisasi ke YYYY-MM-DD oleh parseCSV)
-      const [y, mm, dd] = row.tanggal.split("-").map(Number)
-      const tanggal = new Date(y, mm - 1, dd) // Local time
-      
-      const startDay = new Date(y, mm - 1, dd, 0, 0, 0, 0)
-      const endDay = new Date(y, mm - 1, dd, 23, 59, 59, 999)
+        // Parse tanggal (sudah dinormalisasi ke YYYY-MM-DD oleh parseCSV)
+        const [y, mm, dd] = row.tanggal.split("-").map(Number)
+        
+        // baseDateUTC represents the start of the day in UTC, corresponding to the local date
+        const baseDateUTC = new Date(Date.UTC(y, mm - 1, dd))
+        const tanggal = new Date(Date.UTC(y, mm - 1, dd))
+        
+        // Range pencarian dalam database (UTC)
+        // Jika user di +8, maka hari dimulai jam 22:00 UTC (hari sebelumnya)
+        const startDay = new Date(baseDateUTC.getTime() + (timezoneOffset * 60 * 1000))
+        const endDay = new Date(startDay.getTime() + (24 * 60 * 60 * 1000) - 1)
 
-      // Parse jam
-      const parseJam = (jam: string) => {
-        const [h, m] = jam.split(":").map(Number)
-        return new Date(y, mm - 1, dd, h, m, 0) // Local time
-      }
+        function parseJam(jamStr: string) {
+          const [h, m] = jamStr.split(/[:.]/).map(Number)
+          const d = new Date(Date.UTC(y, mm - 1, dd, h, m))
+          // UTCTime = LocalTime + Offset
+          return new Date(d.getTime() + (timezoneOffset * 60 * 1000))
+        }
 
-      const jamMasuk = row.jamMasuk ? parseJam(row.jamMasuk) : undefined
-      const jamKeluar = row.jamKeluar ? parseJam(row.jamKeluar) : undefined
+        const jamMasuk = row.jamMasuk ? parseJam(row.jamMasuk) : undefined
+        const jamKeluar = row.jamKeluar ? parseJam(row.jamKeluar) : undefined
 
-      // Tentukan status absensi berdasarkan pengaturan
-      const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
-      const batasTerlambat = pengaturan?.batasTerlambat ?? 15
-      let status: "HADIR" | "TERLAMBAT" | "ALPA" = "HADIR"
-      if (jamMasuk && pengaturan?.jamMasuk) {
-        const [bH, bM] = pengaturan.jamMasuk.split(":").map(Number)
-        const batasJam = new Date(tanggal); batasJam.setHours(bH, bM + batasTerlambat, 0, 0)
-        if (jamMasuk > batasJam) status = "TERLAMBAT"
-      }
+        // Tentukan status absensi berdasarkan pengaturan
+        const pengaturan = await prisma.pengaturan.findUnique({ where: { id: "1" } })
+        const batasTerlambat = pengaturan?.batasTerlambat ?? 15
+        let status: "HADIR" | "TERLAMBAT" | "ALPA" = "HADIR"
+        
+        if (jamMasuk && pengaturan?.jamMasuk) {
+          const [bH, bM] = pengaturan.jamMasuk.split(":").map(Number)
+          // Batas jam juga harus diparse dengan offset yang sama agar sebanding
+          const batasJam = new Date(Date.UTC(y, mm - 1, dd, bH, bM + batasTerlambat))
+          const batasJamUTC = new Date(batasJam.getTime() + (timezoneOffset * 60 * 1000))
+          
+          if (jamMasuk > batasJamUTC) status = "TERLAMBAT"
+        }
 
-      // Upsert absensi
-      const existing = await prisma.absensi.findFirst({
-        where: { pegawaiId: pegawai.id, tanggal: { gte: startDay, lte: endDay } },
-      })
-
-      if (existing) {
-        await prisma.absensi.update({
-          where: { id: existing.id },
-          data: { status, jamMasuk, jamKeluar, metode: "FINGERPRINT", importId: importRecord.id },
+        const existing = await prisma.absensi.findFirst({
+          where: { pegawaiId: pegawai.id, tanggal: { gte: startDay, lte: endDay } },
         })
-      } else {
-        await prisma.absensi.create({
-          data: {
-            pegawaiId: pegawai.id,
-            tanggal,
-            status,
-            jamMasuk,
-            jamKeluar,
-            metode: "FINGERPRINT",
-            importId: importRecord.id,
-          },
-        })
+
+        if (existing) {
+          await prisma.absensi.update({
+            where: { id: existing.id },
+            data: { status, jamMasuk, jamKeluar, metode: "FINGERPRINT", importId: importRecord.id },
+          })
+        } else {
+          await prisma.absensi.create({
+            data: {
+              pegawaiId: pegawai.id,
+              tanggal,
+              status,
+              jamMasuk,
+              jamKeluar,
+              metode: "FINGERPRINT",
+              importId: importRecord.id,
+            },
+          })
+        }
+        berhasil++
+      } catch (e: any) {
+        gagal++
+        errorLog.push({ row: i + 1, nik: row.nik, error: e.message })
       }
-      berhasil++
-    } catch (e: any) {
-      gagal++
-      errorLog.push({ row: i + 1, nik: row.nik, error: e.message })
     }
+
+    // Update record import
+    await prisma.importFingerprint.update({
+      where: { id: importRecord.id },
+      data: {
+        berhasil,
+        gagal,
+        status: gagal === rows.length ? "GAGAL" : "SELESAI",
+        errorLog: errorLog.length > 0 ? (errorLog as any) : undefined,
+      },
+    })
+
+    await logAudit({
+      action: "IMPORT",
+      module: "absensi",
+      targetId: importRecord.id,
+      targetName: `Import Fingerprint: ${fileName} — ${berhasil}/${rows.length} berhasil`,
+    })
+
+    return { success: true, total: rows.length, berhasil, gagal, errorLog }
+  } catch (error: any) {
+    console.error("Import error:", error)
+    return { error: `Gagal memproses import: ${error.message}` }
   }
-
-  // Update record import
-  await prisma.importFingerprint.update({
-    where: { id: importRecord.id },
-    data: {
-      berhasil,
-      gagal,
-      status: gagal === rows.length ? "GAGAL" : "SELESAI",
-      errorLog: errorLog.length > 0 ? (errorLog as any) : undefined,
-    },
-  })
-
-  await logAudit({
-    action: "IMPORT",
-    module: "absensi",
-    targetId: importRecord.id,
-    targetName: `Import Fingerprint: ${fileName} — ${berhasil}/${rows.length} berhasil`,
-  })
-
-  return { success: true, total: rows.length, berhasil, gagal, errorLog }
 }
 
 // ============================================================

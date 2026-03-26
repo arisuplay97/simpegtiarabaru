@@ -53,6 +53,7 @@ export default function ImportFingerprintPage() {
     setLoading(true); setResult(null)
     const fd = new FormData()
     fd.append("file", file)
+    fd.append("timezoneOffset", new Date().getTimezoneOffset().toString())
     const res = await importFingerprint(fd)
     setLoading(false)
     setResult(res)
