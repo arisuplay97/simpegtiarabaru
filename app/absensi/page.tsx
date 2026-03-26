@@ -77,7 +77,8 @@ import { getAbsensiList,  getAbsensiSaya,
   deleteAllAbsensiByMonth,
   markAllPresentByDate,
   getSystemSettings,
-  getRekapBulanan
+  getRekapBulanan,
+  updateAbsensi
 } from "@/lib/actions/absensi"
 
 interface AttendanceRecord {
@@ -434,24 +435,24 @@ export default function AttendancePage() {
   const handleSaveEdit = async () => {
     if (!selectedRecord) return
     setIsLoading(true)
-    await new Promise((r) => setTimeout(r, 600))
 
-    setRecords((prev: AttendanceRecord[]) =>
-      prev.map((r: AttendanceRecord) =>
-        r.id === selectedRecord.id
-          ? {
-              ...r,
-              checkIn: editCheckIn || null,
-              checkOut: editCheckOut || null,
-              status: editStatus as AttendanceRecord["status"],
-            }
-          : r
-      )
-    )
+    const res = await updateAbsensi(selectedRecord.id, {
+      status: editStatus,
+      jamMasuk: editCheckIn || null,
+      jamKeluar: editCheckOut || null,
+    })
 
-    setShowEditDialog(false)
+    if (res.success) {
+      toast.success(`Absensi ${selectedRecord.employeeName} berhasil diperbarui`)
+      setShowEditDialog(false)
+      // Refresh data dari server
+      const d = await getAbsensiList(date, date)
+      setRecords(mapAbsensi(d, settings))
+    } else {
+      toast.error(res.error || "Gagal menyimpan perubahan")
+    }
+
     setIsLoading(false)
-    toast.success(`Data absensi ${selectedRecord.employeeName} berhasil diubah`)
   }
 
   const handleDelete = async (id: string) => {

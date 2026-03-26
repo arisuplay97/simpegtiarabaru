@@ -320,6 +320,86 @@ export async function deleteAbsensi(id: string) {
   }
 }
 
+// ============================================================
+// UPDATE ABSENSI (Edit status, jam masuk, jam keluar)
+// ============================================================
+export async function updateAbsensi(
+  id: string,
+  data: {
+    status?: string
+    jamMasuk?: string | null
+    jamKeluar?: string | null
+  }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user) return { error: "Belum login" }
+    if (!["SUPERADMIN", "HRD", "ADMIN"].includes((session.user as any).role)) {
+      return { error: "Akses ditolak" }
+    }
+
+    // Ambil absensi existing untuk mendapatkan tanggal referensi
+    const existing = await prisma.absensi.findUnique({
+      where: { id },
+      include: { pegawai: true }
+    })
+    if (!existing) return { error: "Data absensi tidak ditemukan" }
+
+    const updateData: any = {}
+
+    // Update status — map format UI ke enum DB
+    if (data.status) {
+      const statusMap: Record<string, string> = {
+        hadir: "HADIR", izin: "IZIN", sakit: "SAKIT",
+        cuti: "CUTI", alpha: "ALPHA", dinas: "DINAS"
+      }
+      updateData.status = statusMap[data.status] ?? data.status.toUpperCase()
+    }
+
+    // Update jam masuk jika diisi
+    if (data.jamMasuk !== undefined) {
+      if (data.jamMasuk) {
+        const [h, m] = data.jamMasuk.split(":").map(Number)
+        const dt = new Date(existing.tanggal)
+        dt.setHours(h, m, 0, 0)
+        updateData.jamMasuk = dt
+      } else {
+        updateData.jamMasuk = null
+      }
+    }
+
+    // Update jam keluar jika diisi
+    if (data.jamKeluar !== undefined) {
+      if (data.jamKeluar) {
+        const [h, m] = data.jamKeluar.split(":").map(Number)
+        const dt = new Date(existing.tanggal)
+        dt.setHours(h, m, 0, 0)
+        updateData.jamKeluar = dt
+      } else {
+        updateData.jamKeluar = null
+      }
+    }
+
+    await prisma.absensi.update({ where: { id }, data: updateData })
+
+    await logAudit({
+      action: "UPDATE",
+      module: "absensi",
+      targetId: id,
+      targetName: `Edit Absensi: ${existing.pegawai.nama} — ${updateData.status || ""}`,
+      newData: updateData as any,
+    })
+
+    revalidatePath("/absensi")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update absensi error:", error)
+    return { error: error.message || "Gagal mengubah data absensi" }
+  }
+}
+
+
+
 export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: number, year?: number) {
   try {
     const now = new Date()
