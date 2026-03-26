@@ -115,7 +115,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
       <div className="hidden md:flex flex-1 items-center justify-center px-6">
         <div
           className={cn(
-            "relative w-full max-w-xl transition-all duration-200",
+            "relative w-full max-w-xl transition-all duration-200 group",
             searchFocused && "max-w-2xl"
           )}
         >
@@ -124,7 +124,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             ref={searchRef}
             type="text"
             placeholder="Cari pegawai, dokumen, approval, payroll..."
-            className="h-10 w-full rounded-lg border border-input bg-secondary/50 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-10 w-full rounded-lg border border-input bg-secondary/50 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 group-focus-within:pr-14"
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             onKeyDown={(e) => {
@@ -133,9 +133,20 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
               }
             }}
           />
-          <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block">
+          <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block group-focus-within:hidden">
             Ctrl+K
           </kbd>
+          <Button 
+            size="sm" 
+            className="absolute right-1 top-1/2 h-8 -translate-y-1/2 hidden group-focus-within:flex"
+            onClick={() => {
+              if (searchRef.current?.value.trim()) {
+                router.push(`/pegawai?search=${encodeURIComponent(searchRef.current.value.trim())}`)
+              }
+            }}
+          >
+            Cari
+          </Button>
         </div>
       </div>
 
