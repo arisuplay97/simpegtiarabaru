@@ -562,7 +562,6 @@ export async function markAllPresentByDate(dateStr: string) {
       metode: "MANUAL" as const,
       jamMasuk,
       jamKeluar,
-      lokasi: "Sistem (Hadir Massal Hari Libur)"
     }))
 
     const result = await prisma.absensi.createMany({
