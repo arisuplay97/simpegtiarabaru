@@ -130,6 +130,7 @@ model Pegawai {
   jadwalShift           JadwalShift[]
   lembur                Lembur[]
   pph21                 PPh21[]
+  kontrak               Kontrak[]
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -636,8 +637,42 @@ enum StatusImport {
   GAGAL
 }
 
-// ============ TAMBAH RELASI KE MODEL PEGAWAI YANG SUDAH ADA ============
-// Tambahkan baris ini di dalam model Pegawai:
-//   jadwalShift  JadwalShift[]
-//   lembur       Lembur[]
-//   pph21        PPh21[]
+// ============ KONTRAK PEGAWAI (NEW) ============
+model Kontrak {
+  id              String        @id @default(cuid())
+  pegawaiId       String
+  tipe            TipeKontrak   // PKWT | MAGANG
+  nomorKontrak    String?       // Nomor dokumen kontrak
+  tanggalMulai    DateTime
+  tanggalSelesai  DateTime
+  durasiHari      Int           // hitung otomatis
+  posisi          String        // jabatan/posisi selama kontrak
+  unitKerja       String        // unit/bidang penempatan
+  gajiKontrak     Decimal       @default(0)
+  tunjangan       Decimal       @default(0)
+  status          StatusKontrak @default(AKTIF)
+  catatanPerpanjang String?
+  diperpanjangDari  String?     // id kontrak sebelumnya jika perpanjangan
+  reminder14Sent  Boolean       @default(false) // flag reminder 14 hari sudah kirim
+  reminder7Sent   Boolean       @default(false) // flag reminder 7 hari sudah kirim
+  keterangan      String?
+  pegawai         Pegawai       @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([pegawaiId])
+  @@index([tanggalSelesai])
+  @@index([status])
+}
+
+enum TipeKontrak {
+  PKWT    // Perjanjian Kerja Waktu Tertentu
+  MAGANG  // Magang / Internship
+}
+
+enum StatusKontrak {
+  AKTIF
+  SELESAI
+  DIPERPANJANG
+  DIBATALKAN
+}

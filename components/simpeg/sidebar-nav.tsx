@@ -47,6 +47,7 @@ const navigation: NavGroup[] = [
       { title: "Struktur Organisasi", href: "/organisasi", icon: Building2, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Formasi Jabatan", href: "/formasi", icon: Briefcase, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Mutasi", href: "/mutasi", icon: ArrowRightLeft, allowedRoles: ["super_admin", "hrd", "direktur"] },
+      { title: "Kontrak & Magang", href: "/kontrak", icon: FileSignature, allowedRoles: ["super_admin", "hrd", "direktur"] },
     ],
   },
   {
