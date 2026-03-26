@@ -61,12 +61,35 @@ function parseCSV(content: string): FingerprintRow[] {
 
     if (!nik || !tanggal) continue
 
-    // Normalisasi tanggal jika format M/D/YYYY -> YYYY-MM-DD agar Date constructor aman
-    if (tanggal.includes("/")) {
-      const parts = tanggal.split("/")
+    // Normalisasi tanggal jika format D/M/YYYY atau M/D/YYYY
+    if (tanggal.includes("/") || (tanggal.includes("-") && !tanggal.startsWith("20"))) {
+      const sep = tanggal.includes("/") ? "/" : "-"
+      const parts = tanggal.split(sep)
       if (parts.length === 3) {
-        // Asumsi M/D/YYYY (format umum US/Excel)
-        const [m, d, y] = parts
+        let [p1, p2, p3] = parts
+        let d, m, y
+
+        // Deteksi format: YYYY di awal atau di akhir
+        if (p1.length === 4) {
+          // YYYY-MM-DD (sudah standar, tapi handle jika pakai /)
+          y = p1; m = p2; d = p3
+        } else {
+          // Format D/M/YYYY atau M/D/YYYY
+          y = p3
+          const v1 = parseInt(p1)
+          const v2 = parseInt(p2)
+
+          if (v1 > 12) {
+            // Pasti D/M/YYYY
+            d = p1; m = p2
+          } else if (v2 > 12) {
+            // Pasti M/D/YYYY
+            m = p1; d = p2
+          } else {
+            // Ambigu (keduanya <= 12), default ke D/M/YYYY (standar Indonesia)
+            d = p1; m = p2
+          }
+        }
         tanggal = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`
       }
     }
