@@ -358,13 +358,18 @@ export async function getPegawaiUntukKontrak() {
   const session = await (auth() as any)
   if (!session?.user) return []
 
+  // Filter: hanya tampilkan pegawai yang bertipe jabatan KONTRAK (non-PNS/Tetap)
+  // tipeJabatan = "KONTRAK" artinya pegawai kontrak / PKWT / magang
   const pegawai = await prisma.pegawai.findMany({
-    where: { status: "AKTIF" },
-    select: { id: true, nama: true, nik: true, jabatan: true, bidang: { select: { nama: true } } },
+    where: { 
+      status: "AKTIF",
+      tipeJabatan: "KONTRAK"
+    },
+    include: { bidang: { select: { nama: true } } },
     orderBy: { nama: "asc" },
   })
 
-  return pegawai.map((p) => ({
+  return pegawai.map((p: any) => ({
     id: p.id,
     nama: p.nama,
     nik: p.nik,

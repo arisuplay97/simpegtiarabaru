@@ -61,6 +61,7 @@ import {
   ChevronsRight,
   Trash2,
   CheckCircle,
+  Eye,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -92,6 +93,8 @@ interface AttendanceRecord {
   method: "selfie" | "fingerprint" | "gps" | "manual"
   location: string
   workHours: string
+  photoIn: string | null
+  photoOut: string | null
 }
 
 const attendanceData: AttendanceRecord[] = [
@@ -109,6 +112,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "selfie",
     location: "Kantor Pusat",
     workHours: "9j 10m",
+    photoIn: null,
+    photoOut: null,
   },
   {
     id: "2",
@@ -124,6 +129,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "fingerprint",
     location: "Kantor Pusat",
     workHours: "8j 48m",
+    photoIn: null,
+    photoOut: null,
   },
   {
     id: "3",
@@ -139,6 +146,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "manual",
     location: "-",
     workHours: "-",
+    photoIn: null,
+    photoOut: null,
   },
   {
     id: "4",
@@ -154,6 +163,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "selfie",
     location: "Kantor Pusat",
     workHours: "9j 30m",
+    photoIn: null,
+    photoOut: null,
   },
   {
     id: "5",
@@ -169,6 +180,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "fingerprint",
     location: "IPA Cilandak",
     workHours: "8j 5m",
+    photoIn: null,
+    photoOut: null,
   },
   {
     id: "6",
@@ -184,6 +197,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "gps",
     location: "Kantor Pusat",
     workHours: "-",
+    photoIn: null,
+    photoOut: null,
   },
   {
     id: "7",
@@ -199,6 +214,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "manual",
     location: "-",
     workHours: "-",
+    photoIn: null,
+    photoOut: null,
   },
   {
     id: "8",
@@ -214,6 +231,8 @@ const attendanceData: AttendanceRecord[] = [
     method: "gps",
     location: "Cabang Utara",
     workHours: "-",
+    photoIn: null,
+    photoOut: null,
   },
 ]
 
@@ -254,6 +273,11 @@ export default function AttendancePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [settings, setSettings] = useState<{ jamMasuk: string; jamPulang: string; batasTerlambat: number } | null>(null)
+
+  // Viewer State
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false)
+  const [viewerPhotoUrl, setViewerPhotoUrl] = useState<string | null>(null)
+  const [viewerPhotoType, setViewerPhotoType] = useState<"Masuk" | "Pulang">("Masuk")
 
   const mapAbsensi = (data: any[], currentSettings: any): AttendanceRecord[] => {
     return data.map((d: any) => {
@@ -307,7 +331,9 @@ export default function AttendancePage() {
         earlyMinutes: 0,
         method: (methodMap[d.metode] || "selfie") as AttendanceRecord["method"],
         location: d.location || "Gedung Utama",
-        workHours: calculateHours(d.jamMasuk, d.jamKeluar)
+        workHours: calculateHours(d.jamMasuk, d.jamKeluar),
+        photoIn: d.foto || null,
+        photoOut: d.fotoKeluar || null,
       }
     })
   }
@@ -638,6 +664,22 @@ export default function AttendancePage() {
                         <div className="flex items-center gap-1.5">
                           <MethodIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="text-xs uppercase font-medium">{methodInfo.label}</span>
+                          {record.method === "selfie" && (record.photoIn || record.photoOut) && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 ml-1 text-primary hover:text-primary/80 hover:bg-primary/10"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setViewerPhotoUrl(record.photoIn || record.photoOut)
+                                setViewerPhotoType(record.photoIn ? "Masuk" : "Pulang")
+                                setShowPhotoViewer(true)
+                              }}
+                              title="Lihat Foto Absensi"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]">
@@ -989,6 +1031,32 @@ export default function AttendancePage() {
                   "Simpan Perubahan"
                 )}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Photo Viewer Dialog */}
+        <Dialog open={showPhotoViewer} onOpenChange={setShowPhotoViewer}>
+          <DialogContent className="max-w-md p-0 overflow-hidden bg-background">
+            <DialogHeader className="px-4 py-3 border-b bg-muted/30">
+              <DialogTitle className="text-base font-semibold">Bukti Absensi {viewerPhotoType}</DialogTitle>
+            </DialogHeader>
+            <div className="p-4 flex flex-col items-center justify-center min-h-[300px] bg-black/5">
+              {viewerPhotoUrl ? (
+                <img 
+                  src={viewerPhotoUrl} 
+                  alt={`Foto ${viewerPhotoType}`} 
+                  className="max-w-full max-h-[60vh] object-contain rounded-md shadow-sm border border-border"
+                />
+              ) : (
+                <div className="flex flex-col items-center text-muted-foreground gap-2">
+                  <Camera className="h-10 w-10 opacity-20" />
+                  <p className="text-sm">Foto tidak tersedia</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter className="px-4 py-3 border-t bg-muted/30">
+              <Button variant="outline" onClick={() => setShowPhotoViewer(false)}>Tutup Viewer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

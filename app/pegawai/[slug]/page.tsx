@@ -232,14 +232,22 @@ export default function EmployeeDetailPage() {
         fetchAttendanceSummary(res.id)
         fetchDokumen(res.id)
         fetchActivityLogs(res.id, res.userId)
-        // Set form initial state for editing
+        // Deteksi kategori (Pusat/Cabang) untuk initial state
+        let kategoriPenempatan = "PUSAT"
+        if (["KEPALA_CABANG", "KASUBBID_CABANG", "STAFF_CABANG"].includes(res.tipeJabatan)) {
+          kategoriPenempatan = "CABANG"
+        }
+
         setFormData({
           nik: res.nik,
           nama: res.nama,
           email: res.email,
           telepon: res.telepon,
-          bidangId: res.bidangId,
-          tipeJabatan: res.tipeJabatan,
+          kategoriPenempatan: kategoriPenempatan,
+          bidangId: res.bidangId || "",
+          subBidangId: res.subBidangId || "",
+          tipeJabatan: res.tipeJabatan || "",
+          tipePegawai: res.kontrak?.[0]?.tipe || (res.tipeJabatan === "KONTRAK" ? "KONTRAK" : "TETAP"),
           jabatan: res.jabatan,
           atasanLangsung: res.atasanLangsung,
           golongan: res.golongan,
@@ -555,8 +563,13 @@ export default function EmployeeDetailPage() {
                     <p className="mt-1 text-lg text-muted-foreground">{employee.jabatan}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
+                        <User className="h-4 w-4" />
+                        <span className="font-semibold text-primary">{employee.tipePegawai || "TETAP"}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
                         <Building2 className="h-4 w-4" />
                         {employee.bidang?.nama || "-"}
+                        {employee.subBidang ? ` — ${employee.subBidang.nama}` : ""}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Briefcase className="h-4 w-4" />
@@ -1453,53 +1466,115 @@ export default function EmployeeDetailPage() {
               <section>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <F label="Bidang / Unit Kerja">
-                    <Select value={formData.bidangId || "NONE"} onValueChange={v => {
-                      const val = v === "NONE" ? null : v;
-                      handleChange("bidangId", val)
-                      handleChange("subBidangId", null)
-                      handleChange("jabatan", "")
-                      handleChange("atasanLangsung", "")
+                  <F label="Tipe Pegawai">
+                    <Select value={formData.tipePegawai || "TETAP"} onValueChange={v => {
+                      handleChange("tipePegawai", v)
+                      if (v !== "TETAP") {
+                        handleChange("golongan", null)
+                        handleChange("pangkat", null)
+                      }
                     }}>
-                      <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate">
-                        <SelectValue placeholder="Pilih Bidang" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Pilih Tipe Pegawai" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="NONE">— Pilih Bidang —</SelectItem>
-                        {bidangList.map(b => <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>)}
+                        <SelectItem value="TETAP">Tetap (PNS / Tetap)</SelectItem>
+                        <SelectItem value="KONTRAK">Kontrak (PKWT)</SelectItem>
+                        <SelectItem value="MAGANG">Magang</SelectItem>
                       </SelectContent>
                     </Select>
                   </F>
-                  <F label="Tipe Jabatan">
-                    <Select value={formData.tipeJabatan || "STAFF"} onValueChange={v => handleChange("tipeJabatan", v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
+                  <F label="Kategori Penempatan">
+                    <Select value={formData.kategoriPenempatan || "PUSAT"} onValueChange={v => {
+                      handleChange("kategoriPenempatan", v)
+                      if (v === "PUSAT" && ["KEPALA_CABANG","KASUBBID_CABANG","STAFF_CABANG"].includes(formData.tipeJabatan || "")) {
+                        handleChange("tipeJabatan", "STAFF")
+                      } else if (v === "CABANG" && ["KEPALA_BIDANG","KASUBBID","STAFF"].includes(formData.tipeJabatan || "")) {
+                        handleChange("tipeJabatan", "STAFF_CABANG")
+                      }
+                      handleChange("bidangId", "")
+                      handleChange("subBidangId", "")
+                      handleChange("jabatan", "")
+                    }}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Kategori" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="STAFF">Staff</SelectItem>
-                        <SelectItem value="KASUBBID">Kasubbid</SelectItem>
-                        <SelectItem value="KEPALA_BIDANG">Kepala Bidang</SelectItem>
-                        <SelectItem value="STAFF_CABANG">Staff Cabang</SelectItem>
-                        <SelectItem value="KASUBBID_CABANG">Kasubbid Cabang</SelectItem>
-                        <SelectItem value="KEPALA_CABANG">Kepala Cabang</SelectItem>
-                        <SelectItem value="KONTRAK">Kontrak</SelectItem>
+                        <SelectItem value="PUSAT">Pusat</SelectItem>
+                        <SelectItem value="CABANG">Cabang</SelectItem>
                       </SelectContent>
                     </Select>
                   </F>
                   <F label="Jabatan">
-                    <Input className="bg-muted" value={formData.jabatan || ""} readOnly disabled placeholder="Otomatis" />
-                  </F>
-
-                  <F label="Golongan">
-                    <Select value={formData.golongan || "NONE"} onValueChange={v => handleChange("golongan", v === "NONE" ? null : v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                    <Select value={formData.tipeJabatan || ""} onValueChange={v => {
+                      handleChange("tipeJabatan", v)
+                      handleChange("jabatan", "")
+                    }}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="NONE">— Pilih —</SelectItem>
-                        {["A/I","A/II","A/III","A/IV",
-                          "B/I","B/II","B/III","B/IV",
-                          "C/I","C/II","C/III","C/IV",
-                          "D/I","D/II","D/III","D/IV","E/IV"].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                        {formData.kategoriPenempatan === "CABANG" ? (
+                          <>
+                            <SelectItem value="KEPALA_CABANG">Kepala Cabang</SelectItem>
+                            <SelectItem value="KASUBBID_CABANG">Ka. Sub Seksi Cabang</SelectItem>
+                            <SelectItem value="STAFF_CABANG">Staff Cabang</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="KEPALA_BIDANG">Kepala Bidang/Bagian</SelectItem>
+                            <SelectItem value="KASUBBID">Kasubbid / Kasi</SelectItem>
+                            <SelectItem value="STAFF">Staff Pusat</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </F>
+                  <F label={formData.kategoriPenempatan === "CABANG" ? "Pilih Cabang" : "Bidang / Bagian"}>
+                    <Select value={formData.bidangId || "NONE"} onValueChange={v => {
+                      const val = v === "NONE" ? "" : v
+                      handleChange("bidangId", val)
+                      handleChange("subBidangId", "")
+                      handleChange("jabatan", "")
+                    }}>
+                      <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Pilih —</SelectItem>
+                        {bidangList.filter(b => formData.kategoriPenempatan === "CABANG" ? b.nama.includes("Cabang") : !b.nama.includes("Cabang")).map(b => (
+                          <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </F>
+
+                  {(formData.tipeJabatan === "KASUBBID" || formData.tipeJabatan === "STAFF" || formData.tipeJabatan === "KASUBBID_CABANG" || formData.tipeJabatan === "STAFF_CABANG") && formData.bidangId && (
+                    <F label="Sub Bidang / Seksi">
+                      <Select value={formData.subBidangId || "NONE"} onValueChange={v => {
+                        const val = v === "NONE" ? "" : v
+                        handleChange("subBidangId", val)
+                        handleChange("jabatan", "")
+                      }}>
+                        <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate"><SelectValue placeholder="Pilih Sub Bidang" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NONE">— Kosong (Langsung di bawah Bidang/Cabang) —</SelectItem>
+                          {bidangList.find(b => b.id === formData.bidangId)?.subBidang?.map((sb: any) => (
+                            <SelectItem key={sb.id} value={sb.id}>{sb.nama}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </F>
+                  )}
+
+                  <F label="Jabatan Lengkap (Otomatis)">
+                    <Input className="bg-muted" value={formData.jabatan || ""} readOnly disabled placeholder="Otomatis" />
+                  </F>
+
+                  {formData.tipePegawai === "TETAP" && (
+                    <F label="Golongan PNS">
+                      <Select value={formData.golongan || "NONE"} onValueChange={v => handleChange("golongan", v === "NONE" ? null : v)}>
+                        <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NONE">— Pilih —</SelectItem>
+                          {["A/I","A/II","A/III","A/IV","B/I","B/II","B/III","B/IV","C/I","C/II","C/III","C/IV","D/I","D/II","D/III","D/IV","E/IV"].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </F>
+                  )}
+                  
                   <F label="Status Pegawai">
                     <Select value={formData.status || "AKTIF"} onValueChange={v => handleChange("status", v)}>
                       <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
@@ -1511,6 +1586,7 @@ export default function EmployeeDetailPage() {
                       </SelectContent>
                     </Select>
                   </F>
+
                   <F label="SP (Jika Ada)">
                     <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
                       <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
