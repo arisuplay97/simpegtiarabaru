@@ -77,6 +77,7 @@ import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai, upda
 import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getDokumenPegawai, uploadDokumen, deleteDokumen } from "@/lib/actions/dokumen"
+import { getPegawaiActivityLogs } from "@/lib/actions/audit-log"
 import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
@@ -194,6 +195,8 @@ export default function EmployeeDetailPage() {
   const [isUploadingDoc, setIsUploadingDoc] = useState(false)
   const [docPayload, setDocPayload] = useState({ namaDokumen: "", jenisDokumen: "KTP", file: null as File | null })
 
+  const [activityLogs, setActivityLogs] = useState<any[]>([])
+
   useEffect(() => {
     if (id) {
       fetchEmployee()
@@ -228,6 +231,7 @@ export default function EmployeeDetailPage() {
         setEmployee(res)
         fetchAttendanceSummary(res.id)
         fetchDokumen(res.id)
+        fetchActivityLogs(res.id, res.userId)
         // Set form initial state for editing
         setFormData({
           nik: res.nik,
@@ -271,6 +275,13 @@ export default function EmployeeDetailPage() {
     try {
       const res = await getDokumenPegawai(pegawaiId)
       if (res.data) setDokumenList(res.data)
+    } catch {}
+  }
+
+  const fetchActivityLogs = async (pegawaiId: string, userId: string) => {
+    try {
+      const logs = await getPegawaiActivityLogs(pegawaiId, userId)
+      setActivityLogs(logs)
     } catch {}
   }
 
@@ -378,9 +389,8 @@ export default function EmployeeDetailPage() {
   const getPensiunInfo = () => {
     if (!employee) return null
 
-    // Untuk pegawai KONTRAK / MAGANG — gunakan tanggal kontrak selesai
     const tipe = employee.tipeJabatan
-    if (tipe === "KONTRAK" || tipe === "STAFF_CABANG" || tipe === "KASUBBID_CABANG" || tipe === "KEPALA_CABANG") {
+    if (tipe === "KONTRAK" || tipe === "MAGANG") {
       // Cek apakah ada data kontrak aktif
       const kontrakAktif = (employee.kontrak || []).find((k: any) => k.status === "AKTIF")
       if (kontrakAktif) {
@@ -766,7 +776,18 @@ export default function EmployeeDetailPage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Masa Kerja</p>
-                        <p className="font-medium">{employee.masaKerja}</p>
+                        <p className="font-medium">
+                          {employee.tanggalMasuk ? (() => {
+                            const start = new Date(employee.tanggalMasuk)
+                            const now = new Date()
+                            let years = now.getFullYear() - start.getFullYear()
+                            let months = now.getMonth() - start.getMonth()
+                            if (months < 0) { years--; months += 12 }
+                            if (years === 0 && months === 0) return "Kurang dari 1 Bulan"
+                            if (years === 0) return `${months} Bulan`
+                            return `${years} Tahun ${months} Bulan`
+                          })() : "-"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Jabatan</p>
@@ -1354,19 +1375,21 @@ export default function EmployeeDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { date: "17 Mar 2026, 08:15", action: "Check-in absensi", detail: "Lokasi: Kantor Pusat" },
-                      { date: "16 Mar 2026, 17:05", action: "Check-out absensi", detail: "Lokasi: Kantor Pusat" },
-                      { date: "15 Mar 2026, 14:30", action: "Mengajukan cuti", detail: "Cuti tahunan 1 hari" },
-                      { date: "14 Mar 2026, 10:00", action: "Approval lembur staff", detail: "Approved: Budi S." },
-                      { date: "13 Mar 2026, 09:00", action: "Update data keluarga", detail: "Tambah data anak" },
-                    ].map((log, index) => (
-                      <div key={index} className="flex items-start gap-4 border-l-2 border-primary/20 pl-4">
+                    {activityLogs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6 italic">Belum ada riwayat aktivitas yang tercatat</p>
+                    ) : activityLogs.map((log: any, index: number) => (
+                      <div key={log.id || index} className="flex items-start gap-4 border-l-2 border-primary/20 pl-4">
                         <div className="flex-1">
                           <p className="font-medium">{log.action}</p>
-                          <p className="text-sm text-muted-foreground">{log.detail}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {log.module} — {log.targetName || "-"}
+                            {log.oldData && " (Diubah)"}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">{log.date}</p>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">{format(new Date(log.createdAt), "dd MMM yyyy, HH:mm", { locale: idLocale })}</p>
+                          <p className="text-[10px] text-muted-foreground max-w-[120px] truncate" title={log.userAgent}>{log.userEmail}</p>
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -502,3 +502,79 @@ export async function deleteAllAbsensiByMonth(monthStr: string) {
     return { error: error.message || "Gagal menghapus data" }
   }
 }
+
+// =============================================
+// HADIRKAN SEMUA PEGAWAI PER TANGGAL (HARI LIBUR)
+// =============================================
+export async function markAllPresentByDate(dateStr: string) {
+  try {
+    const session = await auth()
+    if (!session?.user) return { error: "Belum login" }
+    
+    // Akses khusus admin
+    if ((session.user as any).role !== "SUPERADMIN" && (session.user as any).role !== "HRD") {
+      return { error: "Akses ditolak" }
+    }
+
+    const targetDate = new Date(dateStr)
+    targetDate.setHours(0, 0, 0, 0)
+
+    // Dapatkan semua pegawai Aktif
+    const pegawais = await prisma.pegawai.findMany({
+      where: { status: "AKTIF" },
+      select: { id: true, nama: true }
+    })
+
+    // Dapatkan yang sudah absen di hari tsb
+    const startOfDay = new Date(targetDate)
+    const endOfDay = new Date(targetDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const existingAbsensi = await prisma.absensi.findMany({
+      where: { tanggal: { gte: startOfDay, lte: endOfDay } },
+      select: { pegawaiId: true }
+    })
+    const existingIds = new Set(existingAbsensi.map(a => a.pegawaiId))
+
+    // Filter yang belum absen
+    const toInsert = pegawais.filter(p => !existingIds.has(p.id))
+
+    if (toInsert.length === 0) {
+      return { success: true, count: 0, message: "Semua pegawai aktif sudah terdata hadir di tanggal ini." }
+    }
+
+    const jamMasuk = new Date(targetDate)
+    jamMasuk.setHours(8, 0, 0, 0)
+    
+    const jamKeluar = new Date(targetDate)
+    jamKeluar.setHours(17, 0, 0, 0)
+
+    const dataToInsert = toInsert.map(p => ({
+      pegawaiId: p.id,
+      tanggal: targetDate,
+      status: "HADIR" as const,
+      metode: "MANUAL" as const,
+      jamMasuk,
+      jamKeluar,
+      lokasi: "Sistem (Hadir Massal Hari Libur)"
+    }))
+
+    const result = await prisma.absensi.createMany({
+      data: dataToInsert
+    })
+
+    await logAudit({
+      action: "CREATE",
+      module: "absensi",
+      targetId: "ALL",
+      targetName: `Hadir Massal ${result.count} Pegawai pada ${dateStr}`,
+    })
+
+    revalidatePath("/absensi")
+    revalidatePath("/laporan/absensi")
+    return { success: true, count: result.count }
+  } catch (error: any) {
+    console.error("Gagal update hadir massal:", error)
+    return { error: error.message || "Gagal mencatat kehadiran massal" }
+  }
+}

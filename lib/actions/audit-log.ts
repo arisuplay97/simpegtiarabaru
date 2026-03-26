@@ -127,3 +127,21 @@ export async function exportAuditLogCSV(params: {
 
   return { csv: header + rows.join("\n") }
 }
+
+export async function getPegawaiActivityLogs(pegawaiId: string, userId: string) {
+  try {
+    const data = await prisma.auditLog.findMany({
+      where: {
+        OR: [
+          { targetId: pegawaiId },
+          { userId: userId }
+        ]
+      },
+      orderBy: { createdAt: "desc" },
+      take: 15
+    })
+    return data
+  } catch (error) {
+    return []
+  }
+}

@@ -60,6 +60,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Trash2,
+  CheckCircle,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -73,6 +74,7 @@ import { getAbsensiList,  getAbsensiSaya,
   checkDeviceAndAbsen,
   deleteAbsensi,
   deleteAllAbsensiByMonth,
+  markAllPresentByDate,
   getSystemSettings
 } from "@/lib/actions/absensi"
 
@@ -439,6 +441,30 @@ export default function AttendancePage() {
     setIsLoading(false)
   }
 
+  const handleMarkAllPresent = async () => {
+    if (!date) return toast.error("Silakan pilih tanggal terlebih dahulu di filter")
+
+    const dateStr = format(date, "yyyy-MM-dd")
+    const displayDate = format(date, "dd MMMM yyyy", { locale: id })
+
+    if (!confirm(`Apakah Anda yakin ingin memarkir status "HADIR" untuk SEMUA PEGAWAI AKTIF yang belum absen pada tanggal ${displayDate}?`)) return
+
+    setIsLoading(true)
+    const res = await markAllPresentByDate(dateStr)
+    if (res.success) {
+      if (res.count === 0) {
+        toast.info(res.message || "Semua pegawai aktif sudah memiliki data absensi")
+      } else {
+        toast.success(`${res.count} pegawai berhasil ditandai hadir pada ${displayDate}`)
+        const d = await getAbsensiList(date, date)
+        setRecords(mapAbsensi(d, settings))
+      }
+    } else {
+      toast.error(res.error || "Gagal mencatat kehadiran massal")
+    }
+    setIsLoading(false)
+  }
+
   const handleDeleteAllMonth = async () => {
     const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`
     if (!confirm(`DANGER ZONE [KHUSUS TESTING]: Anda yakin ingin menghapus SELURUH data absensi pegawai untuk bulan ${format(new Date(selectedYear, selectedMonth - 1, 1), "MMMM yyyy", { locale: id })}?\n\nTindakan ini menghapus permanen seluruh absensi di bulan ini!`)) return
@@ -720,6 +746,10 @@ export default function AttendancePage() {
               )}
               {isAdmin && (
                 <>
+                  <Button variant="default" size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkAllPresent}>
+                    <CheckCircle className="h-4 w-4" />
+                    Hadirkan Semua
+                  </Button>
                   <Button variant="destructive" size="sm" className="gap-2" onClick={handleDeleteAllMonth}>
                     <Trash2 className="h-4 w-4" />
                     Hapus Absensi Bulan Ini
