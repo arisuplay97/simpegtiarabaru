@@ -123,52 +123,68 @@ export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "
     if (!cuti) return { error: "Data cuti tidak ditemukan" }
     if (cuti.status !== "PENDING") return { error: "Status cuti sudah diproses sebelumnya" }
 
-    // Jika di-approve, kurangi saldoCuti
-    if (newStatus === "APPROVED" && cuti.jenisCuti === "Cuti Tahunan") {
+    if (newStatus === "APPROVED") {
       const start = new Date(cuti.tanggalMulai)
       const end = new Date(cuti.tanggalSelesai)
       const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
-      if (cuti.pegawai.saldoCuti < duration) {
-        return { error: "Gagal: Saldo cuti pegawai tidak mencukupi untuk durasi ini." }
-      }
-
-      await prisma.pegawai.update({
-        where: { id: cuti.pegawaiId },
-        data: {
-          saldoCuti: cuti.pegawai.saldoCuti - duration
+      // 1. Jika Cuti Tahunan, validasi dan potong saldoCuti
+      if (cuti.jenisCuti === "Cuti Tahunan") {
+        if (cuti.pegawai.saldoCuti < duration) {
+          return { error: "Gagal: Saldo cuti pegawai tidak mencukupi untuk durasi ini." }
         }
-      })
 
-      // Buat record Absensi otomatis untuk setiap hari cuti
-      const currentDate = new Date(cuti.tanggalMulai)
-      while (currentDate <= cuti.tanggalSelesai) {
-        const startOfDay = new Date(currentDate)
-        startOfDay.setHours(0, 0, 0, 0)
-        
-        const endOfDay = new Date(currentDate)
-        endOfDay.setHours(23, 59, 59, 999)
-
-        const absensiExist = await prisma.absensi.findFirst({
-          where: {
-            pegawaiId: cuti.pegawaiId,
-            tanggal: { gte: startOfDay, lte: endOfDay }
+        await prisma.pegawai.update({
+          where: { id: cuti.pegawaiId },
+          data: {
+            saldoCuti: cuti.pegawai.saldoCuti - duration
           }
         })
+      }
 
-        if (absensiExist) {
-          await prisma.absensi.update({
-            where: { id: absensiExist.id },
-            data: { status: "CUTI" }
-          })
-        } else {
-          await prisma.absensi.create({
-            data: {
+      // 2. Mapping Status Absensi
+      let absensiStatus: "CUTI" | "SAKIT" | "IZIN" = "CUTI"
+      if (cuti.jenisCuti === "Cuti Sakit") {
+        absensiStatus = "SAKIT"
+      } else if (cuti.jenisCuti === "Izin Tidak Masuk") {
+        absensiStatus = "IZIN"
+      }
+
+      // 3. Buat record Absensi otomatis untuk setiap hari kerja
+      const currentDate = new Date(cuti.tanggalMulai)
+      while (currentDate <= cuti.tanggalSelesai) {
+        const dayOfWeek = currentDate.getDay()
+        
+        // Skip pencatatan absen di hari Sabtu (6) dan Minggu (0)
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          const startOfDay = new Date(currentDate)
+          startOfDay.setHours(0, 0, 0, 0)
+          
+          const endOfDay = new Date(currentDate)
+          endOfDay.setHours(23, 59, 59, 999)
+
+          const absensiExist = await prisma.absensi.findFirst({
+            where: {
               pegawaiId: cuti.pegawaiId,
-              tanggal: new Date(currentDate),
-              status: "CUTI",
+              tanggal: { gte: startOfDay, lte: endOfDay }
             }
           })
+
+          if (absensiExist) {
+            await prisma.absensi.update({
+              where: { id: absensiExist.id },
+              data: { status: absensiStatus }
+            })
+          } else {
+            await prisma.absensi.create({
+              data: {
+                pegawaiId: cuti.pegawaiId,
+                tanggal: new Date(currentDate),
+                status: absensiStatus,
+                metode: "MANUAL",
+              }
+            })
+          }
         }
         currentDate.setDate(currentDate.getDate() + 1)
       }
