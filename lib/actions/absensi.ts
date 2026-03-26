@@ -383,3 +383,21 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     }
   }
 }
+
+export async function getSystemSettings() {
+  try {
+    const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
+    return {
+      jamMasuk: pengaturan?.jamMasuk || "08:00",
+      jamPulang: pengaturan?.jamPulang || "17:00",
+      batasTerlambat: pengaturan?.batasTerlambat || 0,
+    }
+  } catch (error) {
+    console.error("Error getSystemSettings:", error)
+    return {
+      jamMasuk: "08:00",
+      jamPulang: "17:00",
+      batasTerlambat: 0,
+    }
+  }
+}

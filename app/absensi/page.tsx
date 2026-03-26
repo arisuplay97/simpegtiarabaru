@@ -69,7 +69,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getAbsensiList, getAbsensiSaya, deleteAbsensi } from "@/lib/actions/absensi"
+import { getAbsensiList, getAbsensiSaya, deleteAbsensi, getSystemSettings } from "@/lib/actions/absensi"
 
 interface AttendanceRecord {
   id: string
@@ -246,8 +246,9 @@ export default function AttendancePage() {
   const [editStatus, setEditStatus] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
+  const [settings, setSettings] = useState<{ jamMasuk: string; jamPulang: string; batasTerlambat: number } | null>(null)
 
-  const mapAbsensi = (data: any[]): AttendanceRecord[] => {
+  const mapAbsensi = (data: any[], currentSettings: any): AttendanceRecord[] => {
     return data.map((d: any) => {
       const statusMap: Record<string, string> = {
         HADIR: "hadir", IZIN: "izin", SAKIT: "sakit",
@@ -284,7 +285,18 @@ export default function AttendancePage() {
         checkIn: formatTime(d.jamMasuk),
         checkOut: formatTime(d.jamKeluar),
         status: (statusMap[d.status] || "alpha") as AttendanceRecord["status"],
-        lateMinutes: d.status === "TERLAMBAT" ? 15 : 0,
+        lateMinutes: (() => {
+          if (d.status !== "TERLAMBAT" || !d.jamMasuk || !currentSettings) return 0
+          const [h, m] = currentSettings.jamMasuk.split(":").map(Number)
+          const checkInTime = new Date(d.jamMasuk)
+          
+          // Lateness is checkInTime - jamMasukSetting
+          const scheduledTime = new Date(checkInTime)
+          scheduledTime.setHours(h, m, 0, 0)
+          
+          const diffMs = checkInTime.getTime() - scheduledTime.getTime()
+          return diffMs > 0 ? Math.floor(diffMs / 60000) : 0
+        })(),
         earlyMinutes: 0,
         method: (methodMap[d.metode] || "selfie") as AttendanceRecord["method"],
         location: d.location || "Gedung Utama",
@@ -298,6 +310,13 @@ export default function AttendancePage() {
       try {
         setIsLoading(true)
         let data: any[] = []
+        let currentSettings = settings
+
+        if (!currentSettings) {
+          const s = await getSystemSettings()
+          setSettings(s)
+          currentSettings = s
+        }
 
         if (isAdmin) {
           data = await getAbsensiList(date, date)
@@ -305,7 +324,7 @@ export default function AttendancePage() {
           data = await getAbsensiSaya(selectedMonth, selectedYear)
         }
 
-        setRecords(mapAbsensi(data))
+        setRecords(mapAbsensi(data, currentSettings))
       } catch (error: any) {
         toast.error(`Gagal memuat absensi: ${error.message}`)
       } finally {
@@ -404,10 +423,10 @@ export default function AttendancePage() {
       // Refresh data
       if (isAdmin) {
         const d = await getAbsensiList(date, date)
-        setRecords(mapAbsensi(d))
+        setRecords(mapAbsensi(d, settings))
       } else {
         const d = await getAbsensiSaya(selectedMonth, selectedYear)
-        setRecords(mapAbsensi(d))
+        setRecords(mapAbsensi(d, settings))
       }
     } else {
       toast.error(res.error || "Gagal menghapus data")
