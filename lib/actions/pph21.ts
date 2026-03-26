@@ -157,11 +157,22 @@ export async function getPPh21List(periodStr: string) {
     orderBy: { pegawai: { nama: "asc" } },
   })
   return {
-    data: data.map((r) => ({
-      id: r.id,
+    data: data.map((r: any) => ({
+      ...r,
       nama: r.pegawai.nama,
       nik: r.pegawai.nik,
       unit: r.pegawai.bidang?.nama || "Umum",
+      golongan: r.pegawai.golongan,
+      gajiPokok: Number(r.gajiPokok),
+      tunjangan: Number(r.tunjangan),
+      lemburBayar: Number(r.lemburBayar),
+      penghasilanBruto: Number(r.penghasilanBruto),
+      biayaJabatan: Number(r.biayaJabatan),
+      iuranPensiunEmp: Number(r.iuranPensiunEmp),
+      penghasilanNetto: Number(r.penghasilanNetto),
+      ptkpNilai: Number(r.ptkpNilai),
+      pkp: Number(r.pkp),
+      pph21Setahun: Number(r.pph21Setahun),
       pph21Sebulan: Number(r.pph21Sebulan),
     })),
   }

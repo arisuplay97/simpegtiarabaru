@@ -67,8 +67,8 @@ export default function AuditLogPage() {
   const fetchLogs = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await getAuditLogs({ page, limit, module, action, search, dateFrom, dateTo })
-      if ("error" in res) { toast.error(res.error); return }
+      const res = await getAuditLogs({ page, limit, module, action, search, dateFrom, dateTo }) as any
+      if (res.error) { toast.error(res.error); return }
       setLogs(res.data)
       setTotal(res.total)
     } finally {
@@ -79,8 +79,8 @@ export default function AuditLogPage() {
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
   async function handleExport() {
-    const res = await exportAuditLogCSV({ module, action, dateFrom, dateTo })
-    if ("error" in res) { toast.error(res.error!); return }
+    const res = await exportAuditLogCSV({ module, action, dateFrom, dateTo }) as any
+    if (res.error) { toast.error(res.error); return }
     const blob = new Blob([res.csv!], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")

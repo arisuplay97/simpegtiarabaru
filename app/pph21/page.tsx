@@ -51,10 +51,13 @@ export default function PPh21Page() {
 
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const res = await getPPh21List(periode)
-    if ("error" in res) { toast.error(res.error!); setLoading(false); return }
-    setData(res.data)
-    setLoading(false)
+    try {
+      const res = await getPPh21List(periode) as any
+      if (res.error) { toast.error(res.error); return }
+      setData(res.data)
+    } finally {
+      setLoading(false)
+    }
   }, [periode])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -62,16 +65,16 @@ export default function PPh21Page() {
   async function handleProses() {
     if (!confirm(`Proses PPh 21 untuk periode ${periode}? Data yang sudah ada akan diperbarui.`)) return
     setProcessing(true)
-    const res = await prosesPPh21Batch(periode)
+    const res = await prosesPPh21Batch(periode) as any
     setProcessing(false)
-    if ("error" in res) { toast.error(res.error!); return }
+    if (res.error) { toast.error(res.error); return }
     toast.success(`PPh 21 diproses: ${res.berhasil} berhasil, ${res.gagal} gagal`)
     fetchData()
   }
 
   async function handleExport() {
-    const res = await exportESPT(periode)
-    if ("error" in res) { toast.error(res.error!); return }
+    const res = await exportESPT(periode) as any
+    if (res.error) { toast.error(res.error); return }
     const blob = new Blob([res.csv!], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a"); a.href = url
