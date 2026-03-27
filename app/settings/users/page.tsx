@@ -183,8 +183,20 @@ export default function UserManagementPage() {
     setIsSaving(true)
 
     if (editingUser) {
+      // Logic for syncing username to email for system accounts
+      let finalEmail = form.email;
+      let originalUsernameText = editingUser.email.split("@")[0].toLowerCase();
+      
+      if (form.username.toLowerCase() !== originalUsernameText) {
+          // Jika username berubah dari bawaan email sebelumnya
+          finalEmail = form.username.includes("@") ? form.username.toLowerCase() : `${form.username.toLowerCase()}@tiara.com`;
+      } else if (form.email !== editingUser.email) {
+          finalEmail = form.email.toLowerCase();
+      }
+
       const res = await updateSystemUser(editingUser.id, {
         role: form.role,
+        email: finalEmail,
         password: form.password || undefined
       })
       if (res.success) {

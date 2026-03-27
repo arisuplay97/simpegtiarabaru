@@ -45,6 +45,14 @@ export async function updateSystemUser(id: string, data: any) {
       role: data.role
     }
 
+    if (data.email) {
+      const existing = await prisma.user.findUnique({ where: { email: data.email } })
+      if (existing && existing.id !== id) {
+        return { error: "Username atau email ini sudah digunakan oleh akun lain." }
+      }
+      updateData.email = data.email
+    }
+
     if (data.password) {
       updateData.password = await bcrypt.hash(data.password, 10)
     }
