@@ -689,46 +689,73 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     const session = await auth()
     if (!session?.user) return []
 
+    const now = new Date()
     const startDate = new Date(tahun, bulan - 1, 1, 0, 0, 0)
     const endDate = new Date(tahun, bulan, 0, 23, 59, 59)
+
+    const isCurrentMonth = (bulan === now.getMonth() + 1 && tahun === now.getFullYear())
+    const limitDate = isCurrentMonth ? now : endDate
+
+    let hariKerjaAktif = 0
+    for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay()
+      if (day !== 0 && day !== 6) hariKerjaAktif++
+    }
+
+    // Hitung total hari kerja sebulan utuh (untuk label UI summary)
+    let totalHariKerja = 0
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay()
+      if (day !== 0 && day !== 6) totalHariKerja++
+    }
+
+    // Ambil SEMUA pegawai aktif
+    const pegawais = await prisma.pegawai.findMany({
+      where: { status: "AKTIF" },
+      include: { bidang: true }
+    })
 
     // Ambil semua absensi dalam bulan ini
     const absensiList = await prisma.absensi.findMany({
       where: { tanggal: { gte: startDate, lte: endDate } },
-      include: { pegawai: { include: { bidang: true } } },
-      orderBy: { tanggal: "asc" },
     })
 
-    // Hitung hari kerja dalam bulan (Senin-Jumat)
-    let hariKerja = 0
-    const d = new Date(startDate)
-    while (d <= endDate) {
-      const day = d.getDay()
-      if (day !== 0 && day !== 6) hariKerja++
-      d.setDate(d.getDate() + 1)
+    const pegawaiMap: Record<string, any> = {}
+    
+    // Inisialisasi dictionary Pegawai
+    for (const p of pegawais) {
+      pegawaiMap[p.id] = {
+        id: p.id,
+        nama: p.nama,
+        bidang: p.bidang?.nama || "-",
+        jabatan: p.jabatan,
+        hadir: 0,
+        alpha: 0,
+        izin: 0,
+        sakit: 0,
+        cuti: 0,
+        dinas: 0,
+        terlambat: 0,
+        totalJamMenit: 0,
+        hariKerja: totalHariKerja,
+      }
     }
 
-    // Group by pegawai
-    const pegawaiMap: Record<string, any> = {}
+    // Agregasi row
     for (const a of absensiList) {
       const pid = a.pegawaiId
       if (!pegawaiMap[pid]) {
+        // Jika pegawai tidak aktif lagi tapi ada recordnya, set saja basic-nya
         pegawaiMap[pid] = {
           id: pid,
-          nama: a.pegawai.nama,
-          bidang: a.pegawai.bidang?.nama || "-",
-          jabatan: a.pegawai.jabatan,
-          hadir: 0,
-          alpha: 0,
-          izin: 0,
-          sakit: 0,
-          cuti: 0,
-          dinas: 0,
-          terlambat: 0,
-          totalJamMenit: 0,
-          hariKerja,
+          nama: "Pegawai Non-Aktif",
+          bidang: "-",
+          jabatan: "-",
+          hadir: 0, alpha: 0, izin: 0, sakit: 0, cuti: 0, dinas: 0, terlambat: 0, totalJamMenit: 0,
+          hariKerja: totalHariKerja
         }
       }
+
       const r = pegawaiMap[pid]
       const status = a.status as any
       switch (status) {
@@ -740,10 +767,19 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
         case "CUTI":     r.cuti++;     break
         case "DINAS":    r.dinas++;    break
       }
+      
       if (a.jamMasuk && a.jamKeluar) {
         const diffMs = new Date(a.jamKeluar).getTime() - new Date(a.jamMasuk).getTime()
         if (diffMs > 0) r.totalJamMenit += Math.floor(diffMs / 60000)
       }
+    }
+
+    // Kalkulasi Alpha/Mangkir otomatis & Penyesuaian Status untuk yg belum diabsen
+    for (const pid in pegawaiMap) {
+      const r = pegawaiMap[pid]
+      const countedRecords = r.hadir + r.alpha + r.izin + r.sakit + r.cuti + r.dinas
+      const missingCount = Math.max(0, hariKerjaAktif - countedRecords)
+      r.alpha += missingCount
     }
 
     return Object.values(pegawaiMap).sort((a: any, b: any) =>
