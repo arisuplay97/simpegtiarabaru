@@ -163,7 +163,7 @@ export default function DashboardPage() {
                     
                     <div className="grid grid-cols-2 gap-3 mt-auto">
                       <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/50">
-                        <div className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-1">Tepat Waktu</div>
+                        <div className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-1">Hadir Hari Ini</div>
                         <div className="text-xl font-bold">{stats?.kehadiranHariIni?.hadir || 0}</div>
                       </div>
                       <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg border border-amber-100 dark:border-amber-900/50">
