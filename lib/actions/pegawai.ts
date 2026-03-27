@@ -105,6 +105,15 @@ export async function getEmployeeStats() {
   return { total, aktif, cuti, nonAktif, sp }
 }
 
+export async function getPegawaiPageData() {
+  const [emps, stats, bid] = await Promise.all([
+    getEmployees(),
+    getEmployeeStats(),
+    getBidang()
+  ])
+  return { emps, stats, bid }
+}
+
 export async function createEmployee(data: any, fotoFile?: File) {
   try {
   // Upload foto jika ada

@@ -45,7 +45,8 @@ import {
   createEmployee, 
   updateEmployee, 
   deleteEmployee,
-  getBidang
+  getBidang,
+  getPegawaiPageData
 } from "@/lib/actions/pegawai"
 import { bidangList as fallbackBidang, getJabatanOptions, getAtasanOtomatis, getJabatanLabel, getSubBidangOptions, golonganOptions, tipeKepegawaianOptions, type TipeJabatan } from "@/lib/data/bidang-store"
 
@@ -133,14 +134,10 @@ export default function EmployeeListPage() {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [emps, s, bid] = await Promise.all([
-        getEmployees(),
-        getEmployeeStats(),
-        getBidang(),
-      ])
-      setEmployees(emps as any[] || [])
-      setStats(s)
-      setBidangData(bid?.length ? bid : fallbackBidang)
+      const data = await getPegawaiPageData()
+      setEmployees(data.emps as any[] || [])
+      setStats(data.stats)
+      setBidangData(data.bid?.length ? data.bid : fallbackBidang)
     } catch (error) {
       toast.error("Gagal mengambil data dari database")
     } finally {
