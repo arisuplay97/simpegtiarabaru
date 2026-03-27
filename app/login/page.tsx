@@ -68,6 +68,12 @@ export default function LoginPage() {
         >
           Perumdam Tirta Ardhia Rinjani
         </span>
+        <span
+          className="text-[10px] font-bold text-white/40 leading-tight tracking-widest uppercase mt-1"
+          style={{ textShadow: '0 0 8px rgba(255,255,255,0.1)' }}
+        >
+          Kabupaten Lombok Tengah
+        </span>
       </div>
 
       {/* ─── FORM CARD ─── terpusat */}
@@ -103,7 +109,7 @@ export default function LoginPage() {
               className="text-3xl font-bold text-white mb-2 leading-tight"
               style={{ fontFamily: '"Georgia", "Times New Roman", serif', fontStyle: 'italic' }}
             >
-              Welcome back!
+              Selamat Datang
             </h1>
             <p className="text-sm text-white/45">Masuk untuk melanjutkan ke sistem</p>
           </div>
