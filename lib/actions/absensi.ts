@@ -738,6 +738,7 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
         terlambat: 0,
         totalJamMenit: 0,
         hariKerja: totalHariKerja,
+        hariKerjaAktif: hariKerjaAktif,
       }
     }
 
@@ -752,7 +753,8 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
           bidang: "-",
           jabatan: "-",
           hadir: 0, alpha: 0, izin: 0, sakit: 0, cuti: 0, dinas: 0, terlambat: 0, totalJamMenit: 0,
-          hariKerja: totalHariKerja
+          hariKerja: totalHariKerja,
+          hariKerjaAktif: hariKerjaAktif
         }
       }
 

@@ -1016,10 +1016,10 @@ export default function AttendancePage() {
                       </div>
                       {rekapBulanan.length > 0 && (
                         <Button variant="outline" size="sm" className="gap-2" onClick={() => {
-                          const headers = ["Nama","Unit","Jabatan","Hari Kerja","Hadir","Alpha","Izin","Sakit","Cuti","Dinas","Terlambat","% Hadir"]
+                          const headers = ["Nama","Unit","Jabatan","Hari Efektif","Total Hari Kerja","Hadir","Alpha","Izin","Sakit","Cuti","Dinas","Terlambat","% Hadir"]
                           const rows = rekapBulanan.map((r: any) => [
-                            r.nama, r.bidang, r.jabatan, r.hariKerja, r.hadir, r.alpha, r.izin, r.sakit, r.cuti, r.dinas, r.terlambat,
-                            `${Math.round((r.hadir / (r.hariKerja || 1)) * 100)}%`
+                            r.nama, r.bidang, r.jabatan, r.hariKerjaAktif, r.hariKerja, r.hadir, r.alpha, r.izin, r.sakit, r.cuti, r.dinas, r.terlambat,
+                            `${Math.round((r.hadir / (r.hariKerjaAktif || 1)) * 100)}%`
                           ].join(","))
                           const csv = [headers.join(","), ...rows].join("\n")
                           const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
@@ -1058,7 +1058,7 @@ export default function AttendancePage() {
                             <TableRow className="bg-muted/50 text-xs">
                               <TableHead className="w-[180px]">Pegawai</TableHead>
                               <TableHead>Unit</TableHead>
-                              <TableHead className="text-center text-xs text-muted-foreground">Hari Kerja</TableHead>
+                              <TableHead className="text-center text-xs text-muted-foreground w-[100px]">Efektif /<br/>Kerja</TableHead>
                               <TableHead className="text-center text-emerald-700">Hadir</TableHead>
                               <TableHead className="text-center text-red-600">Alpha</TableHead>
                               <TableHead className="text-center text-blue-600">Izin</TableHead>
@@ -1073,7 +1073,7 @@ export default function AttendancePage() {
                             {rekapBulanan
                               .filter((r: any) => r.nama.toLowerCase().includes(searchRekap.toLowerCase()))
                               .map((r: any) => {
-                                const persen = Math.round((r.hadir / (r.hariKerja || 1)) * 100)
+                                const persen = Math.round((r.hadir / (r.hariKerjaAktif || 1)) * 100)
                                 const persenColor = persen >= 90
                                   ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                                   : persen >= 75
@@ -1088,7 +1088,7 @@ export default function AttendancePage() {
                                       </div>
                                     </TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{r.bidang}</TableCell>
-                                    <TableCell className="text-center font-mono text-sm text-muted-foreground">{r.hariKerja}</TableCell>
+                                    <TableCell className="text-center font-mono text-sm text-muted-foreground">{r.hariKerjaAktif} / {r.hariKerja}</TableCell>
                                     <TableCell className="text-center font-bold text-emerald-600">{r.hadir}</TableCell>
                                     <TableCell className="text-center font-bold text-red-500">{r.alpha || "-"}</TableCell>
                                     <TableCell className="text-center font-semibold text-blue-500">{r.izin || "-"}</TableCell>
