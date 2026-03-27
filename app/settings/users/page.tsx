@@ -447,7 +447,7 @@ export default function UserManagementPage() {
 
             <div>
               <Label>NIK</Label>
-              <Input className="mt-1 font-mono" value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="16 digit NIK" maxLength={16} />
+              <Input className="mt-1 font-mono" value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="8 digit NIK" maxLength={8} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

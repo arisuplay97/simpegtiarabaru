@@ -202,7 +202,7 @@ export default function EmployeeListPage() {
   const validate = () => {
     const errors: Record<string,string> = {}
     if (!form.nama.trim()) errors.nama = "Nama wajib diisi"
-    if (!form.nik || form.nik.length !== 16) errors.nik = "NIK harus 16 digit"
+    if (!form.nik || form.nik.length !== 8) errors.nik = "NIK harus 8 digit"
     if (!form.bidangId) errors.bidangId = "Unit kerja wajib dipilih"
     if (!form.golongan && form.tipeKepegawaian !== 'kontrak' && form.tipeKepegawaian !== 'magang') errors.golongan = "Golongan wajib dipilih"
     if (!form.email || !form.email.includes("@")) errors.email = "Email valid wajib diisi"
@@ -377,7 +377,7 @@ export default function EmployeeListPage() {
             <Input value={form.nama} onChange={e => setForm({...form, nama: e.target.value})} placeholder="Nama Lengkap" />
           </F>
           <F label="NIK" error={formErrors.nik}>
-            <Input value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="16 Digit NIK" maxLength={16} />
+            <Input value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="8 Digit NIK" maxLength={8} />
           </F>
           <F label="Email" error={formErrors.email}>
             <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@perusahaan.com" />

@@ -1449,7 +1449,7 @@ export default function EmployeeDetailPage() {
                     <Input value={formData.nama || ""} onChange={e => handleChange("nama", e.target.value)} placeholder="Nama Lengkap" />
                   </F>
                   <F label="NIK">
-                    <Input value={formData.nik || ""} onChange={e => handleChange("nik", e.target.value)} placeholder="16 Digit NIK" maxLength={16} />
+                    <Input value={formData.nik || ""} onChange={e => handleChange("nik", e.target.value)} placeholder="8 Digit NIK" maxLength={8} />
                   </F>
                   <F label="Email">
                     <Input value={formData.email || ""} onChange={e => handleChange("email", e.target.value)} placeholder="email@perusahaan.com" />
