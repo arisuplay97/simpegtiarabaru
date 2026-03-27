@@ -83,18 +83,18 @@ export default function LoginPage() {
           <div className="mb-8 flex flex-col items-center text-center">
             
             {/* Logo Group */}
-            <div className="flex items-center justify-center gap-6 mb-6 pointer-events-none">
+            <div className="flex items-center justify-center gap-8 mb-6 pointer-events-none">
               <img 
                 src="/pojokkiri%20logo.png" 
                 alt="Logo Tirta Rinjani" 
-                className="h-16 w-auto object-contain opacity-95"
+                className="h-24 w-auto object-contain opacity-95"
                 style={{ filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.6)) drop-shadow(0 0 30px rgba(255,255,255,0.2))' }}
               />
-              <div className="h-12 w-px bg-white/20" />
+              <div className="h-16 w-px bg-white/20" />
               <img 
                 src="/pojokkanan%20logo.png" 
                 alt="Logo ASIK" 
-                className="h-20 w-auto object-contain opacity-95"
+                className="h-28 w-auto object-contain opacity-95"
                 style={{ filter: 'drop-shadow(0 0 20px rgba(168,85,247,0.9)) drop-shadow(0 0 40px rgba(168,85,247,0.6))' }}
               />
             </div>
