@@ -255,7 +255,7 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent className="flex-1 p-0">
                     <ScrollArea className="h-[260px] bg-gradient-to-b from-white to-slate-50/50 dark:from-background dark:to-background">
-                      <ApprovalPanel compactMode />
+                      <ApprovalPanel />
                     </ScrollArea>
                   </CardContent>
                 </Card>
