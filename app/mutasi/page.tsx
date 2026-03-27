@@ -130,19 +130,28 @@ export default function MutasiPage() {
 
   if (!canView) return null
 
-  // Fetch Jabatan options based on selected unit
+  // Fetch Jabatan options based on selected unit — generate inline, no static ID dependency
   useEffect(() => {
     if (form.unitTujuan) {
-      const selectedBidang = bidangList.find(b => b.nama === form.unitTujuan)
-      if (selectedBidang) {
-         setJabatanOptions(getJabatanOptions(selectedBidang.kode))
+      const isCabang = form.unitTujuan.toLowerCase().includes('cabang')
+      if (isCabang) {
+        setJabatanOptions([
+          { value: "kepala_cabang", label: "Kepala Cabang" },
+          { value: "kasubbid_cabang", label: "Kasubbid Cabang" },
+          { value: "staff_cabang", label: "Staff Cabang" },
+        ])
       } else {
-         setJabatanOptions(getJabatanOptions("UMUM"))
+        setJabatanOptions([
+          { value: "kepala_bidang", label: "Kepala Bidang" },
+          { value: "kasubbid", label: "Kasubbid" },
+          { value: "staff", label: "Staff" },
+        ])
       }
     } else {
       setJabatanOptions([])
     }
-  }, [form.unitTujuan, bidangList])
+  }, [form.unitTujuan])
+
 
 
   const filteredData = mutasiData.filter(item => {
@@ -440,8 +449,8 @@ export default function MutasiPage() {
                     <SelectValue placeholder="Pilih Jabatan" />
                   </SelectTrigger>
                   <SelectContent>
-                     {jabatanOptions.map(j => (
-                        <SelectItem key={j} value={j}>{j}</SelectItem>
+                     {jabatanOptions.map((j: any) => (
+                        <SelectItem key={j.value} value={j.label}>{j.label}</SelectItem>
                      ))}
                   </SelectContent>
                 </Select>
