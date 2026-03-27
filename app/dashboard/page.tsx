@@ -201,8 +201,8 @@ export default function DashboardPage() {
                 {/* LEFT COLUMN */}
                 <div className="xl:col-span-2 space-y-5">
 
-                  {/* KEHADIRAN + KONTRAK & PENSIUN */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* KEHADIRAN + KONTRAK & PENSIUN + KGB & PANGKAT */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
 
                     {/* KEHADIRAN HARI INI */}
                     <Card className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl flex flex-col">
@@ -250,7 +250,6 @@ export default function DashboardPage() {
                       <CardContent className="flex-1 p-0">
                         <ScrollArea className="max-h-[290px]">
                           <div className="p-4 space-y-3">
-                            {/* Kontrak */}
                             <div>
                               <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Kontrak Habis</p>
                               <div className="space-y-2">
@@ -269,10 +268,7 @@ export default function DashboardPage() {
                                           <p className="text-[10px] text-neutral-400 truncate">{k.pegawai?.jabatan || "—"}</p>
                                         </div>
                                       </div>
-                                      <span className={cn(
-                                        "text-[10px] font-bold px-2 py-1 rounded-lg shrink-0",
-                                        k.sisaHari <= 14 ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400" : "bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400"
-                                      )}>
+                                      <span className={cn("text-[10px] font-bold px-2 py-1 rounded-lg shrink-0", k.sisaHari <= 14 ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400" : "bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400")}>
                                         {k.sisaHari}h
                                       </span>
                                     </div>
@@ -280,8 +276,6 @@ export default function DashboardPage() {
                                 )}
                               </div>
                             </div>
-
-                            {/* Pensiun */}
                             <div>
                               <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Mendekati Pensiun</p>
                               <div className="space-y-2">
@@ -303,6 +297,71 @@ export default function DashboardPage() {
                                       <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400">
                                         {Math.ceil(p.sisaHari / 30)} bln
                                       </span>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+
+                    {/* KENAIKAN GAJI BERKALA & PANGKAT */}
+                    <Card className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl flex flex-col">
+                      <div className="px-5 pt-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ArrowUpCircle className="w-4 h-4 text-violet-500" />
+                          <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Kenaikan Gaji & Pangkat</span>
+                        </div>
+                        <Link href="/kgb" className="text-[10px] text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
+                      </div>
+                      <CardContent className="flex-1 p-0">
+                        <ScrollArea className="max-h-[290px]">
+                          <div className="p-4 space-y-3">
+                            <div>
+                              <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Kenaikan Gaji Berkala (KGB)</p>
+                              <div className="space-y-2">
+                                {!stats?.kgbList?.length ? (
+                                  <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Tidak ada pengajuan KGB pending</div>
+                                ) : (
+                                  stats.kgbList.map((k: any) => (
+                                    <div key={k.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-900/20 transition-colors">
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <Avatar className="h-7 w-7 shrink-0">
+                                          <AvatarImage src={k.pegawai?.fotoUrl} />
+                                          <AvatarFallback className="text-[9px] font-bold bg-violet-200 text-violet-700">{k.pegawai?.nama?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{k.pegawai?.nama}</p>
+                                          <p className="text-[10px] text-neutral-400 truncate">{k.pegawai?.jabatan || "—"}</p>
+                                        </div>
+                                      </div>
+                                      <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">KGB</span>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Kenaikan Pangkat</p>
+                              <div className="space-y-2">
+                                {!stats?.pangkatList?.length ? (
+                                  <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Tidak ada pengajuan kenaikan pangkat</div>
+                                ) : (
+                                  stats.pangkatList.map((p: any) => (
+                                    <div key={p.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-sky-50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-900/30 hover:bg-sky-100 dark:hover:bg-sky-900/20 transition-colors">
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <Avatar className="h-7 w-7 shrink-0">
+                                          <AvatarImage src={p.pegawai?.fotoUrl} />
+                                          <AvatarFallback className="text-[9px] font-bold bg-sky-200 text-sky-700">{p.pegawai?.nama?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{p.pegawai?.nama}</p>
+                                          <p className="text-[10px] text-neutral-400 truncate">{p.pegawai?.jabatan || "—"}</p>
+                                        </div>
+                                      </div>
+                                      <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">Pangkat</span>
                                     </div>
                                   ))
                                 )}

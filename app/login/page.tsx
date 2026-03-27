@@ -3,19 +3,8 @@ import { signIn } from "next-auth/react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Eye, EyeOff, Loader2, User, Lock } from "lucide-react"
-
-const demoAccounts = [
-  { username: "superadmin", password: "admin123", label: "Super Admin",  color: "bg-purple-100 text-purple-700" },
-  { username: "hrd",        password: "hrd123",   label: "HRD / Admin",  color: "bg-blue-100 text-blue-700" },
-  { username: "direktur",   password: "direktur123", label: "Direktur",  color: "bg-amber-100 text-amber-700" },
-  { username: "pegawai",    password: "pegawai123",  label: "Pegawai",   color: "bg-emerald-100 text-emerald-700" },
-]
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+import Image from "next/image"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -44,120 +33,163 @@ export default function LoginPage() {
     setIsLoading(false)
   }
 
-  const quickLogin = async (u: string, p: string) => {
-    setIsLoading(true)
-    setError("")
-    const result = await signIn("credentials", {
-      username: u,
-      password: p,
-      redirect: false,
-    })
-    if (result?.error) {
-      setError("Login gagal")
-      setIsLoading(false)
-    } else {
-      toast.success(`Login berhasil`)
-      router.push("/")
-      router.refresh()
-    }
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 to-black p-4">
-      <Card className="w-full max-w-md p-8 shadow-2xl bg-white/10 backdrop-blur-md border-white/20 text-white">
-        <div className="text-center mb-8 flex flex-col items-center justify-center">
-          <img src="/logo-tar.png" alt="Logo Tirta Ardhia Rinjani" className="h-24 object-contain mb-4" />
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">SIMPEG Tiara</h1>
-          <p className="text-blue-200">Sistem Informasi Manajemen Kepegawaian</p>
-        </div>
+    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center">
+      
+      {/* ─── BACKGROUND: deep dark garden ─── */}
+      <div className="absolute inset-0 bg-[#080b14]" />
+      
+      {/* Gradient orbs for depth */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-violet-900/30 blur-[120px]" />
+        <div className="absolute top-1/4 -right-20 w-[400px] h-[400px] rounded-full bg-indigo-900/25 blur-[100px]" />
+        <div className="absolute bottom-0 left-1/3 w-[600px] h-[400px] rounded-full bg-purple-950/40 blur-[130px]" />
+      </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="username" className="text-blue-100">Username</Label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-              <Input
-                id="username"
+      {/* Decorative floating particles */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[
+          { top: "8%",  left: "12%",  size: "6px",  color: "#e879f9", delay: "0s",   dur: "4s"   },
+          { top: "15%", left: "72%",  size: "4px",  color: "#a78bfa", delay: "1s",   dur: "5s"   },
+          { top: "35%", left: "88%",  size: "7px",  color: "#fb7185", delay: "0.5s", dur: "3.5s" },
+          { top: "55%", left: "6%",   size: "5px",  color: "#818cf8", delay: "2s",   dur: "4.5s" },
+          { top: "70%", left: "82%",  size: "4px",  color: "#c084fc", delay: "1.5s", dur: "6s"   },
+          { top: "82%", left: "25%",  size: "8px",  color: "#f472b6", delay: "0.8s", dur: "4s"   },
+          { top: "20%", left: "45%",  size: "3px",  color: "#93c5fd", delay: "3s",   dur: "5.5s" },
+          { top: "65%", left: "55%",  size: "5px",  color: "#a5b4fc", delay: "2.5s", dur: "4s"   },
+        ].map((p, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              top: p.top, left: p.left, width: p.size, height: p.size,
+              backgroundColor: p.color,
+              boxShadow: `0 0 ${parseInt(p.size) * 3}px ${p.color}`,
+              animation: `pulse ${p.dur} ${p.delay} ease-in-out infinite alternate`,
+              opacity: 0.7,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Decorative flower/petal SVGs */}
+      <div className="absolute top-6 left-8 pointer-events-none select-none text-7xl opacity-20 rotate-12" style={{ filter: 'drop-shadow(0 0 20px #e879f9)' }}>✿</div>
+      <div className="absolute top-20 right-12 pointer-events-none select-none text-5xl opacity-15 -rotate-12" style={{ filter: 'drop-shadow(0 0 16px #a78bfa)' }}>❀</div>
+      <div className="absolute bottom-16 left-16 pointer-events-none select-none text-6xl opacity-20 rotate-6" style={{ filter: 'drop-shadow(0 0 18px #fb7185)' }}>✿</div>
+      <div className="absolute bottom-8 right-20 pointer-events-none select-none text-4xl opacity-15 -rotate-6" style={{ filter: 'drop-shadow(0 0 14px #c084fc)' }}>❋</div>
+      <div className="absolute top-1/2 left-4 pointer-events-none select-none text-3xl opacity-10 rotate-45" style={{ filter: 'drop-shadow(0 0 12px #818cf8)' }}>✾</div>
+
+      {/* ─── LOGO TOP LEFT ─── */}
+      <div className="absolute top-6 left-8 flex items-center gap-2.5 z-10">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm border border-white/10">
+          <Image src="/logo-tar.png" alt="Logo" width={22} height={22} className="object-contain" />
+        </div>
+        <span className="text-sm font-semibold text-white/70">SIMPEG Tiara</span>
+      </div>
+
+      {/* ─── GLASSMORPHISM CARD ─── */}
+      <div className="relative z-10 w-full max-w-sm mx-4 sm:mx-auto">
+        
+        {/* Card glow backdrop */}
+        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-violet-500/20 via-purple-500/10 to-pink-500/20 blur-xl" />
+        
+        <div className="relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-8 shadow-2xl">
+
+          {/* ── HEADER ── */}
+          <div className="mb-8 text-center">
+            <h1
+              className="text-4xl font-bold text-white mb-2 leading-tight tracking-tight"
+              style={{ fontFamily: '"Georgia", "Times New Roman", serif', fontStyle: 'italic' }}
+            >
+              Welcome back!
+            </h1>
+            <p className="text-sm text-white/40">Masuk untuk melanjutkan ke sistem</p>
+          </div>
+
+          {/* ── FORM ── */}
+          <form onSubmit={handleLogin} className="space-y-4">
+            
+            {/* Username */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-white/60 uppercase tracking-wider">Username</label>
+              <input
                 type="text"
                 placeholder="Masukkan username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500"
                 required
                 autoComplete="username"
+                className="w-full rounded-xl bg-white/8 border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-violet-500/60 focus:bg-white/12 transition-all"
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-blue-100">Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Masukkan password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500"
-                required
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <p className="rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-2 text-sm text-red-300">
-              {error}
-            </p>
-          )}
-
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
-          >
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memuat...</> : "Masuk ke Sistem"}
-          </Button>
-        </form>
-
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-white/10"></span>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-transparent px-2 text-blue-300">— Login Cepat Demo —</span>
-          </div>
-        </div>
-
-        {/* Quick Login */}
-        <div className="grid grid-cols-2 gap-2">
-          {demoAccounts.map(acc => (
-            <button
-              key={acc.username}
-              onClick={() => quickLogin(acc.username, acc.password)}
-              disabled={isLoading}
-              className="flex flex-col items-start rounded-lg border border-white/10 p-3 text-left hover:bg-white/10 transition-colors disabled:opacity-50"
-            >
-              <div className="flex w-full items-center justify-between">
-                <span className="text-sm font-medium text-white">{acc.username}</span>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${acc.color}`}>
-                  {acc.label}
-                </span>
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-white/60 uppercase tracking-wider">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Masukkan password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="w-full rounded-xl bg-white/8 border border-white/10 px-4 py-3 pr-11 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-violet-500/60 focus:bg-white/12 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-              <span className="mt-0.5 text-xs text-white/40">{acc.password}</span>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl bg-red-500/15 border border-red-500/25 px-4 py-2.5 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="relative w-full mt-2 rounded-xl py-3 text-sm font-bold text-white overflow-hidden transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #4c1d95 100%)',
+                boxShadow: '0 4px 24px rgba(124, 58, 237, 0.5)',
+              }}
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isLoading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" />Memuat...</>
+                ) : (
+                  "Masuk ke Sistem"
+                )}
+              </span>
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700" />
             </button>
-          ))}
+
+          </form>
+
+          {/* Footer */}
+          <p className="mt-6 text-center text-xs text-white/25">
+            Sistem Informasi Manajemen Kepegawaian
+          </p>
         </div>
-      </Card>
+      </div>
+
+      {/* Keyframe animation for particles */}
+      <style jsx>{`
+        @keyframes pulse {
+          from { opacity: 0.3; transform: scale(0.8); }
+          to   { opacity: 0.9; transform: scale(1.3); }
+        }
+      `}</style>
     </div>
   )
 }

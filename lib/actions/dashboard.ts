@@ -67,11 +67,23 @@ export async function getDashboardStats() {
       .slice(0, 10)
 
     // 4. Eligible KGB & Kenaikan Pangkat (status APPROVED adalah yg sudah naik, PENDING yg menunggu)
-    const [kgbEligible, pangkatEligible, pegawaiCutiCount, pegawaiSPCount] = await Promise.all([
+    const [kgbEligibleCount, pangkatEligibleCount, pegawaiCutiCount, pegawaiSPCount, kgbList, pangkatList] = await Promise.all([
       prisma.kGB.count({ where: { status: 'PENDING' } }),
       prisma.kenaikanPangkat.count({ where: { status: 'PENDING' } }),
       prisma.cuti.count({ where: { status: 'APPROVED', tanggalMulai: { lte: new Date() }, tanggalSelesai: { gte: new Date() } } }),
       prisma.pegawai.count({ where: { sp: { not: null }, status: 'AKTIF' } }),
+      prisma.kGB.findMany({
+        where: { status: 'PENDING' },
+        take: 8,
+        orderBy: { createdAt: 'desc' },
+        include: { pegawai: { select: { nama: true, jabatan: true, fotoUrl: true } } }
+      }),
+      prisma.kenaikanPangkat.findMany({
+        where: { status: 'PENDING' },
+        take: 8,
+        orderBy: { createdAt: 'desc' },
+        include: { pegawai: { select: { nama: true, jabatan: true, fotoUrl: true } } }
+      }),
     ])
 
     return {
@@ -89,10 +101,12 @@ export async function getDashboardStats() {
       },
       kontrakHampirHabis,
       pensiunTerdekat,
-      kgbEligible,
-      pangkatEligible,
+      kgbEligible: kgbEligibleCount,
+      pangkatEligible: pangkatEligibleCount,
       pegawaiCuti: pegawaiCutiCount,
       pegawaiSP: pegawaiSPCount,
+      kgbList,
+      pangkatList,
     }
   } catch (error) {
     console.warn("Database failed, returning mock stats for dashboard", error)
