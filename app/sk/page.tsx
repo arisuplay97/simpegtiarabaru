@@ -192,27 +192,24 @@ export default function SKPage() {
     setIsLoading(true)
     try {
       const kepadaDocx = formatKepadaDocx(undangan.kepada)
-      
-      // Determine NIK label
       const isTanpaNik = JABATAN_TANPA_NIK.includes(undangan.jabatan_penandatangan)
-      const finalNik = isTanpaNik ? "" : undangan.nik_penandatangan
-      const labelNik = finalNik ? "NIK. " : ""
+      const nikFormatted = isTanpaNik ? "" : (undangan.nik_penandatangan ? `NIK. ${undangan.nik_penandatangan}` : "")
 
       const data = templateUndangan({
         ...undangan,
         kepada: kepadaDocx,
         tanggal_surat: formatTanggalIndonesia(new Date(undangan.tanggal_surat)),
-        nik_penandatangan: finalNik,
-        // @ts-ignore
-        label_nik: labelNik,
         hari_tanggal_acara: undefined,
         jam_acara: undefined,
         lokasi_acara: undefined,
         nama_acara: undefined,
       })
-      await downloadSurat(data, `Undangan_${undangan.perihal.replace(/\s+/g, "_")}`)
+      // Override nik AFTER template (template would set default "____")
+      const finalData = { ...data, nik_penandatangan: nikFormatted } as any
+      
+      await downloadSurat(finalData, `Undangan_${undangan.perihal.replace(/\s+/g, "_")}`)
       await autoSaveArsip(
-        { ...data, kepada: undangan.kepada },
+        { ...finalData, kepada: undangan.kepada },
         "UNDANGAN",
         {
           detail_acara: {
@@ -239,8 +236,7 @@ export default function SKPage() {
     setIsLoading(true)
     try {
       const isTanpaNik = JABATAN_TANPA_NIK.includes(skMutasi.jabatan_penandatangan)
-      const finalNik = isTanpaNik ? "" : skMutasi.nik_penandatangan
-      const labelNik = finalNik ? "NIK. " : ""
+      const nikFormatted = isTanpaNik ? "" : (skMutasi.nik_penandatangan ? `NIK. ${skMutasi.nik_penandatangan}` : "")
 
       const data = templateSKMutasi({
         nama: skMutasi.nama_pegawai,
@@ -254,10 +250,9 @@ export default function SKPage() {
         nomor_surat: skMutasi.nomor_surat || data.nomor_surat,
         tanggal_surat: formatTanggalIndonesia(new Date(skMutasi.tanggal_surat)),
         nama_penandatangan: skMutasi.nama_penandatangan,
-        nik_penandatangan: finalNik,
+        nik_penandatangan: nikFormatted,
         jabatan_penandatangan: skMutasi.jabatan_penandatangan,
-        label_nik: labelNik,
-      } as any
+      }
       
       await downloadSurat(finalData, `SK_Mutasi_${skMutasi.nama_pegawai.replace(/\s+/g, "_")}`)
       await autoSaveArsip(finalData, "SK_MUTASI")
@@ -277,8 +272,7 @@ export default function SKPage() {
     setIsLoading(true)
     try {
       const isTanpaNik = JABATAN_TANPA_NIK.includes(sp.jabatan_penandatangan)
-      const finalNik = isTanpaNik ? "" : sp.nik_penandatangan
-      const labelNik = finalNik ? "NIK. " : ""
+      const nikFormatted = isTanpaNik ? "" : (sp.nik_penandatangan ? `NIK. ${sp.nik_penandatangan}` : "")
 
       const data = templateSuratPeringatan({
         nama: sp.nama_pegawai,
@@ -291,10 +285,9 @@ export default function SKPage() {
         nomor_surat: sp.nomor_surat || data.nomor_surat,
         tanggal_surat: formatTanggalIndonesia(new Date(sp.tanggal_surat)),
         nama_penandatangan: sp.nama_penandatangan,
-        nik_penandatangan: finalNik,
+        nik_penandatangan: nikFormatted,
         jabatan_penandatangan: sp.jabatan_penandatangan,
-        label_nik: labelNik,
-      } as any
+      }
 
       await downloadSurat(finalData, `${sp.jenis_sp.replace(/\s+/g, "_")}_${sp.nama_pegawai.replace(/\s+/g, "_")}`)
       await autoSaveArsip(finalData, "SURAT_PERINGATAN")
