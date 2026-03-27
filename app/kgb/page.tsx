@@ -331,10 +331,18 @@ export default function KGBPage() {
                                     <Calendar className="w-4 h-4 text-slate-400" />
                                     <div>
                                       <p className="text-sm font-medium text-slate-700">{pegawai.eligibleDate}</p>
-                                      {pegawai.sisaHari < 0
-                                        ? <p className="text-xs text-red-600 font-medium">Sudah melewati {Math.abs(pegawai.sisaHari)} hari</p>
-                                        : <p className="text-xs text-amber-600 font-medium">Dalam {pegawai.sisaHari} hari</p>
-                                      }
+                                      {pegawai.sisaHari < 0 ? (
+                                        <p className="text-xs text-red-600 font-medium">
+                                          {Math.abs(pegawai.sisaHari) > 700 
+                                            ? "Terlambat Sangat Lama (2 Thn+)" 
+                                            : Math.abs(pegawai.sisaHari) > 365 
+                                              ? "Terlambat > 1 Tahun" 
+                                              : `Sudah melewati ${Math.abs(pegawai.sisaHari)} hari`
+                                          }
+                                        </p>
+                                      ) : (
+                                        <p className="text-xs text-amber-600 font-medium">Dalam {pegawai.sisaHari} hari</p>
+                                      )}
                                     </div>
                                   </div>
                                 </TableCell>
