@@ -141,12 +141,20 @@ function MiniSparkline({ data, color = "#3b82f6" }: { data: number[]; color?: st
   )
 }
 
-export function AnalyticsCharts() {
+export function AnalyticsCharts({ data }: { data?: any }) {
   const [mounted, setMounted] = useState(false)
   
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Dynamic Data Logic with fallbacks
+  const displayAttendance = data?.attendanceTrend && data.attendanceTrend.length > 0 ? data.attendanceTrend : attendanceData
+  const displayPayroll = data?.payrollTrend && data.payrollTrend.length > 0 ? data.payrollTrend : payrollTrend
+  const displayUnitDist = data?.unitDistribution && data.unitDistribution.length > 0 ? data.unitDistribution : unitDistribution
+  const displayEmpStatus = data?.employeeStatus && data.employeeStatus.length > 0 ? data.employeeStatus : employeeStatus
+  const displayTopUnits = data?.topPerformingUnits && data.topPerformingUnits.length > 0 ? data.topPerformingUnits : topPerformingUnits
+  const displayTrendMetrics = data?.trendMetrics && data.trendMetrics.length > 0 ? data.trendMetrics : trendMetrics
 
   if (!mounted) {
     return (
@@ -176,7 +184,7 @@ export function AnalyticsCharts() {
           <CardContent>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={attendanceData} barGap={2}>
+                <BarChart data={displayAttendance} barGap={2}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                   <XAxis 
                     dataKey="day" 
@@ -206,7 +214,7 @@ export function AnalyticsCharts() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">
-                Tren Payroll 12 Bulan (Juta Rupiah)
+                {data?.payrollTrend ? "Tren Payroll 12 Bulan (Juta Rupiah)" : "Tren Payroll 12 Bulan (Mock)"}
               </CardTitle>
               <Tabs defaultValue="total" className="w-auto">
                 <TabsList className="h-8">
@@ -219,7 +227,7 @@ export function AnalyticsCharts() {
           <CardContent>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={payrollTrend}>
+                <AreaChart data={displayPayroll}>
                   <defs>
                     <linearGradient id="payrollGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#1e40af" stopOpacity={0.3} />
@@ -254,7 +262,7 @@ export function AnalyticsCharts() {
 
         {/* Mini Trend Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {trendMetrics.map((metric) => (
+          {displayTrendMetrics.map((metric: any) => (
             <Card key={metric.label} className="card-premium">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -299,7 +307,7 @@ export function AnalyticsCharts() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={unitDistribution}
+                    data={displayUnitDist}
                     cx="50%"
                     cy="50%"
                     innerRadius={50}
@@ -307,7 +315,7 @@ export function AnalyticsCharts() {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {unitDistribution.map((entry, index) => (
+                    {displayUnitDist.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -329,7 +337,7 @@ export function AnalyticsCharts() {
               </ResponsiveContainer>
             </div>
             <div className="mt-4 space-y-2">
-              {unitDistribution.map((unit) => (
+              {displayUnitDist.slice(0, 6).map((unit: any) => (
                 <div key={unit.name} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <div
@@ -354,7 +362,7 @@ export function AnalyticsCharts() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {employeeStatus.map((status) => (
+              {displayEmpStatus.map((status: any) => (
                 <div key={status.status}>
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{status.status}</span>
@@ -381,7 +389,7 @@ export function AnalyticsCharts() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {topPerformingUnits.map((unit, index) => (
+              {displayTopUnits.map((unit: any, index: number) => (
                 <div key={unit.unit} className="flex items-center gap-3">
                   <span
                     className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${

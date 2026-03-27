@@ -310,7 +310,7 @@ export default function DashboardPage() {
                       <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Analitik Kepegawaian</span>
                     </div>
                     <CardContent className="p-5">
-                      <AnalyticsCharts />
+                      <AnalyticsCharts data={stats?.analytics} />
                     </CardContent>
                   </Card>
 
