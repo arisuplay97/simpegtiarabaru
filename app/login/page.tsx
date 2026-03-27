@@ -45,32 +45,8 @@ export default function LoginPage() {
       {/* Gradient bawah untuk teks ASIK terbaca */}
       <div className="absolute bottom-0 inset-x-0 h-48 bg-gradient-to-t from-black/70 to-transparent" />
 
-      {/* ─── LOGO POJOK KIRI ATAS ─── */}
-      <div className="absolute top-8 left-8 z-30 pointer-events-none">
-        <img 
-          src="/pojokkiri%20logo.png" 
-          alt="Logo Kiri" 
-          className="h-24 w-auto object-contain opacity-95"
-          style={{ 
-            filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.6)) drop-shadow(0 0 30px rgba(255,255,255,0.3))' 
-          }}
-        />
-      </div>
-
-      {/* ─── LOGO POJOK KANAN ATAS ─── */}
-      <div className="absolute top-8 right-8 z-30 pointer-events-none">
-        <img 
-          src="/pojokkanan%20logo.png" 
-          alt="Logo Kanan" 
-          className="h-32 w-auto object-contain opacity-95"
-          style={{ 
-            filter: 'drop-shadow(0 0 20px rgba(59,130,246,0.9)) drop-shadow(0 0 40px rgba(59,130,246,0.6))' 
-          }}
-        />
-      </div>
-
       {/* ─── TEKS ASIK POJOK KIRI BAWAH ─── */}
-      <div className="absolute bottom-8 left-8 z-20 flex flex-col gap-0.5 select-none">
+      <div className="absolute bottom-8 left-8 z-20 flex flex-col gap-0.5 select-none hidden sm:flex">
         <span
           className="text-4xl font-black tracking-widest text-white leading-none"
           style={{
@@ -101,12 +77,30 @@ export default function LoginPage() {
         <div className="absolute -inset-0.5 rounded-2xl bg-white/5 blur-md" />
 
         {/* Form container — fully transparent glass */}
-        <div className="relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-2xl p-8">
+        <div className="relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-2xl p-8 pt-10">
 
-          {/* ── HEADER ── */}
-          <div className="mb-8 text-center">
+          {/* ── HEADER BERSAMA LOGO ── */}
+          <div className="mb-8 flex flex-col items-center text-center">
+            
+            {/* Logo Group */}
+            <div className="flex items-center justify-center gap-6 mb-6 pointer-events-none">
+              <img 
+                src="/pojokkiri%20logo.png" 
+                alt="Logo Tirta Rinjani" 
+                className="h-16 w-auto object-contain opacity-95"
+                style={{ filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.6)) drop-shadow(0 0 30px rgba(255,255,255,0.2))' }}
+              />
+              <div className="h-12 w-px bg-white/20" />
+              <img 
+                src="/pojokkanan%20logo.png" 
+                alt="Logo ASIK" 
+                className="h-20 w-auto object-contain opacity-95"
+                style={{ filter: 'drop-shadow(0 0 20px rgba(168,85,247,0.9)) drop-shadow(0 0 40px rgba(168,85,247,0.6))' }}
+              />
+            </div>
+
             <h1
-              className="text-4xl font-bold text-white mb-2 leading-tight"
+              className="text-3xl font-bold text-white mb-2 leading-tight"
               style={{ fontFamily: '"Georgia", "Times New Roman", serif', fontStyle: 'italic' }}
             >
               Welcome back!
