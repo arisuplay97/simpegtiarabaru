@@ -1,5 +1,8 @@
+'use server'
 // lib/actions/surat.ts
 // Generate surat resmi dari template docx
+
+import { prisma } from "@/lib/prisma"
 
 // ============ TIPE DATA ============
 export interface DataSurat {
@@ -14,7 +17,7 @@ export interface DataSurat {
   tempat_tujuan: string     // contoh: Praya
 
   // Isi surat
-  isi_pembuka: string       // paragraf pembuka setelah "sehubungan dengan..."
+  isi_pembuka: string       // paragraf pembuka
   isi_penutup: string       // paragraf penutup
 
   // Khusus undangan (opsional)
@@ -29,7 +32,7 @@ export interface DataSurat {
   nik_penandatangan: string      // NIK penandatangan
 }
 
-// ============ NOMOR SURAT OTOMATIS ============
+// ============ NOMOR SURAT BERBASIS DB (SEQUENTIAL) ============
 export async function generateNomorSurat(
   kode: string = "PERUMDAM-TIARA"
 ): Promise<string> {
@@ -38,10 +41,56 @@ export async function generateNomorSurat(
     "VII", "VIII", "IX", "X", "XI", "XII"
   ]
   const now = new Date()
-  const nomorUrut = String(Math.floor(Math.random() * 900) + 100) // Idealnya dari DB
   const bln = bulan[now.getMonth() + 1]
   const thn = now.getFullYear()
+
+  // Hitung jumlah surat yang sudah ada di bulan & tahun yang sama
+  const count = await prisma.arsipSurat.count({
+    where: {
+      tanggalSurat: {
+        contains: `${thn}`
+      },
+      nomorSurat: {
+        contains: `/${bln}/${thn}`
+      }
+    }
+  })
+  const nomorUrut = String(count + 1).padStart(3, "0")
   return `${nomorUrut}/${kode}/${bln}/${thn}`
+}
+
+// ============ SIMPAN ARSIP SURAT ============
+export async function saveArsipSurat(payload: {
+  nomorSurat: string
+  jenisSurat: string
+  perihal: string
+  tanggalSurat: string
+  kepada?: string
+  namaPenandatangan: string
+  nikPenandatangan?: string
+  jabatanPenandatangan: string
+  dataLengkap?: Record<string, any>
+}) {
+  try {
+    await prisma.arsipSurat.create({ data: payload })
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || "Gagal menyimpan arsip surat" }
+  }
+}
+
+// ============ GET ARSIP SURAT ============
+export async function getArsipSurat(jenis?: string) {
+  try {
+    const list = await prisma.arsipSurat.findMany({
+      where: jenis ? { jenisSurat: jenis } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    })
+    return list
+  } catch {
+    return []
+  }
 }
 
 // ============ FORMAT TANGGAL INDONESIA ============

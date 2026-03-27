@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { Button } from "@/components/ui/button"
@@ -12,11 +12,16 @@ import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { FileText, Download, Eye, Loader2, Sparkles } from "lucide-react"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { FileText, Download, Eye, Loader2, Sparkles, History, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import {
   templateUndangan, templateSKMutasi, templateSuratPeringatan,
   generateNomorSurat, formatTanggalIndonesia, formatHariTanggal,
+  saveArsipSurat, getArsipSurat,
   type DataSurat
 } from "@/lib/actions/surat"
 
@@ -43,64 +48,96 @@ async function downloadSurat(data: DataSurat, namaFile: string) {
   saveAs(blob, `${namaFile}.docx`)
 }
 
+// ============ STATE DEFAULTS ============
+const emptyUndangan = {
+  nomor_surat: "",
+  lampiran: "-",
+  perihal: "",
+  tanggal_surat: new Date().toISOString().split("T")[0],
+  kepada: "",
+  tempat_tujuan: "Praya",
+  isi_pembuka: "",
+  hari_tanggal_acara: "",
+  jam_acara: "09.00 WITA s/d selesai",
+  lokasi_acara: "Aula Kantor Pusat Perumdam Tirta Ardhia Rinjani",
+  nama_acara: "",
+  isi_penutup: "Demikian undangan ini kami sampaikan. Atas perhatian dan kehadiran Bapak/Ibu kami ucapkan terima kasih.",
+  jabatan_penandatangan: "Direktur Utama",
+  nama_penandatangan: "",
+  nik_penandatangan: "",
+}
+
+const emptySkMutasi = {
+  nomor_surat: "",
+  nama_pegawai: "",
+  jabatan_asal: "",
+  jabatan_tujuan: "",
+  unit_asal: "",
+  unit_tujuan: "",
+  tanggal_efektif: "",
+  tanggal_surat: new Date().toISOString().split("T")[0],
+  jabatan_penandatangan: "Direktur Utama",
+  nama_penandatangan: "",
+  nik_penandatangan: "",
+}
+
+const emptySp = {
+  nomor_surat: "",
+  jenis_sp: "Surat Peringatan Pertama (SP-1)",
+  nama_pegawai: "",
+  jabatan: "",
+  unit_kerja: "",
+  alasan: "",
+  tanggal_surat: new Date().toISOString().split("T")[0],
+  jabatan_penandatangan: "Direktur Utama",
+  nama_penandatangan: "",
+  nik_penandatangan: "",
+}
+
 // ============ HALAMAN ============
 export default function SKPage() {
   const [activeTab, setActiveTab] = useState("undangan")
   const [isLoading, setIsLoading] = useState(false)
+  const [arsipList, setArsipList] = useState<any[]>([])
+  const [arsipLoading, setArsipLoading] = useState(false)
 
-  // ---- STATE UNDANGAN ----
-  const [undangan, setUndangan] = useState({
-    nomor_surat: "",
-    lampiran: "-",
-    perihal: "",
-    tanggal_surat: new Date().toISOString().split("T")[0],
-    kepada: "",
-    tempat_tujuan: "Praya",
-    isi_pembuka: "",
-    hari_tanggal_acara: "",
-    jam_acara: "09.00 WITA s/d selesai",
-    lokasi_acara: "Aula Kantor Pusat Perumdam Tirta Ardhia Rinjani",
-    nama_acara: "",
-    isi_penutup: "Demikian undangan ini kami sampaikan. Atas perhatian dan kehadiran Bapak/Ibu kami ucapkan terima kasih.",
-    jabatan_penandatangan: "Direktur Utama",
-    nama_penandatangan: "",
-    nik_penandatangan: "",
-  })
+  // FIX: state tidak boleh di-declare di dalam komponen child (menyebabkan re-render bug)
+  const [undangan, setUndangan] = useState({ ...emptyUndangan })
+  const [skMutasi, setSkMutasi] = useState({ ...emptySkMutasi })
+  const [sp, setSp] = useState({ ...emptySp })
 
-  // ---- STATE SK MUTASI ----
-  const [skMutasi, setSkMutasi] = useState({
-    nomor_surat: "",
-    nama_pegawai: "",
-    jabatan_asal: "",
-    jabatan_tujuan: "",
-    unit_asal: "",
-    unit_tujuan: "",
-    tanggal_efektif: "",
-    tanggal_surat: new Date().toISOString().split("T")[0],
-    jabatan_penandatangan: "Direktur Utama",
-    nama_penandatangan: "",
-    nik_penandatangan: "",
-  })
+  // Muat arsip saat tab aktif
+  const loadArsip = useCallback(async () => {
+    setArsipLoading(true)
+    const data = await getArsipSurat()
+    setArsipList(data)
+    setArsipLoading(false)
+  }, [])
 
-  // ---- STATE SURAT PERINGATAN ----
-  const [sp, setSp] = useState({
-    nomor_surat: "",
-    jenis_sp: "Surat Peringatan Pertama (SP-1)",
-    nama_pegawai: "",
-    jabatan: "",
-    unit_kerja: "",
-    alasan: "",
-    tanggal_surat: new Date().toISOString().split("T")[0],
-    jabatan_penandatangan: "Direktur Utama",
-    nama_penandatangan: "",
-    nik_penandatangan: "",
-  })
+  useEffect(() => {
+    if (activeTab === "arsip") loadArsip()
+  }, [activeTab, loadArsip])
 
-  // ---- Generate Nomor Otomatis ----
-  const handleGenerateNomor = async (setter: any, field: string) => {
-    const nomor = await generateNomorSurat()
+  // ---- Generate Nomor Otomatis (berbasis DB) ----
+  const handleGenerateNomor = async (setter: any, field: string, kode?: string) => {
+    const nomor = await generateNomorSurat(kode)
     setter((prev: any) => ({ ...prev, [field]: nomor }))
     toast.success("Nomor surat digenerate otomatis")
+  }
+
+  // ---- Auto-simpan arsip setelah download ----
+  const autoSaveArsip = async (data: DataSurat, jenis: string) => {
+    await saveArsipSurat({
+      nomorSurat: data.nomor_surat,
+      jenisSurat: jenis,
+      perihal: data.perihal,
+      tanggalSurat: data.tanggal_surat,
+      kepada: data.kepada,
+      namaPenandatangan: data.nama_penandatangan,
+      nikPenandatangan: data.nik_penandatangan,
+      jabatanPenandatangan: data.jabatan_penandatangan,
+      dataLengkap: data as any,
+    })
   }
 
   // ---- Download Undangan ----
@@ -119,7 +156,8 @@ export default function SKPage() {
           : undefined,
       })
       await downloadSurat(data, `Undangan_${undangan.perihal.replace(/\s+/g, "_")}`)
-      toast.success("Surat undangan berhasil didownload!")
+      await autoSaveArsip(data, "UNDANGAN")
+      toast.success("Undangan berhasil didownload & disimpan ke arsip!")
     } catch (err: any) {
       toast.error(err.message || "Gagal generate surat")
     }
@@ -151,7 +189,8 @@ export default function SKPage() {
         jabatan_penandatangan: skMutasi.jabatan_penandatangan,
       }
       await downloadSurat(finalData, `SK_Mutasi_${skMutasi.nama_pegawai.replace(/\s+/g, "_")}`)
-      toast.success("SK Mutasi berhasil didownload!")
+      await autoSaveArsip(finalData, "SK_MUTASI")
+      toast.success("SK Mutasi berhasil didownload & disimpan ke arsip!")
     } catch (err: any) {
       toast.error(err.message || "Gagal generate SK")
     }
@@ -180,38 +219,22 @@ export default function SKPage() {
         jabatan_penandatangan: sp.jabatan_penandatangan,
       }
       await downloadSurat(finalData, `${sp.jenis_sp.replace(/\s+/g, "_")}_${sp.nama_pegawai.replace(/\s+/g, "_")}`)
-      toast.success("Surat Peringatan berhasil didownload!")
+      await autoSaveArsip(finalData, "SURAT_PERINGATAN")
+      toast.success("Surat Peringatan berhasil didownload & disimpan ke arsip!")
     } catch (err: any) {
       toast.error(err.message || "Gagal generate surat")
     }
     setIsLoading(false)
   }
 
-  // ---- Komponen Section Penandatangan ----
-  const PenandatanganSection = ({ state, setter }: { state: any; setter: any }) => (
-    <div className="rounded-lg bg-primary/5 border border-primary/10 p-4 space-y-3">
-      <p className="text-xs font-semibold text-primary uppercase tracking-wide">✍️ Penandatangan</p>
-      <Select value={state.jabatan_penandatangan} onValueChange={v => setter((p: any) => ({ ...p, jabatan_penandatangan: v }))}>
-        <SelectTrigger><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="Direktur Utama">Direktur Utama</SelectItem>
-          <SelectItem value="Direktur Teknik">Direktur Teknik</SelectItem>
-          <SelectItem value="Direktur Umum">Direktur Umum</SelectItem>
-          <SelectItem value="Kepala Bagian SDM">Kepala Bagian SDM</SelectItem>
-        </SelectContent>
-      </Select>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <Label>Nama Penandatangan *</Label>
-          <Input className="mt-1" value={state.nama_penandatangan} onChange={e => setter((p: any) => ({ ...p, nama_penandatangan: e.target.value }))} placeholder="Ir. Joko Widagdo, M.M." />
-        </div>
-        <div>
-          <Label>NIK</Label>
-          <Input className="mt-1 font-mono" value={state.nik_penandatangan} onChange={e => setter((p: any) => ({ ...p, nik_penandatangan: e.target.value }))} placeholder="NIK penandatangan" />
-        </div>
-      </div>
-    </div>
-  )
+  // ---- Komponen Penandatangan: HARUS di luar render function (tidak nested) ----
+  // (dibuat sebagai sub-form menggunakan props, bukan komponen lambda di dalam render)
+
+  const labelJenis: Record<string, string> = {
+    UNDANGAN: "Undangan",
+    SK_MUTASI: "SK Mutasi",
+    SURAT_PERINGATAN: "Surat Peringatan",
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -238,6 +261,7 @@ export default function SKPage() {
               <TabsTrigger value="undangan">📨 Undangan</TabsTrigger>
               <TabsTrigger value="sk-mutasi">📋 SK Mutasi</TabsTrigger>
               <TabsTrigger value="sp">⚠️ Surat Peringatan</TabsTrigger>
+              <TabsTrigger value="arsip"><History className="w-3.5 h-3.5 mr-1.5" />Arsip</TabsTrigger>
             </TabsList>
 
             {/* ===== TAB UNDANGAN ===== */}
@@ -255,7 +279,12 @@ export default function SKPage() {
                     <div>
                       <Label>Nomor Surat</Label>
                       <div className="flex gap-2 mt-1">
-                        <Input value={undangan.nomor_surat} onChange={e => setUndangan(p => ({ ...p, nomor_surat: e.target.value }))} placeholder="001/PERUMDAM-TIARA/III/2026" className="flex-1" />
+                        <Input
+                          value={undangan.nomor_surat}
+                          onChange={e => setUndangan(p => ({ ...p, nomor_surat: e.target.value }))}
+                          placeholder="001/PERUMDAM-TIARA/III/2026"
+                          className="flex-1"
+                        />
                         <Button variant="outline" size="sm" onClick={() => handleGenerateNomor(setUndangan, "nomor_surat")} className="gap-1 shrink-0">
                           <Sparkles className="h-3.5 w-3.5" /> Auto
                         </Button>
@@ -278,10 +307,16 @@ export default function SKPage() {
                       <Input className="mt-1" value={undangan.perihal} onChange={e => setUndangan(p => ({ ...p, perihal: e.target.value }))} placeholder="Undangan Sosialisasi TRIS" />
                     </div>
 
+                    {/* FIX bug 2: Kepada menggunakan Textarea supaya bisa multi-baris vertikal */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label>Kepada *</Label>
-                        <Input className="mt-1" value={undangan.kepada} onChange={e => setUndangan(p => ({ ...p, kepada: e.target.value }))} placeholder="Seluruh Kepala Bidang" />
+                        <Label>Kepada * <span className="text-xs text-muted-foreground">(pisah baris untuk lebih dari 1)</span></Label>
+                        <Textarea
+                          className="mt-1 min-h-[80px]"
+                          value={undangan.kepada}
+                          onChange={e => setUndangan(p => ({ ...p, kepada: e.target.value }))}
+                          placeholder={"1. Dewan Pengawas\n2. Direktur Umum"}
+                        />
                       </div>
                       <div>
                         <Label>Tempat Tujuan</Label>
@@ -314,10 +349,45 @@ export default function SKPage() {
 
                     <div>
                       <Label>Isi Pembuka</Label>
-                      <Textarea className="mt-1" rows={2} value={undangan.isi_pembuka} onChange={e => setUndangan(p => ({ ...p, isi_pembuka: e.target.value }))} placeholder="...kami mengundang Bapak/Ibu untuk hadir..." />
+                      <Textarea className="mt-1" rows={5} value={undangan.isi_pembuka} onChange={e => setUndangan(p => ({ ...p, isi_pembuka: e.target.value }))} placeholder="Tulis isi pembuka surat undangan di sini..." />
+                      <p className="text-xs text-muted-foreground mt-1">Tekan Enter untuk baris baru. Baris baru akan dicetak terpisah di surat.</p>
                     </div>
 
-                    <PenandatanganSection state={undangan} setter={setUndangan} />
+                    {/* FIX bug 4: PenandatanganSection dipindah menjadi inline (bukan komponen lambda)
+                        Komponen lambda di dalam render function menyebabkan React re-mount setiap render → hanya bisa ketik 1 karakter.
+                        Solusi: gunakan field langsung tanpa membungkus dalam komponen anak. */}
+                    <div className="rounded-lg bg-primary/5 border border-primary/10 p-4 space-y-3">
+                      <p className="text-xs font-semibold text-primary uppercase tracking-wide">✍️ Penandatangan</p>
+                      <Select value={undangan.jabatan_penandatangan} onValueChange={v => setUndangan(p => ({ ...p, jabatan_penandatangan: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Direktur Utama">Direktur Utama</SelectItem>
+                          <SelectItem value="Direktur Teknik">Direktur Teknik</SelectItem>
+                          <SelectItem value="Direktur Umum">Direktur Umum</SelectItem>
+                          <SelectItem value="Kepala Bagian SDM">Kepala Bagian SDM</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <Label>Nama Penandatangan *</Label>
+                          <Input
+                            className="mt-1"
+                            value={undangan.nama_penandatangan}
+                            onChange={e => setUndangan(p => ({ ...p, nama_penandatangan: e.target.value }))}
+                            placeholder="Ir. Joko Widagdo, M.M."
+                          />
+                        </div>
+                        <div>
+                          <Label>NIK</Label>
+                          <Input
+                            className="mt-1 font-mono"
+                            value={undangan.nik_penandatangan}
+                            onChange={e => setUndangan(p => ({ ...p, nik_penandatangan: e.target.value }))}
+                            placeholder="NIK penandatangan"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
                     <Button className="w-full gap-2" onClick={handleDownloadUndangan} disabled={isLoading}>
                       {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <><Download className="h-4 w-4" />Download Undangan (.docx)</>}
@@ -349,9 +419,22 @@ export default function SKPage() {
                       </div>
                       <div className="text-xs text-gray-600">
                         <p>Kepada</p>
-                        <p>Yth. {undangan.kepada || "___"}</p>
+                        {/* FIX: render kepada multi-baris secara vertikal */}
+                        {undangan.kepada
+                          ? undangan.kepada.split("\n").map((line, i) => (
+                              <p key={i}>{i === 0 ? `Yth. ${line}` : `     ${line}`}</p>
+                            ))
+                          : <p>Yth. ___</p>
+                        }
                         <p>di - {undangan.tempat_tujuan}</p>
                       </div>
+                      {undangan.isi_pembuka && (
+                        <div className="text-xs text-gray-700 space-y-1">
+                          {undangan.isi_pembuka.split("\n").map((line, i) => (
+                            <p key={i}>{line}</p>
+                          ))}
+                        </div>
+                      )}
                       {undangan.nama_acara && (
                         <div className="rounded bg-blue-50 border border-blue-100 p-3 text-xs space-y-1">
                           <p>📅 {undangan.hari_tanggal_acara ? formatHariTanggal(new Date(undangan.hari_tanggal_acara)) : "___"}</p>
@@ -389,7 +472,7 @@ export default function SKPage() {
                     <Label>Nomor SK</Label>
                     <div className="flex gap-2 mt-1">
                       <Input value={skMutasi.nomor_surat} onChange={e => setSkMutasi(p => ({ ...p, nomor_surat: e.target.value }))} placeholder="001/SK-MUT/PERUMDAM-TIARA/III/2026" className="flex-1" />
-                      <Button variant="outline" size="sm" onClick={() => handleGenerateNomor(setSkMutasi, "nomor_surat")} className="gap-1 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => handleGenerateNomor(setSkMutasi, "nomor_surat", "SK-MUT/PERUMDAM-TIARA")} className="gap-1 shrink-0">
                         <Sparkles className="h-3.5 w-3.5" /> Auto
                       </Button>
                     </div>
@@ -433,7 +516,39 @@ export default function SKPage() {
                     <Input className="mt-1 max-w-xs" type="date" value={skMutasi.tanggal_surat} onChange={e => setSkMutasi(p => ({ ...p, tanggal_surat: e.target.value }))} />
                   </div>
 
-                  <PenandatanganSection state={skMutasi} setter={setSkMutasi} />
+                  {/* Penandatangan inline */}
+                  <div className="rounded-lg bg-primary/5 border border-primary/10 p-4 space-y-3">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide">✍️ Penandatangan</p>
+                    <Select value={skMutasi.jabatan_penandatangan} onValueChange={v => setSkMutasi(p => ({ ...p, jabatan_penandatangan: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Direktur Utama">Direktur Utama</SelectItem>
+                        <SelectItem value="Direktur Teknik">Direktur Teknik</SelectItem>
+                        <SelectItem value="Direktur Umum">Direktur Umum</SelectItem>
+                        <SelectItem value="Kepala Bagian SDM">Kepala Bagian SDM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label>Nama Penandatangan *</Label>
+                        <Input
+                          className="mt-1"
+                          value={skMutasi.nama_penandatangan}
+                          onChange={e => setSkMutasi(p => ({ ...p, nama_penandatangan: e.target.value }))}
+                          placeholder="Ir. Joko Widagdo, M.M."
+                        />
+                      </div>
+                      <div>
+                        <Label>NIK</Label>
+                        <Input
+                          className="mt-1 font-mono"
+                          value={skMutasi.nik_penandatangan}
+                          onChange={e => setSkMutasi(p => ({ ...p, nik_penandatangan: e.target.value }))}
+                          placeholder="NIK penandatangan"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   <Button className="w-full gap-2" onClick={handleDownloadSKMutasi} disabled={isLoading}>
                     {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <><Download className="h-4 w-4" />Download SK Mutasi (.docx)</>}
@@ -467,7 +582,7 @@ export default function SKPage() {
                     <Label>Nomor Surat</Label>
                     <div className="flex gap-2 mt-1">
                       <Input value={sp.nomor_surat} onChange={e => setSp(p => ({ ...p, nomor_surat: e.target.value }))} className="flex-1" />
-                      <Button variant="outline" size="sm" onClick={() => handleGenerateNomor(setSp, "nomor_surat")} className="gap-1 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => handleGenerateNomor(setSp, "nomor_surat", "SP/PERUMDAM-TIARA")} className="gap-1 shrink-0">
                         <Sparkles className="h-3.5 w-3.5" /> Auto
                       </Button>
                     </div>
@@ -494,11 +609,102 @@ export default function SKPage() {
                     <Input className="mt-1 max-w-xs" type="date" value={sp.tanggal_surat} onChange={e => setSp(p => ({ ...p, tanggal_surat: e.target.value }))} />
                   </div>
 
-                  <PenandatanganSection state={sp} setter={setSp} />
+                  {/* Penandatangan inline */}
+                  <div className="rounded-lg bg-primary/5 border border-primary/10 p-4 space-y-3">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide">✍️ Penandatangan</p>
+                    <Select value={sp.jabatan_penandatangan} onValueChange={v => setSp(p => ({ ...p, jabatan_penandatangan: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Direktur Utama">Direktur Utama</SelectItem>
+                        <SelectItem value="Direktur Teknik">Direktur Teknik</SelectItem>
+                        <SelectItem value="Direktur Umum">Direktur Umum</SelectItem>
+                        <SelectItem value="Kepala Bagian SDM">Kepala Bagian SDM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label>Nama Penandatangan *</Label>
+                        <Input
+                          className="mt-1"
+                          value={sp.nama_penandatangan}
+                          onChange={e => setSp(p => ({ ...p, nama_penandatangan: e.target.value }))}
+                          placeholder="Ir. Joko Widagdo, M.M."
+                        />
+                      </div>
+                      <div>
+                        <Label>NIK</Label>
+                        <Input
+                          className="mt-1 font-mono"
+                          value={sp.nik_penandatangan}
+                          onChange={e => setSp(p => ({ ...p, nik_penandatangan: e.target.value }))}
+                          placeholder="NIK penandatangan"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   <Button className="w-full gap-2" onClick={handleDownloadSP} disabled={isLoading}>
                     {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <><Download className="h-4 w-4" />Download Surat Peringatan (.docx)</>}
                   </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ===== TAB ARSIP ===== */}
+            <TabsContent value="arsip">
+              <Card className="card-premium">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <History className="h-4 w-4" /> Arsip Surat
+                    </CardTitle>
+                    <Button variant="outline" size="sm" onClick={loadArsip} disabled={arsipLoading} className="gap-1">
+                      <RefreshCw className={`h-3.5 w-3.5 ${arsipLoading ? "animate-spin" : ""}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {arsipLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : arsipList.length === 0 ? (
+                    <div className="text-center text-sm text-muted-foreground py-10 italic">
+                      Belum ada arsip surat. Download surat pertama untuk membuat arsip otomatis.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nomor Surat</TableHead>
+                            <TableHead>Jenis</TableHead>
+                            <TableHead>Perihal</TableHead>
+                            <TableHead>Kepada</TableHead>
+                            <TableHead>Penandatangan</TableHead>
+                            <TableHead>Tanggal</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {arsipList.map(arsip => (
+                            <TableRow key={arsip.id}>
+                              <TableCell className="font-mono text-xs">{arsip.nomorSurat}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {labelJenis[arsip.jenisSurat] || arsip.jenisSurat}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm max-w-[200px] truncate" title={arsip.perihal}>{arsip.perihal}</TableCell>
+                              <TableCell className="text-xs max-w-[120px] truncate whitespace-pre-line" title={arsip.kepada}>{arsip.kepada || "-"}</TableCell>
+                              <TableCell className="text-sm">{arsip.namaPenandatangan}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{arsip.tanggalSurat}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

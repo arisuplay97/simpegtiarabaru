@@ -722,3 +722,22 @@ enum StatusPenukaran {
   APPROVED
   REJECTED
 }
+
+// ============ ARSIP SURAT ============
+model ArsipSurat {
+  id                  String   @id @default(cuid())
+  nomorSurat          String
+  jenisSurat          String   // UNDANGAN | SK_MUTASI | SURAT_PERINGATAN
+  perihal             String
+  tanggalSurat        String
+  kepada              String?
+  namaPenandatangan   String
+  nikPenandatangan    String?
+  jabatanPenandatangan String
+  dataLengkap         Json?    // Seluruh field surat untuk keperluan cetak ulang
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([jenisSurat])
+  @@index([tanggalSurat])
+}
