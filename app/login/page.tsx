@@ -40,10 +40,34 @@ export default function LoginPage() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/login.png')" }}
       />
-      {/* Overlay untuk gelap & depth */}
-      <div className="absolute inset-0 bg-black/50" />
+      {/* Overlay tipis agar form tetap kontras tapi wallpaper terlihat jelas */}
+      <div className="absolute inset-0 bg-black/20" />
       {/* Gradient bawah untuk teks ASIK terbaca */}
       <div className="absolute bottom-0 inset-x-0 h-48 bg-gradient-to-t from-black/70 to-transparent" />
+
+      {/* ─── LOGO POJOK KIRI ATAS ─── */}
+      <div className="absolute top-8 left-8 z-30 pointer-events-none">
+        <img 
+          src="/pojokkiri%20logo.png" 
+          alt="Logo Kiri" 
+          className="h-24 w-auto object-contain opacity-95"
+          style={{ 
+            filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.6)) drop-shadow(0 0 30px rgba(255,255,255,0.3))' 
+          }}
+        />
+      </div>
+
+      {/* ─── LOGO POJOK KANAN ATAS ─── */}
+      <div className="absolute top-8 right-8 z-30 pointer-events-none">
+        <img 
+          src="/pojokkanan%20logo.png" 
+          alt="Logo Kanan" 
+          className="h-32 w-auto object-contain opacity-95"
+          style={{ 
+            filter: 'drop-shadow(0 0 20px rgba(59,130,246,0.9)) drop-shadow(0 0 40px rgba(59,130,246,0.6))' 
+          }}
+        />
+      </div>
 
       {/* ─── TEKS ASIK POJOK KIRI BAWAH ─── */}
       <div className="absolute bottom-8 left-8 z-20 flex flex-col gap-0.5 select-none">
