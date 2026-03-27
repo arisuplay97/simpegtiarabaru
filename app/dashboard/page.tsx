@@ -335,7 +335,7 @@ export default function DashboardPage() {
                             <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Kenaikan Gaji Berkala (KGB)</p>
                             <div className="space-y-2">
                               {!stats?.kgbList?.length ? (
-                                <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Tidak ada pengajuan KGB pending</div>
+                                <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Belum ada pegawai eligible KGB bulan ini</div>
                               ) : (
                                 stats.kgbList.map((k: any) => (
                                   <div key={k.id} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30">
@@ -346,7 +346,9 @@ export default function DashboardPage() {
                                       </Avatar>
                                       <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{k.pegawai?.nama}</p>
                                     </div>
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">KGB</span>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+                                      {k.sisaHari <= 0 ? "WAKTUNYA!" : `H-${k.sisaHari}`}
+                                    </span>
                                   </div>
                                 ))
                               )}
@@ -356,7 +358,7 @@ export default function DashboardPage() {
                             <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Kenaikan Pangkat</p>
                             <div className="space-y-2">
                               {!stats?.pangkatList?.length ? (
-                                <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Tidak ada pengajuan kenaikan pangkat</div>
+                                <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Belum ada pegawai eligible naik pangkat</div>
                               ) : (
                                 stats.pangkatList.map((p: any) => (
                                   <div key={p.id} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-sky-50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-900/30">
@@ -367,7 +369,9 @@ export default function DashboardPage() {
                                       </Avatar>
                                       <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{p.pegawai?.nama}</p>
                                     </div>
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">Pangkat</span>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
+                                      {p.sisaHari <= 0 ? "WAKTUNYA!" : `H-${p.sisaHari}`}
+                                    </span>
                                   </div>
                                 ))
                               )}

@@ -32,8 +32,12 @@ export async function getDashboardStats() {
         include: { pegawai: { select: { nama: true, jabatan: true, fotoUrl: true } } }
       }),
       prisma.pegawai.findMany({
-        where: { status: 'AKTIF', tanggalLahir: { not: null }, tipeJabatan: { notIn: ['KONTRAK'] } },
-        select: { id: true, nama: true, jabatan: true, tanggalLahir: true, fotoUrl: true }
+        where: { status: 'AKTIF', tipeJabatan: { notIn: ['KONTRAK'] } },
+        select: { 
+          id: true, nama: true, jabatan: true, tanggalLahir: true, fotoUrl: true, tanggalMasuk: true,
+          riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' }, take: 1, select: { tanggalBerlaku: true, pangkat: true } },
+          kgb: { orderBy: { tanggalBerlaku: 'desc' }, take: 1, select: { tanggalBerlaku: true } }
+        }
       })
     ])
     
@@ -42,48 +46,78 @@ export async function getDashboardStats() {
     // 1. Kehadiran Hari Ini
     const hadir = absensiToday.filter(a => a.status === 'HADIR').length
     const terlambat = absensiToday.filter(a => a.status === 'TERLAMBAT').length
-    const sakitCuti = absensiToday.filter(a => a.status === 'SAKIT' || a.status === 'CUTI' || a.status === 'IZIN').length
+    const sakitCuti = absensiToday.filter(a => a.status === 'SAKIT' || (a.status as any) === 'CUTI').length
     const belumAlpa = totalPegawai - (hadir + terlambat + sakitCuti)
 
-    // 2. Kontrak Akan Habis (Top 5 terdekat)
-    // Hitung sisa hari kontrak
+    // 2. Kontrak Akan Habis
     const kontrakHampirHabis = kontrakTerdekat.map((k: any) => {
       const sisahari = Math.ceil((new Date(k.tanggalSelesai).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
       return { ...k, sisaHari: sisahari }
     })
 
-    // 3. Mendekati Pensiun (filter hanya yg < 365 hari / 1 tahun)
-    const pensiunList = allPegawai.map(p => {
-      const birth = new Date(p.tanggalLahir!)
-      const pensiunDate = new Date(birth.getFullYear() + 56, birth.getMonth(), birth.getDate())
-      const sisaHari = Math.ceil((pensiunDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24))
-      return { ...p, pensiunDate, sisaHari }
+    // 3. Mendekati Pensiun (filter < 1 tahun) & Kalkulasi KGB & Pangkat Eligible
+    const nowTime = new Date().getTime()
+    const pensiunList: any[] = []
+    const autoKgbList: any[] = []
+    const autoPangkatList: any[] = []
+
+    allPegawai.forEach(p => {
+      // Pensiun
+      if (p.tanggalLahir) {
+        const birth = new Date(p.tanggalLahir)
+        const pensiunDate = new Date(birth.getFullYear() + 56, birth.getMonth(), birth.getDate())
+        const sisaHariPensiun = Math.ceil((pensiunDate.getTime() - nowTime) / (1000 * 3600 * 24))
+        pensiunList.push({ ...p, pensiunDate, sisaHari: sisaHariPensiun })
+      }
+
+      // KGB Eligible (Siklus 2 Tahun)
+      const tmtKgbAsli = p.kgb?.[0]?.tanggalBerlaku || p.tanggalMasuk
+      if (tmtKgbAsli) {
+        const tmtDate = new Date(tmtKgbAsli)
+        const yearsDiffKgb = (nowTime - tmtDate.getTime()) / (1000 * 3600 * 24 * 365.25)
+        // Cari kelipatan 2 terdekat ke atas
+        let nextMultiplierKgb = Math.ceil(yearsDiffKgb / 2) * 2;
+        if (nextMultiplierKgb <= 0) nextMultiplierKgb = 2; // minimal kenaikan pertama
+        
+        const nextKgbDate = new Date(tmtDate.getFullYear() + nextMultiplierKgb, tmtDate.getMonth(), tmtDate.getDate())
+        const sisaHariKgb = Math.ceil((nextKgbDate.getTime() - nowTime) / (1000 * 3600 * 24))
+        
+        // H-1 Bulan (<= 31 hari) dan belum terlewat terlalu jauh (asumsi masih nunggak kalo < 0)
+        if (sisaHariKgb <= 31 && sisaHariKgb > -365) {
+          autoKgbList.push({ id: p.id + '_kgb', pegawai: p, nextDate: nextKgbDate, sisaHari: sisaHariKgb })
+        }
+      }
+
+      // Pangkat Eligible (Siklus 4 Tahun)
+      const tmtPangkatAsli = p.riwayatPangkatDetail?.[0]?.tanggalBerlaku || p.tanggalMasuk
+      if (tmtPangkatAsli) {
+        const tmtDate = new Date(tmtPangkatAsli)
+        const yearsDiffPangkat = (nowTime - tmtDate.getTime()) / (1000 * 3600 * 24 * 365.25)
+        let nextMultiplierPangkat = Math.ceil(yearsDiffPangkat / 4) * 4;
+        if (nextMultiplierPangkat <= 0) nextMultiplierPangkat = 4;
+        
+        const nextPangkatDate = new Date(tmtDate.getFullYear() + nextMultiplierPangkat, tmtDate.getMonth(), tmtDate.getDate())
+        const sisaHariPangkat = Math.ceil((nextPangkatDate.getTime() - nowTime) / (1000 * 3600 * 24))
+        
+        if (sisaHariPangkat <= 31 && sisaHariPangkat > -365) {
+          autoPangkatList.push({ id: p.id + '_pkt', pegawai: p, nextDate: nextPangkatDate, sisaHari: sisaHariPangkat })
+        }
+      }
     })
     
-    // Sort ascending by remaining days, only show those within 1 year (365 days)
     const pensiunTerdekat = pensiunList
       .filter(p => p.sisaHari > 0 && p.sisaHari <= 365)
       .sort((a, b) => a.sisaHari - b.sisaHari)
       .slice(0, 10)
 
-    // 4. Eligible KGB & Kenaikan Pangkat (status APPROVED adalah yg sudah naik, PENDING yg menunggu)
-    const [kgbEligibleCount, pangkatEligibleCount, pegawaiCutiCount, pegawaiSPCount, kgbList, pangkatList] = await Promise.all([
-      prisma.kGB.count({ where: { status: 'PENDING' } }),
-      prisma.kenaikanPangkat.count({ where: { status: 'PENDING' } }),
+    // Sort ascending berdasarkan sisa hari (yang paling dekat/sudah lewat)
+    autoKgbList.sort((a, b) => a.sisaHari - b.sisaHari)
+    autoPangkatList.sort((a, b) => a.sisaHari - b.sisaHari)
+
+    // 4. Data Pendukung lainnya
+    const [pegawaiCutiCount, pegawaiSPCount] = await Promise.all([
       prisma.cuti.count({ where: { status: 'APPROVED', tanggalMulai: { lte: new Date() }, tanggalSelesai: { gte: new Date() } } }),
       prisma.pegawai.count({ where: { sp: { not: null }, status: 'AKTIF' } }),
-      prisma.kGB.findMany({
-        where: { status: 'PENDING' },
-        take: 8,
-        orderBy: { createdAt: 'desc' },
-        include: { pegawai: { select: { nama: true, jabatan: true, fotoUrl: true } } }
-      }),
-      prisma.kenaikanPangkat.findMany({
-        where: { status: 'PENDING' },
-        take: 8,
-        orderBy: { createdAt: 'desc' },
-        include: { pegawai: { select: { nama: true, jabatan: true, fotoUrl: true } } }
-      }),
     ])
 
     return {
@@ -101,12 +135,12 @@ export async function getDashboardStats() {
       },
       kontrakHampirHabis,
       pensiunTerdekat,
-      kgbEligible: kgbEligibleCount,
-      pangkatEligible: pangkatEligibleCount,
+      kgbEligible: autoKgbList.length,
+      pangkatEligible: autoPangkatList.length,
       pegawaiCuti: pegawaiCutiCount,
       pegawaiSP: pegawaiSPCount,
-      kgbList,
-      pangkatList,
+      kgbList: autoKgbList.slice(0, 8),
+      pangkatList: autoPangkatList.slice(0, 8),
     }
   } catch (error) {
     console.warn("Database failed, returning mock stats for dashboard", error)
