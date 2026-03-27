@@ -213,8 +213,8 @@ export function SidebarNav() {
         (!isMobileMode && collapsed) ? "justify-center px-2" : "justify-between px-4"
       )}>
         <div className={cn("flex items-center gap-3 min-w-0", (!isMobileMode && collapsed) && "justify-center")}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 overflow-hidden ring-1 ring-white/10">
-            <Image src="/logo-tar.png" alt="Logo" width={28} height={28} className="object-contain" />
+          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 overflow-hidden ring-1 ring-white/10", (!isMobileMode && collapsed) ? "h-9 w-9" : "h-12 w-12")}>
+            <Image src="/logo-tar.png" alt="Logo" width={36} height={36} className="object-contain" />
           </div>
           {(isMobileMode || !collapsed) && (
             <div className="flex flex-col min-w-0">

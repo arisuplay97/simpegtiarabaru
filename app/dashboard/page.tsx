@@ -18,7 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Users, CalendarDays, Clock, Wallet, ClipboardList,
   TrendingUp, ShieldCheck, Timer, BadgeCheck, BarChart3, Crown, ArrowRight,
-  ChevronRight, ArrowUpCircle, Star, X,
+  ChevronRight, ArrowUpCircle, Star, X, ArrowRightLeft,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -93,8 +93,8 @@ export default function DashboardPage() {
             // ============================
             <div className="space-y-5">
 
-              {/* ROW 1: KPI CARDS */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+              {/* ROW 1: KPI CARDS — 5 cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
                 <KpiCard
                   title="Total Pegawai"
                   value={stats?.totalPegawai || "0"}
@@ -128,20 +128,12 @@ export default function DashboardPage() {
                   href="/kontrak"
                 />
                 <KpiCard
-                  title="Naik Gaji Berkala"
-                  value={stats?.kgbEligible || "0"}
-                  icon={ArrowUpCircle}
-                  color="violet"
-                  sub="Pending KGB"
-                  href="/kgb"
-                />
-                <KpiCard
-                  title="Naik Pangkat"
-                  value={stats?.pangkatEligible || "0"}
-                  icon={Star}
+                  title="Mutasi"
+                  value={stats?.detail?.mutasi || "0"}
+                  icon={ArrowRightLeft}
                   color="sky"
-                  sub="Pending kenaikan"
-                  href="/kenaikan-pangkat"
+                  sub="Pending mutasi"
+                  href="/mutasi"
                 />
               </div>
 
@@ -387,10 +379,69 @@ export default function DashboardPage() {
 
                 </div>
 
-                {/* RIGHT COLUMN: STATUS SDM only */}
+                {/* RIGHT COLUMN: KENAIKAN GAJI & PANGKAT + STATUS SDM */}
                 <div className="flex flex-col gap-5">
 
-                  {/* CARD BARU: RINGKASAN STATUS SDM */}
+                  {/* KENAIKAN GAJI BERKALA & PANGKAT (ringkas, scroll list) */}
+                  <Card className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl flex flex-col">
+                    <div className="px-5 pt-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ArrowUpCircle className="w-4 h-4 text-violet-500" />
+                        <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Kenaikan Gaji & Pangkat</span>
+                      </div>
+                      <Link href="/kgb" className="text-[10px] text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
+                    </div>
+                    <CardContent className="flex-1 p-0">
+                      <ScrollArea className="max-h-[260px]">
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Kenaikan Gaji Berkala (KGB)</p>
+                            <div className="space-y-2">
+                              {!stats?.kgbList?.length ? (
+                                <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Tidak ada pengajuan KGB pending</div>
+                              ) : (
+                                stats.kgbList.slice(0, 4).map((k: any) => (
+                                  <div key={k.id} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <Avatar className="h-6 w-6 shrink-0">
+                                        <AvatarImage src={k.pegawai?.fotoUrl} />
+                                        <AvatarFallback className="text-[8px] font-bold bg-violet-200 text-violet-700">{k.pegawai?.nama?.charAt(0)}</AvatarFallback>
+                                      </Avatar>
+                                      <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{k.pegawai?.nama}</p>
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">KGB</span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-2">Kenaikan Pangkat</p>
+                            <div className="space-y-2">
+                              {!stats?.pangkatList?.length ? (
+                                <div className="text-xs text-neutral-400 italic text-center py-3 rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">Tidak ada pengajuan kenaikan pangkat</div>
+                              ) : (
+                                stats.pangkatList.slice(0, 4).map((p: any) => (
+                                  <div key={p.id} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-sky-50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-900/30">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <Avatar className="h-6 w-6 shrink-0">
+                                        <AvatarImage src={p.pegawai?.fotoUrl} />
+                                        <AvatarFallback className="text-[8px] font-bold bg-sky-200 text-sky-700">{p.pegawai?.nama?.charAt(0)}</AvatarFallback>
+                                      </Avatar>
+                                      <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{p.pegawai?.nama}</p>
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">Pangkat</span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  {/* RINGKASAN STATUS SDM */}
                   <Card className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl">
                     <div className="px-5 pt-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-violet-500" />
