@@ -20,9 +20,11 @@ import { FileText, Download, Eye, Loader2, Sparkles, History, RefreshCw } from "
 import { toast } from "sonner"
 import {
   templateUndangan, templateSKMutasi, templateSuratPeringatan,
-  generateNomorSurat, formatTanggalIndonesia, formatHariTanggal,
-  saveArsipSurat, getArsipSurat,
+  formatTanggalIndonesia, formatHariTanggal,
   type DataSurat
+} from "@/lib/utils/surat-templates"
+import {
+  generateNomorSurat, saveArsipSurat, getArsipSurat
 } from "@/lib/actions/surat"
 
 // ============ CLIENT: Download docx ============
