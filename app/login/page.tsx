@@ -111,12 +111,12 @@ export default function LoginPage() {
           {/* ── FORM ── */}
           <form onSubmit={handleLogin} className="space-y-4">
 
-            {/* Username */}
+            {/* Username / NIK */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-white/55 uppercase tracking-wider">Username</label>
+              <label className="text-xs font-semibold text-white/55 uppercase tracking-wider">Username / NIK</label>
               <input
                 type="text"
-                placeholder="Masukkan username"
+                placeholder="Masukkan Username atau NIK"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
