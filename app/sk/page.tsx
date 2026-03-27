@@ -191,15 +191,20 @@ export default function SKPage() {
     }
     setIsLoading(true)
     try {
-      // FIX kepada: gabungkan ke satu baris untuk docx agar layout tidak rusak
       const kepadaDocx = formatKepadaDocx(undangan.kepada)
+      
+      // Determine NIK label
+      const isTanpaNik = JABATAN_TANPA_NIK.includes(undangan.jabatan_penandatangan)
+      const finalNik = isTanpaNik ? "" : undangan.nik_penandatangan
+      const labelNik = finalNik ? "NIK. " : ""
 
       const data = templateUndangan({
         ...undangan,
-        kepada: kepadaDocx, // satu baris di docx
+        kepada: kepadaDocx,
         tanggal_surat: formatTanggalIndonesia(new Date(undangan.tanggal_surat)),
-        // FIX detail acara: JANGAN dikirim ke template (biar tidak bentrok dengan isi_pembuka)
-        // User menulis sendiri detail acara di dalam isi_pembuka
+        nik_penandatangan: finalNik,
+        // @ts-ignore
+        label_nik: labelNik,
         hari_tanggal_acara: undefined,
         jam_acara: undefined,
         lokasi_acara: undefined,
@@ -207,14 +212,11 @@ export default function SKPage() {
       })
       await downloadSurat(data, `Undangan_${undangan.perihal.replace(/\s+/g, "_")}`)
       await autoSaveArsip(
-        { ...data, kepada: undangan.kepada }, // simpan multi-baris asli ke arsip
+        { ...data, kepada: undangan.kepada },
         "UNDANGAN",
         {
-          // simpan detail acara sebagai metadata di arsip saja
           detail_acara: {
-            hari_tanggal: undangan.hari_tanggal_acara
-              ? formatHariTanggal(new Date(undangan.hari_tanggal_acara))
-              : "-",
+            hari_tanggal: undangan.hari_tanggal_acara ? formatHariTanggal(new Date(undangan.hari_tanggal_acara)) : "-",
             jam: undangan.jam_acara,
             lokasi: undangan.lokasi_acara,
             nama_acara: undangan.nama_acara,
@@ -236,23 +238,27 @@ export default function SKPage() {
     }
     setIsLoading(true)
     try {
+      const isTanpaNik = JABATAN_TANPA_NIK.includes(skMutasi.jabatan_penandatangan)
+      const finalNik = isTanpaNik ? "" : skMutasi.nik_penandatangan
+      const labelNik = finalNik ? "NIK. " : ""
+
       const data = templateSKMutasi({
         nama: skMutasi.nama_pegawai,
         jabatanAsal: skMutasi.jabatan_asal,
         jabatanTujuan: skMutasi.jabatan_tujuan,
-        tanggalEfektif: skMutasi.tanggal_efektif
-          ? formatTanggalIndonesia(new Date(skMutasi.tanggal_efektif))
-          : "___",
+        tanggalEfektif: skMutasi.tanggal_efektif ? formatTanggalIndonesia(new Date(skMutasi.tanggal_efektif)) : "___",
       })
+      
       const finalData = {
         ...data,
         nomor_surat: skMutasi.nomor_surat || data.nomor_surat,
         tanggal_surat: formatTanggalIndonesia(new Date(skMutasi.tanggal_surat)),
         nama_penandatangan: skMutasi.nama_penandatangan,
-        nik_penandatangan: JABATAN_TANPA_NIK.includes(skMutasi.jabatan_penandatangan)
-          ? "" : skMutasi.nik_penandatangan,
+        nik_penandatangan: finalNik,
         jabatan_penandatangan: skMutasi.jabatan_penandatangan,
-      }
+        label_nik: labelNik,
+      } as any
+      
       await downloadSurat(finalData, `SK_Mutasi_${skMutasi.nama_pegawai.replace(/\s+/g, "_")}`)
       await autoSaveArsip(finalData, "SK_MUTASI")
       toast.success("SK Mutasi berhasil didownload & disimpan ke arsip!")
@@ -270,20 +276,26 @@ export default function SKPage() {
     }
     setIsLoading(true)
     try {
+      const isTanpaNik = JABATAN_TANPA_NIK.includes(sp.jabatan_penandatangan)
+      const finalNik = isTanpaNik ? "" : sp.nik_penandatangan
+      const labelNik = finalNik ? "NIK. " : ""
+
       const data = templateSuratPeringatan({
         nama: sp.nama_pegawai,
         jabatan: sp.jabatan,
         alasan: sp.alasan,
       }, sp.jenis_sp)
+      
       const finalData = {
         ...data,
         nomor_surat: sp.nomor_surat || data.nomor_surat,
         tanggal_surat: formatTanggalIndonesia(new Date(sp.tanggal_surat)),
         nama_penandatangan: sp.nama_penandatangan,
-        nik_penandatangan: JABATAN_TANPA_NIK.includes(sp.jabatan_penandatangan)
-          ? "" : sp.nik_penandatangan,
+        nik_penandatangan: finalNik,
         jabatan_penandatangan: sp.jabatan_penandatangan,
-      }
+        label_nik: labelNik,
+      } as any
+
       await downloadSurat(finalData, `${sp.jenis_sp.replace(/\s+/g, "_")}_${sp.nama_pegawai.replace(/\s+/g, "_")}`)
       await autoSaveArsip(finalData, "SURAT_PERINGATAN")
       toast.success("Surat Peringatan berhasil didownload & disimpan ke arsip!")
