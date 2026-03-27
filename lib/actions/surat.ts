@@ -1,10 +1,9 @@
 'use server'
-// lib/actions/surat.ts
-// Server actions ONLY — hanya async functions
+// lib/actions/surat.ts — Server actions ONLY (async)
 
 import { prisma } from "@/lib/prisma"
 
-// ============ NOMOR SURAT SEQUENTIAL (DARI DB) ============
+// ============ NOMOR SURAT SEQUENTIAL (MAX-BASED, tidak reset saat delete) ============
 export async function generateNomorSurat(
   kode: string = "PERUMDAM-TIARA"
 ): Promise<string> {
@@ -16,12 +15,19 @@ export async function generateNomorSurat(
   const bln = bulan[now.getMonth() + 1]
   const thn = now.getFullYear()
 
-  const count = await prisma.arsipSurat.count({
-    where: {
-      nomorSurat: { contains: `/${bln}/${thn}` }
-    }
+  // Ambil semua nomor yang cocok bulan & tahun ini
+  const existing = await prisma.arsipSurat.findMany({
+    where: { nomorSurat: { contains: `/${bln}/${thn}` } },
+    select: { nomorSurat: true }
   })
-  const nomorUrut = String(count + 1).padStart(3, "0")
+
+  // Cari nomor urut TERTINGGI yang sudah ada, bukan COUNT (agar tak reset saat delete)
+  let maxUrut = 0
+  for (const s of existing) {
+    const match = s.nomorSurat.match(/^(\d+)\//)
+    if (match) maxUrut = Math.max(maxUrut, parseInt(match[1]))
+  }
+  const nomorUrut = String(maxUrut + 1).padStart(3, "0")
   return `${nomorUrut}/${kode}/${bln}/${thn}`
 }
 
@@ -56,5 +62,15 @@ export async function getArsipSurat(jenis?: string) {
     return list
   } catch {
     return []
+  }
+}
+
+// ============ HAPUS ARSIP SURAT ============
+export async function deleteArsipSurat(id: string) {
+  try {
+    await prisma.arsipSurat.delete({ where: { id } })
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || "Gagal menghapus arsip" }
   }
 }
