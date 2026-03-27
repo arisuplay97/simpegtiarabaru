@@ -43,9 +43,9 @@ const mapPangkat = (val: string): string | null => {
 // Helper: strip "NONE" and empty-string values → null
 const clean = (v: any) => (!v || v === "NONE" || v === "") ? null : v
 
-// Helper: Hapus keys yang valuenya undefined agar Prisma tua di memori tidak complain "Unknown arg"
+// Helper: Hapus keys yang valuenya undefined saja (bukan null) — null harus tetap dikirim ke Prisma untuk bisa menghapus relasi
 const stripUndefined = (obj: any) => {
-  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null))
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined))
 }
 
 // ============ GET SEMUA PEGAWAI ============
@@ -293,6 +293,9 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
     fotoUrl = blob.url
   }
 
+  // subBidangId selalu disertakan, bisa null (untuk menghapus) atau string valid (untuk mengisi)
+  const subBidangIdValue = clean(data.subBidangId) // null jika dikosongkan, string jika dipilih
+
   const payload = {
       nik: data.nik,
       nama: data.nama,
@@ -301,7 +304,7 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
       ...(fotoUrl ? { fotoUrl } : {}),
 
       bidangId: clean(data.bidangId) || undefined,
-      subBidangId: clean(data.subBidangId) || undefined,
+      subBidangId: subBidangIdValue, // biarkan null agar relasi bisa dihapus
       jabatan: data.jabatan || "",
       tipeJabatan: mapTipeJabatan(data.tipeJabatan) as any,
       golongan: clean(data.golongan) || "",

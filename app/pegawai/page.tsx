@@ -209,6 +209,11 @@ export default function EmployeeListPage() {
     if (form.telepon && form.telepon.length < 10) errors.telepon = "Nomor telepon tidak valid"
     const dup = employees.find(e => e.nik === form.nik && e.id !== editingEmployee?.id)
     if (dup) errors.nik = "NIK sudah terdaftar"
+    // Validasi wajib Sub-Bidang untuk jabatan Staff / Kasubbid (akun baru)
+    const needsSubBidang = ["KASUBBID", "STAFF", "KASUBBID_CABANG", "STAFF_CABANG"].includes((form.tipeJabatan as string)?.toUpperCase())
+    if (needsSubBidang && !editingEmployee && !form.subBidangId) {
+      errors.subBidangId = "Sub bidang wajib dipilih untuk jabatan Staff / Kasubbid"
+    }
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -438,7 +443,7 @@ export default function EmployeeListPage() {
           </F>
           {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang/Cabang */}
           {form.tipeJabatan && !form.tipeJabatan.includes("kepala") && form.bidangId && (
-            <F label="Sub Bidang">
+            <F label="Sub Bidang" error={formErrors.subBidangId}>
               <Select
                 value={form.subBidangId || "NONE"}
                 onValueChange={v => setForm({...form, subBidangId: v === "NONE" ? "" : v})}

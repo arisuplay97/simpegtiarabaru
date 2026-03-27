@@ -12,6 +12,7 @@ export async function getEmployeeProfile(slugOrId: string) {
     where: { id: slugOrId },
     include: {
       bidang: true,
+      subBidang: true,
       user: { select: { email: true, role: true } },
       keluarga: { orderBy: { createdAt: 'asc' } },
       pendidikan: { orderBy: { tahunLulus: 'desc' } },
@@ -30,7 +31,7 @@ export async function getEmployeeProfile(slugOrId: string) {
     pegawai = await prisma.pegawai.findUnique({
       where: { id: possibleId },
       include: {
-        bidang: true, user: { select: { email: true, role: true } },
+        bidang: true, subBidang: true, user: { select: { email: true, role: true } },
         keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
         riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
         pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },
@@ -45,7 +46,7 @@ export async function getEmployeeProfile(slugOrId: string) {
     pegawai = await prisma.pegawai.findFirst({
       where: { nama: { equals: possibleName, mode: 'insensitive' } },
       include: {
-        bidang: true, user: { select: { email: true, role: true } },
+        bidang: true, subBidang: true, user: { select: { email: true, role: true } },
         keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
         riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
         pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },

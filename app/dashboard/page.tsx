@@ -178,7 +178,7 @@ export default function DashboardPage() {
                             <p className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5">{lb.bidang || lb.jabatan || "—"}</p>
                             <p className={cn("text-[10px] font-extrabold mt-0.5",
                               i === 0 ? "text-amber-600" : i === 1 ? "text-slate-500" : i === 2 ? "text-orange-500" : "text-neutral-500"
-                            )}>{lb.points} poin</p>
+                            )}>{lb.persenHadir ?? lb.points}% hadir</p>
                           </div>
                         </div>
                       ))}

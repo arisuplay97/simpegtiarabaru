@@ -171,19 +171,32 @@ export async function getTopPegawaiLeaderboard(period: "month" | "year" | "allti
     const leaderboard = await Promise.all(
       pegawais.map(async (p) => {
         const points = await calculatePegawaiPoints(p.id, startDate, endDate)
+
+        // Hitung persentase kehadiran berdasarkan record absensi yang ada
+        const absensiRecords = await prisma.absensi.findMany({
+          where: { pegawaiId: p.id, tanggal: { gte: startDate, lte: endDate } },
+          select: { status: true }
+        })
+        const totalRecord = absensiRecords.length
+        const hariHadir = absensiRecords.filter(a => a.status === "HADIR" || a.status === "TERLAMBAT").length
+        // Persentase kehadiran: hadir / total ada record (bukan per semua hari kerja bulan ini)
+        const persenHadir = totalRecord > 0 ? Math.round((hariHadir / totalRecord) * 100) : 0
+
         return {
           ...p,
           points: points.totalEarned || 0,
+          persenHadir,
           bidang: p.bidang?.nama || "Umum"
         }
       })
     )
 
-    // Sort descending and limit 5
+    // Sort UTAMA: persentase kehadiran DESC → tiebreaker: poin DESC
     const top5 = leaderboard
-      .sort((a, b) => b.points - a.points)
-      // filter yang punya poin > 0 untuk relevansi
-      // .filter(p => p.points > 0) 
+      .sort((a, b) => {
+        if (b.persenHadir !== a.persenHadir) return b.persenHadir - a.persenHadir
+        return b.points - a.points
+      })
       .slice(0, 5)
 
     return top5
