@@ -18,7 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Users, CalendarDays, Clock, Wallet, ClipboardList,
   TrendingUp, ShieldCheck, Timer, BadgeCheck, BarChart3, Crown, ArrowRight,
-  ChevronRight
+  ChevronRight, ArrowUpCircle, Star, X,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [mounted, setMounted] = useState(false)
+  const [approvalOpen, setApprovalOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -93,7 +94,7 @@ export default function DashboardPage() {
             <div className="space-y-5">
 
               {/* ROW 1: KPI CARDS */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
                 <KpiCard
                   title="Total Pegawai"
                   value={stats?.totalPegawai || "0"}
@@ -116,7 +117,7 @@ export default function DashboardPage() {
                   icon={ShieldCheck}
                   color="amber"
                   sub="Perlu ditindak"
-                  href="/approval"
+                  onClick={() => setApprovalOpen(true)}
                 />
                 <KpiCard
                   title="Kontrak Habis"
@@ -127,12 +128,20 @@ export default function DashboardPage() {
                   href="/kontrak"
                 />
                 <KpiCard
-                  title="Poin Reward"
-                  value={leaderboard?.[0]?.points ?? "—"}
-                  icon={Crown}
+                  title="Naik Gaji Berkala"
+                  value={stats?.kgbEligible || "0"}
+                  icon={ArrowUpCircle}
                   color="violet"
-                  sub={leaderboard?.[0]?.nama?.split(' ')[0] || "Tertinggi"}
-                  href="/reward"
+                  sub="Pending KGB"
+                  href="/kgb"
+                />
+                <KpiCard
+                  title="Naik Pangkat"
+                  value={stats?.pangkatEligible || "0"}
+                  icon={Star}
+                  color="sky"
+                  sub="Pending kenaikan"
+                  href="/kenaikan-pangkat"
                 />
               </div>
 
@@ -319,26 +328,8 @@ export default function DashboardPage() {
 
                 </div>
 
-                {/* RIGHT COLUMN: APPROVAL */}
+                {/* RIGHT COLUMN: STATUS SDM only */}
                 <div className="flex flex-col gap-5">
-                  <Card className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl flex flex-col" style={{ minHeight: '500px' }}>
-                    <div className="px-5 pt-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-indigo-500" />
-                        <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Approval Center</span>
-                      </div>
-                      {stats?.approvalPending > 0 && (
-                        <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30 px-2 py-0.5 rounded-full font-bold">{stats.approvalPending} Pending</span>
-                      )}
-                    </div>
-                    <CardContent className="flex-1 p-0 overflow-hidden">
-                      <ScrollArea className="h-full" style={{ height: 'calc(100% - 0px)' }}>
-                        <div className="p-3">
-                          <ApprovalPanel />
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
 
                   {/* CARD BARU: RINGKASAN STATUS SDM */}
                   <Card className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl">
@@ -381,6 +372,44 @@ export default function DashboardPage() {
             </div>
           )}
         </main>
+
+        {/* ===== APPROVAL POPUP OVERLAY ===== */}
+        {approvalOpen && (
+          <div className="fixed inset-0 z-50 flex items-start justify-end p-4 pt-16">
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setApprovalOpen(false)}
+            />
+            <div className="relative z-10 w-full max-w-md h-[calc(100vh-80px)] flex flex-col bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-right-10 duration-300">
+              <div className="px-5 pt-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                  <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Approval Center</span>
+                  {stats?.approvalPending > 0 && (
+                    <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30 px-2 py-0.5 rounded-full font-bold">{stats.approvalPending} Pending</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setApprovalOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <ScrollArea className="flex-1">
+                <div className="p-4">
+                  <ApprovalPanel />
+                </div>
+              </ScrollArea>
+              <div className="px-4 py-3 border-t border-neutral-100 dark:border-neutral-800 shrink-0">
+                <Link href="/approval" onClick={() => setApprovalOpen(false)} className="flex items-center justify-center gap-2 w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 transition-colors">
+                  Buka Approval Center <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   )
@@ -389,8 +418,8 @@ export default function DashboardPage() {
 // ======================================
 // REUSABLE KPI CARD — CLEAN & COMPACT
 // ======================================
-function KpiCard({ title, value, unit, icon: Icon, color = "blue", sub, href }: {
-  title: string; value: any; unit?: string; icon: any; color?: string; sub?: string; href?: string;
+function KpiCard({ title, value, unit, icon: Icon, color = "blue", sub, href, onClick }: {
+  title: string; value: any; unit?: string; icon: any; color?: string; sub?: string; href?: string; onClick?: () => void;
 }) {
   const iconColor: Record<string, string> = {
     blue:   "bg-blue-50   text-blue-600   dark:bg-blue-900/20   dark:text-blue-400",
@@ -404,7 +433,7 @@ function KpiCard({ title, value, unit, icon: Icon, color = "blue", sub, href }: 
   const card = (
     <Card className={cn(
       "bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl transition-all duration-200",
-      href && "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+      (href || onClick) && "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
     )}>
       <CardContent className="p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -425,5 +454,6 @@ function KpiCard({ title, value, unit, icon: Icon, color = "blue", sub, href }: 
     </Card>
   )
 
+  if (onClick) return <button className="text-left w-full" onClick={onClick}>{card}</button>
   return href ? <Link href={href}>{card}</Link> : card
 }

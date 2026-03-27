@@ -358,51 +358,68 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
 
 // ============ HAPUS PEGAWAI ============
 export async function deleteEmployee(id: string) {
-  const pegawai = await prisma.pegawai.findUnique({
-    where: { id },
-    include: { user: true }
-  })
+  try {
+    const session = await auth()
+    if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
+      return { error: "Akses ditolak" }
+    }
 
-  if (!pegawai) return
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { id },
+      include: { user: true }
+    })
 
-  // Hapus foto dari Blob
-  if (pegawai.fotoUrl) {
-    try { await del(pegawai.fotoUrl) } catch {}
+    if (!pegawai) return { error: "Pegawai tidak ditemukan" }
+
+    // Hapus foto dari Blob
+    if (pegawai.fotoUrl) {
+      try { await del(pegawai.fotoUrl) } catch {}
+    }
+
+    // Hapus semua relasi per batch (agar tidak ada FK constraint error)
+    const tables = [
+      'absensi', 'mutasi', 'cuti', 'payroll', 'kPI', 'slipGaji',
+      'pegawaiKeluarga', 'pegawaiPendidikan', 'pegawaiJabatan', 'pegawaiPangkat',
+      'pegawaiPelatihan', 'pegawaiDokumen', 'kGB', 'kenaikanPangkat',
+      'suratPeringatan', 'lembur', 'jadwalShift', 'notifikasi', 'rewardPoin',
+      'auditLog',
+    ]
+
+    for (const table of tables) {
+      try {
+        if ((prisma as any)[table]) {
+          await (prisma as any)[table].deleteMany({ where: { pegawaiId: id } })
+        }
+      } catch (_e) {
+        // skip if table not found or no relation
+      }
+    }
+
+    // Hapus kontrak (field berbeda: pegawaiId)
+    try { await (prisma as any).kontrak.deleteMany({ where: { pegawaiId: id } }) } catch {}
+
+    // Hapus pegawai
+    await prisma.pegawai.delete({ where: { id } })
+
+    // Hapus user terkait
+    if (pegawai.userId) {
+      try { await prisma.user.delete({ where: { id: pegawai.userId } }) } catch {}
+    }
+
+    await logAudit({
+      action: "DELETE",
+      module: "pegawai",
+      targetId: id,
+      targetName: pegawai.nama,
+      oldData: pegawai as any,
+    })
+
+    revalidatePath("/pegawai")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete pegawai error:", error)
+    return { error: `Gagal menghapus pegawai: ${error.message}` }
   }
-
-  // Karena tidak ada onDelete: Cascade di schema, kita harus hapus manual relasinya
-  await (prisma as any).$transaction([
-    (prisma as any).absensi.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).mutasi.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).cuti.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).payroll.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).kPI.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).slipGaji.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).pegawaiKeluarga.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).pegawaiPendidikan.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).pegawaiJabatan.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).pegawaiPangkat.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).pegawaiPelatihan.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).pegawaiDokumen.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).kgb.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).kenaikanPangkat.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).suratPeringatan.deleteMany({ where: { pegawaiId: id } }),
-    (prisma as any).pegawai.delete({ where: { id } }),
-  ])
-  
-  if (pegawai.userId) {
-    await prisma.user.delete({ where: { id: pegawai.userId } })
-  }
-
-  await logAudit({
-    action: "DELETE",
-    module: "pegawai",
-    targetId: id,
-    targetName: pegawai.nama,
-    oldData: pegawai as any,
-  })
-
-  revalidatePath("/pegawai")
 }
 
 // ============ UPLOAD FOTO SAJA ============

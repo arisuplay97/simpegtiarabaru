@@ -52,7 +52,7 @@ export async function getDashboardStats() {
       return { ...k, sisaHari: sisahari }
     })
 
-    // 3. Mendekati Pensiun (Top 5 terdekat umur 56)
+    // 3. Mendekati Pensiun (filter hanya yg < 365 hari / 1 tahun)
     const pensiunList = allPegawai.map(p => {
       const birth = new Date(p.tanggalLahir!)
       const pensiunDate = new Date(birth.getFullYear() + 56, birth.getMonth(), birth.getDate())
@@ -60,11 +60,19 @@ export async function getDashboardStats() {
       return { ...p, pensiunDate, sisaHari }
     })
     
-    // Sort ascending by remaining days and take top 5 items > 0
+    // Sort ascending by remaining days, only show those within 1 year (365 days)
     const pensiunTerdekat = pensiunList
-      .filter(p => p.sisaHari > 0)
+      .filter(p => p.sisaHari > 0 && p.sisaHari <= 365)
       .sort((a, b) => a.sisaHari - b.sisaHari)
-      .slice(0, 5)
+      .slice(0, 10)
+
+    // 4. Eligible KGB & Kenaikan Pangkat (status APPROVED adalah yg sudah naik, PENDING yg menunggu)
+    const [kgbEligible, pangkatEligible, pegawaiCutiCount, pegawaiSPCount] = await Promise.all([
+      prisma.kGB.count({ where: { status: 'PENDING' } }),
+      prisma.kenaikanPangkat.count({ where: { status: 'PENDING' } }),
+      prisma.cuti.count({ where: { status: 'APPROVED', tanggalMulai: { lte: new Date() }, tanggalSelesai: { gte: new Date() } } }),
+      prisma.pegawai.count({ where: { sp: { not: null }, status: 'AKTIF' } }),
+    ])
 
     return {
       totalPegawai,
@@ -80,7 +88,11 @@ export async function getDashboardStats() {
         persenHadir: totalPegawai > 0 ? Math.round(((hadir + terlambat) / totalPegawai) * 100) : 0
       },
       kontrakHampirHabis,
-      pensiunTerdekat
+      pensiunTerdekat,
+      kgbEligible,
+      pangkatEligible,
+      pegawaiCuti: pegawaiCutiCount,
+      pegawaiSP: pegawaiSPCount,
     }
   } catch (error) {
     console.warn("Database failed, returning mock stats for dashboard", error)
