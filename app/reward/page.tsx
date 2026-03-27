@@ -11,13 +11,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Gift, Wallet, CheckCircle2, XCircle, Clock, Save, Loader2, ArrowRight } from "lucide-react"
+import { Gift, Wallet, CheckCircle2, XCircle, Clock, Save, Loader2, ArrowRight, Medal } from "lucide-react"
 import { toast } from "sonner"
-import { getSaldoPoinPegawai, getRiwayatPenukaranPoin, ajukanPenukaranPoin, prosesPenukaranPoin } from "@/lib/actions/poin-reward"
+import { getSaldoPoinPegawai, getRiwayatPenukaranPoin, ajukanPenukaranPoin, prosesPenukaranPoin, getTopPegawaiLeaderboard } from "@/lib/actions/poin-reward"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const REWARD_CATALOG = [
   { id: 1, name: "Voucher Belanja Indomaret Rp 100.000", cost: 1000 },
@@ -34,6 +35,8 @@ export default function RewardPage() {
   
   const [saldo, setSaldo] = useState({ saldo: 0, totalEarned: 0, spent: 0 })
   const [riwayat, setRiwayat] = useState<any[]>([])
+  const [leaderboardBulan, setLeaderboardBulan] = useState<any[]>([])
+  const [leaderboardAll, setLeaderboardAll] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   // Form Tukar
@@ -43,6 +46,15 @@ export default function RewardPage() {
 
   const fetchData = async () => {
     setLoading(true)
+    
+    // Fetch leaderboards regardless of role
+    const [lbBulan, lbAll] = await Promise.all([
+      getTopPegawaiLeaderboard("month"),
+      getTopPegawaiLeaderboard("alltime")
+    ])
+    setLeaderboardBulan(lbBulan)
+    setLeaderboardAll(lbAll)
+
     if (session?.user?.email) {
       if (!isAdmin) {
         const pegawaiId = (session.user as any).id
@@ -189,6 +201,84 @@ export default function RewardPage() {
             </div>
           )}
 
+          {/* LEADERBOARDS ROW */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Medal className="w-5 h-5 text-amber-500" />
+                  Top 5 Pegawai (Bulan Ini)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="px-6 py-4 space-y-4">
+                  {leaderboardBulan.length === 0 ? (
+                    <div className="text-center text-sm text-muted-foreground py-4">Belum ada data.</div>
+                  ) : (
+                    leaderboardBulan.map((lb: any, idx: number) => (
+                      <div key={lb.id} className="flex items-center gap-3">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${idx === 0 ? 'bg-amber-100 text-amber-700' : idx === 1 ? 'bg-slate-200 text-slate-700' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-neutral-100 text-neutral-500'}`}>
+                          {idx + 1}
+                        </div>
+                        <Avatar className="h-9 w-9 shrink-0">
+                          <AvatarImage src={lb.fotoUrl} />
+                          <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                            {lb.nama.substring(0,2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{lb.nama}</p>
+                          <p className="text-xs text-muted-foreground truncate">{lb.bidang}</p>
+                        </div>
+                        <div className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                          {lb.points} Pts
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Medal className="w-5 h-5 text-indigo-500" />
+                  Top 5 Pegawai (Sepanjang Waktu)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="px-6 py-4 space-y-4">
+                  {leaderboardAll.length === 0 ? (
+                    <div className="text-center text-sm text-muted-foreground py-4">Belum ada data.</div>
+                  ) : (
+                    leaderboardAll.map((lb: any, idx: number) => (
+                      <div key={lb.id} className="flex items-center gap-3">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${idx === 0 ? 'bg-indigo-100 text-indigo-700' : idx === 1 ? 'bg-slate-200 text-slate-700' : idx === 2 ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100 text-neutral-500'}`}>
+                          {idx + 1}
+                        </div>
+                        <Avatar className="h-9 w-9 shrink-0">
+                          <AvatarImage src={lb.fotoUrl} />
+                          <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                            {lb.nama.substring(0,2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{lb.nama}</p>
+                          <p className="text-xs text-muted-foreground truncate">{lb.bidang}</p>
+                        </div>
+                        <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                          {lb.points} Pts
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* TABLE RIWAYAT */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Daftar Pengajuan Penukaran Poin</CardTitle>

@@ -148,11 +148,19 @@ export async function getSaldoPoinPegawai(pegawaiId: string) {
 }
 
 // Ambil Top 5 Leaderboard Pegawai (Bulan Ini atau Tahun Ini)
-export async function getTopPegawaiLeaderboard(period: "month" | "year") {
+export async function getTopPegawaiLeaderboard(period: "month" | "year" | "alltime") {
   try {
     const now = new Date()
-    const startDate = period === "month" ? startOfMonth(now) : startOfYear(now)
-    const endDate = period === "month" ? endOfMonth(now) : endOfYear(now)
+    let startDate = startOfMonth(now)
+    let endDate = endOfMonth(now)
+    
+    if (period === "year") {
+      startDate = startOfYear(now)
+      endDate = endOfYear(now)
+    } else if (period === "alltime") {
+      startDate = new Date("2000-01-01")
+      endDate = new Date("2099-12-31")
+    }
 
     // Ambil semua pegawai aktif
     const pegawais = await prisma.pegawai.findMany({
