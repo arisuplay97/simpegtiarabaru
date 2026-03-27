@@ -106,6 +106,23 @@ export async function getEmployeeStats() {
 }
 
 export async function getPegawaiPageData() {
+  const session = await auth()
+  if (!session?.user) throw new Error("Unauthorized")
+  
+  // PROTEKSI AKSES: Pegawai biasa tidak boleh melihat master data
+  if ((session.user as any).role === "PEGAWAI") {
+    // Cari id pegawai untuk redirect ke profil
+    const me = await prisma.pegawai.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true }
+    })
+    if (me) {
+      const { redirect } = await import("next/navigation")
+      redirect(`/pegawai/${me.id}`)
+    }
+    throw new Error("Akses Ditolak")
+  }
+
   const [emps, stats, bid] = await Promise.all([
     getEmployees(),
     getEmployeeStats(),
