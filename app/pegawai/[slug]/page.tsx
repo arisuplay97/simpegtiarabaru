@@ -340,7 +340,47 @@ export default function EmployeeDetailPage() {
   }
 
   const handleOpenEdit = () => {
-    setFormData({ ...employee }) // reset form ke data terkini
+    // FIX: hanya ambil field scalar — jangan spread seluruh employee object
+    // karena employee mengandung nested relation (bidang, subBidang, kontrak, dll)
+    // yang menyebabkan crash saat dikirim ke Prisma / updateEmployee
+    if (!employee) return
+    let kategoriPenempatan = "PUSAT"
+    if (["KEPALA_CABANG", "KASUBBID_CABANG", "STAFF_CABANG"].includes(employee.tipeJabatan)) {
+      kategoriPenempatan = "CABANG"
+    }
+    setFormData({
+      nik: employee.nik,
+      nama: employee.nama,
+      email: employee.email,
+      telepon: employee.telepon,
+      kategoriPenempatan,
+      bidangId: employee.bidangId || "",
+      subBidangId: employee.subBidangId || "",
+      tipeJabatan: employee.tipeJabatan || "",
+      tipePegawai: employee.kontrak?.[0]?.tipe || (employee.tipeJabatan === "KONTRAK" ? "KONTRAK" : "TETAP"),
+      jabatan: employee.jabatan,
+      atasanLangsung: employee.atasanLangsung,
+      golongan: employee.golongan,
+      pangkat: employee.pangkat,
+      status: employee.status,
+      sp: employee.sp,
+      tanggalMasuk: employee.tanggalMasuk ? new Date(employee.tanggalMasuk).toISOString().split("T")[0] : "",
+      jenisKelamin: employee.jenisKelamin,
+      tempatLahir: employee.tempatLahir,
+      tanggalLahir: employee.tanggalLahir ? new Date(employee.tanggalLahir).toISOString().split("T")[0] : "",
+      agama: employee.agama,
+      statusNikah: employee.statusNikah,
+      alamat: employee.alamat,
+      npwp: employee.npwp,
+      pendidikanTerakhir: employee.pendidikanTerakhir,
+      jurusan: employee.jurusan,
+      institusi: employee.institusi,
+      tahunLulus: employee.tahunLulus,
+      bank: employee.bank,
+      noRekening: employee.noRekening,
+      bpjsKesehatan: employee.bpjsKesehatan,
+      bpjsKetenagakerjaan: employee.bpjsKetenagakerjaan,
+    })
     setShowEditDialog(true)
   }
 

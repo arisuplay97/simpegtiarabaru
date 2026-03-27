@@ -307,6 +307,7 @@ export default function EmployeeListPage() {
       telepon: emp.telepon,
       fotoUrl: emp.fotoUrl,
       bidangId: emp.bidangId,
+      subBidangId: (emp as any).subBidangId || "", // ← fix: selalu sertakan subBidangId
       tipeJabatan: emp.tipeJabatan as any,
       jabatan: emp.jabatan,
       atasanLangsung: emp.atasanLangsung,
