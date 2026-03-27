@@ -155,7 +155,7 @@ export default function DashboardPage() {
                 />
 
                 {/* 5th Card: Ultra Compact Top 5 */}
-                <Card className="shadow-lg shadow-neutral-200/30 border-neutral-200/60 dark:shadow-none hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group overflow-hidden relative bg-white dark:bg-background h-[120px] sm:h-[135px]">
+                <Card className="shadow-lg shadow-neutral-200/30 border-neutral-200/60 dark:shadow-none hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group overflow-hidden relative bg-white dark:bg-background h-full min-h-[135px]">
                   <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl opacity-20 transition-transform group-hover:scale-150 duration-500 z-0 bg-amber-500" />
                   <CardContent className="p-3 flex flex-col h-full relative z-10 w-full overflow-hidden">
                     <div className="flex justify-between items-center mb-1.5 shrink-0">
@@ -351,7 +351,7 @@ function CompactStatsCard({ title, value, description, icon, trend, color = "pri
   }
 
   return (
-    <Card className="shadow-lg shadow-neutral-200/30 border-neutral-200/60 dark:shadow-none hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group overflow-hidden relative bg-white dark:bg-background h-[120px] sm:h-[135px]">
+    <Card className="shadow-lg shadow-neutral-200/30 border-neutral-200/60 dark:shadow-none hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group overflow-hidden relative bg-white dark:bg-background h-full min-h-[135px]">
       {/* Decorative gradient blur background */}
       <div className={cn("absolute -right-6 -top-6 w-20 h-20 sm:w-24 sm:h-24 rounded-full blur-2xl opacity-20 transition-transform group-hover:scale-150 duration-500 z-0",
         color === "primary" ? "bg-primary" :
