@@ -4,32 +4,89 @@ import { prisma } from "@/lib/prisma"
 
 export async function getDashboardStats() {
   try {
-    const totalPegawai = await prisma.pegawai.count()
+    const totalPegawai = await prisma.pegawai.count({ where: { status: 'AKTIF' } })
     const totalUser = await prisma.user.count()
     
-    // Hitung semua pengajuan yang butuh approval
+    // Approval Pending
     const [cuti, mutasi, kgb, pangkat] = await Promise.all([
       prisma.cuti.count({ where: { status: 'PENDING' } }),
       prisma.mutasi.count({ where: { status: 'PENDING' } }),
       prisma.kGB.count({ where: { status: 'PENDING' } }),
       prisma.kenaikanPangkat.count({ where: { status: 'PENDING' } }),
     ])
-    
     const approvalPending = cuti + mutasi + kgb + pangkat
+
+    // 1. Kehadiran Hari Ini
+    const todayStr = new Date().toLocaleDateString('en-CA')
+    const checkInDateStart = new Date(`${todayStr}T00:00:00.000Z`)
+    const checkInDateEnd = new Date(`${todayStr}T23:59:59.999Z`)
+
+    const absensiToday = await prisma.absensi.findMany({
+      where: {
+        tanggal: { gte: checkInDateStart, lte: checkInDateEnd }
+      }
+    })
+
+    const hadir = absensiToday.filter(a => a.status === 'HADIR').length
+    const terlambat = absensiToday.filter(a => a.status === 'TERLAMBAT').length
+    const sakitCuti = absensiToday.filter(a => a.status === 'SAKIT' || a.status === 'CUTI' || a.status === 'IZIN').length
+    const belumAlpa = totalPegawai - (hadir + terlambat + sakitCuti)
+
+    // 2. Kontrak Akan Habis (Top 5 terdekat)
+    const kontrakTerdekat = await (prisma as any).kontrak.findMany({
+      where: { status: 'AKTIF' },
+      orderBy: { tanggalSelesai: 'asc' },
+      take: 5,
+      include: { pegawai: { select: { nama: true, jabatan: true, fotoUrl: true } } }
+    })
+
+    // Hitung sisa hari kontrak
+    const kontrakHampirHabis = kontrakTerdekat.map((k: any) => {
+      const sisahari = Math.ceil((new Date(k.tanggalSelesai).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+      return { ...k, sisaHari: sisahari }
+    })
+
+    // 3. Mendekati Pensiun (Top 5 terdekat umur 56)
+    const allPegawai = await prisma.pegawai.findMany({
+      where: { status: 'AKTIF', tanggalLahir: { not: null }, tipeJabatan: { notIn: ['KONTRAK'] } },
+      select: { id: true, nama: true, jabatan: true, tanggalLahir: true, fotoUrl: true }
+    })
     
+    const pensiunList = allPegawai.map(p => {
+      const birth = new Date(p.tanggalLahir!)
+      const pensiunDate = new Date(birth.getFullYear() + 56, birth.getMonth(), birth.getDate())
+      const sisaHari = Math.ceil((pensiunDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+      return { ...p, pensiunDate, sisaHari }
+    })
+    
+    // Sort ascending by remaining days and take top 5 items > 0
+    const pensiunTerdekat = pensiunList
+      .filter(p => p.sisaHari > 0)
+      .sort((a, b) => a.sisaHari - b.sisaHari)
+      .slice(0, 5)
+
     return {
       totalPegawai,
       totalUser,
       approvalPending: approvalPending || 0,
-      detail: { cuti, mutasi, kgb, pangkat, sp: 0 }
+      detail: { cuti, mutasi, kgb, pangkat, sp: 0 },
+      kehadiranHariIni: {
+        total: totalPegawai,
+        hadir,
+        terlambat,
+        sakitCuti,
+        belumAlpa,
+        persenHadir: totalPegawai > 0 ? Math.round(((hadir + terlambat) / totalPegawai) * 100) : 0
+      },
+      kontrakHampirHabis,
+      pensiunTerdekat
     }
   } catch (error) {
-    console.warn("Database failed, returning mock stats for dashboard")
+    console.warn("Database failed, returning mock stats for dashboard", error)
     return {
-      totalPegawai: 156,
-      totalUser: 4,
-      approvalPending: 8,
-      isDemo: true
+      totalPegawai: 0, totalUser: 0, approvalPending: 0, isDemo: true,
+      kehadiranHariIni: { total: 0, hadir: 0, terlambat: 0, sakitCuti: 0, belumAlpa: 0, persenHadir: 0 },
+      kontrakHampirHabis: [], pensiunTerdekat: []
     }
   }
 }

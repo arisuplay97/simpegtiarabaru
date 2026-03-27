@@ -131,6 +131,10 @@ model Pegawai {
   lembur                Lembur[]
   pph21                 PPh21[]
   kontrak               Kontrak[]
+  
+  // Reward & Points
+  penukaranPoin         PenukaranPoin[]
+  poinDiAcc             PenukaranPoin[] @relation("PoinApprovedBy")
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -693,4 +697,28 @@ enum MetodeAbsensi {
   FINGERPRINT
   GPS
   MANUAL
+}
+
+// ============ PENUKARAN POIN (REWARD) ============
+model PenukaranPoin {
+  id              String          @id @default(cuid())
+  pegawaiId       String
+  tanggal         DateTime        @default(now())
+  jumlahPoin      Int             // Jumlah poin yang dipotong
+  keteranganItem  String          // "Voucher Belanja Rp 100.000"
+  status          StatusPenukaran @default(PENDING)
+  approvedById    String?
+  pegawai         Pegawai         @relation(fields: [pegawaiId], references: [id])
+  approvedBy      Pegawai?        @relation("PoinApprovedBy", fields: [approvedById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([pegawaiId])
+  @@index([status])
+}
+
+enum StatusPenukaran {
+  PENDING
+  APPROVED
+  REJECTED
 }
