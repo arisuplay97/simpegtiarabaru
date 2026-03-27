@@ -162,19 +162,19 @@ export default function DashboardPage() {
                           "bg-neutral-50 border-neutral-100 dark:bg-neutral-800/50 dark:border-neutral-800"
                         )}>
                           <div className="relative shrink-0">
-                            <Avatar className="w-9 h-9 border-2 border-white dark:border-neutral-900 shadow">
+                            <Avatar className="w-12 h-12 border-2 border-white dark:border-neutral-900 shadow">
                               <AvatarImage src={lb.fotoUrl} />
-                              <AvatarFallback className="text-[10px] font-bold bg-neutral-100 text-neutral-600">{lb.nama?.charAt(0)}</AvatarFallback>
+                              <AvatarFallback className="text-[12px] font-bold bg-neutral-100 text-neutral-600">{lb.nama?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className={cn(
-                              "absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-extrabold text-white ring-2 ring-white dark:ring-neutral-900",
+                              "absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-extrabold text-white ring-2 ring-white dark:ring-neutral-900",
                               i === 0 ? "bg-amber-500" : i === 1 ? "bg-slate-400" : i === 2 ? "bg-orange-400" : "bg-neutral-400"
                             )}>
                               {i + 1}
                             </div>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-neutral-800 dark:text-neutral-200 truncate leading-tight">{lb.nama}</p>
+                            <p className="text-xs sm:text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate leading-tight">{lb.nama}</p>
                             <p className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5">{lb.bidang || lb.jabatan || "—"}</p>
                             <p className={cn("text-[10px] font-extrabold mt-0.5",
                               i === 0 ? "text-amber-600" : i === 1 ? "text-slate-500" : i === 2 ? "text-orange-500" : "text-neutral-500"
