@@ -289,7 +289,7 @@ export default function KGBPage() {
                           <TableRow>
                             <TableHead className="w-[280px]">Pegawai</TableHead>
                             <TableHead>Jabatan & Unit</TableHead>
-                            <TableHead>TMT KGB Bar</TableHead>
+                            <TableHead>Tgl. Berlaku KGB</TableHead>
                             <TableHead className="text-right">Gaji Pokok Lama</TableHead>
                             <TableHead className="text-right">Gaji Pokok Baru</TableHead>
                             <TableHead className="text-center">Aksi</TableHead>
@@ -303,7 +303,7 @@ export default function KGBPage() {
                           ) : filteredEligible.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={6} className="h-32 text-center text-slate-500">
-                                Tidak ada pegawai yang masuk periode KGB saat ini. (Minimal terdeteksi 60 hari sebelum TMT).
+                                Tidak ada pegawai yang masuk periode KGB saat ini. (Minimal terdeteksi 60 hari sebelum tanggal berlaku).
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -331,7 +331,10 @@ export default function KGBPage() {
                                     <Calendar className="w-4 h-4 text-slate-400" />
                                     <div>
                                       <p className="text-sm font-medium text-slate-700">{pegawai.eligibleDate}</p>
-                                      <p className="text-xs text-amber-600 font-medium">Dalam {pegawai.sisaHari} hari</p>
+                                      {pegawai.sisaHari < 0
+                                        ? <p className="text-xs text-red-600 font-medium">Sudah melewati {Math.abs(pegawai.sisaHari)} hari</p>
+                                        : <p className="text-xs text-amber-600 font-medium">Dalam {pegawai.sisaHari} hari</p>
+                                      }
                                     </div>
                                   </div>
                                 </TableCell>
@@ -495,7 +498,7 @@ export default function KGBPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="tmt-date" className="text-sm font-medium text-slate-700">TMT KGB Baru</Label>
+                <Label htmlFor="tmt-date" className="text-sm font-medium text-slate-700">Tanggal Berlaku KGB Baru</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input 
@@ -563,7 +566,7 @@ export default function KGBPage() {
               
               <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
                 <div>
-                  <p className="text-xs text-muted-foreground">TMT Mulai Berlaku</p>
+                  <p className="text-xs text-muted-foreground">Tanggal Mulai Berlaku</p>
                   <p className="font-medium">{selectedPegawai.tmtBaru}</p>
                 </div>
                 <div>

@@ -19,7 +19,7 @@ export async function getSPList() {
   return allPegawai.map(emp => {
     const sp = emp.suratPeringatan.length > 0 ? emp.suratPeringatan[0] : null
     
-    // Determine active SP 
+    // Determine active SP from SuratPeringatan table
     const now = new Date()
     let isActive = false
     let currentSP: SuratPeringatan | null = null
@@ -29,21 +29,28 @@ export async function getSPList() {
       currentSP = sp
     }
 
+    // Jika tidak ada record SuratPeringatan aktif, gunakan field pegawai.sp sebagai fallback
+    const spFromProfile = (emp as any).sp as string | null
+    const statusFinal = isActive
+      ? currentSP!.jenis
+      : (spFromProfile && spFromProfile !== "TIDAK_ADA" ? spFromProfile : "Tidak Ada SP")
+
     return {
       id: emp.id,
       name: emp.nama,
       nik: emp.nik,
       jabatan: emp.jabatan || "-",
       unit: emp.bidang?.nama || "Umum",
-      status: isActive ? currentSP!.jenis : "Tidak Ada SP",
+      status: statusFinal,
       issuedAt: isActive ? currentSP!.tanggalDiberikan.toISOString().split('T')[0] : "-",
       expiredAt: isActive ? currentSP!.berlakuHingga.toISOString().split('T')[0] : "-",
-      reason: isActive ? currentSP!.alasan : "Tidak ada catatan pelanggaran aktif",
+      reason: isActive ? currentSP!.alasan : (spFromProfile && spFromProfile !== "TIDAK_ADA" ? `SP tercatat dari data kepegawaian (${spFromProfile})` : "Tidak ada catatan pelanggaran aktif"),
       spId: isActive ? currentSP!.id : null, 
       // Attach history for detailed view if needed
       history: emp.suratPeringatan
     }
   })
+
 }
 
 export async function getPegawaiForSP() {

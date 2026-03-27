@@ -824,7 +824,7 @@ export default function EmployeeDetailPage() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground">TMT Kerja</p>
+                        <p className="text-xs text-muted-foreground">Tanggal Masuk Kerja</p>
                         <p className="font-medium" suppressHydrationWarning>{employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "-"}</p>
                       </div>
                       <div>
@@ -854,6 +854,12 @@ export default function EmployeeDetailPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">Golongan</p>
                           <p className="font-medium">{employee.golongan}</p>
+                        </div>
+                      )}
+                      {employee.subBidang && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Sub Bidang / Seksi</p>
+                          <p className="font-medium">{employee.subBidang.nama}</p>
                         </div>
                       )}
                     </div>
@@ -1516,7 +1522,7 @@ export default function EmployeeDetailPage() {
                     }}>
                       <SelectTrigger><SelectValue placeholder="Pilih Tipe Pegawai" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="TETAP">Tetap (PNS / Tetap)</SelectItem>
+                        <SelectItem value="TETAP">Tetap / PDAM</SelectItem>
                         <SelectItem value="KONTRAK">Kontrak (PKWT)</SelectItem>
                         <SelectItem value="MAGANG">Magang</SelectItem>
                       </SelectContent>
