@@ -381,12 +381,12 @@ export default function AttendancePage() {
   }, [date, isAdmin, selectedMonth, selectedYear, session])
 
   // Jika pegawai, gunakan the real accurate summary, jika admin fallback ke count records
-  const hKerja = isAdmin ? records.length.toString() : (mySummary ? mySummary.hariKerjaAktif.toString() : "0")
-  const hHadir = isAdmin ? records.filter(r => r.status === "hadir").length.toString() : (mySummary ? mySummary.hadir.toString() : "0")
-  const hLate = isAdmin ? records.filter(r => r.lateMinutes > 0).length.toString() : (mySummary ? mySummary.terlambat.toString() : "0")
-  const hIzin = isAdmin ? records.filter(r => r.status === "izin" || r.status === "sakit").length.toString() : (mySummary ? (mySummary.izin + mySummary.sakit).toString() : "0")
-  const hCuti = isAdmin ? records.filter(r => r.status === "cuti").length.toString() : (mySummary ? mySummary.cuti.toString() : "0")
-  const hAlpha = isAdmin ? records.filter(r => r.status === "alpha").length.toString() : (mySummary ? mySummary.alpha.toString() : "0")
+  const hKerja = isAdmin ? records.length.toString() : (mySummary?.hariKerjaAktif?.toString() || "0")
+  const hHadir = isAdmin ? records.filter(r => r.status === "hadir").length.toString() : (mySummary?.hadir?.toString() || "0")
+  const hLate = isAdmin ? records.filter(r => r.lateMinutes > 0).length.toString() : (mySummary?.terlambat?.toString() || "0")
+  const hIzin = isAdmin ? records.filter(r => r.status === "izin" || r.status === "sakit").length.toString() : ((mySummary?.izin || 0) + (mySummary?.sakit || 0)).toString()
+  const hCuti = isAdmin ? records.filter(r => r.status === "cuti").length.toString() : (mySummary?.cuti?.toString() || "0")
+  const hAlpha = isAdmin ? records.filter(r => r.status === "alpha").length.toString() : (mySummary?.alpha?.toString() || "0")
 
   const statsCards = [
     {

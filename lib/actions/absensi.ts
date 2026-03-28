@@ -459,6 +459,7 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     const [pjh, pjm] = jamPulangSetting.split(":").map(Number)
 
     const summary = {
+      hariKerjaAktif,
       hadir: 0,
       izin: 0,
       sakit: 0,
@@ -535,7 +536,7 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
   } catch (error) {
     console.error("Error getEmployeeAttendanceSummary:", error)
     return {
-      hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0
+      hariKerjaAktif: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0
     }
   }
 }
