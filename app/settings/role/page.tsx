@@ -66,6 +66,10 @@ const allPermissions: Permission[] = [
   { id: "users.manage", label: "Kelola Users", description: "Mengelola akun pengguna" },
   { id: "reports.view", label: "Lihat Laporan", description: "Akses laporan dan statistik" },
   { id: "reports.export", label: "Export Laporan", description: "Mengunduh laporan dalam format file" },
+  { id: "kalender.view", label: "Kalender Kehadiran", description: "Melihat visualisasi kalender kehadiran" },
+  { id: "indeks.view", label: "Indeks Pegawai", description: "Melihat leaderboard dan skor indeks" },
+  { id: "indeks.manage", label: "Kelola Indeks", description: "Menghitung ulang skor dan melihat peringatan" },
+  { id: "approval.manage", label: "Approval Center", description: "Pusat persetujuan cuti dan mutasi" },
 ]
 
 const initialRoles: RoleConfig[] = [
@@ -80,21 +84,21 @@ const initialRoles: RoleConfig[] = [
     id: "hrd", name: "HRD", label: "HRD",
     color: "bg-blue-100 text-blue-700 border-blue-200",
     description: "Mengelola data kepegawaian, absensi, cuti, dan payroll",
-    permissions: ["dashboard.view", "pegawai.view", "pegawai.create", "pegawai.edit", "pegawai.delete", "mutasi.view", "mutasi.create", "mutasi.approve", "absensi.view", "absensi.manage", "cuti.view", "cuti.approve", "payroll.view", "payroll.manage", "reports.view", "reports.export", "settings.view"],
+    permissions: ["dashboard.view", "pegawai.view", "pegawai.create", "pegawai.edit", "pegawai.delete", "mutasi.view", "mutasi.create", "mutasi.approve", "absensi.view", "absensi.manage", "cuti.view", "cuti.approve", "payroll.view", "payroll.manage", "reports.view", "reports.export", "settings.view", "kalender.view", "indeks.view", "indeks.manage", "approval.manage"],
     userCount: 2,
   },
   {
     id: "direksi", name: "DIREKSI", label: "Direksi",
     color: "bg-purple-100 text-purple-700 border-purple-200",
     description: "Melihat laporan, menyetujui mutasi dan cuti",
-    permissions: ["dashboard.view", "pegawai.view", "mutasi.view", "mutasi.approve", "cuti.view", "cuti.approve", "payroll.view", "reports.view", "reports.export"],
+    permissions: ["dashboard.view", "pegawai.view", "mutasi.view", "mutasi.approve", "cuti.view", "cuti.approve", "payroll.view", "reports.view", "reports.export", "kalender.view", "indeks.view", "approval.manage"],
     userCount: 3,
   },
   {
     id: "pegawai", name: "PEGAWAI", label: "Pegawai",
     color: "bg-gray-100 text-gray-700 border-gray-200",
     description: "Akses terbatas untuk melihat data pribadi",
-    permissions: ["dashboard.view", "absensi.view", "cuti.view", "payroll.view"],
+    permissions: ["dashboard.view", "absensi.view", "cuti.view", "payroll.view", "kalender.view", "indeks.view"],
     userCount: 45,
   },
 ]
@@ -134,10 +138,10 @@ export default function RolePermissionPage() {
 
   // Group permissions by module
   const permissionGroups = [
-    { label: "Dashboard", icon: Settings, perms: allPermissions.filter(p => p.id.startsWith("dashboard")) },
-    { label: "Pegawai", icon: Users, perms: allPermissions.filter(p => p.id.startsWith("pegawai")) },
+    { label: "Dashboard", icon: Settings, perms: allPermissions.filter(p => p.id.startsWith("dashboard") || p.id.startsWith("approval")) },
+    { label: "Pegawai & Kinerja", icon: Users, perms: allPermissions.filter(p => p.id.startsWith("pegawai") || p.id.startsWith("indeks")) },
     { label: "Mutasi", icon: FileText, perms: allPermissions.filter(p => p.id.startsWith("mutasi")) },
-    { label: "Absensi", icon: Eye, perms: allPermissions.filter(p => p.id.startsWith("absensi")) },
+    { label: "Absensi", icon: Eye, perms: allPermissions.filter(p => p.id.startsWith("absensi") || p.id.startsWith("kalender")) },
     { label: "Cuti", icon: FileText, perms: allPermissions.filter(p => p.id.startsWith("cuti")) },
     { label: "Payroll", icon: FileText, perms: allPermissions.filter(p => p.id.startsWith("payroll")) },
     { label: "Pengaturan", icon: Settings, perms: allPermissions.filter(p => p.id.startsWith("settings") || p.id.startsWith("users")) },
