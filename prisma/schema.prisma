@@ -135,6 +135,8 @@ model Pegawai {
   // Reward & Points
   penukaranPoin         PenukaranPoin[]
   poinDiAcc             PenukaranPoin[] @relation("PoinApprovedBy")
+  indeksPegawai         IndeksPegawai[]
+  badgePegawai          BadgePegawai[]
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -740,4 +742,56 @@ model ArsipSurat {
 
   @@index([jenisSurat])
   @@index([tanggalSurat])
+}
+
+// ============ INDEKS PEGAWAI (SKOR BULANAN) ============
+model IndeksPegawai {
+  id              String   @id @default(cuid())
+  pegawaiId       String
+  bulan           Int      // 1-12
+  tahun           Int
+  // Komponen Skor
+  skorKehadiran   Float    @default(0)   // maks 40
+  skorKetepatan   Float    @default(0)   // maks 30
+  skorAbsenBersih Float    @default(0)   // maks 20
+  skorPerilaku    Float    @default(0)   // maks 10
+  totalSkor       Float    @default(0)   // 0–100
+  predikat        String   @default("CUKUP")
+  // Data snapshot untuk audit
+  hariKerja       Int      @default(0)
+  hadirCount      Int      @default(0)
+  terlambatCount  Int      @default(0)
+  alphaCount      Int      @default(0)
+  spAktif         Boolean  @default(false)
+  pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([pegawaiId, bulan, tahun])
+  @@index([bulan, tahun])
+  @@index([totalSkor])
+}
+
+// ============ BADGE PEGAWAI BULANAN ============
+model BadgePegawai {
+  id          String     @id @default(cuid())
+  pegawaiId   String
+  jenis       JenisBadge
+  bulan       Int
+  tahun       Int
+  deskripsi   String?
+  pegawai     Pegawai    @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+
+  @@unique([pegawaiId, jenis, bulan, tahun])
+  @@index([bulan, tahun])
+}
+
+enum JenisBadge {
+  TOP_DISIPLIN
+  KEHADIRAN_PENUH
+  ZERO_LATE
+  TOP_PERFORMER
+  TERBAIK_UNIT
+  PENINGKATAN_TERBAIK
 }

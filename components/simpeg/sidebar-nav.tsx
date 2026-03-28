@@ -12,7 +12,7 @@ import {
   Navigation, Wallet, Receipt, ArrowUpCircle, Target, Star,
   FolderOpen, FileSignature, ShieldCheck, UserCog, Bell,
   CheckSquare, BarChart3, AlertTriangle, ChevronDown, ChevronRight,
-  ChevronLeft, LogOut, X, Menu, Settings, Upload, Shield
+  ChevronLeft, LogOut, X, Menu, Settings, Upload, Shield, CalendarRange, Trophy
 } from "lucide-react"
 
 type NavItem = {
@@ -58,6 +58,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: "Absensi", href: "/absensi", icon: Clock },
       { title: "Absensi Selfie", href: "/absensi/selfie", icon: Camera },
+      { title: "Kalender Kehadiran", href: "/kalender", icon: CalendarRange },
       { title: "Cuti & Izin", href: "/cuti", icon: CalendarDays },
       { title: "Koreksi Absensi", href: "/absensi/koreksi", icon: FileCheck, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Lokasi Absensi", href: "/settings/lokasi", icon: Navigation, allowedRoles: ["super_admin", "hrd"] },
@@ -79,6 +80,7 @@ const navigation: NavGroup[] = [
     label: "Kinerja & Karier",
     icon: Target,
     items: [
+      { title: "Indeks Pegawai", href: "/indeks", icon: Trophy },
       { title: "KPI & Penilaian", href: "/kpi", icon: Target, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Kenaikan Pangkat", href: "/kenaikan-pangkat", icon: Star, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Reward Poin", href: "/reward", icon: Star },
