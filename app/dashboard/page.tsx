@@ -117,7 +117,7 @@ export default function DashboardPage() {
                   icon={ShieldCheck}
                   color="amber"
                   sub="Perlu ditindak"
-                  href="/approval"
+                  onClick={() => setApprovalOpen(true)}
                 />
                 <KpiCard
                   title="Kontrak Habis"
@@ -317,13 +317,8 @@ export default function DashboardPage() {
 
                 </div>
 
-                {/* RIGHT COLUMN: APPROVAL + KENAIKAN GAJI & PANGKAT + STATUS SDM */}
+                {/* RIGHT COLUMN: KENAIKAN GAJI & PANGKAT + STATUS SDM */}
                 <div className="flex flex-col gap-5">
-
-                  {/* APPROVAL PANEL (INLINE) */}
-                  <div className="h-[400px]">
-                    <ApprovalPanel />
-                  </div>
 
                   {/* KENAIKAN GAJI BERKALA & PANGKAT (ringkas, scroll list) */}
                   <Card className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm rounded-2xl flex flex-col">
@@ -430,6 +425,42 @@ export default function DashboardPage() {
           )}
         </main>
 
+        {/* ===== APPROVAL POPUP OVERLAY ===== */}
+        {approvalOpen && (
+          <div className="fixed inset-0 z-50 flex items-start justify-end p-4 pt-16">
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setApprovalOpen(false)}
+            />
+            <div className="relative z-10 w-full max-w-md h-[calc(100vh-80px)] flex flex-col bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-right-10 duration-300">
+              <div className="px-5 pt-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                  <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Approval Center</span>
+                  {stats?.approvalPending > 0 && (
+                    <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30 px-2 py-0.5 rounded-full font-bold">{stats.approvalPending} Pending</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setApprovalOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <ScrollArea className="flex-1">
+                <div className="p-4">
+                  <ApprovalPanel />
+                </div>
+              </ScrollArea>
+              <div className="px-4 py-3 border-t border-neutral-100 dark:border-neutral-800 shrink-0">
+                <Link href="/approval" onClick={() => setApprovalOpen(false)} className="flex items-center justify-center gap-2 w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 transition-colors">
+                  Buka Approval Center <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

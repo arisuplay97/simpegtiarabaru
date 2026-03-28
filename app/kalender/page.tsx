@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; d
   TERLAMBAT:    { label: "Terlambat",    bg: "bg-amber-50 dark:bg-amber-900/20",      text: "text-amber-700 dark:text-amber-400",     dot: "bg-amber-500" },
   CUTI:         { label: "Cuti",         bg: "bg-purple-50 dark:bg-purple-900/20",    text: "text-purple-700 dark:text-purple-400",   dot: "bg-purple-500" },
   IZIN:         { label: "Izin",         bg: "bg-blue-50 dark:bg-blue-900/20",        text: "text-blue-700 dark:text-blue-400",       dot: "bg-blue-500" },
-  SAKIT:        { label: "Sakit",        bg: "bg-red-50 dark:bg-red-900/20",          text: "text-red-700 dark:text-red-400",         dot: "bg-red-500" },
+  SAKIT:        { label: "Sakit",        bg: "bg-orange-50 dark:bg-orange-900/20",    text: "text-orange-700 dark:text-orange-400",   dot: "bg-orange-500" },
   ALPA:         { label: "Alpha",        bg: "bg-rose-100 dark:bg-rose-900/30",       text: "text-rose-800 dark:text-rose-300",       dot: "bg-rose-600" },
   CUTI_PENDING: { label: "Cuti (Pending)", bg: "bg-stone-50 dark:bg-stone-800/30",   text: "text-stone-500 dark:text-stone-400",     dot: "bg-stone-400" },
 }
@@ -166,7 +166,13 @@ function KalenderContent() {
                         const isWknd = isWeekend(date)
                         const isToday = dateStr === todayStr
                         const isSelected = dateStr === selectedDay
-                        const status = data?.status
+                        let status = data?.status
+                        
+                        // Flag missing days as Alpha if they are past workdays
+                        if (!status && !isWknd && date < new Date(new Date().setHours(0,0,0,0))) {
+                          status = "ALPA"
+                        }
+                        
                         const cfg = status ? (STATUS_CONFIG_EXT[status] || STATUS_CONFIG_EXT.HADIR) : null
 
                         return (
