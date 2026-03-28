@@ -624,10 +624,34 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
       }
     })
 
+    // Sinkronisasi Alpha: Tambahkan ALPA otomatis untuk hari kerja tanpa kehadiran/cuti
+    const now = new Date()
+    const isCurrentMonth = (bulan === now.getMonth() + 1) && (tahun === now.getFullYear())
+    // Batas cek alpha otomatis (max H-1 jika bulan berjalan)
+    const limitDateAlpha = isCurrentMonth ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : endDate
+    
+    let curAlphaDate = new Date(startDate)
+    while (curAlphaDate <= limitDateAlpha) {
+      const day = curAlphaDate.getDay()
+      if (day !== 0 && day !== 6) { // Bukan akhir pekan (Minggu/Sabtu)
+        const key = curAlphaDate.toISOString().split('T')[0]
+        if (!dayMap[key]) {
+          // Hari kerja tanpa absen dan cuti = ALPA otomatis
+          dayMap[key] = {
+            tanggal: key,
+            status: 'ALPA',
+            keterangan: 'Alpha (Otomatis)',
+            source: 'system'
+          }
+        }
+      }
+      curAlphaDate.setDate(curAlphaDate.getDate() + 1)
+    }
+
     // Summary
     const values = Object.values(dayMap)
     const summary = {
-      hadir: values.filter(v => v.status === 'HADIR' || v.status === 'TERLAMBAT').length,
+      hadir: values.filter(v => ['HADIR', 'TERLAMBAT'].includes(v.status)).length,
       terlambat: values.filter(v => v.status === 'TERLAMBAT').length,
       cuti: values.filter(v => v.status === 'CUTI').length,
       izin: values.filter(v => v.status === 'IZIN').length,
