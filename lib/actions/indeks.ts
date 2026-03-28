@@ -65,9 +65,49 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
       where: { pegawaiId, tanggal: { gte: startDate, lte: endDate } }
     })
 
+    const cutiPegawai = await (prisma as any).cuti.findMany({
+      where: {
+        pegawaiId,
+        status: 'APPROVED',
+        tanggalMulai: { lte: limitDate },
+        tanggalSelesai: { gte: startDate }
+      }
+    })
+
+    const absensiSet = new Set(absensi.map(a => a.tanggal.toISOString().split('T')[0]))
+    
+    // Anggap hari cuti sebagai hari yang "tercatat" (bukan alpha)
+    cutiPegawai.forEach((c: any) => {
+      const cur = new Date(Math.max(startDate.getTime(), new Date(c.tanggalMulai).getTime()))
+      const end = new Date(Math.min(limitDate.getTime(), new Date(c.tanggalSelesai).getTime()))
+      while (cur <= end) {
+        absensiSet.add(cur.toISOString().split('T')[0])
+        cur.setDate(cur.getDate() + 1)
+      }
+    })
+
+    // Hitung hari kerja yang sudah lewat tapi tidak ada record absensi/cuti
+    let unrecordedCount = 0
+    const curDate = new Date(startDate)
+    // Kalau bulan berjalan, jangan hitung "hari ini" sebagai alpha unrecorded jika belum absen (beri kelonggaran)
+    // Jadi limitnya adalah kemarin jika bulan berjalan
+    const limitDateAlpha = isCurrentMonth ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : limitDate
+    
+    while (curDate <= limitDateAlpha) {
+      const day = curDate.getDay()
+      if (day !== 0 && day !== 6) { // Bukan akhir pekan
+        const dateStr = curDate.toISOString().split('T')[0]
+        if (!absensiSet.has(dateStr)) {
+          unrecordedCount++
+        }
+      }
+      curDate.setDate(curDate.getDate() + 1)
+    }
+
     const hadirCount = absensi.filter(a => a.status === 'HADIR' || a.status === 'TERLAMBAT').length
     const terlambatCount = absensi.filter(a => a.status === 'TERLAMBAT').length
-    const alphaCount = absensi.filter(a => a.status === 'ALPA').length
+    // Alpha = explicit di DB + unrecorded
+    const alphaCount = absensi.filter(a => a.status === 'ALPA').length + unrecordedCount
     const spAktif = !!pegawai.sp
 
     // ─── Skor Komponen ───
