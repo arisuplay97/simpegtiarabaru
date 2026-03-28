@@ -1,10 +1,12 @@
-const CACHE_NAME = 'simpeg-v1'
+const CACHE_NAME = 'simpeg-v2'
 const STATIC_ASSETS = [
   '/',
-  '/dashboard',
-  '/absensi',
+  '/m/dashboard',
+  '/m/absensi',
   '/kalender',
-  '/cuti',
+  '/m/cuti',
+  '/m/profil',
+  '/m/selfie',
   '/manifest.json',
   '/logo-tar.png',
   '/apple-icon.png',
@@ -56,7 +58,7 @@ self.addEventListener('fetch', (event) => {
           if (cached) return cached
           // Offline page fallback
           if (event.request.destination === 'document') {
-            return caches.match('/dashboard')
+            return caches.match('/m/dashboard')
           }
         })
       })
