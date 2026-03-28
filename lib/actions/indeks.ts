@@ -361,8 +361,8 @@ export async function generateBadgesBulanan(bulan: number, tahun: number) {
 
     const badgesToCreate: Array<{ pegawaiId: string; jenis: any; bulan: number; tahun: number; deskripsi: string }> = []
 
-    // 1. Top Disiplin — Top 10 skor tertinggi
-    rows.slice(0, 10).forEach(r => {
+    // 1. Top Disiplin — Top 10 skor tertinggi (minimal skor 75)
+    rows.filter(r => r.totalSkor >= 75).slice(0, 10).forEach(r => {
       badgesToCreate.push({
         pegawaiId: r.pegawaiId, jenis: "TOP_DISIPLIN", bulan, tahun,
         deskripsi: `Masuk 10 besar pegawai dengan skor disiplin terbaik (${r.totalSkor}/100)`
@@ -377,11 +377,11 @@ export async function generateBadgesBulanan(bulan: number, tahun: number) {
       })
     })
 
-    // 3. Zero Late — tidak pernah terlambat
-    rows.filter(r => r.terlambatCount === 0 && r.hadirCount > 0).forEach(r => {
+    // 3. Zero Late — tidak pernah terlambat (minimal hadir 10 hari / 50% hari kerja agar fair)
+    rows.filter(r => r.terlambatCount === 0 && r.hadirCount >= Math.min(10, r.hariKerja * 0.5)).forEach(r => {
       badgesToCreate.push({
         pegawaiId: r.pegawaiId, jenis: "ZERO_LATE", bulan, tahun,
-        deskripsi: `Tidak pernah terlambat selama ${r.hariKerja} hari kerja`
+        deskripsi: `Tidak pernah terlambat selama ${r.hadirCount} hari kehadiran riil`
       })
     })
 
@@ -393,9 +393,9 @@ export async function generateBadgesBulanan(bulan: number, tahun: number) {
       })
     })
 
-    // 5. Terbaik Unit — rank 1 di unit masing-masing
+    // 5. Terbaik Unit — rank 1 di unit masing-masing (minimal skor 70)
     const unitBest = new Map<string, typeof rows[0]>()
-    rows.forEach(r => {
+    rows.filter(r => r.totalSkor >= 70).forEach(r => {
       const unitId = r.pegawai.bidang?.id
       if (!unitId) return
       if (!unitBest.has(unitId)) unitBest.set(unitId, r)
@@ -430,13 +430,16 @@ export async function generateBadgesBulanan(bulan: number, tahun: number) {
       })
     }
 
-    // Upsert semua badge
+    // Hapus badge lama di bulan & tahun ini agar tidak ada badge "nyangkut" dari proses sebelumnya
+    await prisma.badgePegawai.deleteMany({
+      where: { bulan, tahun }
+    })
+
+    // Upsert semua badge baru
     let created = 0
     for (const badge of badgesToCreate) {
-      await prisma.badgePegawai.upsert({
-        where: { pegawaiId_jenis_bulan_tahun: { pegawaiId: badge.pegawaiId, jenis: badge.jenis, bulan: badge.bulan, tahun: badge.tahun } },
-        update: { deskripsi: badge.deskripsi },
-        create: badge
+      await prisma.badgePegawai.create({
+        data: badge
       })
       created++
     }
