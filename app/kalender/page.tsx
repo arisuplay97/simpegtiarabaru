@@ -17,7 +17,7 @@ import { TopBar } from "@/components/simpeg/top-bar"
 // ─── Config ──────────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   HADIR:        { label: "Hadir",        bg: "bg-emerald-50 dark:bg-emerald-900/20",  text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500" },
-  TERLAMBAT:    { label: "Terlambat",    bg: "bg-amber-50 dark:bg-amber-900/20",      text: "text-amber-700 dark:text-amber-400",     dot: "bg-amber-500" },
+  TERLAMBAT:    { label: "Hadir",        bg: "bg-emerald-50 dark:bg-emerald-900/20",  text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500" },
   CUTI:         { label: "Cuti",         bg: "bg-purple-50 dark:bg-purple-900/20",    text: "text-purple-700 dark:text-purple-400",   dot: "bg-purple-500" },
   IZIN:         { label: "Izin",         bg: "bg-blue-50 dark:bg-blue-900/20",        text: "text-blue-700 dark:text-blue-400",       dot: "bg-blue-500" },
   SAKIT:        { label: "Sakit",        bg: "bg-orange-50 dark:bg-orange-900/20",    text: "text-orange-700 dark:text-orange-400",   dot: "bg-orange-500" },
@@ -80,6 +80,19 @@ function KalenderContent() {
     return d === 0 || d === 6
   }
 
+  // Calculate strict visual summary
+  let totalHadir = 0; let totalCuti = 0; let totalIzin = 0; let totalSakit = 0; let totalAlpha = 0;
+  daysInMonth.forEach(date => {
+    const dateStr = format(date, "yyyy-MM-dd")
+    let status = dayMap[dateStr]?.status
+    if (!status && !isWeekend(date) && date < new Date(new Date().setHours(0,0,0,0))) status = "ALPA"
+    if (status === "HADIR" || status === "TERLAMBAT") totalHadir++
+    else if (status === "CUTI" || status === "CUTI_PENDING") totalCuti++
+    else if (status === "IZIN") totalIzin++
+    else if (status === "SAKIT") totalSakit++
+    else if (status === "ALPA") totalAlpha++
+  })
+
   return (
     <div className="flex min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <SidebarNav />
@@ -113,13 +126,13 @@ function KalenderContent() {
           </div>
 
           {/* Summary Strip */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: "Hadir", value: (summary.hadir || 0) + (summary.terlambat || 0), icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-              { label: "Cuti", value: summary.cuti || 0, icon: Calendar, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-900/20" },
-              { label: "Izin", value: summary.izin || 0, icon: Info, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-900/20" },
-              { label: "Sakit", value: summary.sakit || 0, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-900/20" },
-              { label: "Alpha", value: summary.alpha || 0, icon: XCircle, color: "text-rose-700", bg: "bg-rose-50 dark:bg-rose-900/20" },
+              { label: "Hadir", value: totalHadir, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+              { label: "Cuti", value: totalCuti, icon: Calendar, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-900/20" },
+              { label: "Izin", value: totalIzin, icon: Info, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-900/20" },
+              { label: "Sakit", value: totalSakit, icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-900/20" },
+              { label: "Alpha", value: totalAlpha, icon: XCircle, color: "text-rose-700", bg: "bg-rose-50 dark:bg-rose-900/20" },
             ].map(item => (
               <Card key={item.label} className={cn("border-none shadow-sm", item.bg)}>
                 <CardContent className="p-3 flex items-center gap-2">
@@ -210,12 +223,15 @@ function KalenderContent() {
 
                     {/* Legend */}
                     <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
-                      {Object.entries(STATUS_CONFIG_EXT).slice(0, 6).map(([key, cfg]) => (
-                        <div key={key} className="flex items-center gap-1.5">
-                          <span className={cn("w-2 h-2 rounded-full", cfg.dot)} />
-                          <span className="text-[11px] text-neutral-500">{cfg.label}</span>
-                        </div>
-                      ))}
+                      {Object.keys(STATUS_CONFIG_EXT).filter(k => k !== 'TERLAMBAT' && k !== 'CUTI_PENDING').map(key => {
+                        const cfg = STATUS_CONFIG_EXT[key];
+                        return (
+                          <div key={key} className="flex items-center gap-1.5">
+                            <span className={cn("w-2 h-2 rounded-full", cfg.dot)} />
+                            <span className="text-[11px] text-neutral-500">{cfg.label}</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </>
                 )}
@@ -280,9 +296,8 @@ function KalenderContent() {
                   <div className="space-y-2">
                     {[
                       { label: "Hari Kerja Efektif (perkiraan)", value: daysInMonth.filter(d => !isWeekend(d) && d <= new Date()).length, color: "text-neutral-600 dark:text-neutral-300" },
-                      { label: "Hadir", value: (summary.hadir || 0) + (summary.terlambat || 0), color: "text-emerald-600" },
-                      { label: "Terlambat", value: summary.terlambat || 0, color: "text-amber-600" },
-                      { label: "Alpha", value: summary.alpha || 0, color: "text-rose-600" },
+                      { label: "Hadir", value: totalHadir, color: "text-emerald-600" },
+                      { label: "Alpha", value: totalAlpha, color: "text-rose-600" },
                     ].map(item => (
                       <div key={item.label} className="flex items-center justify-between">
                         <span className="text-xs text-neutral-500">{item.label}</span>
