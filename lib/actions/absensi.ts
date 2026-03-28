@@ -930,11 +930,12 @@ export async function createAbsensiManual(data: { pegawaiId: string, tanggal: st
       newData: absensi as any,
     })
 
-    revalidatePath("/absensi")
     return { success: true }
   } catch (error: any) {
     console.error("Create absensi error:", error)
     return { error: error.message || "Gagal membuat data absensi" }
   }
 }
+
+
 
