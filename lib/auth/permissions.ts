@@ -4,6 +4,8 @@ export const roleLabels: Record<string, string> = {
   SUPERADMIN: "Super Admin",
   HRD: "HRD",
   DIREKSI: "Direksi",
+  KEPALA_BIDANG: "Kepala Bidang",
+  KEPALA_CABANG: "Kepala Cabang",
   PEGAWAI: "Pegawai",
 }
 
@@ -83,6 +85,26 @@ export const rolePermissions: Record<string, string[]> = {
     "dokumen.view",
     "sk.view",
     "sp.view",
+  ],
+  KEPALA_BIDANG: [
+    "dashboard.view",
+    "pegawai.view",
+    "absensi.view",
+    "cuti.view",
+    "cuti.approve",
+    "indeks.view",
+    "penilaian.view",
+    "penilaian.manage",
+  ],
+  KEPALA_CABANG: [
+    "dashboard.view",
+    "pegawai.view",
+    "absensi.view",
+    "cuti.view",
+    "cuti.approve",
+    "indeks.view",
+    "penilaian.view",
+    "penilaian.manage",
   ],
   PEGAWAI: [
     "dashboard.view",
