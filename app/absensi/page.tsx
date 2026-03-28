@@ -71,15 +71,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getAbsensiList, getAbsensiSaya, getAbsensiSayaAndSummary,
-  checkDeviceAndAbsen,
+import { getAbsensiList, checkDeviceAndAbsen,
   deleteAbsensi,
   deleteAllAbsensiByMonth,
   markAllPresentByDate,
   getSystemSettings,
   getRekapBulanan,
-  updateAbsensi
+  updateAbsensi,
+  createAbsensiManual,
+  getAbsensiSaya,
+  getAbsensiSayaAndSummary
 } from "@/lib/actions/absensi"
+import { getEmployees } from "@/lib/actions/pegawai"
 
 interface AttendanceRecord {
   id: string
@@ -268,7 +271,17 @@ export default function AttendancePage() {
 
   // Admin Edit States
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null)
+  
+  // Add Form States
+  const [addPegawaiId, setAddPegawaiId] = useState("")
+  const [addTanggal, setAddTanggal] = useState(format(new Date(), "yyyy-MM-dd"))
+  const [addCheckIn, setAddCheckIn] = useState("08:00")
+  const [addCheckOut, setAddCheckOut] = useState("17:00")
+  const [addStatus, setAddStatus] = useState("hadir")
+  const [employees, setEmployees] = useState<any[]>([])
+
   const [editCheckIn, setEditCheckIn] = useState("")
   const [editCheckOut, setEditCheckOut] = useState("")
   const [editStatus, setEditStatus] = useState("")
@@ -362,7 +375,12 @@ export default function AttendancePage() {
         }
 
         if (isAdmin) {
-          data = await getAbsensiList(date, date)
+          const [d, emps] = await Promise.all([
+             getAbsensiList(date, date),
+             getEmployees()
+          ])
+          setEmployees(emps)
+          data = d
           setRecords(mapAbsensi(data, currentSettings))
         } else {
           const res = await getAbsensiSayaAndSummary(selectedMonth, selectedYear)
@@ -462,6 +480,34 @@ export default function AttendancePage() {
       setRecords(mapAbsensi(d, settings))
     } else {
       toast.error(res.error || "Gagal menyimpan perubahan")
+    }
+
+    setIsLoading(false)
+  }
+
+  const handleSaveAdd = async () => {
+    if (!addPegawaiId || !addTanggal || !addStatus) {
+      toast.error("Data tidak lengkap")
+      return
+    }
+    setIsLoading(true)
+
+    const res = await createAbsensiManual({
+      pegawaiId: addPegawaiId,
+      tanggal: addTanggal,
+      status: addStatus,
+      jamMasuk: addCheckIn || undefined,
+      jamKeluar: addCheckOut || undefined
+    })
+
+    if (res.success) {
+      toast.success(`Absensi manual berhasil ditambahkan`)
+      setShowAddDialog(false)
+      // Refresh
+      const d = await getAbsensiList(date, date)
+      setRecords(mapAbsensi(d, settings))
+    } else {
+      toast.error(res.error || "Gagal menyimpan absensi manual")
     }
 
     setIsLoading(false)
@@ -809,6 +855,10 @@ export default function AttendancePage() {
               )}
               {isAdmin && (
                 <>
+                  <Button variant="default" size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setShowAddDialog(true)}>
+                    <CheckCircle className="h-4 w-4" />
+                    Tambah Manual
+                  </Button>
                   <Button variant="default" size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkAllPresent}>
                     <CheckCircle className="h-4 w-4" />
                     Hadirkan Semua
@@ -1197,6 +1247,89 @@ export default function AttendancePage() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   "Simpan Perubahan"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Tambah Absensi Manual</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Pegawai</label>
+                <Select value={addPegawaiId} onValueChange={setAddPegawaiId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Pegawai" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[250px]">
+                    {employees.map(e => (
+                      <SelectItem key={e.id} value={e.id}>{e.nama} — {e.nik}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+               <div>
+                <label className="mb-1.5 block text-sm font-medium">Tanggal</label>
+                <Input
+                  type="date"
+                  value={addTanggal}
+                  onChange={(e) => setAddTanggal(e.target.value)}
+                />
+              </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Jam Masuk</label>
+                  <Input
+                    type="time"
+                    value={addCheckIn}
+                    onChange={(e) => setAddCheckIn(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Jam Keluar</label>
+                  <Input
+                    type="time"
+                    value={addCheckOut}
+                    onChange={(e) => setAddCheckOut(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Status</label>
+                <Select value={addStatus} onValueChange={setAddStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hadir">Hadir</SelectItem>
+                    <SelectItem value="izin">Izin</SelectItem>
+                    <SelectItem value="sakit">Sakit</SelectItem>
+                    <SelectItem value="cuti">Cuti</SelectItem>
+                    <SelectItem value="alpha">Alpha</SelectItem>
+                    <SelectItem value="dinas">Dinas Luar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                Batal
+              </Button>
+              <Button onClick={handleSaveAdd} disabled={isLoading || !addPegawaiId}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  "Simpan Absensi"
                 )}
               </Button>
             </DialogFooter>

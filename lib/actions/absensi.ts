@@ -858,3 +858,83 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
   }
 }
 
+// =============================================
+// TAMBAH ABSENSI MANUAL (ADMIN)
+// =============================================
+export async function createAbsensiManual(data: { pegawaiId: string, tanggal: string, status: string, jamMasuk?: string, jamKeluar?: string }) {
+  try {
+    const session = await auth()
+    if (!session?.user || !["SUPERADMIN", "HRD"].includes((session.user as any).role)) {
+      return { error: "Akses ditolak" }
+    }
+
+    const { pegawaiId, tanggal, status, jamMasuk, jamKeluar } = data
+    if (!pegawaiId || !tanggal || !status) return { error: "Data tidak lengkap" }
+
+    const dateObj = new Date(tanggal)
+    dateObj.setHours(8, 0, 0, 0)
+
+    const statusMap: Record<string, string> = {
+      hadir: "HADIR", izin: "IZIN", sakit: "SAKIT",
+      cuti: "CUTI", alpha: "ALPHA", dinas: "DINAS"
+    }
+    const dbStatus = statusMap[status] ?? status.toUpperCase()
+
+    let jMasuk = null
+    let jKeluar = null
+
+    if (jamMasuk) {
+      const [h, m] = jamMasuk.split(":").map(Number)
+      jMasuk = new Date(dateObj)
+      jMasuk.setHours(h, m, 0, 0)
+    }
+    if (jamKeluar) {
+      const [h, m] = jamKeluar.split(":").map(Number)
+      jKeluar = new Date(dateObj)
+      jKeluar.setHours(h, m, 0, 0)
+    }
+
+    const startOfDay = new Date(dateObj)
+    startOfDay.setHours(0,0,0,0)
+    const endOfDay = new Date(dateObj)
+    endOfDay.setHours(23,59,59,999)
+
+    const existing = await prisma.absensi.findFirst({
+      where: {
+        pegawaiId,
+        tanggal: { gte: startOfDay, lte: endOfDay }
+      }
+    })
+
+    if (existing) {
+      return { error: "Pegawai sudah memiliki data di tanggal tersebut. Silakan gunakan fitur Edit." }
+    }
+
+    const absensi = await prisma.absensi.create({
+      data: {
+        pegawaiId,
+        tanggal: dateObj,
+        status: dbStatus as any,
+        metode: "MANUAL",
+        jamMasuk: jMasuk,
+        jamKeluar: jKeluar
+      },
+      include: { pegawai: true }
+    })
+
+    await logAudit({
+      action: "CREATE",
+      module: "absensi",
+      targetId: absensi.id,
+      targetName: `Tambah Absensi: ${absensi.pegawai.nama} — ${dbStatus}`,
+      newData: absensi as any,
+    })
+
+    revalidatePath("/absensi")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Create absensi error:", error)
+    return { error: error.message || "Gagal membuat data absensi" }
+  }
+}
+
