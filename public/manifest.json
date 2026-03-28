@@ -2,7 +2,7 @@
   "name": "SIMPEG PDAM Tirta Ardhia Rinjani",
   "short_name": "SIMPEG",
   "description": "Sistem Informasi Manajemen Kepegawaian PDAM Tirta Ardhia Rinjani",
-  "start_url": "/dashboard",
+  "start_url": "/m/dashboard",
   "display": "standalone",
   "background_color": "#0d0d12",
   "theme_color": "#1e3a5f",
