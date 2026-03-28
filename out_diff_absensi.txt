@@ -1,0 +1,32 @@
+diff --git a/lib/actions/absensi.ts b/lib/actions/absensi.ts
+index 0f31d9a..a9e8a30 100644
+--- a/lib/actions/absensi.ts
++++ b/lib/actions/absensi.ts
+@@ -739,6 +739,7 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
+         totalJamMenit: 0,
+         hariKerja: totalHariKerja,
+         hariKerjaAktif: hariKerjaAktif,
++        weekdayRecords: 0,
+       }
+     }
+ 
+@@ -760,6 +761,9 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
+ 
+       const r = pegawaiMap[pid]
+       const status = a.status as any
++      const isWeekend = a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6
++      if (!isWeekend) r.weekdayRecords++
++
+       switch (status) {
+         case "HADIR":    r.hadir++;    break
+         case "TERLAMBAT": r.hadir++; r.terlambat++; break
+@@ -779,8 +783,7 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
+     // Kalkulasi Alpha/Mangkir otomatis & Penyesuaian Status untuk yg belum diabsen
+     for (const pid in pegawaiMap) {
+       const r = pegawaiMap[pid]
+-      const countedRecords = r.hadir + r.alpha + r.izin + r.sakit + r.cuti + r.dinas
+-      const missingCount = Math.max(0, hariKerjaAktif - countedRecords)
++      const missingCount = Math.max(0, hariKerjaAktif - r.weekdayRecords)
+       r.alpha += missingCount
+     }
+ 

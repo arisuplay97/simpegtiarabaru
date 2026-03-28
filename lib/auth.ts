@@ -54,6 +54,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               jabatan: user.pegawai?.jabatan || "",
               unitKerja: user.pegawai?.bidangId || "",
               mustChangePassword: user.mustChangePassword,
+              image: user.pegawai?.fotoUrl || null,
+              pegawaiId: user.pegawai?.id || null,
             }
           }
         } catch (error) {
@@ -77,9 +79,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.unitKerja = (user as any).unitKerja
         token.username = (user as any).username
         token.mustChangePassword = (user as any).mustChangePassword ?? false
+        token.picture = (user as any).image || null
+        token.pegawaiId = (user as any).pegawaiId || null
       }
       if (trigger === "update" && session !== undefined) {
         token.mustChangePassword = session.mustChangePassword
+        if (session.picture !== undefined) token.picture = session.picture
       }
       return token
     },
@@ -91,6 +96,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ;(session.user as any).unitKerja = token.unitKerja
         ;(session.user as any).username = token.username
         ;(session.user as any).mustChangePassword = token.mustChangePassword
+        ;(session.user as any).image = token.picture || null
+        ;(session.user as any).pegawaiId = token.pegawaiId || null
       }
       return session
     }

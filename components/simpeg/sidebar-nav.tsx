@@ -251,12 +251,18 @@ export function SidebarNav() {
       {(isMobileMode || !collapsed) && (
         <div className="mx-3 my-3 rounded-xl bg-white/5 border border-white/8 p-3">
           <div className="flex items-center gap-3">
-            <div className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white shadow-md",
-              roleInfo?.color || "from-blue-500 to-indigo-600"
-            )}>
-              {getInitials(session?.user?.name)}
-            </div>
+            {session?.user?.image ? (
+              <div className="h-9 w-9 shrink-0 rounded-xl overflow-hidden ring-2 ring-white/20">
+                <img src={session.user.image} alt={session.user.name || ""} className="h-full w-full object-cover" />
+              </div>
+            ) : (
+              <div className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white shadow-md",
+                roleInfo?.color || "from-blue-500 to-indigo-600"
+              )}>
+                {getInitials(session?.user?.name)}
+              </div>
+            )}
             <div className="min-w-0">
               <div className="text-[13px] font-semibold text-white truncate leading-tight">
                 {session?.user?.name || "User"}
