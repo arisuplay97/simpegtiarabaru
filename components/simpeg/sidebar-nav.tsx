@@ -83,7 +83,6 @@ const navigation: NavGroup[] = [
       { title: "Indeks Pegawai", href: "/indeks", icon: Trophy },
       { title: "KPI & Penilaian", href: "/kpi", icon: Target, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Kenaikan Pangkat", href: "/kenaikan-pangkat", icon: Star, allowedRoles: ["super_admin", "hrd", "direktur"] },
-      { title: "Reward Poin", href: "/reward", icon: Star },
     ],
   },
   {

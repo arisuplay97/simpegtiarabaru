@@ -522,8 +522,17 @@ export async function getPegawaiPerluPerhatian() {
 // ============================================================
 // KALENDER: Ambil data ketidakhadiran per bulan
 // ============================================================
-export async function getKalenderPegawai(pegawaiId: string, bulan: number, tahun: number) {
+export async function getKalenderPegawai(pegawaiId: string | null, bulan: number, tahun: number) {
   try {
+    if (!pegawaiId) {
+      const session = await auth()
+      if (session?.user?.id) {
+        const u = await prisma.pegawai.findUnique({ where: { userId: session.user.id } })
+        if (u) pegawaiId = u.id
+      }
+    }
+    if (!pegawaiId) return { dayMap: {}, summary: {} }
+
     const startDate = new Date(tahun, bulan - 1, 1, 0, 0, 0)
     const endDate = new Date(tahun, bulan, 0, 23, 59, 59)
 
