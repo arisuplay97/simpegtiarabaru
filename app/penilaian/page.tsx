@@ -113,6 +113,15 @@ function PenilaianContent() {
     return matchSearch && matchStatus
   })
 
+  const groupedData = filtered.reduce((acc, curr) => {
+    const unit = curr.unit || "Lainnya"
+    if (!acc[unit]) acc[unit] = []
+    acc[unit].push(curr)
+    return acc
+  }, {} as Record<string, any[]>)
+  
+  const sortedUnits = Object.keys(groupedData).sort()
+
   const handleNilai = (pegawaiId: string) => {
     router.push(`/penilaian/form/${pegawaiId}?bulan=${bulan}&tahun=${tahun}`)
   }
@@ -269,11 +278,18 @@ function PenilaianContent() {
                 <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide w-28 text-center">Status</span>
                 <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide w-20 text-center">Aksi</span>
               </div>
-              {filtered.map(p => (
-                <div
-                  key={p.pegawaiId}
-                  className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3.5 border-b border-neutral-50 dark:border-neutral-800 last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors"
-                >
+              {sortedUnits.map(unit => (
+                <div key={unit}>
+                  <div className="bg-neutral-100 dark:bg-neutral-800/80 px-5 py-2 text-xs font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-2 border-b border-neutral-200 dark:border-neutral-700">
+                    <Building2 className="h-3.5 w-3.5" />
+                    {unit}
+                    <Badge variant="outline" className="ml-2 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-[10px] h-5 px-1.5">{groupedData[unit].length}</Badge>
+                  </div>
+                  {groupedData[unit].map((p: any) => (
+                    <div
+                      key={p.pegawaiId}
+                      className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3.5 border-b border-neutral-50 dark:border-neutral-800 last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors"
+                    >
                   {/* Info */}
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="h-9 w-9 shrink-0">
@@ -326,16 +342,26 @@ function PenilaianContent() {
                     </Button>
                   </div>
                 </div>
+                  ))}
+                </div>
               ))}
             </Card>
           ) : (
             /* ── GRID VIEW ── */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filtered.map(p => (
-                <Card
-                  key={p.pegawaiId}
-                  className="border border-neutral-100 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900 hover:shadow-md transition-shadow"
-                >
+            <div className="space-y-6">
+              {sortedUnits.map(unit => (
+                <div key={unit} className="space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-neutral-200 dark:border-neutral-800">
+                    <Building2 className="h-4 w-4 text-neutral-500" />
+                    <h2 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wide">{unit}</h2>
+                    <Badge variant="secondary" className="ml-2 text-[10px] h-5 px-1.5">{groupedData[unit].length}</Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {groupedData[unit].map((p: any) => (
+                      <Card
+                        key={p.pegawaiId}
+                        className="border border-neutral-100 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900 hover:shadow-md transition-shadow"
+                      >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       <Avatar className="h-10 w-10 shrink-0">
@@ -409,6 +435,9 @@ function PenilaianContent() {
                     </div>
                   </CardContent>
                 </Card>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
