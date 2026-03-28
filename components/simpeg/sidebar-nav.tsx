@@ -12,7 +12,7 @@ import {
   Navigation, Wallet, Receipt, ArrowUpCircle, Target, Star,
   FolderOpen, FileSignature, ShieldCheck, UserCog, Bell,
   CheckSquare, BarChart3, AlertTriangle, ChevronDown, ChevronRight,
-  ChevronLeft, LogOut, X, Menu, Settings, Upload, Shield, CalendarRange, Trophy
+  ChevronLeft, LogOut, X, Menu, Settings, Upload, Shield, CalendarRange, Trophy, ClipboardCheck
 } from "lucide-react"
 
 type NavItem = {
@@ -20,7 +20,7 @@ type NavItem = {
   href: string
   icon: React.ElementType
   badge?: number
-  allowedRoles?: Array<"super_admin" | "hrd" | "direktur" | "pegawai">
+  allowedRoles?: Array<"super_admin" | "hrd" | "direktur" | "pegawai" | "kepala_bidang" | "kepala_cabang">
 }
 
 type NavGroup = {
@@ -81,6 +81,7 @@ const navigation: NavGroup[] = [
     icon: Target,
     items: [
       { title: "Indeks Pegawai", href: "/indeks", icon: Trophy },
+      { title: "Penilaian Pegawai", href: "/penilaian", icon: ClipboardCheck, allowedRoles: ["super_admin", "hrd", "direktur", "kepala_bidang", "kepala_cabang"] },
       { title: "KPI & Penilaian", href: "/kpi", icon: Target, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Kenaikan Pangkat", href: "/kenaikan-pangkat", icon: Star, allowedRoles: ["super_admin", "hrd", "direktur"] },
     ],
@@ -143,10 +144,12 @@ export function SidebarNav() {
   const { mobileOpen, setMobileOpen } = useSidebar()
 
   const roleLabels: Record<string, { label: string; color: string }> = {
-    SUPERADMIN: { label: "Super Admin", color: "from-violet-500 to-purple-600" },
-    HRD:        { label: "HRD / Admin", color: "from-blue-500 to-indigo-600" },
-    DIREKSI:    { label: "Direksi",     color: "from-amber-500 to-orange-600" },
-    PEGAWAI:    { label: "Pegawai",     color: "from-emerald-500 to-teal-600" },
+    SUPERADMIN:    { label: "Super Admin",   color: "from-violet-500 to-purple-600" },
+    HRD:           { label: "HRD / Admin",   color: "from-blue-500 to-indigo-600" },
+    DIREKSI:       { label: "Direksi",       color: "from-amber-500 to-orange-600" },
+    KEPALA_BIDANG: { label: "Kepala Bidang", color: "from-teal-500 to-cyan-600" },
+    KEPALA_CABANG: { label: "Kepala Cabang", color: "from-teal-500 to-emerald-600" },
+    PEGAWAI:       { label: "Pegawai",       color: "from-emerald-500 to-teal-600" },
   }
 
   useEffect(() => {
@@ -180,6 +183,8 @@ export function SidebarNav() {
           const normalizedAllowed = item.allowedRoles.map(r =>
             r === "super_admin" ? "SUPERADMIN" :
             r === "direktur" ? "DIREKSI" :
+            r === "kepala_bidang" ? "KEPALA_BIDANG" :
+            r === "kepala_cabang" ? "KEPALA_CABANG" :
             r.toUpperCase()
           )
           return normalizedAllowed.includes(userRole)

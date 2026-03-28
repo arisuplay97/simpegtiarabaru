@@ -69,6 +69,8 @@ const allPermissions: Permission[] = [
   { id: "kalender.view", label: "Kalender Kehadiran", description: "Melihat visualisasi kalender kehadiran" },
   { id: "indeks.view", label: "Indeks Pegawai", description: "Melihat leaderboard dan skor indeks" },
   { id: "indeks.manage", label: "Kelola Indeks", description: "Menghitung ulang skor dan melihat peringatan" },
+  { id: "penilaian.view", label: "Lihat Penilaian", description: "Melihat hasil penilaian pegawai oleh atasan" },
+  { id: "penilaian.manage", label: "Kelola Penilaian", description: "Membuat dan menyelesaikan penilaian atasan" },
   { id: "approval.manage", label: "Approval Center", description: "Pusat persetujuan cuti dan mutasi" },
 ]
 
@@ -100,6 +102,20 @@ const initialRoles: RoleConfig[] = [
     description: "Akses terbatas untuk melihat data pribadi",
     permissions: ["dashboard.view", "absensi.view", "cuti.view", "payroll.view", "kalender.view", "indeks.view"],
     userCount: 45,
+  },
+  {
+    id: "kepala_bidang", name: "KEPALA_BIDANG", label: "Kepala Bidang",
+    color: "bg-teal-100 text-teal-700 border-teal-200",
+    description: "Menilai pegawai di bawah bidangnya dan melihat laporan unit",
+    permissions: ["dashboard.view", "pegawai.view", "absensi.view", "cuti.view", "cuti.approve", "indeks.view", "penilaian.view", "penilaian.manage", "kalender.view"],
+    userCount: 0,
+  },
+  {
+    id: "kepala_cabang", name: "KEPALA_CABANG", label: "Kepala Cabang",
+    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
+    description: "Menilai pegawai cabang dan melihat laporan cabang",
+    permissions: ["dashboard.view", "pegawai.view", "absensi.view", "cuti.view", "cuti.approve", "indeks.view", "penilaian.view", "penilaian.manage", "kalender.view"],
+    userCount: 0,
   },
 ]
 
@@ -139,7 +155,7 @@ export default function RolePermissionPage() {
   // Group permissions by module
   const permissionGroups = [
     { label: "Dashboard", icon: Settings, perms: allPermissions.filter(p => p.id.startsWith("dashboard") || p.id.startsWith("approval")) },
-    { label: "Pegawai & Kinerja", icon: Users, perms: allPermissions.filter(p => p.id.startsWith("pegawai") || p.id.startsWith("indeks")) },
+    { label: "Pegawai & Kinerja", icon: Users, perms: allPermissions.filter(p => p.id.startsWith("pegawai") || p.id.startsWith("indeks") || p.id.startsWith("penilaian")) },
     { label: "Mutasi", icon: FileText, perms: allPermissions.filter(p => p.id.startsWith("mutasi")) },
     { label: "Absensi", icon: Eye, perms: allPermissions.filter(p => p.id.startsWith("absensi") || p.id.startsWith("kalender")) },
     { label: "Cuti", icon: FileText, perms: allPermissions.filter(p => p.id.startsWith("cuti")) },

@@ -1,390 +1,358 @@
-tambahkan fitur ini
+tambahkan role : kepala bidang/kepala cabang
 
-Fokus fitur baru:
-1. Kalender Ketidakhadiran Pegawai
-2. Employee Score / Skor Pegawai
-3. Ranking Unit / Cabang
-4. Badge Pegawai Bulanan
-5. Semua fitur harus terasa realistis, berguna, dan tidak gimmicky
+PENILAIAN PEGAWAI OLEH ATASAN
+(oleh Kepala Bidang dan Kepala Cabang)
 
-Gunakan gaya UI yang sudah ada:
-- clean
-- enterprise
-- modern
-- premium
+Tujuan fitur:
+- menilai pegawai tidak hanya dari absensi
+- menggabungkan nilai sistem otomatis dan penilaian atasan
+- membantu mendeteksi pegawai yang sering meninggalkan tempat kerja / cabut sebelum waktunya
+- membantu HRD dalam pembinaan, reward, promosi, dan evaluasi pegawai
+- membuat SIMPEG terasa lebih hidup, lebih adil, dan lebih enterprise
 
-
-==================================================
-A. FITUR KALENDER KETIDAKHADIRAN PEGAWAI
-==================================================
-
-Buat modul kalender ketidakhadiran yang bisa dipakai oleh:
-- Pegawai (lihat kalender dirinya sendiri)
-- Atasan / HRD (lihat kalender tim atau unit jika diizinkan)
-
-Tujuan:
-- pegawai bisa tahu tanggal tidak masuk
-- pegawai bisa tahu cuti / izin / sakit / dinas luar / libur
-- atasan bisa lihat bentrok cuti tim
-- HRD bisa lihat pola ketidakhadiran
-
-1. Tambahkan halaman:
-- /kalender
-atau integrasikan sebagai tab pada modul absensi / cuti
-
-2. Tampilan utama:
-- kalender bulanan modern
-- header bulan + navigasi prev/next month
-- legend warna status
-- filter status
-- filter unit (untuk HRD / atasan jika perlu)
-
-3. Status yang harus tampil di kalender:
-- Hadir
-- Cuti
-- Izin
-- Sakit
-- Dinas Luar
-- Libur Nasional
-- Cuti Bersama
-- Pending Approval
-- Alpha / Tidak Hadir
-
-4. Warna status:
-- Hijau = Cuti
-- Kuning / oranye = Izin
-- Merah = Sakit
-- Biru = Dinas Luar
-- Abu muda / ungu muda = Libur Nasional / Cuti Bersama / weekend sabtu/minggu
-- Abu tipis = Pending
-- Merah tua / netral alert = Alpha
-
-5. Setiap tanggal jika diklik harus menampilkan detail:
-- tanggal
-- status hari itu
-- jenis pengajuan jika ada
-- jam absensi jika hadir
-- approver jika cuti/izin sudah disetujui
-- catatan jika ada
-
-6. Kalender harus otomatis terisi dari data:
-- cuti yang disetujui
-- izin yang disetujui
-- sakit
-- dinas luar
-- data absensi
-- libur nasional
-- cuti bersama
-
-7. Tambahkan ringkasan di atas kalender:
-- Total Cuti bulan ini
-- Total Izin
-- Total Sakit
-- Total Alpha
-- Kehadiran bulan ini
-
-8. Untuk pegawai:
-- hanya melihat kalender dirinya sendiri
-- tidak melihat pegawai lain
-
-9. Untuk HRD / Atasan:
-- bisa lihat kalender tim / unit
-- bisa filter per pegawai
-- bisa lihat bentrok cuti
-
-==================================================
-B. EMPLOYEE SCORE / SKOR PEGAWAI
-==================================================
-
-Tambahkan fitur Skor Pegawai bulanan agar SIMPEG tidak hanya administratif, tapi juga analitis.
-
-Tujuan:
-- memberi gambaran performa pegawai secara ringkas
-- tidak hanya berdasarkan absensi
-- bisa dipakai untuk ranking, badge, dan evaluasi
-
-1. Buat konsep skor bulanan dari 0–100
-Nama fitur:
-- Skor Pegawai
-- Indeks Pegawai
-Pilih salah satu dan gunakan konsisten
-
-2. Komponen skor:
-- Disiplin Kehadiran
-- Ketepatan Waktu
-- Status Absensi Bersih
-- Pengajuan / Administrasi Tertib
-- Nilai KPI / Kinerja
-- Catatan Atasan
-- Status SP (jika ada, mengurangi skor)
-
-3. Bobot yang disarankan:
-- Disiplin Kehadiran: 25%
-- Ketepatan Waktu: 20%
-- Status Absensi Bersih: 15%
-- Administrasi / Pengajuan Tertib: 10%
-- KPI / Kinerja: 20%
-- Catatan Atasan / Perilaku: 10%
-
-Total 100%
-
-4. Aturan skor:
-- skor dihitung otomatis per bulan
-- keterlambatan menurunkan skor
-- alpha menurunkan skor lebih besar
-- SP aktif menurunkan skor
-- kehadiran penuh menambah skor
-- KPI baik menaikkan skor
-- perilaku baik / catatan atasan baik menaikkan skor
-
-5. Output skor:
-- angka utama contoh 87/100
-- predikat:
-  - 90–100 = Sangat Baik
-  - 80–89 = Baik
-  - 70–79 = Cukup
-  - 60–69 = Kurang
-  - <60 = Sangat Kurang
-
-6. Tampilkan di:
-- dashboard pegawai
-- profil pegawai
-- dashboard HRD
-- ranking pegawai
-- ranking unit
-
-7. Tambahkan grafik tren skor bulanan untuk pegawai:
-- 6 bulan terakhir
-- naik / turun
-
-8. Tambahkan label analitis:
-- naik 5 poin dari bulan lalu
-- turun 8 poin dari bulan lalu
-- performa stabil
-
-==================================================
-C. RANKING UNIT / CABANG
-==================================================
-
-Tambahkan fitur ranking unit / cabang agar sistem berguna untuk direksi dan HRD.
-
-Tujuan:
-- membandingkan kedisiplinan dan performa antar unit
-- memberi insight manajerial
-- membuat dashboard lebih bernilai
-
-1. Buat section:
-- Ranking Unit
-- Ranking Cabang
-
-2. Penilaian ranking unit/cabang berdasarkan:
-- rata-rata skor pegawai
-- tingkat kehadiran
-- tingkat keterlambatan
-- jumlah alpha
-- jumlah pengajuan pending
-- ketertiban administrasi
-- KPI unit (jika tersedia)
-
-3. Tampilkan:
-- nama unit / cabang
-- skor rata-rata
-- persentase kehadiran
-- jumlah pegawai
-- tren naik / turun
-- posisi ranking
-
-4. Tampilkan 3 versi:
-- Top 5 Unit Terbaik
-- Unit Perlu Perhatian
-- Perbandingan antar cabang
-
-5. Visual:
-- leaderboard card
-- bar progress
-- trend arrow
-- skor utama besar
-- badge ranking 1, 2, 3
-
-6. Untuk dashboard direksi / HRD:
-- bisa filter periode
-- bisa filter per bulan
-- bisa drilldown ke detail unit
-
-==================================================
-D. BADGE PEGAWAI BULANAN
-==================================================
-
-Tambahkan sistem badge pegawai bulanan yang bersifat DINAMIS, tidak permanen.
-
-Tujuan:
-- memberi motivasi
-- membuat sistem lebih hidup
-- menampilkan penghargaan mikro
-- bukan badge seumur hidup
-
-ATURAN PENTING:
-- badge hanya berlaku per bulan
-- jika bulan berikutnya pegawai tidak masuk kategori teratas, badge hilang
-- untuk mendapatkan badge lagi, pegawai harus kembali masuk top bulan itu
-- badge harus berbasis bulan dan tahun
-- badge jangan bersifat permanen di profil tanpa periode
-
-1. Jenis badge bulanan:
-- Top Disiplin Bulan Ini
-- Kehadiran Penuh
-- Zero Late
-- Top Performer
-- Pegawai Terbaik unit
-- Peningkatan Terbaik Bulan Ini
-
-2. Aturan badge:
-- Top Disiplin Bulan Ini:
-  diberikan ke top 10 skor disiplin tertinggi bulan itu
-- Kehadiran Penuh:
-  tidak ada alpha, tidak ada sakit/izin/cuti, hadir penuh sesuai jadwal
-- Zero Late:
-  tidak pernah terlambat selama periode
-- Top Performer:
- skor pegawai tinggi
-- Pegawai Terbaik kantor pusat:
-  ranking 1 di kantor pusat
-- Peningkatan Terbaik:
-  kenaikan skor terbesar dari bulan sebelumnya
-
-3. Badge harus memiliki:
-- nama badge
-- ikon
-- warna
-- periode bulan/tahun
-- deskripsi singkat
-
-4. Tampilkan badge di:
-- dashboard pegawai
-- profil pegawai
-- dashboard leaderboard
-- top performer section
-
-5. Tampilkan badge seperti:
-- badge aktif bulan ini
-- riwayat badge bulan sebelumnya
-- jika badge sudah lewat periode, pindah ke riwayat dan tidak tampil sebagai badge aktif utama
-
-6. Jangan tampilkan badge lama seolah masih aktif.
-Pisahkan:
-- Badge Aktif Bulan Ini
-- Riwayat Badge
-
-7. Riwayat badge boleh tetap tersimpan sebagai histori penghargaan mikro, tetapi:
-- status aktif hanya untuk bulan berjalan
-- tampilan utama profil hanya menonjolkan badge aktif bulan ini
-
-==================================================
-E. LEADERBOARD / TOP PEGAWAI
-==================================================
-
-Tambahkan leaderboard pegawai bulanan.
-
-Section yang harus ada:
-- Top 10 Disiplin Terbaik
-- Top 10 Skor Pegawai Tertinggi
-- Top 10 Performa Terbaik
-- Pegawai Paling Meningkat
-
-Tampilkan:
-- ranking
-- nama pegawai
-- unit
-- skor
-- badge aktif bulan ini
-- trend naik/turun
-- avatar kecil
-
-Catatan:
-- gunakan istilah yang lebih objektif
-- lebih baik pakai:
-  - Top Disiplin
-  - Top Performer
-daripada “pegawai rajin” saja
-
-==================================================
-F. INTEGRASI KE DASHBOARD
-==================================================
-
-Tambahkan fitur-fitur ini ke dashboard utama dan dashboard direksi / HRD.
-
-Dashboard Pegawai:
-- skor pegawai bulan ini
-- badge aktif bulan ini
-- kalender ketidakhadiran
-- pengumuman
-- aktivitas terbaru
-
-Dashboard HRD:
-- top 10 disiplin
-- top performer
-- ranking unit
-- pegawai perlu perhatian
-- kalender tim
-- ringkasan ketidakhadiran bulan ini
-
-Dashboard Direksi:
-- ranking cabang
-- tren disiplin pegawai
-- kantor pusat terbaik
-- kantor pusatdengan alpha tertinggi
-- top pegawai
-- top cabang / kantor pusat
-
-==================================================
-G. PEGAWAI PERLU PERHATIAN
-==================================================
-
-Tambahkan juga section analitik:
-- Pegawai sering terlambat
-- Pegawai dengan alpha tertinggi
-- Pegawai dengan skor menurun
-- Pegawai dengan SP aktif
-- Pegawai yang layak pembinaan
-
-Ini membantu HRD dan atasan.
-
-==================================================
-H. DATA DAN UI RULES
-==================================================
-
-UI Rules:
+Gunakan UI dan gaya yang sudah ada:
 - enterprise
 - clean
-- premium
 - modern
+- premium
 - rounded cards
 - soft shadows
-- tabel profesional
-- chart elegan
-- leaderboard menarik tapi tetap resmi
-- badge konsisten
-- warna status jelas
-- jangan terasa gimmick
-- harus terasa cocok untuk sistem PDAM / Perumdam
+- bahasa Indonesia
+- konsisten dengan modul lain di SIMPEG
 
 ==================================================
-I. HASIL AKHIR YANG DIHARAPKAN
+A. ROLE DAN HAK AKSES
 ==================================================
 
-Hasil akhir harus membuat SIMPEG terasa:
-- lebih hidup
-- lebih analitis
-- lebih membantu pegawai
-- lebih membantu atasan
-- lebih berguna untuk HRD
-- lebih menarik untuk direksi
-- lebih bernilai sebagai produk enterprise
+Role yang boleh mengakses fitur ini:
+- Super Admin
+- HRD
+- Kepala Bidang
+- Kepala Cabang
 
-Fitur utama yang wajib jadi:
-- kalender
-- skor pegawai bulanan
-- ranking kantor pusat / cabang
-- badge pegawai bulanan dinamis
-- leaderboard pegawai
-- section pegawai perlu perhatian
+Aturan:
+- Kabid hanya bisa menilai pegawai di bidang / unitnya
+- Kepala Cabang bisa menilai pegawai di cabangnya
+- HRD bisa melihat seluruh penilaian
+- Super Admin bisa melihat dan mengelola seluruh penilaian
+- Pegawai biasa tidak bisa menilai pegawai lain
+- Pegawai hanya bisa melihat hasil penilaian dirinya sendiri jika kebijakan memperbolehkan
+
+==================================================
+B. KONSEP PENILAIAN AKHIR
+==================================================
+
+Nilai akhir pegawai adalah gabungan dari:
+
+1. Nilai Sistem = 60%
+2. Nilai Atasan = 40%
+
+Rumus:
+Nilai Akhir = (Nilai Sistem x 60%) + (Nilai Atasan x 40%)
+
+Tampilkan 3 komponen ini secara jelas:
+- Nilai Sistem
+- Nilai Atasan
+- Nilai Akhir
+
+Contoh:
+- Nilai Sistem: 82
+- Nilai Atasan: 88
+- Nilai Akhir: 84.4
+
+==================================================
+C. NILAI SISTEM (60%)
+==================================================
+
+Nilai Sistem dihitung otomatis dari data SIMPEG.
+
+Komponen Nilai Sistem:
+1. Kehadiran
+2. Ketepatan Waktu
+3. Alpha / Mangkir
+4. Izin / Cuti / Sakit
+5. Status SP aktif
+
+Contoh bobot Nilai Sistem:
+- yang sudah dibuat sebelumnya
+
+Nilai Sistem total harus dibulatkan ke skala 0–100.
+
+Tampilkan ringkasan sistem di form penilaian:
+- Kehadiran bulan ini
+- Jumlah keterlambatan
+- Jumlah alpha
+- Jumlah izin
+- Jumlah cuti
+- Jumlah sakit
+- Status SP aktif
+- Skor pegawai bulan ini
+- Nilai KPI jika ada
+
+==================================================
+D. NILAI ATASAN (40%)
+==================================================
+
+Nilai Atasan diisi manual oleh:
+- Kepala Bidang
+- Kepala Cabang
+
+Gunakan skala nilai 1–5:
+- 1 = Sangat Kurang
+- 2 = Kurang
+- 3 = Cukup
+- 4 = Baik
+- 5 = Sangat Baik
+
+Komponen penilaian atasan:
+1. Disiplin Kerja
+2. Tanggung Jawab
+3. Kualitas Kerja
+4. Sikap Kerja
+5. Inisiatif
+6. Kepatuhan terhadap Arahan Atasan
+
+Deskripsi komponen:
+1. Disiplin Kerja
+- hadir sesuai jam kerja
+- tidak sering meninggalkan tempat kerja
+- tidak sering cabut sebelum waktunya
+- tertib mengikuti jam kerja
+
+2. Tanggung Jawab
+- menyelesaikan tugas
+- dapat dipercaya
+- tidak menghilang saat dibutuhkan
+- bertanggung jawab atas pekerjaannya
+
+3. Kualitas Kerja
+- hasil kerja rapi
+- minim kesalahan
+- sesuai target
+- sesuai SOP
+
+4. Sikap Kerja
+- kerjasama tim
+- komunikasi
+- etika kerja
+- sikap terhadap atasan dan rekan
+
+5. Inisiatif
+- proaktif
+- mau belajar
+- mau membantu
+- tidak pasif
+
+6. Kepatuhan terhadap Arahan Atasan
+- patuh instruksi
+- patuh SOP
+- tidak mengulang pelanggaran
+- tertib dalam pelaksanaan tugas
+
+Hitung Nilai Atasan ke skala 0–100 secara otomatis.
+
+==================================================
+E. BAGIAN KHUSUS MASALAH “SERING CABUT”
+==================================================
+
+Tambahkan section khusus di form penilaian:
+
+Judul:
+Catatan Disiplin Lapangan / Kehadiran Nyata
+
+Checklist yang bisa dipilih atasan:
+- Tidak ada masalah
+- Sering meninggalkan tempat kerja sebelum waktunya
+- Sering tidak berada di lokasi saat jam kerja
+- Sering terlambat kembali setelah istirahat
+- Sulit dihubungi saat jam kerja
+- Perlu pembinaan kedisiplinan
+- Perlu teguran
+
+Checklist ini penting karena menjadi pembeda antara absensi formal dan disiplin kerja nyata.
+
+==================================================
+F. FIELD CATATAN ATASAN
+==================================================
+
+Tambahkan field wajib:
+1. Kelebihan Pegawai
+2. Hal yang Perlu Diperbaiki
+3. Catatan Atasan
+4. Rekomendasi Atasan
+
+Pilihan rekomendasi:
+- Baik / Pertahankan
+- Perlu Pembinaan
+- Perlu Teguran
+- Layak Pelatihan
+- Layak Dipromosikan
+- Perlu Dipantau
+
+==================================================
+G. STATUS PENILAIAN
+==================================================
+
+Status penilaian:
+- Draft
+- Final
+- Ditinjau HRD
+
+Flow:
+1. Atasan membuka form penilaian
+2. Isi penilaian
+3. Simpan Draft
+4. Finalkan Penilaian
+5. HRD dapat melihat hasil final
+6. Jika perlu, HRD dapat menambahkan catatan review
+
+Aturan:
+- Draft masih bisa diedit
+- Jika sudah Final, tidak bisa diedit kecuali oleh HRD / Super Admin
+
+==================================================
+H. HALAMAN / MODUL YANG HARUS ADA
+==================================================
+
+Buat halaman berikut:
+
+1. Daftar Pegawai untuk Dinilai
+Kolom:
+- Nama Pegawai
+- NIK
+- Jabatan
+- Unit / Bidang / Cabang
+- Golongan
+- Nilai Sistem
+- Nilai Atasan
+- Nilai Akhir
+- Status Penilaian
+- Aksi
+
+Aksi:
+- Nilai Pegawai
+- Lihat Detail
+- Lihat Riwayat
+
+2. Form Penilaian
+Isi:
+- data pegawai
+- ringkasan Nilai Sistem
+- komponen Nilai Atasan
+- checklist masalah disiplin
+- catatan atasan
+- rekomendasi atasan
+- Simpan Draft
+- Finalkan Penilaian
+
+3. Riwayat Penilaian
+Tampilkan:
+- Bulan / Tahun
+- Nilai Sistem
+- Nilai Atasan
+- Nilai Akhir
+- Predikat
+- Nama Penilai
+- Rekomendasi
+
+4. Detail Penilaian
+Tampilkan lengkap:
+- data pegawai
+- data sistem
+- nilai atasan
+- catatan
+- checklist disiplin
+- nilai akhir
+- trend
+
+5. Dashboard Ringkas Penilaian
+Untuk Kabid / Kepala Cabang / HRD:
+- jumlah pegawai yang belum dinilai
+- pegawai dengan nilai tertinggi
+- pegawai perlu perhatian
+- pegawai yang sering cabut
+- pegawai dengan rekomendasi pembinaan
+
+
+==================================================
+I. PREDIKAT HASIL AKHIR
+==================================================
+
+Gunakan predikat:
+- 90–100 = Sangat Baik
+- 80–89 = Baik
+- 70–79 = Cukup
+- 60–69 = Kurang
+- <60 = Perlu Pembinaan
+
+Tampilkan:
+- nilai angka
+- badge predikat
+- warna status
+
+==================================================
+J. TREN PENILAIAN
+==================================================
+
+Tambahkan riwayat dan grafik tren:
+- nilai akhir 6 bulan terakhir
+- nilai sistem 6 bulan terakhir
+- nilai atasan 6 bulan terakhir
+- trend naik / turun
+
+Tambahkan label:
+- naik dari bulan lalu
+- turun dari bulan lalu
+- stabil
+
+==================================================
+K. INTEGRASI KE DASHBOARD HRD
+==================================================
+
+Tambahkan section di dashboard HRD:
+- Pegawai dengan nilai akhir tertinggi
+- Pegawai perlu pembinaan
+- Pegawai sering meninggalkan tempat kerja
+- Pegawai dengan rekomendasi promosi
+- Pegawai dengan nilai menurun
+
+==================================================
+L. UI / UX RULES
+==================================================
+
+Gunakan UI:
+- formal
+- enterprise
+- modern
+- clean
+- profesional
+- mudah diisi atasan
+- tidak terlalu melelahkan
+- tabel rapi
+- card ringkasan jelas
+- badge status konsisten
+- scoring mudah dipilih
+- chart tren sederhana tapi elegan
+
+Gunakan komponen reusable yang sudah ada:
+- card
+- dialog
+- tabs
+- badge
+- table
+- select
+- textarea
+- progress / chart jika perlu
+
+==================================================
+N. HASIL AKHIR YANG DIHARAPKAN
+==================================================
+
+Fitur ini harus membuat SIMPEG:
+- lebih adil
+- tidak hanya menilai dari absensi
+- bisa menangkap perilaku pegawai yang sering cabut
+- membantu Kabid dan Kepala Cabang membina bawahannya
+- membantu HRD mengambil keputusan
+- membantu penentuan reward, pembinaan, dan promosi
+- terasa seperti modul enterprise yang benar-benar dipakai

@@ -137,6 +137,8 @@ model Pegawai {
   poinDiAcc             PenukaranPoin[] @relation("PoinApprovedBy")
   indeksPegawai         IndeksPegawai[]
   badgePegawai          BadgePegawai[]
+  penilaianAtasan       PenilaianAtasan[] @relation("PenilaianPegawai")
+  penilaianDibuat       PenilaianAtasan[] @relation("PenilaianPenilai")
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -232,6 +234,8 @@ enum Role {
   SUPERADMIN
   HRD
   DIREKSI
+  KEPALA_BIDANG
+  KEPALA_CABANG
   PEGAWAI
 }
 
@@ -757,6 +761,9 @@ model IndeksPegawai {
   skorPerilaku    Float    @default(0)   // maks 10
   totalSkor       Float    @default(0)   // 0–100
   predikat        String   @default("CUKUP")
+  // Penilaian Atasan (blended score)
+  skorAtasan      Float?   // 0–100, diisi oleh Kepala Bidang/Cabang
+  skorAkhirBlended Float?  // (totalSkor * 0.6) + (skorAtasan * 0.4)
   // Data snapshot untuk audit
   hariKerja       Int      @default(0)
   hadirCount      Int      @default(0)
@@ -764,6 +771,7 @@ model IndeksPegawai {
   alphaCount      Int      @default(0)
   spAktif         Boolean  @default(false)
   pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
+  penilaianAtasan PenilaianAtasan[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -794,4 +802,54 @@ enum JenisBadge {
   TOP_PERFORMER
   TERBAIK_UNIT
   PENINGKATAN_TERBAIK
+}
+
+// ============ PENILAIAN ATASAN ============
+model PenilaianAtasan {
+  id                  String              @id @default(cuid())
+  pegawaiId           String
+  penilaiId           String
+  indeksPegawaiId     String?
+  bulan               Int                 // 1–12
+  tahun               Int
+
+  // 6 Komponen Penilaian (skala 1–5)
+  disiplinKerja       Int                 @default(3) // 1–5
+  tanggungjawab       Int                 @default(3)
+  kualitasKerja       Int                 @default(3)
+  sikapKerja          Int                 @default(3)
+  inisiatif           Int                 @default(3)
+  kepatuhan           Int                 @default(3)
+
+  // Checklist Catatan Disiplin (JSON array)
+  catatanDisiplin     Json?               // ["Tidak pernah absen tanpa keterangan", ...]
+
+  // Narasi
+  kelebihan           String?
+  halPerluDiperbaiki  String?
+  catatanAtasan       String?
+  rekomendasi         String?             // "Pertahankan" | "Tingkatkan" | "Perlu Pembinaan"
+
+  // Skor (dihitung otomatis dari 6 komponen, skala 0–100)
+  skorAtasan          Float               @default(0)
+
+  status              StatusPenilaian     @default(DRAFT)
+
+  pegawai             Pegawai             @relation("PenilaianPegawai", fields: [pegawaiId], references: [id])
+  penilai             Pegawai             @relation("PenilaianPenilai", fields: [penilaiId], references: [id])
+  indeksPegawai       IndeksPegawai?      @relation(fields: [indeksPegawaiId], references: [id])
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([pegawaiId, penilaiId, bulan, tahun])
+  @@index([bulan, tahun])
+  @@index([status])
+  @@index([pegawaiId])
+}
+
+enum StatusPenilaian {
+  DRAFT
+  FINAL
+  DITINJAU_HRD
 }
