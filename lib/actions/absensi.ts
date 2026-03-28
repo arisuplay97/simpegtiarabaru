@@ -18,6 +18,13 @@ function getTodayRange(date?: Date) {
   return { startOfDay, endOfDay, now: new Date() }
 }
 
+const formatLocal = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 export async function checkDeviceAndAbsen(
   checkType: "checkin" | "checkout",
   clientDeviceId: string,
@@ -442,6 +449,8 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       totalRecord: absensi.length
     }
 
+    const recordedDays = new Set<string>()
+
     absensi.forEach(a => {
       // Status Mapping
       if (a.status === "HADIR") {
@@ -457,6 +466,14 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
         summary.izin++
       } else if (a.status === "CUTI") {
         summary.cuti++
+      }
+
+      // Record present day for auto-alpha calculation
+      if (a.tanggal <= limitDate) {
+        const isWeekend = a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6
+        if (!isWeekend) {
+          recordedDays.add(formatLocal(a.tanggal))
+        }
       }
 
       // Hitung pulang cepat
@@ -482,9 +499,16 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     })
 
     // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja
-    // Jika jumlah record absensi kurang dari jumlah hari kerja berjalan, selisihnya dianggap Alpa.
-    const totalRecordedAbsen = summary.hadir + summary.sakit + summary.izin + summary.cuti + summary.alpha
-    const autoAlpha = Math.max(0, hariKerjaAktif - totalRecordedAbsen)
+    let autoAlpha = 0
+    for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay()
+      if (day !== 0 && day !== 6) {
+        if (!recordedDays.has(formatLocal(d))) {
+           autoAlpha++
+        }
+      }
+    }
+    
     summary.alpha += autoAlpha
 
     return summary
@@ -721,6 +745,7 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     })
 
     const pegawaiMap: Record<string, any> = {}
+    const recordedDates: Record<string, Set<string>> = {}
     
     // Inisialisasi dictionary Pegawai
     for (const p of pegawais) {
@@ -740,6 +765,7 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
         hariKerja: totalHariKerja,
         hariKerjaAktif: hariKerjaAktif,
       }
+      recordedDates[p.id] = new Set()
     }
 
     // Agregasi row
@@ -756,10 +782,17 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
           hariKerja: totalHariKerja,
           hariKerjaAktif: hariKerjaAktif
         }
+        recordedDates[pid] = new Set()
       }
 
       const r = pegawaiMap[pid]
       const status = a.status as any
+      const isWeekend = a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6
+      
+      if (a.tanggal <= limitDate && !isWeekend) {
+        recordedDates[pid].add(formatLocal(a.tanggal))
+      }
+
       switch (status) {
         case "HADIR":    r.hadir++;    break
         case "TERLAMBAT": r.hadir++; r.terlambat++; break
@@ -776,11 +809,22 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
       }
     }
 
-    // Kalkulasi Alpha/Mangkir otomatis & Penyesuaian Status untuk yg belum diabsen
+    // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja
+    const activeWorkdays: string[] = []
+    for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay()
+      if (day !== 0 && day !== 6) {
+        activeWorkdays.push(formatLocal(d))
+      }
+    }
+
     for (const pid in pegawaiMap) {
       const r = pegawaiMap[pid]
-      const countedRecords = r.hadir + r.alpha + r.izin + r.sakit + r.cuti + r.dinas
-      const missingCount = Math.max(0, hariKerjaAktif - countedRecords)
+      const rec = recordedDates[pid] || new Set()
+      let missingCount = 0
+      for (const d of activeWorkdays) {
+        if (!rec.has(d)) missingCount++
+      }
       r.alpha += missingCount
     }
 

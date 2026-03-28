@@ -74,14 +74,21 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
       }
     })
 
-    const absensiSet = new Set(absensi.map(a => a.tanggal.toISOString().split('T')[0]))
+    const formatLocal = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dd}`;
+    }
+
+    const absensiSet = new Set(absensi.map(a => formatLocal(a.tanggal)))
     
     // Anggap hari cuti sebagai hari yang "tercatat" (bukan alpha)
     cutiPegawai.forEach((c: any) => {
       const cur = new Date(Math.max(startDate.getTime(), new Date(c.tanggalMulai).getTime()))
       const end = new Date(Math.min(limitDate.getTime(), new Date(c.tanggalSelesai).getTime()))
       while (cur <= end) {
-        absensiSet.add(cur.toISOString().split('T')[0])
+        absensiSet.add(formatLocal(cur))
         cur.setDate(cur.getDate() + 1)
       }
     })
@@ -96,7 +103,7 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     while (curDate <= limitDateAlpha) {
       const day = curDate.getDay()
       if (day !== 0 && day !== 6) { // Bukan akhir pekan
-        const dateStr = curDate.toISOString().split('T')[0]
+        const dateStr = formatLocal(curDate)
         if (!absensiSet.has(dateStr)) {
           unrecordedCount++
         }
@@ -596,8 +603,15 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
     // Build a day map
     const dayMap: Record<string, any> = {}
 
+    const formatLocal = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dd}`;
+    }
+
     absensiList.forEach((a: any) => {
-      const key = a.tanggal.toISOString().split('T')[0]
+      const key = formatLocal(a.tanggal)
       dayMap[key] = {
         tanggal: key,
         status: a.status,
@@ -611,7 +625,7 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
       const cur = new Date(c.tanggalMulai)
       const end = new Date(c.tanggalSelesai)
       while (cur <= end) {
-        const key = cur.toISOString().split('T')[0]
+        const key = formatLocal(cur)
         if (!dayMap[key]) {
           dayMap[key] = {
             tanggal: key,
@@ -634,7 +648,7 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
     while (curAlphaDate <= limitDateAlpha) {
       const day = curAlphaDate.getDay()
       if (day !== 0 && day !== 6) { // Bukan akhir pekan (Minggu/Sabtu)
-        const key = curAlphaDate.toISOString().split('T')[0]
+        const key = formatLocal(curAlphaDate)
         if (!dayMap[key]) {
           // Hari kerja tanpa absen dan cuti = ALPA otomatis
           dayMap[key] = {
