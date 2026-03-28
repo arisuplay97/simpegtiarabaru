@@ -245,6 +245,26 @@ export async function getAbsensiSaya(bulan?: number, tahun?: number) {
   }
 }
 
+export async function getAbsensiSayaAndSummary(bulan?: number, tahun?: number) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return { records: [], summary: null }
+
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { userId: session.user.id }
+    })
+    if (!pegawai) return { records: [], summary: null }
+
+    const records = await getAbsensiSaya(bulan, tahun)
+    const summary = await getEmployeeAttendanceSummary(pegawai.id, bulan, tahun)
+
+    return { records, summary }
+  } catch (e) {
+    console.error("Error getAbsensiSayaAndSummary:", e)
+    return { records: [], summary: null }
+  }
+}
+
 // Status absensi hari ini untuk pegawai yang login (buat ditampilkan di selfie page)
 export async function getStatusAbsensiHariIni() {
   try {

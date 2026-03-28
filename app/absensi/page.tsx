@@ -71,7 +71,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getAbsensiList,  getAbsensiSaya,
+import { getAbsensiList, getAbsensiSaya, getAbsensiSayaAndSummary,
   checkDeviceAndAbsen,
   deleteAbsensi,
   deleteAllAbsensiByMonth,
@@ -280,6 +280,7 @@ export default function AttendancePage() {
   const [showPhotoViewer, setShowPhotoViewer] = useState(false)
   const [viewerPhotoUrl, setViewerPhotoUrl] = useState<string | null>(null)
   const [viewerPhotoType, setViewerPhotoType] = useState<"Masuk" | "Pulang">("Masuk")
+  const [mySummary, setMySummary] = useState<any>(null)
 
   // Rekap Bulanan State
   const [rekapBulanan, setRekapBulanan] = useState<any[]>([])
@@ -362,11 +363,14 @@ export default function AttendancePage() {
 
         if (isAdmin) {
           data = await getAbsensiList(date, date)
+          setRecords(mapAbsensi(data, currentSettings))
         } else {
-          data = await getAbsensiSaya(selectedMonth, selectedYear)
+          const res = await getAbsensiSayaAndSummary(selectedMonth, selectedYear)
+          data = res.records
+          setRecords(mapAbsensi(data, currentSettings))
+          setMySummary(res.summary)
         }
 
-        setRecords(mapAbsensi(data, currentSettings))
       } catch (error: any) {
         toast.error(`Gagal memuat absensi: ${error.message}`)
       } finally {
@@ -376,45 +380,53 @@ export default function AttendancePage() {
     loadData()
   }, [date, isAdmin, selectedMonth, selectedYear, session])
 
+  // Jika pegawai, gunakan the real accurate summary, jika admin fallback ke count records
+  const hKerja = isAdmin ? records.length.toString() : (mySummary ? mySummary.hariKerjaAktif.toString() : "0")
+  const hHadir = isAdmin ? records.filter(r => r.status === "hadir").length.toString() : (mySummary ? mySummary.hadir.toString() : "0")
+  const hLate = isAdmin ? records.filter(r => r.lateMinutes > 0).length.toString() : (mySummary ? mySummary.terlambat.toString() : "0")
+  const hIzin = isAdmin ? records.filter(r => r.status === "izin" || r.status === "sakit").length.toString() : (mySummary ? (mySummary.izin + mySummary.sakit).toString() : "0")
+  const hCuti = isAdmin ? records.filter(r => r.status === "cuti").length.toString() : (mySummary ? mySummary.cuti.toString() : "0")
+  const hAlpha = isAdmin ? records.filter(r => r.status === "alpha").length.toString() : (mySummary ? mySummary.alpha.toString() : "0")
+
   const statsCards = [
     {
       title: isAdmin ? "Total Pegawai" : "Hari Kerja",
-      value: records.length.toString(),
+      value: hKerja,
       icon: Users,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       title: "Hadir",
-      value: records.filter(r => r.status === "hadir").length.toString(),
+      value: hHadir,
       icon: UserCheck,
       color: "text-emerald-600",
       bgColor: "bg-emerald-100",
     },
     {
       title: "Terlambat",
-      value: records.filter(r => r.lateMinutes > 0).length.toString(),
+      value: hLate,
       icon: Timer,
       color: "text-amber-600",
       bgColor: "bg-amber-100",
     },
     {
       title: "Izin/Sakit",
-      value: records.filter(r => r.status === "izin" || r.status === "sakit").length.toString(),
+      value: hIzin,
       icon: AlertCircle,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       title: "Cuti",
-      value: records.filter(r => r.status === "cuti").length.toString(),
+      value: hCuti,
       icon: Plane,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
     },
     {
       title: "Alpha",
-      value: records.filter(r => r.status === "alpha").length.toString(),
+      value: hAlpha,
       icon: UserX,
       color: "text-red-600",
       bgColor: "bg-red-100",
