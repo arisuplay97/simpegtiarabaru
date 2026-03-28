@@ -39,6 +39,8 @@ export const rolePermissions: Record<string, string[]> = {
     "users.manage",
     "roles.view",
     "roles.manage",
+    "penilaian.view",
+    "penilaian.manage",
   ],
   HRD: [
     "dashboard.view",
@@ -67,6 +69,8 @@ export const rolePermissions: Record<string, string[]> = {
     "users.view",
     "users.manage",
     "roles.view",
+    "penilaian.view",
+    "penilaian.manage",
   ],
   DIREKSI: [
     "dashboard.view",

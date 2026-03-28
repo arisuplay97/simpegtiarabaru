@@ -72,7 +72,7 @@ export async function getPenilaianList(bulan?: number, tahun?: number) {
             skorAtasan: true,
             skorAkhirBlended: true,
             penilaianAtasan: {
-              where: { penilaiId: penilai?.id ?? '' },
+              where: (role === 'SUPERADMIN' || role === 'HRD') ? {} : { penilaiId: penilai?.id ?? '' },
               select: { id: true, status: true, skorAtasan: true }
             }
           }
@@ -144,7 +144,12 @@ export async function getPenilaianDetail(pegawaiId: string, bulan?: number, tahu
         where: { pegawaiId_bulan_tahun: { pegawaiId, bulan: b, tahun: t } }
       }),
       prisma.penilaianAtasan.findFirst({
-        where: { pegawaiId, penilaiId: penilai?.id ?? '', bulan: b, tahun: t }
+        where: { 
+          pegawaiId, 
+          bulan: b, 
+          tahun: t,
+          ...((role === 'SUPERADMIN' || role === 'HRD') ? {} : { penilaiId: penilai?.id ?? '' })
+        }
       })
     ])
 
@@ -374,13 +379,13 @@ export async function getDashboardPenilaian(bulan?: number, tahun?: number) {
       prisma.penilaianAtasan.count({
         where: {
           bulan: b, tahun: t,
-          ...(penilai?.id ? { penilaiId: penilai.id } : {}),
+          ...((role === 'SUPERADMIN' || role === 'HRD') ? {} : { penilaiId: penilai?.id ?? '' }),
         }
       }),
       prisma.penilaianAtasan.count({
         where: {
           bulan: b, tahun: t, status: 'FINAL',
-          ...(penilai?.id ? { penilaiId: penilai.id } : {}),
+          ...((role === 'SUPERADMIN' || role === 'HRD') ? {} : { penilaiId: penilai?.id ?? '' }),
         }
       })
     ])
