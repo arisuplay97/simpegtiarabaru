@@ -11,7 +11,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "loading") return
-    if (!session && pathname !== "/login") router.push("/login")
+    if (!session && pathname !== "/login") {
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`)
+    }
     if (session && pathname === "/login") router.push("/")
   }, [session, status, router, pathname])
 
