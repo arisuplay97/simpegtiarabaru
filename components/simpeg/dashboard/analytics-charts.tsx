@@ -19,6 +19,7 @@ import {
   Legend,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartConfig } from "@/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const unitDistribution = [
@@ -140,6 +141,14 @@ function MiniSparkline({ data, color = "#3b82f6" }: { data: number[]; color?: st
     </ResponsiveContainer>
   )
 }
+
+const attendanceConfig = {
+  hadir: { label: "Hadir", color: "hsl(var(--chart-1))" },
+  izin: { label: "Izin", color: "hsl(var(--chart-2))" },
+  cuti: { label: "Cuti", color: "hsl(var(--chart-4))" },
+  alpha: { label: "Alpa", color: "hsl(var(--chart-5))" },
+  belumAbsen: { label: "Belum Absen", color: "hsl(var(--chart-3))" },
+} satisfies ChartConfig
 
 export function AnalyticsCharts({ data }: { data?: any }) {
   const [mounted, setMounted] = useState(false)

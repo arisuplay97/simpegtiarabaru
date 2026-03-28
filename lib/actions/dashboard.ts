@@ -70,8 +70,13 @@ export async function getDashboardStats() {
     // 1. Kehadiran Hari Ini
     const hadir = absensiToday.filter(a => a.status === 'HADIR').length
     const terlambat = absensiToday.filter(a => a.status === 'TERLAMBAT').length
-    const sakitCuti = absensiToday.filter(a => a.status === 'SAKIT' || (a.status as any) === 'CUTI').length
-    const belumAlpa = Math.max(0, totalPegawai - (hadir + terlambat + sakitCuti))
+    const sakitCuti = absensiToday.filter(a => a.status === 'SAKIT' || a.status === 'CUTI' || a.status === 'IZIN').length
+    const alphaAction = absensiToday.filter(a => a.status === 'ALPA').length
+    
+    // Cek apakah hari ini weekend (Sabtu/Minggu)
+    const today = new Date()
+    const isWeekend = today.getDay() === 0 || today.getDay() === 6
+    const belumAbsen = isWeekend ? 0 : Math.max(0, totalPegawai - (hadir + terlambat + sakitCuti + alphaAction))
 
     // 2. Kontrak Akan Habis
     const kontrakHampirHabis = kontrakTerdekat.map((k: any) => {
@@ -88,13 +93,16 @@ export async function getDashboardStats() {
       const dStr = d.toISOString().split('T')[0]
       const dayName = days[d.getDay()]
       
+      const isDayWeekend = d.getDay() === 0 || d.getDay() === 6
+      
       const dayData = attendanceRaw.filter(a => a.tanggal.toISOString().split('T')[0] === dStr)
       return {
         day: dayName,
         hadir: dayData.filter(a => a.status === 'HADIR' || a.status === 'TERLAMBAT').length,
         izin: dayData.filter(a => a.status === 'IZIN').length,
         cuti: dayData.filter(a => a.status === 'CUTI').length,
-        alpha: dayData.filter(a => a.status === 'ALPA').length
+        alpha: dayData.filter(a => a.status === 'ALPA').length,
+        belumAbsen: isDayWeekend ? 0 : Math.max(0, totalPegawai - dayData.filter(a => a.status !== 'ALPA').length)
       }
     })
 
@@ -233,7 +241,8 @@ export async function getDashboardStats() {
         hadir,
         terlambat,
         sakitCuti,
-        belumAlpa,
+        alpha: alphaAction,
+        belumAbsen,
         persenHadir: totalPegawai > 0 ? Math.round(((hadir + terlambat) / totalPegawai) * 100) : 0
       },
       // Chart props
