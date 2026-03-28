@@ -6,7 +6,10 @@ import { id } from "date-fns/locale"
 import {
   Trophy, Medal, TrendingUp, TrendingDown, Minus,
   Star, Users, AlertTriangle, BarChart3, Award,
-  ChevronUp, ChevronDown, Loader2, RefreshCcw, Shield
+  ChevronUp, ChevronDown, Loader2, RefreshCcw, Shield,
+  Target, CheckCircle2, Zap, Building2, BookOpen,
+  Info, ChevronRight, Clock, UserX, HeartHandshake,
+  Percent, GraduationCap, ListChecks, ArrowUpCircle
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,27 +19,42 @@ import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { getLeaderboard, getRankingUnit, getPegawaiPerluPerhatian, hitungIndeksSemuaPegawai, generateBadgesBulanan } from "@/lib/actions/indeks"
 import { SidebarNav, SidebarProvider, useSidebar } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Badge config (icons now use Lucide) ──────────────────────────────────────
 
-const BADGE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  TOP_DISIPLIN:        { label: "Top Disiplin",       color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",         icon: "🎯" },
-  KEHADIRAN_PENUH:     { label: "Kehadiran Penuh",     color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300", icon: "✅" },
-  ZERO_LATE:           { label: "Zero Late",           color: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300", icon: "⚡" },
-  TOP_PERFORMER:       { label: "Top Performer",       color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300",     icon: "🏆" },
-  TERBAIK_UNIT:        { label: "Terbaik Unit",        color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300", icon: "🥇" },
-  PENINGKATAN_TERBAIK: { label: "Peningkatan Terbaik", color: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300",         icon: "📈" },
+const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; desc: string }> = {
+  TOP_DISIPLIN:        { label: "Top Disiplin",       color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",           icon: <Target className="h-3.5 w-3.5" />,        desc: "Disiplin kehadiran tertinggi di unit" },
+  KEHADIRAN_PENUH:     { label: "Kehadiran Penuh",     color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300", icon: <CheckCircle2 className="h-3.5 w-3.5" />,   desc: "Hadir di semua hari kerja bulan ini" },
+  ZERO_LATE:           { label: "Zero Late",           color: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300",     icon: <Zap className="h-3.5 w-3.5" />,           desc: "Tidak ada keterlambatan sama sekali" },
+  TOP_PERFORMER:       { label: "Top Performer",       color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300",         icon: <Trophy className="h-3.5 w-3.5" />,        desc: "Skor indeks tertinggi bulan ini" },
+  TERBAIK_UNIT:        { label: "Terbaik Unit",        color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300",     icon: <Building2 className="h-3.5 w-3.5" />,     desc: "Pegawai terbaik dalam unitnya" },
+  PENINGKATAN_TERBAIK: { label: "Peningkatan Terbaik", color: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300",             icon: <ArrowUpCircle className="h-3.5 w-3.5" />, desc: "Kenaikan skor terbesar dari bulan lalu" },
 }
 
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
 function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) return <span className="flex h-7 w-7 items-center justify-center text-lg">🥇</span>
-  if (rank === 2) return <span className="flex h-7 w-7 items-center justify-center text-lg">🥈</span>
-  if (rank === 3) return <span className="flex h-7 w-7 items-center justify-center text-lg">🥉</span>
+  if (rank === 1) return (
+    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+      <Trophy className="h-4 w-4 text-amber-600" />
+    </span>
+  )
+  if (rank === 2) return (
+    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+      <Medal className="h-4 w-4 text-slate-500" />
+    </span>
+  )
+  if (rank === 3) return (
+    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+      <Award className="h-4 w-4 text-orange-500" />
+    </span>
+  )
   return <span className="flex h-7 w-7 items-center justify-center text-sm font-bold text-neutral-500 bg-neutral-100 dark:bg-neutral-800 rounded-full">#{rank}</span>
 }
 
@@ -54,20 +72,157 @@ function DeltaBadge({ delta }: { delta: number }) {
   return <span className="text-[11px] text-neutral-400 flex items-center gap-0.5"><Minus className="h-3 w-3" />Stabil</span>
 }
 
-function ScorePill({ skor, predikat }: { skor: number, predikat: string }) {
+function ScorePill({ skor }: { skor: number }) {
   const color =
     skor >= 90 ? "bg-emerald-500"
     : skor >= 80 ? "bg-blue-500"
     : skor >= 70 ? "bg-amber-500"
     : skor >= 60 ? "bg-orange-500"
     : "bg-red-500"
+  return (
+    <div className={cn("text-white text-sm font-bold px-2.5 py-0.5 rounded-full min-w-[52px] text-center", color)}>
+      {skor}
+    </div>
+  )
+}
+
+// ─── Scoring Guide Panel ──────────────────────────────────────────────────────
+
+function ScoringGuide() {
+  const [open, setOpen] = useState(false)
+
+  const components = [
+    {
+      icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
+      label: "Kehadiran",
+      bobot: "40%",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800",
+      accent: "text-emerald-700 dark:text-emerald-400",
+      detail: "Persentase hari hadir (termasuk terlambat) dari total hari kerja efektif bulan ini.",
+      rumus: "Skor = (Hadir / Hari Kerja) × 100",
+      plus: "Setiap hari hadir menambah skor kehadiran.",
+      minus: "Hari Alpha atau tidak masuk tanpa keterangan mengurangi skor ini secara proporsional.",
+    },
+    {
+      icon: <Clock className="h-4 w-4 text-blue-500" />,
+      label: "Ketepatan Waktu",
+      bobot: "30%",
+      bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800",
+      accent: "text-blue-700 dark:text-blue-400",
+      detail: "Mengukur seberapa sering pegawai hadir tepat waktu (tidak terlambat).",
+      rumus: "Skor = (Hadir Tepat Waktu / Total Hadir) × 100",
+      plus: "Hadir sebelum jam masuk menambah skor ini.",
+      minus: "Setiap keterlambatan akan mengurangi komponen ini.",
+    },
+    {
+      icon: <UserX className="h-4 w-4 text-rose-500" />,
+      label: "Absensi Bersih",
+      bobot: "20%",
+      bg: "bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800",
+      accent: "text-rose-700 dark:text-rose-400",
+      detail: "Penalti atas absensi tanpa keterangan yang valid (Alpha).",
+      rumus: "Skor = max(0, 100 − (Alpha × 10))",
+      plus: "Tidak ada Alpha = skor penuh 100.",
+      minus: "Setiap 1 hari Alpha mengurangi 10 poin dari komponen ini.",
+    },
+    {
+      icon: <HeartHandshake className="h-4 w-4 text-purple-500" />,
+      label: "Perilaku & Sanksi",
+      bobot: "10%",
+      bg: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800",
+      accent: "text-purple-700 dark:text-purple-400",
+      detail: "Berdasarkan ada tidaknya Surat Peringatan (SP) aktif yang tercatat di sistem.",
+      rumus: "SP1 = −20 poin, SP2 = −40 poin, SP3 = −60 poin",
+      plus: "Tanpa SP aktif = skor perilaku penuh 100.",
+      minus: "Setiap level SP aktif akan memberikan pengurangan bertingkat.",
+    },
+  ]
+
+  const predikat = [
+    { range: "≥ 90", label: "Sangat Baik", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" },
+    { range: "80–89", label: "Baik", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
+    { range: "70–79", label: "Cukup Baik", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" },
+    { range: "60–69", label: "Cukup", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
+    { range: "< 60",  label: "Perlu Perbaikan", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" },
+  ]
 
   return (
-    <div className="flex items-center gap-2">
-      <div className={cn("text-white text-sm font-bold px-2.5 py-0.5 rounded-full min-w-[52px] text-center", color)}>
-        {skor}
-      </div>
-    </div>
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card className="border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-950/20 shadow-none">
+        <CollapsibleTrigger asChild>
+          <CardContent className="p-4 flex items-center justify-between cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xl transition-colors group">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30">
+                <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">Cara Perhitungan Skor Indeks</p>
+                <p className="text-[11px] text-blue-500 dark:text-blue-400">Klik untuk lihat formula lengkap</p>
+              </div>
+            </div>
+            <ChevronRight className={cn("h-4 w-4 text-blue-500 transition-transform duration-200", open && "rotate-90")} />
+          </CardContent>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-4">
+            {/* Formula */}
+            <div className="rounded-xl border border-blue-100 dark:border-blue-900/30 bg-white dark:bg-neutral-900 p-4">
+              <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-2">Formula Total Skor</p>
+              <p className="text-sm font-mono font-bold text-neutral-800 dark:text-neutral-100">
+                Skor = (Kehadiran × 40%) + (Ketepatan × 30%) + (Absensi Bersih × 20%) + (Perilaku × 10%)
+              </p>
+            </div>
+
+            {/* Komponen */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {components.map(c => (
+                <div key={c.label} className={cn("rounded-xl border p-3.5 space-y-2", c.bg)}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {c.icon}
+                      <span className={cn("text-sm font-bold", c.accent)}>{c.label}</span>
+                    </div>
+                    <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20", c.accent)}>Bobot {c.bobot}</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-600 dark:text-neutral-400">{c.detail}</p>
+                  <p className="text-[11px] font-mono bg-white/70 dark:bg-black/20 px-2 py-1 rounded-lg text-neutral-700 dark:text-neutral-300">{c.rumus}</p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-start gap-1.5">
+                      <ChevronUp className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
+                      <span className="text-[11px] text-neutral-600 dark:text-neutral-400">{c.plus}</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <ChevronDown className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                      <span className="text-[11px] text-neutral-600 dark:text-neutral-400">{c.minus}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Predikat */}
+            <div>
+              <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-2">Predikat Skor</p>
+              <div className="flex flex-wrap gap-2">
+                {predikat.map(p => (
+                  <div key={p.range} className={cn("flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border border-transparent", p.color)}>
+                    <span className="font-mono">{p.range}</span>
+                    <span>— {p.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Catatan */}
+            <div className="text-[11px] text-blue-600 dark:text-blue-400 flex items-start gap-1.5 pt-1">
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <span>Skor dihitung ulang setiap awal bulan atau secara manual melalui tombol "Hitung Ulang" (khusus Admin/HRD).</span>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   )
 }
 
@@ -116,12 +271,8 @@ function IndeksContent() {
     try {
       const r1 = await hitungIndeksSemuaPegawai(bulan, tahun)
       const r2 = await generateBadgesBulanan(bulan, tahun)
-      if ((r1 as any).success) {
-        toast.success(`Indeks dihitung: ${(r1 as any).processed} pegawai`)
-      }
-      if ((r2 as any).success) {
-        toast.success(`Badge di-generate: ${(r2 as any).created} badge`)
-      }
+      if ((r1 as any).success) toast.success(`Indeks dihitung: ${(r1 as any).processed} pegawai`)
+      if ((r2 as any).success) toast.success(`Badge di-generate: ${(r2 as any).created} badge`)
       await loadAll()
     } catch (e) {
       toast.error("Gagal menghitung ulang")
@@ -148,9 +299,7 @@ function IndeksContent() {
             </div>
             <div className="flex items-center gap-2">
               <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
-                <SelectTrigger className="w-[130px] text-sm h-9">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-[130px] text-sm h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {bulanNames.map((b, i) => (
                     <SelectItem key={i + 1} value={String(i + 1)}>{b}</SelectItem>
@@ -171,6 +320,9 @@ function IndeksContent() {
               )}
             </div>
           </div>
+
+          {/* Scoring Guide */}
+          <ScoringGuide />
 
           {loading ? (
             <div className="flex items-center justify-center h-64">
@@ -195,9 +347,17 @@ function IndeksContent() {
           ) : (
             <Tabs defaultValue="leaderboard">
               <TabsList className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-xl p-1 gap-1 h-auto">
-                <TabsTrigger value="leaderboard" className="text-xs rounded-lg">🏆 Leaderboard</TabsTrigger>
-                <TabsTrigger value="ranking-unit" className="text-xs rounded-lg">🏢 Ranking Unit</TabsTrigger>
-                {isAdmin && <TabsTrigger value="perlu-perhatian" className="text-xs rounded-lg">⚠️ Perlu Perhatian</TabsTrigger>}
+                <TabsTrigger value="leaderboard" className="text-xs rounded-lg flex items-center gap-1.5">
+                  <Trophy className="h-3.5 w-3.5" /> Leaderboard
+                </TabsTrigger>
+                <TabsTrigger value="ranking-unit" className="text-xs rounded-lg flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5" /> Ranking Unit
+                </TabsTrigger>
+                {isAdmin && (
+                  <TabsTrigger value="perlu-perhatian" className="text-xs rounded-lg flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Perlu Perhatian
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               {/* ── LEADERBOARD ─────────────────────────────────── */}
@@ -234,7 +394,9 @@ function IndeksContent() {
                             )}>{p.totalSkor}</div>
                             <div className="flex flex-wrap justify-center gap-1">
                               {(p.badges || []).slice(0, 2).map((b: string) => (
-                                <span key={b} title={BADGE_CONFIG[b]?.label} className="text-base">{BADGE_CONFIG[b]?.icon}</span>
+                                <span key={b} title={BADGE_CONFIG[b]?.label} className={cn("flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border font-medium", BADGE_CONFIG[b]?.color)}>
+                                  {BADGE_CONFIG[b]?.icon}
+                                </span>
                               ))}
                             </div>
                           </CardContent>
@@ -270,11 +432,14 @@ function IndeksContent() {
                           {/* Badges */}
                           <div className="hidden sm:flex gap-1">
                             {(p.badges || []).map((b: string) => (
-                              <span key={b} title={BADGE_CONFIG[b]?.label} className="text-sm cursor-default">{BADGE_CONFIG[b]?.icon}</span>
+                              <span key={b} title={BADGE_CONFIG[b]?.label} className={cn("flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border font-medium", BADGE_CONFIG[b]?.color)}>
+                                {BADGE_CONFIG[b]?.icon}
+                                <span className="hidden lg:inline">{BADGE_CONFIG[b]?.label}</span>
+                              </span>
                             ))}
                           </div>
                           <DeltaBadge delta={p.delta} />
-                          <ScorePill skor={p.totalSkor} predikat={p.predikat} />
+                          <ScorePill skor={p.totalSkor} />
                         </div>
                       </div>
                     ))}
@@ -284,11 +449,11 @@ function IndeksContent() {
                 {/* Badge Legend */}
                 <Card className="border border-neutral-100 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900 mt-4">
                   <CardContent className="p-4">
-                    <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">Legenda Badge Bulan Ini</p>
+                    <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">Legenda Badge</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(BADGE_CONFIG).map(([key, cfg]) => (
-                        <div key={key} className={cn("flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full border font-medium", cfg.color)}>
-                          <span>{cfg.icon}</span>
+                        <div key={key} title={cfg.desc} className={cn("flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border font-medium cursor-help", cfg.color)}>
+                          {cfg.icon}
                           <span>{cfg.label}</span>
                         </div>
                       ))}
@@ -314,10 +479,7 @@ function IndeksContent() {
                               {unit.jumlahPegawai} pegawai
                             </span>
                           </div>
-                          <Progress
-                            value={unit.avgSkor}
-                            className="h-2 bg-neutral-100 dark:bg-neutral-800"
-                          />
+                          <Progress value={unit.avgSkor} className="h-2 bg-neutral-100 dark:bg-neutral-800" />
                           <div className="flex items-center justify-between mt-1.5">
                             <span className="text-[11px] text-neutral-400">Kehadiran {unit.persenHadir}%</span>
                             <span className={cn(
@@ -363,7 +525,8 @@ function IndeksContent() {
                       {perluPerhatian.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-40 text-neutral-400 gap-2">
                           <Shield className="h-8 w-8 opacity-20" />
-                          <p className="text-sm">Semua pegawai dalam kondisi baik 🎉</p>
+                          <p className="text-sm">Semua pegawai dalam kondisi baik</p>
+                          <CheckCircle2 className="h-5 w-5 text-emerald-400 opacity-60" />
                         </div>
                       ) : perluPerhatian.map((p: any) => (
                         <div key={p.pegawaiId} className="flex items-center gap-3 px-5 py-3 border-b border-neutral-50 dark:border-neutral-800 last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
