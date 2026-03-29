@@ -121,7 +121,8 @@ export default function MobileSelfie() {
         videoRef.current.srcObject = stream
         videoRef.current.onloadedmetadata = () => {
           videoRef.current!.play()
-          startFaceDetection(faceapi, faceStatus as any)
+          const fa = faceApiRef.current
+          if (fa) startFaceDetection(fa, faceStatus as any)
         }
       }
     } catch {
