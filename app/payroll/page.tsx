@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import {
   Select,
@@ -73,6 +73,7 @@ interface PayrollEmployee {
   pegawaiId: string
   nik: string
   nama: string
+  fotoUrl: string | null
   unit: string
   golongan: string
   gajiPokok: number
@@ -488,6 +489,7 @@ export default function PayrollPage() {
                               <TableCell>
                                 <div className="flex items-center gap-3">
                                   <Avatar className="h-9 w-9">
+                                    {emp.fotoUrl && <AvatarImage src={emp.fotoUrl} alt={emp.nama} className="object-cover" />}
                                     <AvatarFallback className="bg-primary/10 text-xs text-primary">
                                       {(emp.nama || "P").substring(0,2).toUpperCase()}
                                     </AvatarFallback>

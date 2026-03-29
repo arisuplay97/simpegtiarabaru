@@ -124,6 +124,7 @@ export async function getPayrollList(periodStr: string) {
       pegawaiId: emp.id,
       nik: emp.nik,
       nama: emp.nama,
+      fotoUrl: emp.fotoUrl,
       unit: emp.bidang?.nama || "Umum",
       golongan: emp.golongan,
       
@@ -344,6 +345,7 @@ export async function getMyPayroll(periodStr: string) {
     pegawaiId: pegawai.id,
     nik: pegawai.nik,
     nama: pegawai.nama,
+    fotoUrl: pegawai.fotoUrl,
     unit: pegawai.bidang?.nama || "Umum",
     golongan: pegawai.golongan,
     bank: pegawai.bank || "Tunai",

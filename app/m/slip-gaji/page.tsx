@@ -55,9 +55,12 @@ export default function MobileSlipGaji() {
   const fetchSlip = useCallback(async () => {
     setLoading(true)
     try {
+      console.log("Fetching slip for period:", selectedPeriod)
       const res = await getMyPayroll(selectedPeriod)
+      console.log("Result:", res)
       setSlipData(res as SlipData)
-    } catch {
+    } catch (e) {
+      console.error("Error fetching slip:", e)
       setSlipData(null)
     } finally {
       setLoading(false)
