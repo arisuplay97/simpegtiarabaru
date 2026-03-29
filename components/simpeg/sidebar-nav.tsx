@@ -12,7 +12,8 @@ import {
   Navigation, Wallet, Receipt, ArrowUpCircle, Target, Star,
   FolderOpen, FileSignature, ShieldCheck, UserCog, Bell,
   CheckSquare, BarChart3, AlertTriangle, ChevronDown, ChevronRight,
-  ChevronLeft, LogOut, X, Menu, Settings, Upload, Shield, CalendarRange, Trophy, ClipboardCheck
+  ChevronLeft, LogOut, X, Menu, Settings, Upload, Shield, CalendarRange, Trophy, ClipboardCheck,
+  Megaphone
 } from "lucide-react"
 
 type NavItem = {
@@ -38,6 +39,7 @@ const navigation: NavGroup[] = [
       { title: "Dashboard Direksi", href: "/dashboard/direksi", icon: BarChart3, allowedRoles: ["super_admin", "direktur"] },
       { title: "Approval Center", href: "/approval", icon: CheckSquare, badge: 12, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Notifikasi", href: "/notifikasi", icon: Bell },
+      { title: "Pengumuman Berjalan", href: "/pengumuman", icon: Megaphone, allowedRoles: ["super_admin", "hrd", "direktur"] },
     ],
   },
   {
