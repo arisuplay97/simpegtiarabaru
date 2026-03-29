@@ -251,15 +251,15 @@ export default function MobileDashboard() {
                 </Link>
 
                 <div className="flex flex-col gap-1.5">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit max-w-[180px]"
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full w-fit max-w-[200px]"
                     style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                    <p className="text-white/90 text-[11px] font-semibold truncate">
+                    <p className="text-white/90 text-[13px] font-bold truncate">
                       {jabatan}{subBidang ? ` ${subBidang}` : ""}
                     </p>
-                    <BadgeCheck className="h-3.5 w-3.5 text-blue-300 shrink-0" />
+                    <BadgeCheck className="h-4 w-4 text-blue-300 shrink-0" />
                   </div>
                   {bidang && (
-                    <p className="text-white/70 text-[11px] font-medium leading-snug line-clamp-2 max-w-[150px]">
+                    <p className="text-white/70 text-[13px] font-semibold leading-snug line-clamp-2 max-w-[180px]">
                       {bidang}
                     </p>
                   )}
@@ -558,7 +558,7 @@ export default function MobileDashboard() {
 
         {/* Footer */}
         <div className="text-center py-4">
-          <p className="text-[10px] text-gray-400 font-medium">SIMPEG · PDAM Tirta Ardhia Rinjani · v2.0</p>
+          <p className="text-[10px] text-gray-400 font-medium">ASIK · PDAM Tirta Ardhia Rinjani · v2.0</p>
         </div>
 
       </div>

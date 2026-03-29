@@ -9,10 +9,10 @@ import { Toaster } from "sonner"
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
-  title: "SIMPEG Mobile",
-  description: "SIMPEG PDAM Tirta Ardhia Rinjani",
+  title: "ASIK Mobile",
+  description: "ASIK PDAM Tirta Ardhia Rinjani",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "SIMPEG" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ASIK" },
 }
 
 export const viewport: Viewport = {
