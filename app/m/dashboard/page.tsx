@@ -186,9 +186,8 @@ export default function MobileDashboard() {
           {/* Top Bar */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <img src="/putih.png" alt="Logo" className="w-[90%] h-[90%] object-contain" />
+              <div className="h-12 w-12 flex items-center justify-center shrink-0 -ml-1">
+                <img src="/putih.png" alt="Logo" className="w-full h-full object-contain drop-shadow-md" />
               </div>
               <div>
                 <p className="text-white font-black text-[14px] tracking-tight leading-none">ASIK Mobile</p>
