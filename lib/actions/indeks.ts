@@ -42,6 +42,14 @@ function hitungHariKerja(start: Date, end: Date): number {
   return count
 }
 
+function formatLocal(d: Date) {
+  const dWib = new Date(d.getTime() + 7 * 60 * 60 * 1000)
+  const y = dWib.getUTCFullYear()
+  const m = String(dWib.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(dWib.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 // ============================================================
 // HITUNG INDEKS SATU PEGAWAI (upsert supaya idempoten)
 // ============================================================
@@ -73,13 +81,6 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
         tanggalSelesai: { gte: startDate }
       }
     })
-
-    const formatLocal = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${dd}`;
-    }
 
     const absensiSet = new Set(absensi.map(a => formatLocal(a.tanggal)))
     
@@ -117,9 +118,13 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     const alphaCount = absensi.filter(a => a.status === 'ALPA').length + unrecordedCount
     const spAktif = !!pegawai.sp
 
+    // Perbaikan Bug: Kurangi hari kerja jika ada izin, sakit, atau cuti legal agar pembagi lebih adil
+    const excusedCount = absensi.filter(a => ['CUTI', 'SAKIT', 'IZIN'].includes(a.status)).length 
+    const hariKerjaWajib = hariKerja > excusedCount ? hariKerja - excusedCount : 0
+
     // ─── Skor Komponen ───
-    const skorKehadiran = hariKerja > 0 ? Math.min(40, (hadirCount / hariKerja) * 40) : 0
-    const skorKetepatan = hadirCount > 0 ? Math.min(30, ((hadirCount - terlambatCount) / hadirCount) * 30) : 0
+    const skorKehadiran = hariKerjaWajib > 0 ? Math.min(40, (hadirCount / hariKerjaWajib) * 40) : (hadirCount > 0 ? 40 : (hariKerja > 0 && excusedCount >= hariKerja ? 40 : 0))
+    const skorKetepatan = hadirCount > 0 ? Math.min(30, ((hadirCount - terlambatCount) / hadirCount) * 30) : (hariKerjaWajib === 0 ? 30 : 0)
     const skorAbsenBersih = Math.max(0, 20 - (alphaCount * 5) - (terlambatCount * 0.5))
     const skorPerilaku = spAktif ? Math.max(0, 10 - 5) : 10  // SP aktif -5 poin
 
@@ -602,13 +607,6 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
 
     // Build a day map
     const dayMap: Record<string, any> = {}
-
-    const formatLocal = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${dd}`;
-    }
 
     absensiList.forEach((a: any) => {
       const key = formatLocal(a.tanggal)
