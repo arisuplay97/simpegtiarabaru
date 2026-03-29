@@ -493,6 +493,9 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       waktuAbsen,
       sudahAbsenMasuk: !!absensiHariIni?.jamMasuk,
       sudahAbsenPulang: !!absensiHariIni?.jamKeluar,
+      batasAbsenMasuk: pengaturan?.batasAbsenMasuk || "14:00",
+      mulaiAbsenPulang: pengaturan?.mulaiAbsenPulang || "15:00",
+      batasAbsenPulang: pengaturan?.batasAbsenPulang || "18:00",
     }
 
     const recordedDays = new Set<string>()
@@ -562,7 +565,8 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     console.error("Error getEmployeeAttendanceSummary:", error)
     return {
       hariKerjaAktif: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0,
-      waktuAbsen: "--:-- - --:--", sudahAbsenMasuk: false, sudahAbsenPulang: false
+      waktuAbsen: "--:-- - --:--", sudahAbsenMasuk: false, sudahAbsenPulang: false,
+      batasAbsenMasuk: "14:00", mulaiAbsenPulang: "15:00", batasAbsenPulang: "18:00"
     }
   }
 }
@@ -573,6 +577,9 @@ export async function getSystemSettings() {
     return {
       jamMasuk: pengaturan?.jamMasuk || "08:00",
       jamPulang: pengaturan?.jamPulang || "17:00",
+      batasAbsenMasuk: pengaturan?.batasAbsenMasuk || "14:00",
+      mulaiAbsenPulang: pengaturan?.mulaiAbsenPulang || "15:00",
+      batasAbsenPulang: pengaturan?.batasAbsenPulang || "18:00",
       batasTerlambat: pengaturan?.batasTerlambat || 0,
       dendaTerlambat: pengaturan?.dendaTerlambat || 5000,
       batasTerlambatDenda: pengaturan?.batasTerlambatDenda || 5,
@@ -585,6 +592,9 @@ export async function getSystemSettings() {
     return {
       jamMasuk: "08:00",
       jamPulang: "17:00",
+      batasAbsenMasuk: "14:00",
+      mulaiAbsenPulang: "15:00",
+      batasAbsenPulang: "18:00",
       batasTerlambat: 0,
       dendaTerlambat: 5000,
       batasTerlambatDenda: 5,
@@ -607,6 +617,9 @@ export async function updateSystemSettings(data: any) {
       data: {
         jamMasuk: data.jamMasuk,
         jamPulang: data.jamPulang,
+        batasAbsenMasuk: data.batasAbsenMasuk,
+        mulaiAbsenPulang: data.mulaiAbsenPulang,
+        batasAbsenPulang: data.batasAbsenPulang,
         batasTerlambat: Number(data.batasTerlambat),
         dendaTerlambat: Number(data.dendaTerlambat),
         batasTerlambatDenda: Number(data.batasTerlambatDenda),

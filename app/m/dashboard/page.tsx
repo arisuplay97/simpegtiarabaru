@@ -299,6 +299,9 @@ export default function MobileDashboard() {
               {(() => {
                 if (!summary) return null // Masih loading
                 const currentHour = new Date().getHours()
+                const batasMasukH = parseInt(summary.batasAbsenMasuk?.split(":")[0]) || 14
+                const mulaiPulangH = parseInt(summary.mulaiAbsenPulang?.split(":")[0]) || 15
+                const batasPulangH = parseInt(summary.batasAbsenPulang?.split(":")[0]) || 18
 
                 if (summary.sudahAbsenPulang) {
                   return (
@@ -309,7 +312,7 @@ export default function MobileDashboard() {
                 }
 
                 if (!summary.sudahAbsenMasuk) {
-                  if (currentHour >= 14) {
+                  if (currentHour >= batasMasukH) {
                     return (
                       <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-red-500 bg-red-50 text-[11px] font-black border border-red-100">
                         <XCircle className="h-3.5 w-3.5" /> Sesi Ditutup
@@ -327,14 +330,14 @@ export default function MobileDashboard() {
                   )
                 } else {
                   // Sudah masuk, belum pulang
-                  if (currentHour < 15) {
+                  if (currentHour < mulaiPulangH) {
                     return (
                       <div className="flex items-center justify-center px-3.5 py-2 rounded-xl text-gray-500 bg-gray-100 text-[10px] font-black border border-gray-200" title="Belum waktunya jam pulang">
                         <Clock className="h-3.5 w-3.5 mr-1" /> Belum Pulang
                       </div>
                     )
                   }
-                  if (currentHour >= 18) {
+                  if (currentHour >= batasPulangH) {
                     return (
                       <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-red-500 bg-red-50 text-[11px] font-black border border-red-100">
                         <XCircle className="h-3.5 w-3.5" /> Sesi Berakhir

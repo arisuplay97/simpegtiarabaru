@@ -359,15 +359,19 @@ export default function AttendancePage() {
         photoIn: d.fotoMasukUrl || d.foto || null,
         photoOut: d.fotoKeluarUrl || d.fotoKeluar || null,
         statusPulang: (() => {
-          if (!d.jamKeluar) return "-"
+          if (!d.jamKeluar || !currentSettings) return "-"
           const checkOutDt = new Date(d.jamKeluar)
           const h = checkOutDt.getHours()
           const m = checkOutDt.getMinutes()
           
-          if (h >= 16) return "Tepat Waktu"
+          const jamPulangSetting = currentSettings.jamPulang || "17:00"
+          const [pjh, pjm] = jamPulangSetting.split(":").map(Number)
+          
+          if (h > pjh || (h === pjh && m >= pjm)) return "Tepat Waktu"
           
           const scheduledOut = new Date(checkOutDt)
-          scheduledOut.setHours(16, 0, 0, 0)
+          scheduledOut.setHours(pjh, pjm, 0, 0)
+          
           const diffMs = scheduledOut.getTime() - checkOutDt.getTime()
           const diffMins = Math.floor(diffMs / 60000)
           

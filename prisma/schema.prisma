@@ -367,15 +367,17 @@ model LokasiAbsensi {
 
 // ============ PENGATURAN UMUM ============
 model Pengaturan {
-  id                String   @id @default("1")
-  // Konfigurasi Gaji & Penalti
-  
-  // Absensi
-  jamMasuk          String   @default("08:00")
-  jamPulang         String   @default("17:00")
-  batasCheckin      String   @default("16:00")
-  batasTerlambat    Int      @default(15)
-  lokasiPusat       String?
+    id                String   @id @default("1")
+    // Konfigurasi Gaji & Penalti
+    
+    // Absensi
+    jamMasuk          String   @default("08:00")
+    jamPulang         String   @default("17:00")
+    batasAbsenMasuk   String   @default("14:00")
+    mulaiAbsenPulang  String   @default("15:00")
+    batasAbsenPulang  String   @default("18:00")
+    batasTerlambat    Int      @default(15)
+    lokasiPusat       String?
   
   // Cuti
   jatahCutiTahunan  Int      @default(12)
