@@ -243,10 +243,10 @@ export default function MobileDashboard() {
                 <div className="flex flex-col gap-1.5">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit max-w-[180px]"
                     style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                    <BadgeCheck className="h-3.5 w-3.5 text-blue-300 shrink-0" />
                     <p className="text-white/90 text-[11px] font-semibold truncate">
                       {jabatan}{subBidang ? ` ${subBidang}` : ""}
                     </p>
+                    <BadgeCheck className="h-3.5 w-3.5 text-blue-300 shrink-0" />
                   </div>
                   {bidang && (
                     <p className="text-white/70 text-[11px] font-medium leading-snug line-clamp-2 max-w-[150px]">
@@ -458,30 +458,35 @@ export default function MobileDashboard() {
           ) : (
             <div className="divide-y divide-gray-50 pb-3">
               {disiplinTop.map((p, idx) => (
-                <div key={p.pegawaiId} className="flex items-center gap-3 px-5 py-3"
-                  style={idx < 3 ? { background: "linear-gradient(90deg,#eff6ff,#ffffff)" } : {}}>
+                <div key={p.pegawaiId} className={`flex items-center gap-3 px-5 py-3 ${idx === 0 ? "border-transparent" : ""}`}
+                  style={
+                    idx === 0 ? { background: "linear-gradient(135deg, #1e3a5f, #1d4ed8)" }
+                    : idx < 3 ? { background: "linear-gradient(90deg,#eff6ff,#ffffff)" } 
+                    : {}
+                  }>
                   <RankBadge rank={p.rank} />
                   {/* Avatar */}
-                  <div className="h-9 w-9 rounded-full overflow-hidden shrink-0 border-2 border-gray-100"
-                    style={{ background: "#e0e7ff" }}>
+                  <div className={`h-9 w-9 rounded-full overflow-hidden shrink-0 border-2 ${idx === 0 ? "border-white/20" : "border-gray-100"}`}
+                    style={{ background: idx === 0 ? "rgba(255,255,255,0.1)" : "#e0e7ff" }}>
                     {p.fotoUrl ? (
                       <img src={p.fotoUrl} className="h-full w-full object-cover" alt="" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs font-black text-blue-700">
+                      <div className={`flex h-full w-full items-center justify-center text-xs font-black ${idx === 0 ? "text-white" : "text-blue-700"}`}>
                         {p.nama.charAt(0)}
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-bold text-gray-800 truncate">{p.nama}</p>
-                    <p className="text-[10px] text-gray-400 truncate">{p.unit || p.jabatan}</p>
+                    <p className={`text-[12px] font-bold truncate ${idx === 0 ? "text-white" : "text-gray-800"}`}>{p.nama}</p>
+                    <p className={`text-[10px] truncate ${idx === 0 ? "text-blue-200" : "text-gray-400"}`}>{p.unit || p.jabatan}</p>
                   </div>
                   <div className="flex flex-col items-end shrink-0">
                     <span className={`text-base font-black leading-none ${
-                      p.totalSkor >= 90 ? "text-green-600" :
-                      p.totalSkor >= 80 ? "text-blue-600" : "text-amber-500"
+                        idx === 0 ? "text-white" :
+                        p.totalSkor >= 90 ? "text-green-600" :
+                        p.totalSkor >= 80 ? "text-blue-600" : "text-amber-500"
                     }`}>{p.totalSkor}</span>
-                    <span className="text-[9px] text-gray-400">/100</span>
+                    <span className={`text-[9px] ${idx === 0 ? "text-blue-200" : "text-gray-400"}`}>/100</span>
                   </div>
                 </div>
               ))}
