@@ -22,7 +22,7 @@ export default function MobileCuti() {
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({
-    jenisCuti: "TAHUNAN",
+    jenisCuti: "Cuti Tahunan",
     tanggalMulai: "",
     tanggalSelesai: "",
     alasan: "",
@@ -49,8 +49,8 @@ export default function MobileCuti() {
       const res = await createCuti(form)
       if ((res as any).error) throw new Error((res as any).error)
       toast.success("Pengajuan cuti berhasil dikirim!")
+      setForm({ jenisCuti: "Cuti Tahunan", tanggalMulai: "", tanggalSelesai: "", alasan: "" })
       setShowForm(false)
-      setForm({ jenisCuti: "TAHUNAN", tanggalMulai: "", tanggalSelesai: "", alasan: "" })
       fetchCuti()
     } catch (e: any) {
       toast.error(e.message)
@@ -124,8 +124,8 @@ export default function MobileCuti() {
                   value={form.jenisCuti}
                   onChange={e => setForm(p => ({ ...p, jenisCuti: e.target.value }))}
                 >
-                  {["TAHUNAN","SAKIT","MELAHIRKAN","BESAR","IZIN"].map(j => (
-                    <option key={j} value={j}>{j.replace("_"," ")}</option>
+                  {["Cuti Tahunan", "Cuti Sakit", "Cuti Melahirkan", "Cuti Besar", "Izin Tidak Masuk"].map(j => (
+                    <option key={j} value={j}>{j}</option>
                   ))}
                 </select>
               </div>

@@ -169,6 +169,12 @@ export default function CutiPage() {
       return
     }
 
+    const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    if (leaveType === "Cuti Tahunan" && duration > saldoCuti) {
+      toast.error(`Durasi pengajuan (${duration} hari) melebihi sisa cuti Anda (${saldoCuti} hari).`)
+      return
+    }
+
     setIsSubmitting(true)
     const payload = {
       tanggalMulai: startDate,
