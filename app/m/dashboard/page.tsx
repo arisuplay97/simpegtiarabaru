@@ -165,8 +165,11 @@ export default function MobileDashboard() {
     <div className="min-h-screen pb-28 font-sans" style={{ background: "#f0f4f8" }}>
 
       {/* ===== HERO HEADER ===== */}
-      <div className="relative overflow-hidden pt-12 pb-40 px-5"
-        style={{ background: "linear-gradient(145deg, #1e3a5f 0%, #1a2e4a 50%, #0d1b2e 100%)" }}>
+      <div className="relative overflow-hidden px-5 pb-40"
+        style={{ 
+          background: "linear-gradient(145deg, #1e3a5f 0%, #1a2e4a 50%, #0d1b2e 100%)",
+          paddingTop: "max(3rem, env(safe-area-inset-top))"
+        }}>
         {/* Decorative */}
         <div className="absolute -top-12 -right-12 h-52 w-52 rounded-full opacity-[0.07]"
           style={{ background: "radial-gradient(circle, #60a5fa, transparent)" }} />
@@ -183,9 +186,9 @@ export default function MobileDashboard() {
           {/* Top Bar */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-xl flex items-center justify-center"
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center overflow-hidden"
                 style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <Building2 className="h-4 w-4 text-white" />
+                <img src="/LOGOBARU.png" alt="Logo" className="w-[80%] h-[80%] object-contain" />
               </div>
               <div>
                 <p className="text-white font-black text-[13px] tracking-tight leading-none">SIMPEG</p>

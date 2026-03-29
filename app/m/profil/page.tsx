@@ -75,7 +75,7 @@ export default function MobileProfil() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header dengan avatar */}
-      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] px-5 pb-10 pt-12 text-center">
+      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] px-5 pb-10 text-center" style={{ paddingTop: "max(3rem, env(safe-area-inset-top))" }}>
         <div className="relative mx-auto mb-4 h-24 w-24">
           <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-white/30 bg-white/10">
             {pegawai?.fotoUrl ? (

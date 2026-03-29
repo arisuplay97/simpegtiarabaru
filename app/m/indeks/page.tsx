@@ -96,7 +96,7 @@ export default function MobileIndeks() {
   return (
     <div className="min-h-screen bg-[#f4f7f6] dark:bg-black font-sans pb-24 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] pt-12 pb-6 px-5 rounded-b-3xl shadow-sm text-white sticky top-0 z-10">
+      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] pb-6 px-5 rounded-b-3xl shadow-sm text-white sticky top-0 z-10" style={{ paddingTop: "max(3rem, env(safe-area-inset-top))" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/m/dashboard" className="p-2 rounded-xl bg-white/10 text-white active:scale-95 transition-transform">
