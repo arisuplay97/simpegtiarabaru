@@ -208,40 +208,51 @@ export default function MobileDashboard() {
             </Link>
           </div>
 
-          {/* Welcome row: foto kiri, teks tengah, jam kanan */}
-          <div className="flex items-start gap-3">
-            {/* Foto Profil */}
-            <Link href="/m/profil">
-              <div className="h-14 w-14 rounded-2xl overflow-hidden border-2 border-white/30 shrink-0"
-                style={{ background: "rgba(255,255,255,0.1)" }}>
-                {fotoUrl ? (
-                  <img src={fotoUrl} className="h-full w-full object-cover" alt="" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xl font-black text-white">
-                    {namaInisial}
-                  </div>
-                )}
-              </div>
-            </Link>
-
-            {/* Teks Sambutan */}
-            <div className="flex-1 min-w-0">
-              <p className="text-white/50 text-[10px] font-semibold tracking-widest uppercase">{greeting}</p>
-              <h1 className="text-[1.25rem] font-black text-white leading-tight mt-0.5">
-                Selamat Datang Kembali,{" "}
-                <span className="text-blue-300">{firstName}</span> 👋
+          {/* Welcome Area Baru */}
+          <div className="flex flex-col mt-2">
+            
+            {/* Teks Sambutan Header */}
+            <div className="mb-5">
+              <p className="text-white/50 text-[11px] font-semibold tracking-widest uppercase mb-1">{greeting}</p>
+              <h1 className="text-[1.4rem] font-black text-white leading-tight">
+                Selamat Datang Kembali,
               </h1>
-              <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.12)" }}>
-                <BadgeCheck className="h-3 w-3 text-blue-300 shrink-0" />
-                <p className="text-white/80 text-[10px] font-semibold truncate max-w-[160px]">
-                  {jabatan}{bidang ? ` · ${bidang}` : ""}
-                </p>
-              </div>
+              <h2 className="text-[1.65rem] font-black text-blue-300 leading-tight mt-0.5">
+                {session?.user?.name} 👋
+              </h2>
             </div>
 
-            {/* Jam */}
-            <DigitalClock />
+            {/* Row Foto Profil & Jam */}
+            <div className="flex items-end justify-between">
+              
+              <div className="flex flex-col items-start gap-2.5">
+                <Link href="/m/profil">
+                  <div className="h-[4.5rem] w-[4.5rem] rounded-[1.25rem] overflow-hidden border-[2.5px] border-white/30 shrink-0 shadow-lg"
+                    style={{ background: "rgba(255,255,255,0.1)" }}>
+                    {fotoUrl ? (
+                      <img src={fotoUrl} className="h-full w-full object-cover" alt="" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-2xl font-black text-white">
+                        {namaInisial}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                  <BadgeCheck className="h-3.5 w-3.5 text-blue-300 shrink-0" />
+                  <p className="text-white/90 text-xs font-semibold truncate max-w-[150px]">
+                    {jabatan}{bidang ? ` · ${bidang}` : ""}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right pb-1">
+                <DigitalClock />
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
