@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar } from "lucide-react"
-import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
+import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin } from "lucide-react"
+import { getEmployeeProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
@@ -14,6 +14,15 @@ export default function MobileProfil() {
   const [pegawai, setPegawai] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [formData, setFormData] = useState({
+    nama: "",
+    tempatLahir: "",
+    tanggalLahir: "",
+    email: "",
+    telepon: ""
+  })
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -28,6 +37,15 @@ export default function MobileProfil() {
         if (data?.id) {
           const profile = await getEmployeeProfile(data.id)
           setPegawai(profile)
+          if (profile) {
+            setFormData({
+              nama: profile.nama || "",
+              tempatLahir: profile.tempatLahir || "",
+              tanggalLahir: profile.tanggalLahir ? new Date(profile.tanggalLahir).toISOString().split("T")[0] : "",
+              email: profile.email || "",
+              telepon: profile.telepon || ""
+            })
+          }
         }
       }
     } finally {
@@ -59,6 +77,26 @@ export default function MobileProfil() {
     }
   }
 
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pegawai) return
+    setIsSaving(true)
+    toast.loading("Menyimpan data...")
+    try {
+      const res = await updateMobileProfile(pegawai.id, formData)
+      if (res.error) throw new Error(res.error)
+      toast.dismiss()
+      toast.success("Profil berhasil diperbarui!")
+      setShowEditModal(false)
+      fetchData() // reload terbaru
+    } catch (err: any) {
+      toast.dismiss()
+      toast.error(err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
@@ -67,6 +105,7 @@ export default function MobileProfil() {
     { icon: User, label: "NIK", value: pegawai?.nik },
     { icon: Briefcase, label: "Jabatan", value: pegawai?.jabatan },
     { icon: Building2, label: "Bidang", value: pegawai?.subBidang?.nama ? `${pegawai?.bidang?.nama} / ${pegawai?.subBidang?.nama}` : pegawai?.bidang?.nama },
+    { icon: MapPin, label: "Tempat, Tanggal Lahir", value: (pegawai?.tempatLahir || pegawai?.tanggalLahir) ? `${pegawai?.tempatLahir || '-'}, ${pegawai?.tanggalLahir ? format(new Date(pegawai.tanggalLahir), "d MMMM yyyy", { locale: idLocale }) : '-'}` : "-" },
     { icon: Mail, label: "Email", value: pegawai?.email },
     { icon: Phone, label: "Telepon", value: pegawai?.telepon },
     { icon: Calendar, label: "Tgl Masuk", value: pegawai?.tanggalMasuk ? format(new Date(pegawai.tanggalMasuk), "d MMMM yyyy", { locale: idLocale }) : "-" },
@@ -129,8 +168,19 @@ export default function MobileProfil() {
         </div>
       </div>
 
+      {/* Tombol Edit */}
+      <div className="px-4 mt-6">
+        <button
+          onClick={() => setShowEditModal(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-white shadow-lg active:scale-95 transition-transform"
+        >
+          <Edit3 className="h-4 w-4" />
+          Edit Data Profil
+        </button>
+      </div>
+
       {/* Logout */}
-      <div className="px-4 mt-6 mb-8">
+      <div className="px-4 mt-4 mb-8">
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-4 text-sm font-semibold text-red-600 dark:bg-red-950/30 dark:border-red-900"
@@ -139,6 +189,77 @@ export default function MobileProfil() {
           Logout
         </button>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="w-full h-[85vh] sm:h-auto sm:w-[500px] bg-card rounded-t-3xl sm:rounded-3xl p-6 flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">Edit Data Diri</h2>
+              <button disabled={isSaving} onClick={() => setShowEditModal(false)} className="p-2 rounded-full bg-muted text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveEdit} className="flex-1 overflow-y-auto pr-2 pb-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Nama Lengkap</label>
+                <input 
+                  type="text" required
+                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={formData.nama} onChange={e => setFormData(p => ({...p, nama: e.target.value}))}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Tempat Lahir</label>
+                  <input 
+                    type="text" 
+                    className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    value={formData.tempatLahir} onChange={e => setFormData(p => ({...p, tempatLahir: e.target.value}))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Tanggal Lahir</label>
+                  <input 
+                    type="date" 
+                    className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    value={formData.tanggalLahir} onChange={e => setFormData(p => ({...p, tanggalLahir: e.target.value}))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Email Utama</label>
+                <input 
+                  type="email" required
+                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={formData.email} onChange={e => setFormData(p => ({...p, email: e.target.value}))}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Nomor Telepon</label>
+                <input 
+                  type="tel"
+                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={formData.telepon} onChange={e => setFormData(p => ({...p, telepon: e.target.value}))}
+                />
+              </div>
+
+              <div className="pt-4">
+                <button 
+                  type="submit" disabled={isSaving}
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

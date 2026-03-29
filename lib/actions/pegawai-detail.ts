@@ -201,3 +201,41 @@ export async function deletePelatihan(id: string, pegawaiId: string) {
     return { error: e.message }
   }
 }
+
+// ==== MOBILE PROFILE ====
+export async function updateMobileProfile(pegawaiId: string, data: any) {
+  try {
+    const pegawai = await prisma.pegawai.findUnique({ where: { id: pegawaiId }, select: { userId: true, email: true } })
+    if (!pegawai) throw new Error("Pegawai tidak ditemukan")
+    
+    // Jika email berubah, cek apakah sudah dipakai user lain
+    if (data.email && data.email !== pegawai.email) {
+      const exist = await prisma.user.findUnique({ where: { email: data.email } })
+      if (exist) throw new Error("Email sudah digunakan oleh akun lain")
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.pegawai.update({
+        where: { id: pegawaiId },
+        data: {
+          nama: data.nama,
+          tempatLahir: data.tempatLahir,
+          tanggalLahir: data.tanggalLahir ? new Date(data.tanggalLahir) : null,
+          telepon: data.telepon,
+          email: data.email,
+        }
+      })
+      await tx.user.update({
+        where: { id: pegawai.userId },
+        data: {
+          email: data.email
+        }
+      })
+    })
+
+    revalidatePath("/m/profil")
+    return { success: true }
+  } catch (e: any) {
+    return { error: e.message }
+  }
+}
