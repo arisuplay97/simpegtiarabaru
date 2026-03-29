@@ -152,6 +152,7 @@ export default function MobileDashboard() {
   const firstName = session?.user?.name?.split(" ")[0] ?? "Kawan"
   const jabatan = (session?.user as any)?.jabatan || "Staff"
   const bidang = pegawai?.bidang?.nama || ""
+  const subBidang = pegawai?.subBidang?.nama || ""
   const fotoUrl = pegawai?.fotoUrl || (session?.user as any)?.image || null
   const namaInisial = session?.user?.name?.charAt(0)?.toUpperCase() ?? "U"
 
@@ -225,7 +226,7 @@ export default function MobileDashboard() {
             {/* Row Foto Profil & Jam */}
             <div className="flex items-end justify-between">
               
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-start gap-3.5 pt-0.5">
                 <Link href="/m/profil" className="shrink-0">
                   <div className="h-[4.5rem] w-[4.5rem] rounded-[1.25rem] overflow-hidden border-[2.5px] border-white/30 shadow-lg"
                     style={{ background: "rgba(255,255,255,0.1)" }}>
@@ -240,11 +241,11 @@ export default function MobileDashboard() {
                 </Link>
 
                 <div className="flex flex-col gap-1.5">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit"
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit max-w-[180px]"
                     style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
                     <BadgeCheck className="h-3.5 w-3.5 text-blue-300 shrink-0" />
-                    <p className="text-white/90 text-xs font-semibold truncate max-w-[150px]">
-                      {jabatan}
+                    <p className="text-white/90 text-[11px] font-semibold truncate">
+                      {jabatan}{subBidang ? ` ${subBidang}` : ""}
                     </p>
                   </div>
                   {bidang && (
