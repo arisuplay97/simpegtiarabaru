@@ -6,7 +6,7 @@ async function main() {
   
   // Check Pengaturan
   const p = await prisma.pengaturan.findUnique({ where: { id: "1" } })
-  console.log("Pengaturan batasCheckin:", p?.batasCheckin)
+  console.log("Pengaturan batasAbsenMasuk:", p?.batasAbsenMasuk)
   
   // Check Pegawai
   const e = await prisma.pegawai.findFirst({
