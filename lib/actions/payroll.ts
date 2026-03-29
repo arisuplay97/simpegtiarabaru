@@ -313,12 +313,12 @@ import { auth } from "@/lib/auth"
 
 export async function getMyPayroll(periodStr: string) {
   const session = await auth()
-  if (!session?.user?.email) return null
+  if (!session?.user?.id) return null
 
   const { start, end } = getMonthBounds(periodStr)
 
-  const pegawai = await prisma.pegawai.findUnique({
-    where: { email: session.user.email },
+  let pegawai = await prisma.pegawai.findUnique({
+    where: { userId: session.user.id },
     include: {
       bidang: true,
       payroll: {
@@ -328,6 +328,17 @@ export async function getMyPayroll(periodStr: string) {
       }
     }
   })
+
+  // Fallback to email if userId is not strongly linked
+  if (!pegawai && session.user.email) {
+    pegawai = await prisma.pegawai.findUnique({
+      where: { email: session.user.email },
+      include: {
+        bidang: true,
+        payroll: { where: { bulan: { gte: start, lte: end } } }
+      }
+    })
+  }
 
   if (!pegawai) return null
 
