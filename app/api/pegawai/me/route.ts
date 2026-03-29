@@ -12,7 +12,10 @@ export async function GET() {
     // SECURITY FIX: Hapus logika demo-user yang bisa mengekspos data pegawai sembarang
     const pegawai = await prisma.pegawai.findUnique({
       where: { userId: session.user.id },
-      select: { id: true, nama: true }
+      include: {
+        bidang: true,
+        subBidang: true
+      }
     })
 
     if (!pegawai) {
