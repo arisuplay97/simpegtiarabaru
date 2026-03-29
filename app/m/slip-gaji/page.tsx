@@ -45,6 +45,7 @@ export default function MobileSlipGaji() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [slipData, setSlipData] = useState<SlipData | null>(null)
+  const [debugError, setDebugError] = useState<string | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState("mar-2026")
   const [showPeriodPicker, setShowPeriodPicker] = useState(false)
 
@@ -54,13 +55,18 @@ export default function MobileSlipGaji() {
 
   const fetchSlip = useCallback(async () => {
     setLoading(true)
+    setDebugError(null)
     try {
       console.log("Fetching slip for period:", selectedPeriod)
       const res = await getMyPayroll(selectedPeriod)
       console.log("Result:", res)
+      if (res === null) {
+         setDebugError("FUNGSI SERVER: getMyPayroll mengembalikan nilai NULL. Artinya email session tidak cocok dengan email Pegawai di DB, atau data tidak ada.")
+      }
       setSlipData(res as SlipData)
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error fetching slip:", e)
+      setDebugError("Exception Catch: " + (e?.message || JSON.stringify(e)))
       setSlipData(null)
     } finally {
       setLoading(false)
@@ -170,6 +176,12 @@ export default function MobileSlipGaji() {
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
             <p className="text-muted-foreground">Data slip gaji tidak tersedia</p>
             <p className="text-xs text-muted-foreground mt-1">Pastikan Anda terdaftar sebagai pegawai aktif</p>
+            {debugError && (
+              <div className="mt-4 p-3 bg-red-100 text-red-700 text-xs rounded-lg text-left break-words">
+                <strong>Debug Info:</strong><br/>
+                {debugError}
+              </div>
+            )}
           </div>
         ) : (
           <>
