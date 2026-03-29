@@ -143,7 +143,7 @@ export default function MobileDashboard() {
         getLeaderboard()
       ])
       setPengumuman(pgm)
-      setDisiplinTop(lb.slice(0, 10))
+      setDisiplinTop(lb.slice(0, 5))
     } catch {}
   }
 
@@ -191,8 +191,8 @@ export default function MobileDashboard() {
                 <img src="/putih.png" alt="Logo" className="w-full h-full object-contain drop-shadow-md" />
               </div>
               <div>
-                <p className="text-white font-black text-[14px] tracking-tight leading-none">ASIK Mobile</p>
-                <p className="text-white/50 text-[9px] font-medium leading-none mt-0.5">PDAM Tirta Ardhia Rinjani</p>
+                <p className="text-white font-black text-[17px] tracking-tight leading-none">ASIK Mobile</p>
+                <p className="text-white/50 text-[10.5px] font-medium leading-none mt-0.5">PDAM Tirta Ardhia Rinjani</p>
               </div>
             </div>
             {/* Notifikasi — 1 tombol */}
