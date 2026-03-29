@@ -66,7 +66,7 @@ export default function MobileProfil() {
   const infoRows = [
     { icon: User, label: "NIK", value: pegawai?.nik },
     { icon: Briefcase, label: "Jabatan", value: pegawai?.jabatan },
-    { icon: Building2, label: "Bidang", value: pegawai?.bidang?.nama },
+    { icon: Building2, label: "Bidang", value: pegawai?.subBidang?.nama ? `${pegawai?.bidang?.nama} / ${pegawai?.subBidang?.nama}` : pegawai?.bidang?.nama },
     { icon: Mail, label: "Email", value: pegawai?.email },
     { icon: Phone, label: "Telepon", value: pegawai?.telepon },
     { icon: Calendar, label: "Tgl Masuk", value: pegawai?.tanggalMasuk ? format(new Date(pegawai.tanggalMasuk), "d MMMM yyyy", { locale: idLocale }) : "-" },
@@ -92,7 +92,10 @@ export default function MobileProfil() {
           </label>
         </div>
         <h1 className="text-xl font-bold text-white">{pegawai?.nama || session?.user?.name}</h1>
-        <p className="mt-1 text-sm text-blue-200">{pegawai?.jabatan}</p>
+        <p className="mt-1 text-sm text-blue-200">
+          {pegawai?.jabatan}
+          {pegawai?.subBidang?.nama ? ` - ${pegawai.subBidang.nama}` : ""}
+        </p>
         <span className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
           {pegawai?.status || "AKTIF"}
         </span>

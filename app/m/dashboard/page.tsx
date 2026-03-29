@@ -367,7 +367,7 @@ export default function MobileDashboard() {
                 { label: "Hadir", value: hadirCount, icon: UserCheck, bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#16a34a", text: "#15803d" },
                 { label: "Sakit", value: sakitCount, icon: Star,     bg: "#fffbeb", border: "#fde68a", iconBg: "#d97706", text: "#92400e" },
                 { label: "Izin",  value: izinCount,  icon: FileText,  bg: "#eff6ff", border: "#bfdbfe", iconBg: "#2563eb", text: "#1e40af" },
-                { label: "Cuti",  value: cutiCount,  icon: CalendarDays,bg:"#f0f9ff",border:"#bae6fd",iconBg:"#0284c7",text:"#075985"},
+                { label: "Sisa Cuti", value: pegawai?.saldoCuti ?? 0, icon: CalendarDays, bg:"#f0f9ff", border:"#bae6fd", iconBg:"#0284c7", text:"#075985" },
               ].map((item) => {
                 const Icon = item.icon
                 return (

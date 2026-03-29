@@ -49,6 +49,13 @@ export default function MobileIndeks() {
   const [perhatian, setPerhatian] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [recalcLoading, setRecalcLoading] = useState(false)
+  const [availableMonths, setAvailableMonths] = useState<number[]>([])
+
+  useEffect(() => {
+    const now = new Date()
+    const m = now.getMonth() + 1
+    setAvailableMonths([m, m === 1 ? 12 : m - 1])
+  }, [])
 
   const loadAll = async () => {
     setLoading(true)
@@ -89,7 +96,7 @@ export default function MobileIndeks() {
   return (
     <div className="min-h-screen bg-[#f4f7f6] dark:bg-black font-sans pb-24 flex flex-col">
       {/* Header */}
-      <div className="bg-[#18553f] pt-12 pb-6 px-5 rounded-b-3xl shadow-sm text-white sticky top-0 z-10">
+      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] pt-12 pb-6 px-5 rounded-b-3xl shadow-sm text-white sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/m/dashboard" className="p-2 rounded-xl bg-white/10 text-white active:scale-95 transition-transform">
@@ -116,7 +123,7 @@ export default function MobileIndeks() {
           <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
             <SelectTrigger className="flex-1 bg-white/10 border-0 h-10 text-white rounded-xl focus:ring-0"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {bulanNames.map((b, i) => <SelectItem key={i + 1} value={String(i + 1)}>{b}</SelectItem>)}
+              {availableMonths.map((m) => <SelectItem key={m} value={String(m)}>{bulanNames[m - 1]}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={String(tahun)} onValueChange={v => setTahun(Number(v))}>
