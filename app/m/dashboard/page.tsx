@@ -9,7 +9,7 @@ import {
   Award, Timer, UserCheck, Thermometer,
   Building2, BadgeCheck, FileText,
   CreditCard, GraduationCap, Trophy, Medal,
-  Bell
+  Bell, CheckCircle2, XCircle
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount } from "@/lib/actions/notifikasi"
@@ -296,13 +296,62 @@ export default function MobileDashboard() {
                   {format(today, "EEEE, dd MMMM yyyy", { locale: idLocale })}
                 </p>
               </div>
-              <Link href="/m/selfie">
-                <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-black active:scale-95 transition-transform"
-                  style={{ background: "linear-gradient(135deg, #1e3a5f, #2563eb)", boxShadow: "0 4px 14px rgba(37,99,235,0.35)" }}>
-                  <Camera className="h-3.5 w-3.5" />
-                  Absen
-                </div>
-              </Link>
+              {(() => {
+                if (!summary) return null // Masih loading
+                const currentHour = new Date().getHours()
+
+                if (summary.sudahAbsenPulang) {
+                  return (
+                    <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-emerald-600 bg-emerald-50 text-[11px] font-black border border-emerald-100">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Selesai
+                    </div>
+                  )
+                }
+
+                if (!summary.sudahAbsenMasuk) {
+                  if (currentHour >= 14) {
+                    return (
+                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-red-500 bg-red-50 text-[11px] font-black border border-red-100">
+                        <XCircle className="h-3.5 w-3.5" /> Sesi Ditutup
+                      </div>
+                    )
+                  }
+                  return (
+                    <Link href="/m/selfie">
+                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-black active:scale-95 transition-transform"
+                        style={{ background: "linear-gradient(135deg, #1e3a5f, #2563eb)", boxShadow: "0 4px 14px rgba(37,99,235,0.35)" }}>
+                        <Camera className="h-3.5 w-3.5" />
+                        Masuk
+                      </div>
+                    </Link>
+                  )
+                } else {
+                  // Sudah masuk, belum pulang
+                  if (currentHour < 15) {
+                    return (
+                      <div className="flex items-center justify-center px-3.5 py-2 rounded-xl text-gray-500 bg-gray-100 text-[10px] font-black border border-gray-200" title="Belum waktunya jam pulang">
+                        <Clock className="h-3.5 w-3.5 mr-1" /> Belum Pulang
+                      </div>
+                    )
+                  }
+                  if (currentHour >= 18) {
+                    return (
+                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-red-500 bg-red-50 text-[11px] font-black border border-red-100">
+                        <XCircle className="h-3.5 w-3.5" /> Sesi Berakhir
+                      </div>
+                    )
+                  }
+                  return (
+                    <Link href="/m/selfie">
+                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-black active:scale-95 transition-transform"
+                        style={{ background: "linear-gradient(135deg, #059669, #10b981)", boxShadow: "0 4px 14px rgba(16,185,129,0.35)" }}>
+                        <Camera className="h-3.5 w-3.5" />
+                        Pulang
+                      </div>
+                    </Link>
+                  )
+                }
+              })()}
             </div>
 
             {/* Jam masuk / pulang */}

@@ -100,6 +100,7 @@ interface AttendanceRecord {
   workHours: string
   photoIn: string | null
   photoOut: string | null
+  statusPulang?: string
 }
 
 const attendanceData: AttendanceRecord[] = [
@@ -355,8 +356,24 @@ export default function AttendancePage() {
         method: (methodMap[d.metode] || "selfie") as AttendanceRecord["method"],
         location: d.location || "Gedung Utama",
         workHours: calculateHours(d.jamMasuk, d.jamKeluar),
-        photoIn: d.foto || null,
-        photoOut: d.fotoKeluar || null,
+        photoIn: d.fotoMasukUrl || d.foto || null,
+        photoOut: d.fotoKeluarUrl || d.fotoKeluar || null,
+        statusPulang: (() => {
+          if (!d.jamKeluar) return "-"
+          const checkOutDt = new Date(d.jamKeluar)
+          const h = checkOutDt.getHours()
+          const m = checkOutDt.getMinutes()
+          
+          if (h >= 16) return "Tepat Waktu"
+          
+          const scheduledOut = new Date(checkOutDt)
+          scheduledOut.setHours(16, 0, 0, 0)
+          const diffMs = scheduledOut.getTime() - checkOutDt.getTime()
+          const diffMins = Math.floor(diffMs / 60000)
+          
+          if (diffMins > 0) return `Pulang cepat ${diffMins}m`
+          return "Tepat Waktu"
+        })()
       }
     })
   }
@@ -655,6 +672,7 @@ export default function AttendancePage() {
                 <TableHead className="text-center">Jam Kerja</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-center">Keterlambatan</TableHead>
+                <TableHead className="text-center">Status Pulang</TableHead>
                 <TableHead>Metode</TableHead>
                 <TableHead>Lokasi</TableHead>
                 {isAdmin && <TableHead className="w-[100px] text-center">Aksi</TableHead>}
@@ -726,6 +744,19 @@ export default function AttendancePage() {
                         ) : (
                           <span className="text-emerald-600 font-mono">-</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                         {record.statusPulang === "-" ? (
+                           <span className="text-muted-foreground font-mono">-</span>
+                         ) : record.statusPulang === "Tepat Waktu" ? (
+                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 font-mono">
+                             Tepat Waktu
+                           </Badge>
+                         ) : (
+                           <Badge variant="outline" className="bg-amber-50 text-amber-700 font-mono">
+                             {record.statusPulang}
+                           </Badge>
+                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">

@@ -458,6 +458,28 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     const jamPulangSetting = pengaturan?.jamPulang || "17:00"
     const [pjh, pjm] = jamPulangSetting.split(":").map(Number)
 
+    const _todayStart = new Date(now)
+    _todayStart.setHours(0, 0, 0, 0)
+    const _todayEnd = new Date(now)
+    _todayEnd.setHours(23, 59, 59, 999)
+
+    const absensiHariIni = await prisma.absensi.findFirst({
+      where: {
+        pegawaiId,
+        tanggal: { gte: _todayStart, lte: _todayEnd }
+      }
+    })
+
+    const formatTime = (d: Date | string | null | undefined) => {
+      if (!d) return "--:--"
+      const dt = typeof d === "string" ? new Date(d) : d
+      return dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+    }
+
+    const waktuAbsen = absensiHariIni
+      ? `${formatTime(absensiHariIni.jamMasuk)} - ${absensiHariIni.jamKeluar ? formatTime(absensiHariIni.jamKeluar) : "--:--"}`
+      : "--:-- - --:--"
+
     const summary = {
       hariKerjaAktif,
       hadir: 0,
@@ -467,7 +489,10 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       terlambat: 0,
       cuti: 0,
       pulangCepat: 0,
-      totalRecord: absensi.length
+      totalRecord: absensi.length,
+      waktuAbsen,
+      sudahAbsenMasuk: !!absensiHariIni?.jamMasuk,
+      sudahAbsenPulang: !!absensiHariIni?.jamKeluar,
     }
 
     const recordedDays = new Set<string>()
@@ -536,7 +561,8 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
   } catch (error) {
     console.error("Error getEmployeeAttendanceSummary:", error)
     return {
-      hariKerjaAktif: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0
+      hariKerjaAktif: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0,
+      waktuAbsen: "--:-- - --:--", sudahAbsenMasuk: false, sudahAbsenPulang: false
     }
   }
 }
