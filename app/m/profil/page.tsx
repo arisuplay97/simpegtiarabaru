@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin } from "lucide-react"
+import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock } from "lucide-react"
 import { getEmployeeProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
+import { changePasswordWithVerification } from "@/lib/actions/auth-actions"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
@@ -15,7 +16,10 @@ export default function MobileProfil() {
   const [loading, setLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passForm, setPassForm] = useState({ current: "", newPass: "", confirm: "" })
   const [formData, setFormData] = useState({
     nama: "",
     tempatLahir: "",
@@ -97,6 +101,35 @@ export default function MobileProfil() {
     }
   }
 
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (passForm.newPass !== passForm.confirm) {
+      toast.error("Password baru dan konfirmasi tidak cocok!")
+      return
+    }
+    if (passForm.newPass.length < 8) {
+      toast.error("Password baru minimal 8 karakter!")
+      return
+    }
+
+    setIsChangingPassword(true)
+    toast.loading("Mengganti password...")
+    try {
+      const res = await changePasswordWithVerification(passForm.current, passForm.newPass)
+      if (res.error) throw new Error(res.error)
+      
+      toast.dismiss()
+      toast.success("Password berhasil diubah!")
+      setShowPasswordModal(false)
+      setPassForm({ current: "", newPass: "", confirm: "" })
+    } catch (err: any) {
+      toast.dismiss()
+      toast.error(err.message)
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
@@ -168,14 +201,20 @@ export default function MobileProfil() {
         </div>
       </div>
 
-      {/* Tombol Edit */}
-      <div className="px-4 mt-6">
+      <div className="px-4 mt-6 space-y-3">
         <button
           onClick={() => setShowEditModal(true)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-white shadow-lg active:scale-95 transition-transform"
         >
           <Edit3 className="h-4 w-4" />
           Edit Data Profil
+        </button>
+        <button
+          onClick={() => setShowPasswordModal(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-800 py-4 text-sm font-semibold text-white shadow-lg active:scale-95 transition-transform"
+        >
+          <Lock className="h-4 w-4" />
+          Ganti Password
         </button>
       </div>
 
@@ -254,6 +293,61 @@ export default function MobileProfil() {
                   className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="w-full h-[75vh] sm:h-auto sm:w-[500px] bg-card rounded-t-3xl sm:rounded-3xl p-6 flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Lock className="w-5 h-5 text-primary" /> Ganti Password</h2>
+              <button disabled={isChangingPassword} onClick={() => setShowPasswordModal(false)} className="p-2 rounded-full bg-muted text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSavePassword} className="flex-1 overflow-y-auto pr-2 pb-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Password Saat Ini</label>
+                <input 
+                  type="password" required
+                  placeholder="Masukkan password yang sekarang"
+                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={passForm.current} onChange={e => setPassForm(p => ({...p, current: e.target.value}))}
+                />
+              </div>
+
+              <div className="space-y-1.5 mt-6 border-t border-border pt-4">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-primary">Password Baru</label>
+                <input 
+                  type="password" required minLength={8}
+                  placeholder="Minimal 8 karakter"
+                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={passForm.newPass} onChange={e => setPassForm(p => ({...p, newPass: e.target.value}))}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-primary">Konfirmasi Password Baru</label>
+                <input 
+                  type="password" required minLength={8}
+                  placeholder="Ketik ulang password baru Anda"
+                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={passForm.confirm} onChange={e => setPassForm(p => ({...p, confirm: e.target.value}))}
+                />
+              </div>
+
+              <div className="pt-6">
+                <button 
+                  type="submit" disabled={isChangingPassword}
+                  className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {isChangingPassword ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan Password Baru"}
                 </button>
               </div>
             </form>
