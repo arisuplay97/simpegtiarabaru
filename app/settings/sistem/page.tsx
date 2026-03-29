@@ -23,6 +23,9 @@ export default function PengaturanSistemPage() {
   const [formData, setFormData] = useState<any>({
     jamMasuk: "08:00",
     jamPulang: "17:00",
+    batasAbsenMasuk: "14:00",
+    mulaiAbsenPulang: "15:00",
+    batasAbsenPulang: "18:00",
     batasTerlambat: 15,
     lokasiPusat: "",
     jatahCutiTahunan: 12,
@@ -151,22 +154,55 @@ export default function PengaturanSistemPage() {
                       <Input type="time" id="jamPulang" name="jamPulang" value={formData.jamPulang || ""} onChange={handleChange} />
                     </div>
                   </div>
-                  <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 rounded-lg border bg-muted/30 p-4">
                     <div className="space-y-2">
-                       <Label htmlFor="batasCheckin" className="flex items-center gap-2">
+                       <Label htmlFor="batasAbsenMasuk" className="flex items-center gap-2">
                          <Clock className="h-4 w-4 text-amber-500" />
                          Batas Maksimal Check-in
                        </Label>
                        <Input 
                          type="time" 
-                         id="batasCheckin" 
-                         name="batasCheckin" 
-                         value={formData.batasCheckin || "16:00"} 
+                         id="batasAbsenMasuk" 
+                         name="batasAbsenMasuk" 
+                         value={formData.batasAbsenMasuk || "14:00"} 
                          onChange={handleChange} 
-                         className="w-full sm:w-40"
                        />
-                       <p className="text-xs text-muted-foreground italic">
-                         Pegawai tidak bisa check-in setelah jam ini. Contoh: jika diset 16:00, absen jam 16:01 akan ditolak.
+                       <p className="text-[10px] text-muted-foreground italic">
+                         Lewat jam ini ditolak check-in.
+                       </p>
+                    </div>
+
+                    <div className="space-y-2">
+                       <Label htmlFor="mulaiAbsenPulang" className="flex items-center gap-2">
+                         <Clock className="h-4 w-4 text-emerald-500" />
+                         Mulai Buka Check-out
+                       </Label>
+                       <Input 
+                         type="time" 
+                         id="mulaiAbsenPulang" 
+                         name="mulaiAbsenPulang" 
+                         value={formData.mulaiAbsenPulang || "15:00"} 
+                         onChange={handleChange} 
+                       />
+                       <p className="text-[10px] text-muted-foreground italic">
+                         Tidak bisa check-out sebelum jam ini.
+                       </p>
+                    </div>
+
+                    <div className="space-y-2">
+                       <Label htmlFor="batasAbsenPulang" className="flex items-center gap-2">
+                         <Clock className="h-4 w-4 text-red-500" />
+                         Tutup Sesi Check-out
+                       </Label>
+                       <Input 
+                         type="time" 
+                         id="batasAbsenPulang" 
+                         name="batasAbsenPulang" 
+                         value={formData.batasAbsenPulang || "18:00"} 
+                         onChange={handleChange} 
+                       />
+                       <p className="text-[10px] text-muted-foreground italic">
+                         Batas terakhir bisa check-out.
                        </p>
                     </div>
                   </div>
