@@ -43,10 +43,10 @@ function hitungHariKerja(start: Date, end: Date): number {
 }
 
 function formatLocal(d: Date) {
-  const dWib = new Date(d.getTime() + 7 * 60 * 60 * 1000)
-  const y = dWib.getUTCFullYear()
-  const m = String(dWib.getUTCMonth() + 1).padStart(2, '0')
-  const dd = String(dWib.getUTCDate()).padStart(2, '0')
+  const dWita = new Date(d.getTime() + 8 * 60 * 60 * 1000) // WITA (UTC+8)
+  const y = dWita.getUTCFullYear()
+  const m = String(dWita.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(dWita.getUTCDate()).padStart(2, '0')
   return `${y}-${m}-${dd}`
 }
 
