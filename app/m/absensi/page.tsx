@@ -42,9 +42,9 @@ export default function MobileAbsensi() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-4 flex items-center gap-3">
+      <div className="sticky top-0 z-10 bg-card border-b border-border px-4 pb-4 flex items-center gap-3" style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
         <h1 className="text-lg font-bold">Riwayat Absensi</h1>
         <span className="ml-auto text-sm text-muted-foreground">
           {format(new Date(tahun, bulan - 1, 1), "MMMM yyyy", { locale: idLocale })}

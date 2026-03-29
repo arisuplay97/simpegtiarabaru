@@ -186,12 +186,12 @@ export default function MobileDashboard() {
           {/* Top Bar */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-xl flex items-center justify-center overflow-hidden"
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden"
                 style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <img src="/LOGOBARU.png" alt="Logo" className="w-[80%] h-[80%] object-contain" />
+                <img src="/putih.png" alt="Logo" className="w-[90%] h-[90%] object-contain" />
               </div>
               <div>
-                <p className="text-white font-black text-[13px] tracking-tight leading-none">SIMPEG</p>
+                <p className="text-white font-black text-[14px] tracking-tight leading-none">ASIK Mobile</p>
                 <p className="text-white/50 text-[9px] font-medium leading-none mt-0.5">PDAM Tirta Ardhia Rinjani</p>
               </div>
             </div>
