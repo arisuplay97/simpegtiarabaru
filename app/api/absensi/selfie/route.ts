@@ -91,6 +91,30 @@ export async function POST(req: Request) {
     }
 
     // =============================================
+    // SERVER-SIDE TIME BOUNDARY VALIDATION
+    // =============================================
+    const pengaturan = await prisma.pengaturan.findFirst()
+    const currentHour = now.getHours()
+    const batasMasukH = parseInt(pengaturan?.batasAbsenMasuk?.split(":")[0] || "14")
+    const mulaiPulangH = parseInt(pengaturan?.mulaiAbsenPulang?.split(":")[0] || "15")
+    const batasPulangH = parseInt(pengaturan?.batasAbsenPulang?.split(":")[0] || "18")
+
+    if (!existing) {
+      // Validasi Check-In
+      if (currentHour >= batasMasukH) {
+        return NextResponse.json({ error: `Sesi check-in hari ini sudah ditutup sejak pukul ${pengaturan?.batasAbsenMasuk || "14:00"}.` }, { status: 400 })
+      }
+    } else if (existing && !existing.jamKeluar) {
+      // Validasi Check-Out
+      if (currentHour < mulaiPulangH) {
+        return NextResponse.json({ error: `Maaf, belum waktunya pulang. Sesi check-out baru akan dibuka pukul ${pengaturan?.mulaiAbsenPulang || "15:00"}.` }, { status: 400 })
+      }
+      if (currentHour >= batasPulangH) {
+        return NextResponse.json({ error: `Sesi check-out sudah berakhir pada pukul ${pengaturan?.batasAbsenPulang || "18:00"}.` }, { status: 400 })
+      }
+    }
+
+    // =============================================
     // UPLOAD FOTO
     // =============================================
     let fotoUrl: string | null = null
@@ -147,7 +171,6 @@ export async function POST(req: Request) {
     // =============================================
     // PROSES CHECK-IN
     // =============================================
-    const pengaturan = await prisma.pengaturan.findFirst()
     const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
     const batasTerlambat = pengaturan?.batasTerlambat || 0
     const [jh, jm] = jamMasukSetting.split(":").map(Number)
