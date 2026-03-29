@@ -107,6 +107,11 @@ model Pegawai {
 
   // Relasi ke modul lain
   deviceId              String?   // UUID Perangkat Utama Pegawai
+
+  // Face Recognition
+  faceDescriptor        Float[]   // Array float32 face-api.js descriptor (128 angka)
+  faceRegistered        Boolean   @default(false)
+  faceFailCount         Int       @default(0)  // Jumlah gagal verifikasi wajah hari ini
   absensi               Absensi[]
   cuti                  Cuti[]
   payroll               Payroll[]
@@ -177,6 +182,15 @@ model Absensi {
   importId  String?
   jamMasuk  DateTime?
   jamKeluar DateTime?
+  fotoMasukUrl  String?     // URL foto selfie masuk
+  fotoKeluarUrl String?     // URL foto selfie keluar
+  lokasiMasuk   String?     // "lat,lng" dari GPS
+  lokasiKeluar  String?     // "lat,lng" dari GPS saat keluar
+  faceVerified  Boolean   @default(false)  // wajah lolos verifikasi
+  pendingApproval Boolean  @default(false)  // perlu approve HRD (face gagal 6x)
+  approvedById  String?     // HRD yang approve
+  approvedAt    DateTime?   // waktu approve
+  offlineSync   Boolean   @default(false)  // di-submit saat offline
   pegawai   Pegawai         @relation(fields: [pegawaiId], references: [id])
   import    ImportFingerprint? @relation(fields: [importId], references: [id], onDelete: SetNull)
   createdAt DateTime        @default(now())
