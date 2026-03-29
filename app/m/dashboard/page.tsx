@@ -130,6 +130,16 @@ export default function MobileDashboard() {
       if (res.ok) {
         const p = await res.json()
         setPegawai(p)
+        
+        // Cache face status for offline use
+        if (typeof window !== "undefined" && p) {
+          localStorage.setItem("offlineFaceStatus", JSON.stringify({
+            faceRegistered: p.faceRegistered,
+            faceDescriptor: p.faceDescriptor,
+            id: p.id
+          }))
+        }
+
         const s = await getEmployeeAttendanceSummary(p.id)
         setSummary(s)
       }

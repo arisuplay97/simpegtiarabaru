@@ -82,10 +82,21 @@ export default function MobileSelfie() {
   }
 
   const init = async () => {
-    // 1. Load face status
-    const faceStatus = await getMyFaceStatus()
+    // 1. Load face status (allow fallback to offline cache if network fails)
+    let faceStatus = null
+    try {
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        faceStatus = await getMyFaceStatus()
+      }
+    } catch {}
+
+    if (!faceStatus && typeof window !== "undefined") {
+      const cached = localStorage.getItem("offlineFaceStatus")
+      if (cached) faceStatus = JSON.parse(cached)
+    }
+
     if (!faceStatus?.faceRegistered) {
-      toast.error("Wajah belum terdaftar! Daftarkan wajah Anda terlebih dahulu.")
+      toast.error("Wajah belum terdaftar! Daftarkan wajah Anda terlebih dahulu saat online.")
       router.push("/m/face-register")
       return
     }
@@ -106,8 +117,12 @@ export default function MobileSelfie() {
       faceApiRef.current = faceapi
       setModelsLoaded(true)
       setFaceGuide("no_face")
-    } catch {
-      toast.error("Gagal memuat model AI. Coba refresh halaman.")
+    } catch (err: any) {
+      if (!isOnline) {
+        toast.error("Sedang offline dan data kecerdasan buatan belum tersimpan di HP Anda. Harap online sebentar untuk memuat aplikasi perdana.")
+      } else {
+        toast.error("Gagal memuat model AI. Coba refresh halaman.", { description: err.message })
+      }
       return
     }
 
