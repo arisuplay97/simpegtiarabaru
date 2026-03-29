@@ -201,6 +201,24 @@
   background: var(--muted-foreground);
 }
 
+/* Scrollbar Hide (mobile horizontal scroll) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile premium micro-animations */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: fadeSlideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+
 /* Premium Card Shadows */
 .card-premium {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
