@@ -3,13 +3,13 @@ import { useEffect, useState, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
-  Bell, Camera, AlertCircle, ChevronRight,
+  Megaphone, Camera, AlertCircle, ChevronRight,
   CalendarDays, Clock, Star, BookOpen,
   Shield, Fingerprint, TrendingUp,
   Award, Timer, UserCheck,
   Building2, BadgeCheck, FileText,
   CreditCard, GraduationCap, Trophy, Medal,
-  ChevronUp, ChevronDown, Minus
+  Bell
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount } from "@/lib/actions/notifikasi"
@@ -41,34 +41,44 @@ function DigitalClock() {
   )
 }
 
-// ─── Pengumuman Ticker ───────────────────────────────────────────
+// ─── Pengumuman Marquee Ticker ──────────────────────────────────
 function PengumumanTicker({ items }: { items: { title: string; message: string }[] }) {
+  const [visible, setVisible] = useState(true)
   const [idx, setIdx] = useState(0)
-  useEffect(() => {
-    if (items.length <= 1) return
-    const t = setInterval(() => setIdx(i => (i + 1) % items.length), 5000)
-    return () => clearInterval(t)
-  }, [items.length])
+
+  // Gabungkan semua pesan jadi satu teks panjang dengan pemisah
+  const fullText = items.map(i => `📢 ${i.title}: ${i.message}`).join("   ·   ")
+
   if (!items.length) return null
-  const cur = items[idx]
+
   return (
-    <div className="rounded-2xl overflow-hidden flex items-center gap-3 px-4 py-3"
-      style={{ background: "linear-gradient(135deg,#1e3a5f,#1d4ed8)", border: "1px solid rgba(255,255,255,0.08)" }}>
-      <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0"
-        style={{ background: "rgba(255,255,255,0.15)" }}>
-        <Bell className="h-3.5 w-3.5 text-white" />
+    <div
+      className="flex items-center gap-2 rounded-xl px-3 py-2.5 overflow-hidden"
+      style={{
+        background: "rgba(30,58,95,0.06)",
+        border: "1px solid rgba(30,58,95,0.10)",
+      }}
+    >
+      {/* Icon toa/megaphone */}
+      <div className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full"
+        style={{ background: "rgba(30,58,95,0.12)" }}>
+        <Megaphone className="h-3.5 w-3.5" style={{ color: "#1e3a5f" }} />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-0.5">
-          {cur.title}
-        </p>
-        <p className="text-[12px] font-semibold text-white leading-snug line-clamp-2">{cur.message}</p>
-      </div>
-      {items.length > 1 && (
-        <div className="flex flex-col items-center shrink-0 gap-0.5">
-          <span className="text-[10px] text-white/40">{idx + 1}/{items.length}</span>
+
+      {/* Marquee wrapper */}
+      <div className="flex-1 overflow-hidden relative" style={{ height: "18px" }}>
+        <div
+          className="absolute whitespace-nowrap text-[11px] font-semibold"
+          style={{
+            color: "#1e3a5f",
+            animation: "marquee-scroll 18s linear infinite",
+            top: 0,
+            left: 0,
+          }}
+        >
+          {fullText}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{fullText}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -275,7 +285,7 @@ export default function MobileDashboard() {
             </div>
 
             {/* Jam masuk / pulang */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl p-3.5 flex items-center gap-3"
                 style={{ background: "linear-gradient(135deg,#f0fdf4,#dcfce7)", border: "1px solid #bbf7d0" }}>
                 <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
@@ -303,11 +313,11 @@ export default function MobileDashboard() {
                 </div>
               </div>
             </div>
-
-            {/* ===== PENGUMUMAN TICKER ===== */}
-            {pengumuman.length > 0 && <PengumumanTicker items={pengumuman} />}
           </div>
         </div>
+
+        {/* ===== PENGUMUMAN TICKER (antara jam & banner) ===== */}
+        {pengumuman.length > 0 && <PengumumanTicker items={pengumuman} />}
 
         {/* ===== BANNER OP.PNG ===== */}
         <div className="rounded-3xl overflow-hidden"

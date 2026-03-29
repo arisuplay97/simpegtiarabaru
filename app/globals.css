@@ -219,6 +219,12 @@
   animation: fadeSlideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
 }
 
+/* Marquee scroll for broadcast ticker */
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /* Premium Card Shadows */
 .card-premium {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
