@@ -109,7 +109,7 @@ export default function MobileCuti() {
 
       {/* Bottom Sheet Form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/50">
+        <div className="fixed inset-0 z-[60] flex items-end bg-black/50">
           <div className="w-full rounded-t-3xl bg-card p-6 max-h-[85vh] overflow-y-auto">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-lg font-bold">Ajukan Cuti</h2>

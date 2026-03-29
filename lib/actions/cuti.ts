@@ -225,3 +225,52 @@ export async function getPegawaiSaldoCuti() {
     return { data: 0 }
   }
 }
+
+export async function deleteCuti(cutiId: string) {
+  try {
+    const session = await auth()
+    if (!session?.user || (session.user.role !== "HRD" && session.user.role !== "SUPERADMIN")) {
+      return { error: "Hanya HRD atau Superadmin yang dapat melakukan aksi ini" }
+    }
+
+    const cuti = await prisma.cuti.findUnique({
+      where: { id: cutiId },
+      include: { pegawai: true }
+    })
+
+    if (!cuti) return { error: "Data cuti tidak ditemukan" }
+
+    // Jika cuti sebelumnya APPROVED dan Cuti Tahunan, kembalikan saldo
+    if (cuti.status === "APPROVED" && cuti.jenisCuti === "Cuti Tahunan") {
+      const start = new Date(cuti.tanggalMulai)
+      const end = new Date(cuti.tanggalSelesai)
+      const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      
+      await prisma.pegawai.update({
+        where: { id: cuti.pegawaiId },
+        data: {
+          saldoCuti: cuti.pegawai.saldoCuti + duration
+        }
+      })
+    }
+    
+    // Hapus data cuti
+    await prisma.cuti.delete({
+      where: { id: cutiId }
+    })
+
+    await logAudit({
+      action: "DELETE",
+      module: "cuti",
+      targetId: cutiId,
+      targetName: `Hapus pengajuan cuti ${cuti.pegawai.nama}`,
+      oldData: cuti as any,
+    })
+
+    revalidatePath("/cuti")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Gagal menghapus cuti:", error)
+    return { error: error.message }
+  }
+}

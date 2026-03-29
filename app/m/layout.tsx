@@ -37,7 +37,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
               <MobileBottomNav />
             </div>
           </AuthProvider>
-          <Toaster position="top-center" richColors />
+          <Toaster position="top-center" richColors toastOptions={{ style: { marginTop: 'var(--safe-area-inset-top, 40px)' } }} />
         </ThemeProvider>
       </body>
     </html>

@@ -55,9 +55,10 @@ import {
   ChevronRight,
   Loader2,
   Check,
-  X
+  X,
+  Trash2
 } from "lucide-react"
-import { getCutiList, createCuti, updateCutiStatus, getPegawaiSaldoCuti } from "@/lib/actions/cuti"
+import { getCutiList, createCuti, updateCutiStatus, getPegawaiSaldoCuti, deleteCuti } from "@/lib/actions/cuti"
 
 interface LeaveRequest {
   id: string
@@ -192,6 +193,17 @@ export default function CutiPage() {
       fetchData()
     }
     setIsSubmitting(false)
+  }
+
+  const handleDeleteCuti = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus data cuti ini? Saldo cuti akan dikembalikan jika cuti ini statusnya disetujui.")) return
+    const res = await deleteCuti(id)
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success("Data cuti berhasil dihapus")
+      fetchData()
+    }
   }
 
   const handleAction = async (id: string, action: "APPROVED" | "REJECTED") => {
@@ -493,6 +505,17 @@ export default function CutiPage() {
                                     <X className="h-4 w-4" />
                                   </Button>
                                 </>
+                              )}
+                              {isHRD && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteCuti(request.id)}
+                                  title="Hapus / Reset"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               )}
                             </div>
                           </TableCell>
