@@ -6,7 +6,7 @@ import {
   Megaphone, Camera, AlertCircle, ChevronRight,
   CalendarDays, Clock, Star, BookOpen,
   Shield, Fingerprint, TrendingUp,
-  Award, Timer, UserCheck,
+  Award, Timer, UserCheck, Thermometer,
   Building2, BadgeCheck, FileText,
   CreditCard, GraduationCap, Trophy, Medal,
   Bell
@@ -386,7 +386,7 @@ export default function MobileDashboard() {
             <div className="grid grid-cols-4 gap-2">
               {[
                 { label: "Hadir", value: hadirCount, icon: UserCheck, bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#16a34a", text: "#15803d" },
-                { label: "Sakit", value: sakitCount, icon: Star,     bg: "#fffbeb", border: "#fde68a", iconBg: "#d97706", text: "#92400e" },
+                { label: "Sakit", value: sakitCount, icon: Thermometer, bg: "#fffbeb", border: "#fde68a", iconBg: "#d97706", text: "#92400e" },
                 { label: "Izin",  value: izinCount,  icon: FileText,  bg: "#eff6ff", border: "#bfdbfe", iconBg: "#2563eb", text: "#1e40af" },
                 { label: "Sisa Cuti", value: pegawai?.saldoCuti ?? 0, icon: CalendarDays, bg:"#f0f9ff", border:"#bae6fd", iconBg:"#0284c7", text:"#075985" },
               ].map((item) => {
