@@ -1583,8 +1583,7 @@ export default function EmployeeDetailPage() {
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Helper: check if Direksi role (hide unneeded fields) */}
-                {(() => { const isDireksi = ["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()); return null })()}
-                {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase())) && (
+                {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()) || bidangList.find(b => b.id === formData.bidangId)?.nama?.toLowerCase().includes("direksi")) && (
                   <F label="Tipe Pegawai">
                     <Select value={formData.tipePegawai || "TETAP"} onValueChange={v => {
                       handleChange("tipePegawai", v)
@@ -1670,7 +1669,7 @@ export default function EmployeeDetailPage() {
                     </Select>
                   </F>
 
-                  {(formData.tipeJabatan === "KASUBBID" || formData.tipeJabatan === "STAFF" || formData.tipeJabatan === "KASUBBID_CABANG" || formData.tipeJabatan === "STAFF_CABANG") && formData.bidangId && (
+                  {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()) || bidangList.find(b => b.id === formData.bidangId)?.nama?.toLowerCase().includes("direksi")) && (
                     <F label="Sub Bidang / Seksi">
                       <Select value={formData.subBidangId || "NONE"} onValueChange={v => {
                         const val = v === "NONE" ? "" : v
@@ -1716,7 +1715,7 @@ export default function EmployeeDetailPage() {
                     </Select>
                   </F>
 
-                  {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase())) && (
+                  {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()) || bidangList.find(b => b.id === formData.bidangId)?.nama?.toLowerCase().includes("direksi")) && (
                     <F label="SP (Jika Ada)">
                       <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
                         <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>

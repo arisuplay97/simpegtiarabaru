@@ -164,6 +164,10 @@ export default function OrganisasiPage() {
     }).map(b => b.id)
   ))
   const unlinkedBidang = bidangPusat.filter(b => !linkedIds.has(b.id))
+  
+  const half = Math.ceil(otherDir.length / 2)
+  const leftDir = otherDir.slice(0, half)
+  const rightDir = otherDir.slice(half)
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -236,14 +240,26 @@ export default function OrganisasiPage() {
                     {/* Level 2 — direktur lain + bidang unlinked */}
                     {(otherDir.length > 0 || unlinkedBidang.length > 0) && (
                       <div className="tr">
-                        {otherDir.map(dir => (
+                        {leftDir.map(dir => (
                           <div key={dir.id} className="tc">
                             <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
-                        {unlinkedBidang.map(b => (
-                          <div key={b.id} className="tc">
-                            <BidangNode bid={b} />
+                        {unlinkedBidang.length > 0 && (
+                          <div className="tc">
+                            <div className="w-px bg-[#94a3b8]" style={{ height: "78px" }} />
+                            <div className="tr w-full pt-0" style={{ marginTop: "-20px" }}>
+                              {unlinkedBidang.map(b => (
+                                <div key={b.id} className="tc">
+                                  <BidangNode bid={b} />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {rightDir.map(dir => (
+                          <div key={dir.id} className="tc">
+                            <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
                       </div>
