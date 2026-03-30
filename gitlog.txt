@@ -1,0 +1,6 @@
+fbd9d78 fix(dashboard): remove Alpa stat card && fix(components): resolve JSX spread element syntax error in skeleton component
+f4ac0e5 perf(dashboard): add instant loading skeleton for better perceived performance
+2f98194 perf(dashboard): convert to Server Component for zero-delay instant loading
+ed1d4dd feat(formasi): build incredible auto-generate feature to prepopulate table from current employees
+67a136e feat(formasi): implement complete Formasi Jabatan live module with DB connectivity
+f1fd814 fix(ui): remove gap above standalone photos in org chart, fully remove emoji greeting from dashboard

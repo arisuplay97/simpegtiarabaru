@@ -229,7 +229,7 @@ export default function MobileDashboard() {
                 Selamat Datang Kembali,
               </h1>
               <h2 className="text-[1.65rem] font-black text-blue-300 leading-tight mt-0.5">
-                {session?.user?.name} 👋
+                {session?.user?.name}
               </h2>
             </div>
 
