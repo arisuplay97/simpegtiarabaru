@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
   title: "ASIK Mobile",
-  description: "ASIK PDAM Tirta Ardhia Rinjani",
+  description: "ASIK Perumdam Tirta Ardhia Rinjani",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ASIK" },
 }

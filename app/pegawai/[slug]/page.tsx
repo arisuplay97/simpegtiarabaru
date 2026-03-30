@@ -229,6 +229,12 @@ export default function EmployeeDetailPage() {
       if (!res) {
         toast.error("Pegawai tidak ditemukan")
       } else {
+        // Reconstruct tipeJabatan for direktur because DB stores them as KEPALA_BIDANG
+        if (res.tipeJabatan === "KEPALA_BIDANG" && res.user?.role === "DIREKSI") {
+          const jab = (res.jabatan || "").toLowerCase()
+          res.tipeJabatan = (jab.includes("utama") || jab.includes("dirut")) ? "direktur_utama" : "direktur"
+        }
+
         setEmployee(res)
         fetchAttendanceSummary(res.id)
         fetchDokumen(res.id)
@@ -1590,25 +1596,25 @@ export default function EmployeeDetailPage() {
                     <Select value={formData.tipeJabatan || ""} onValueChange={v => {
                       handleChange("tipeJabatan", v)
                       // Auto-fill jabatan for direktur
-                      if (v === "DIREKTUR_UTAMA") handleChange("jabatan", "Direktur Utama")
-                      else if (v === "DIREKTUR") handleChange("jabatan", "Direktur")
+                      if (v === "direktur_utama") handleChange("jabatan", "Direktur Utama")
+                      else if (v === "direktur") handleChange("jabatan", "Direktur")
                       else handleChange("jabatan", "")
                     }}>
                       <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
                       <SelectContent>
                         {formData.kategoriPenempatan === "CABANG" ? (
                           <>
-                            <SelectItem value="KEPALA_CABANG">Kepala Cabang</SelectItem>
-                            <SelectItem value="KASUBBID_CABANG">Ka. Sub Seksi Cabang</SelectItem>
-                            <SelectItem value="STAFF_CABANG">Staff Cabang</SelectItem>
+                            <SelectItem value="kepala_cabang">Kepala Cabang</SelectItem>
+                            <SelectItem value="kasubbid_cabang">Ka. Sub Seksi Cabang</SelectItem>
+                            <SelectItem value="staff_cabang">Staff Cabang</SelectItem>
                           </>
                         ) : (
                           <>
-                            <SelectItem value="DIREKTUR_UTAMA">⭐ Direktur Utama</SelectItem>
-                            <SelectItem value="DIREKTUR">🔹 Direktur</SelectItem>
-                            <SelectItem value="KEPALA_BIDANG">Kepala Bidang/Bagian</SelectItem>
-                            <SelectItem value="KASUBBID">Kasubbid / Kasi</SelectItem>
-                            <SelectItem value="STAFF">Staff Pusat</SelectItem>
+                            <SelectItem value="direktur_utama">⭐ Direktur Utama</SelectItem>
+                            <SelectItem value="direktur">🔹 Direktur</SelectItem>
+                            <SelectItem value="kepala_bidang">Kepala Bidang/Bagian</SelectItem>
+                            <SelectItem value="kasubbid">Kasubbid / Kasi</SelectItem>
+                            <SelectItem value="staff">Staff Pusat</SelectItem>
                           </>
                         )}
                       </SelectContent>

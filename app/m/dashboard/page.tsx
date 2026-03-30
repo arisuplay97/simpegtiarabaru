@@ -202,7 +202,7 @@ export default function MobileDashboard() {
               </div>
               <div>
                 <p className="text-white font-black text-[17px] tracking-tight leading-none">ASIK Mobile</p>
-                <p className="text-white/50 text-[10.5px] font-medium leading-none mt-0.5">PDAM Tirta Ardhia Rinjani</p>
+                <p className="text-white/50 text-[10.5px] font-medium leading-none mt-0.5">Perumdam Tirta Ardhia Rinjani</p>
               </div>
             </div>
             {/* Notifikasi — 1 tombol */}
@@ -558,7 +558,7 @@ export default function MobileDashboard() {
 
         {/* Footer */}
         <div className="text-center py-4">
-          <p className="text-[10px] text-gray-400 font-medium">ASIK · PDAM Tirta Ardhia Rinjani · v2.0</p>
+          <p className="text-[10px] text-gray-400 font-medium">ASIK · Perumdam Tirta Ardhia Rinjani · v2.0</p>
         </div>
 
       </div>

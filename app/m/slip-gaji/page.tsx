@@ -104,9 +104,9 @@ export default function MobileSlipGaji() {
       "",
       "",
       "Slip gaji ini digenerate secara resmi",
-      "dari HRIS PDAM Tirta Ardhia Rinjani",
+      "dari HRIS Perumdam Tirta Ardhia Rinjani",
     ]
-    downloadSimplePdf(`slip-gaji-${selectedPeriod}.pdf`, "SLIP GAJI - PDAM Tirta Ardhia Rinjani", lines)
+    downloadSimplePdf(`slip-gaji-${selectedPeriod}.pdf`, "SLIP GAJI - Perumdam Tirta Ardhia Rinjani", lines)
     toast.success("PDF slip gaji berhasil diunduh")
   }
 
