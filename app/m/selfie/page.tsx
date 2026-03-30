@@ -218,7 +218,9 @@ export default function MobileSelfie() {
           const registered = new Float32Array(registeredDescriptor)
           const distance = faceapi.euclideanDistance(fullResult.descriptor, registered)
 
-          if (distance < 0.55) {
+          // Threshold 0.42 = ketat (wajah mirip saja, beda orang ditolak)
+          // Standard face-api: 0.6 longgar, 0.5 sedang, 0.42 ketat
+          if (distance < 0.42) {
             // WAJAH COCOK!
             setFaceVerified(true)
             setFaceGuide("verified")

@@ -473,7 +473,7 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     const formatTime = (d: Date | string | null | undefined) => {
       if (!d) return "--:--"
       const dt = typeof d === "string" ? new Date(d) : d
-      return dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+      return dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" })
     }
 
     const waktuAbsen = absensiHariIni

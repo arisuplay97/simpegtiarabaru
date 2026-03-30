@@ -314,7 +314,7 @@ export default function AttendancePage() {
       const formatTime = (dateStr: any) => {
         if (!dateStr) return null
         const dt = new Date(dateStr)
-        return dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        return dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })
       }
 
       const calculateHours = (inTime: any, outTime: any) => {

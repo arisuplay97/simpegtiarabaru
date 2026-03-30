@@ -76,12 +76,12 @@ export default function SelfieAttendancePage() {
       setShiftData(data.shift)
       
       if (data.absensi?.jamMasuk) {
-        setCheckInTime(new Date(data.absensi.jamMasuk).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }))
+        setCheckInTime(new Date(data.absensi.jamMasuk).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" }))
         // Jika sudah check-in tapi belum checkout, default ke checkout mode
         if (!data.absensi.jamKeluar) setCheckType("checkout")
       }
       if (data.absensi?.jamKeluar) {
-        setCheckOutTime(new Date(data.absensi.jamKeluar).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }))
+        setCheckOutTime(new Date(data.absensi.jamKeluar).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" }))
         setCaptureStep(checkType === "checkin" ? "success" : "checkout_success")
       }
     }
@@ -314,7 +314,7 @@ export default function SelfieAttendancePage() {
   }
 
   const formatTime = (date: Date) =>
-    date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Makassar" })
 
   const formatDate = (date: Date) =>
     date.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
