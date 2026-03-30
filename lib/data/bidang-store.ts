@@ -1,7 +1,7 @@
 // lib/data/bidang-store.ts
 // Data master bidang/unit kerja + sub bidang + logika atasan otomatis
 
-export type TipeJabatan = "direktur_utama" | "direktur" | "kepala_bidang" | "kasubbid" | "staff" | "kepala_cabang" | "kasubbid_cabang" | "staff_cabang"
+export type TipeJabatan = "direktur_utama" | "direktur_operasional" | "direktur_umum" | "direktur" | "kepala_bidang" | "kasubbid" | "staff" | "kepala_cabang" | "kasubbid_cabang" | "staff_cabang"
 
 // Tipe status kepegawaian (bukan jabatan struktural)
 export type TipeKepegawaian = "tetap" | "honorer" | "kontrak" | "magang"
@@ -156,7 +156,9 @@ export const direkturList = [
 export const getJabatanLabel = (tipe: TipeJabatan, namaBidang: string): string => {
   switch (tipe) {
     case "direktur_utama": return `Direktur Utama`
-    case "direktur":      return `Direktur`
+    case "direktur_operasional": return `Direktur Operasional`
+    case "direktur_umum":  return `Direktur Umum & Keuangan`
+    case "direktur":       return `Direktur`
     case "kepala_bidang": return `Kepala Bidang`
     case "kasubbid":      return `Kasubbid`
     case "staff":         return `Staff`
@@ -183,6 +185,8 @@ export const getAtasanOtomatis = (
     case "staff_cabang":  return `Kasubbid Cabang ${bidang.nama.replace(/cabang/i, '').trim() || "-"}`
     case "kasubbid_cabang": return bidang.kepalaBidang || `Kepala Cabang ${bidang.nama.replace(/cabang/i, '').trim() || "-"}`
     case "kepala_cabang": return bidang.direkturAtasan || "Direktur Umum"
+    case "direktur_operasional": return "Direktur Utama"
+    case "direktur_umum": return "Direktur Utama"
     case "direktur":      return "Direktur Utama"
     case "direktur_utama": return "Dewan Pengawas / Bupati"
     default: return "-"
@@ -200,8 +204,8 @@ export const getJabatanOptions = (bidangId: string, bidangData: Bidang[] = bidan
   if (isDir) {
     return [
       { value: "direktur_utama", label: "Direktur Utama" },
-      { value: "direktur", label: "Direktur Operasional" },
-      { value: "direktur", label: "Direktur Umum & Keuangan" },
+      { value: "direktur_operasional", label: "Direktur Operasional" },
+      { value: "direktur_umum", label: "Direktur Umum & Keuangan" },
     ]
   }
 
@@ -230,6 +234,8 @@ export const getSubBidangOptions = (bidangId: string, bidangData: Bidang[] = bid
 export const parseTipeJabatan = (jabatan: string): TipeJabatan => {
   const lower = jabatan.toLowerCase()
   if (lower.includes("direktur utama") || lower.includes("dirut")) return "direktur_utama"
+  if (lower.includes("direktur operasional") || lower.includes("dirops")) return "direktur_operasional"
+  if (lower.includes("umum & keuangan") || lower.includes("umum dan keuangan") || lower.includes("dirum")) return "direktur_umum"
   if (lower.includes("direktur")) return "direktur"
   if (lower.includes("kepala bidang") || lower.includes("kepala bagian") || lower.includes("manager")) return "kepala_bidang"
   if (lower.includes("kasubbid") || lower.includes("supervisor") || lower.includes("koordinator")) return "kasubbid"

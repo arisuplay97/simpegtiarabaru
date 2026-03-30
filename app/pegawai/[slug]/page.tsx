@@ -232,7 +232,11 @@ export default function EmployeeDetailPage() {
         // Reconstruct tipeJabatan for direktur because DB stores them as KEPALA_BIDANG
         if (res.tipeJabatan === "KEPALA_BIDANG" && res.user?.role === "DIREKSI") {
           const jab = (res.jabatan || "").toLowerCase()
-          res.tipeJabatan = ((jab.includes("utama") || jab.includes("dirut")) ? "direktur_utama" : "direktur") as any
+          let tj = "direktur"
+          if (jab.includes("utama") || jab.includes("dirut")) tj = "direktur_utama"
+          else if (jab.includes("operasional") || jab.includes("dirops")) tj = "direktur_operasional"
+          else if (jab.includes("umum & keuangan") || jab.includes("umum dan keuangan") || jab.includes("dirum") || jab.includes("umum")) tj = "direktur_umum"
+          res.tipeJabatan = tj as any
         }
 
         setEmployee(res)
@@ -1597,6 +1601,8 @@ export default function EmployeeDetailPage() {
                       handleChange("tipeJabatan", v)
                       // Auto-fill jabatan for direktur
                       if (v === "direktur_utama") handleChange("jabatan", "Direktur Utama")
+                      else if (v === "direktur_operasional") handleChange("jabatan", "Direktur Operasional")
+                      else if (v === "direktur_umum") handleChange("jabatan", "Direktur Umum & Keuangan")
                       else if (v === "direktur") handleChange("jabatan", "Direktur")
                       else handleChange("jabatan", "")
                     }}>
@@ -1611,7 +1617,9 @@ export default function EmployeeDetailPage() {
                         ) : (
                           <>
                             <SelectItem value="direktur_utama">⭐ Direktur Utama</SelectItem>
-                            <SelectItem value="direktur">🔹 Direktur</SelectItem>
+                            <SelectItem value="direktur_operasional">🔹 Direktur Operasional</SelectItem>
+                            <SelectItem value="direktur_umum">🔹 Direktur Umum & Keuangan</SelectItem>
+                            <SelectItem value="direktur">🔹 Direktur (Lainnya)</SelectItem>
                             <SelectItem value="kepala_bidang">Kepala Bidang/Bagian</SelectItem>
                             <SelectItem value="kasubbid">Kasubbid / Kasi</SelectItem>
                             <SelectItem value="staff">Staff Pusat</SelectItem>

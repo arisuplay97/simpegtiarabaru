@@ -343,9 +343,8 @@ export default function BidangSettingsPage() {
                 <SelectTrigger><SelectValue placeholder="Pilih Direktur" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Direktur Utama">Direktur Utama</SelectItem>
-                  <SelectItem value="Direktur Pengembangan & Usaha">Direktur Pengembangan & Usaha</SelectItem>
-                  <SelectItem value="Direktur Umum">Direktur Umum</SelectItem>
-                  <SelectItem value="Direktur Teknik">Direktur Teknik</SelectItem>
+                  <SelectItem value="Direktur Umum & Keuangan">Direktur Umum & Keuangan</SelectItem>
+                  <SelectItem value="Direktur Operasional">Direktur Operasional</SelectItem>
                   <SelectItem value="Dewan Pengawas">Dewan Pengawas</SelectItem>
                 </SelectContent>
               </Select>
