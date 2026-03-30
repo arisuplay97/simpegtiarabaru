@@ -66,18 +66,11 @@ export async function generateA5SlipGajiPdf(data: MySlipData, periodeLabel: stri
   }
 
   // Title - menyesuaikan offset jika ada logo
-  doc.setFontSize(12)
+  doc.setFontSize(11)
   doc.setFont("helvetica", "bold")
-  doc.text("PERUMDA TIRTA", marginX + 35, y + 8)
-  doc.text("ARDHIA RINJANI", marginX + 35, y + 14)
-  doc.text("SLIP GAJI " + periodeLabel.toUpperCase(), marginX + 35, y + 20)
-
-  // Label ASIK sebelah kanan atas (opsional sebagai tambahan branding yg diminta)
-  doc.setFontSize(12)
-  doc.setTextColor(0, 102, 204)
-  doc.text("ASIK", marginX + contentWidth - 20, y + 14)
-  doc.setTextColor(0, 0, 0) // reset color
-  
+  doc.text("PERUSAHAAN UMUM DAERAH", marginX + 35, y + 8)
+  doc.text("TIRTA ARDHIA RINJANI", marginX + 35, y + 14)
+  doc.text("SLIP GAJI BULAN " + periodeLabel.toUpperCase(), marginX + 35, y + 20)
   y += headerHeight
   
   // Section 2: Data Pegawai

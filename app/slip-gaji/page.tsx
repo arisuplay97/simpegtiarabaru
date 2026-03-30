@@ -140,9 +140,9 @@ export default function SlipGajiPage() {
                     <div className="border border-black p-4 flex gap-6 items-center">
                        <img src="/slip.png" alt="Logo Slip" className="h-16 object-contain pl-2" />
                        <div>
-                          <p className="font-bold text-lg">PERUMDAM TIRTA</p>
-                          <p className="font-bold text-lg">ARDHIA RINJANI</p>
-                          <p className="font-bold text-lg">SLIP GAJI {selectedPeriod.toUpperCase()}</p>
+                          <p className="font-bold text-lg">PERUSAHAAN UMUM DAERAH</p>
+                          <p className="font-bold text-lg">TIRTA ARDHIA RINJANI</p>
+                          <p className="font-bold text-lg">SLIP GAJI BULAN {selectedPeriod.toUpperCase()}</p>
                        </div>
                     </div>
 
