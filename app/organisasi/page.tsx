@@ -68,10 +68,13 @@ function Circle({ p, size, color }:{ p:P; size:number; color?:string }) {
 function Node({ p, size, color, showJabatan=true }:{ p:P; size:number; color?:string; showJabatan?:boolean }) {
   const maxW = Math.max(size + 16, 90)
   return (
-    <div className="flex flex-col items-center gap-1 text-center" style={{maxWidth:maxW}}>
+    <div className="flex flex-col items-center text-center relative" style={{maxWidth:maxW}}>
+      <div className="absolute w-px bg-[#94a3b8] -z-10" style={{ top: size/2, bottom: -1 }} />
       <Circle p={p} size={size} color={color} />
-      <p className="text-[10px] font-bold leading-tight text-foreground" style={{maxWidth:maxW, wordBreak:"break-word"}}>{p.nama}</p>
-      {showJabatan && <p className="text-[9px] text-muted-foreground leading-tight" style={{maxWidth:maxW}}>{p.jabatan}</p>}
+      <div className="bg-background relative px-1 mt-1 z-10 flex flex-col items-center pt-0.5 pb-1">
+        <p className="text-[10px] font-bold leading-tight text-foreground line-clamp-2" style={{maxWidth:maxW, wordBreak:"break-word"}}>{p.nama}</p>
+        {showJabatan && <p className="text-[9px] text-muted-foreground leading-tight line-clamp-2 mt-0.5" style={{maxWidth:maxW}}>{p.jabatan}</p>}
+      </div>
     </div>
   )
 }
@@ -218,20 +221,23 @@ export default function OrganisasiPage() {
 
                     {/* Direktur Utama */}
                     {dirut ? (
-                      <div className="flex flex-col items-center gap-1 text-center relative">
+                      <div className="flex flex-col items-center text-center relative">
+                        <div className="absolute w-px bg-[#94a3b8] -z-10" style={{ top: 40, bottom: -1 }} />
                         <div className="relative">
-                          <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-amber-400 shadow-xl">
+                          <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-amber-400 shadow-xl bg-primary">
                             {dirut.fotoUrl
                               ? <img src={dirut.fotoUrl} alt={dirut.nama} className="h-full w-full object-cover" />
-                              : <div className="h-full w-full bg-primary flex items-center justify-center text-white text-xl font-bold">{initials(dirut.nama)}</div>
+                              : <div className="h-full w-full flex items-center justify-center text-white text-xl font-bold">{initials(dirut.nama)}</div>
                             }
                           </div>
                           <div className="absolute -top-1 -right-1 h-6 w-6 bg-amber-400 rounded-full flex items-center justify-center shadow">
                             <Crown className="h-3.5 w-3.5 text-amber-900" />
                           </div>
                         </div>
-                        <p className="text-sm font-bold max-w-[130px] leading-tight">{dirut.nama}</p>
-                        <p className="text-[10px] text-muted-foreground max-w-[130px]">{dirut.jabatan}</p>
+                        <div className="bg-background relative px-2 py-1 mt-1 z-10 flex flex-col items-center pb-2">
+                          <p className="text-sm font-bold max-w-[130px] leading-tight text-foreground">{dirut.nama}</p>
+                          <p className="text-[10px] text-muted-foreground max-w-[130px] mt-0.5">{dirut.jabatan}</p>
+                        </div>
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground italic">Belum ada Direktur Utama</p>
@@ -240,13 +246,20 @@ export default function OrganisasiPage() {
                     {/* Level 2 — direktur lain + bidang unlinked */}
                     {(otherDir.length > 0 || unlinkedBidang.length > 0) && (
                       <div className="tr">
+                        {/* Invisible Fillers Left */}
+                        {fillersLeft.map((dir, i) => (
+                          <div key={'fl'+i} className="tc invisible pointer-events-none" aria-hidden="true" style={{height: 1, paddingBottom: 0, overflow: 'hidden'}}>
+                            <DirNode dir={dir} bidangList={bidangPusat} />
+                          </div>
+                        ))}
+                        
                         {leftDir.map(dir => (
                           <div key={dir.id} className="tc">
                             <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
                         {unlinkedBidang.length > 0 && (
-                          <div className="tc">
+                          <div className="tc relative">
                             <div className="w-px bg-[#94a3b8]" style={{ height: "78px" }} />
                             <div className="tr w-full pt-0" style={{ marginTop: "-20px" }}>
                               {unlinkedBidang.map(b => (
@@ -259,6 +272,13 @@ export default function OrganisasiPage() {
                         )}
                         {rightDir.map(dir => (
                           <div key={dir.id} className="tc">
+                            <DirNode dir={dir} bidangList={bidangPusat} />
+                          </div>
+                        ))}
+
+                        {/* Invisible Fillers Right */}
+                        {fillersRight.map((dir, i) => (
+                          <div key={'fr'+i} className="tc invisible pointer-events-none" aria-hidden="true" style={{height: 1, paddingBottom: 0, overflow: 'hidden'}}>
                             <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}

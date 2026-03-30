@@ -442,8 +442,9 @@ export default function EmployeeListPage() {
               </SelectContent>
             </Select>
           </F>
-          {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang/Cabang */}
-          {form.tipeJabatan && !form.tipeJabatan.includes("kepala") && form.bidangId && (
+          {(() => { const isDireksi = ["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((form.tipeJabatan || "").toLowerCase()) || bidangData.find(b => b.id === form.bidangId)?.nama?.toLowerCase().includes("direksi"); return null })()}
+          {/* Sub Bidang — hanya tampil jika bukan Kepala Bidang/Cabang dan bukan Direksi */}
+          {form.tipeJabatan && !form.tipeJabatan.includes("kepala") && form.bidangId && !(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((form.tipeJabatan || "").toLowerCase()) || (bidangData.find(b => b.id === form.bidangId)?.nama || "").toLowerCase().includes("direksi")) && (
             <F label="Sub Bidang" error={formErrors.subBidangId}>
               <Select
                 value={form.subBidangId || "NONE"}
@@ -459,7 +460,8 @@ export default function EmployeeListPage() {
               </Select>
             </F>
           )}
-          <F label="Tipe Kepegawaian">
+          {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((form.tipeJabatan || "").toLowerCase()) || (bidangData.find(b => b.id === form.bidangId)?.nama || "").toLowerCase().includes("direksi")) && (
+            <F label="Tipe Kepegawaian">
             <Select value={form.tipeKepegawaian || "NONE"} onValueChange={v => setForm({...form, tipeKepegawaian: v === "NONE" ? "" : v})}>
               <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
               <SelectContent>
@@ -470,6 +472,7 @@ export default function EmployeeListPage() {
               </SelectContent>
             </Select>
           </F>
+          )}
           {form.tipeKepegawaian !== 'kontrak' && form.tipeKepegawaian !== 'magang' && (
             <F label="Golongan">
               <Select value={form.golongan || "NONE"} onValueChange={v => setForm({...form, golongan: v === "NONE" ? "" : v})}>
@@ -495,6 +498,7 @@ export default function EmployeeListPage() {
           <F label="Tanggal Masuk">
             <Input type="date" value={form.tanggalMasuk} onChange={e => setForm({...form, tanggalMasuk: e.target.value})} />
           </F>
+          {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((form.tipeJabatan || "").toLowerCase()) || (bidangData.find(b => b.id === form.bidangId)?.nama || "").toLowerCase().includes("direksi")) && (
           <F label="SP (Jika Ada)">
             <Select 
               value={form.sp ?? "NONE"} 
@@ -509,6 +513,7 @@ export default function EmployeeListPage() {
               </SelectContent>
             </Select>
           </F>
+          )}
         </div>
         {(form.tipeJabatan as TipeJabatan) && form.bidangId && (
           <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center gap-2">
