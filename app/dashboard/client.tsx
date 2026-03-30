@@ -204,7 +204,6 @@ export default function DashboardClient({
                             { label: "Terlambat", val: stats?.kehadiranHariIni?.terlambat || 0, cls: "text-amber-600 dark:text-amber-400" },
                             { label: "Izin / Cuti", val: stats?.kehadiranHariIni?.sakitCuti || 0, cls: "text-blue-600 dark:text-blue-400" },
                             { label: "Belum Absen", val: stats?.kehadiranHariIni?.belumAbsen || 0, cls: "text-red-500 dark:text-red-400" },
-                            { label: "Alpa", val: stats?.kehadiranHariIni?.alpha || 0, cls: "text-red-800 dark:text-red-600" },
                           ].map(({ label, val, cls }) => (
                             <div key={label} className="bg-neutral-50 dark:bg-neutral-800/60 rounded-xl p-3 border border-neutral-100 dark:border-neutral-800">
                               <div className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-1">{label}</div>
