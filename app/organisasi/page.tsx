@@ -172,6 +172,12 @@ export default function OrganisasiPage() {
   const leftDir = otherDir.slice(0, half)
   const rightDir = otherDir.slice(half)
 
+  const missingRight = Math.max(0, leftDir.length - rightDir.length)
+  const fillersRight = leftDir.slice(0, missingRight).reverse()
+
+  const missingLeft = Math.max(0, rightDir.length - leftDir.length)
+  const fillersLeft = rightDir.slice(0, missingLeft).reverse()
+
   return (
     <div className="flex min-h-screen bg-background">
       <style>{CSS}</style>
