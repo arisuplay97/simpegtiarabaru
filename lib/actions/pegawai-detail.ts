@@ -218,10 +218,7 @@ export async function updateMobileProfile(pegawaiId: string, data: any) {
       await tx.pegawai.update({
         where: { id: pegawaiId },
         data: {
-          nama: data.nama,
-          tempatLahir: data.tempatLahir,
-          tanggalLahir: data.tanggalLahir ? new Date(data.tanggalLahir) : null,
-          telepon: data.telepon,
+          telepon: data.telepon || null,
           email: data.email,
         }
       })

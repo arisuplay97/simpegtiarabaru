@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Camera, CheckCircle, Loader2, MapPin, X, Clock, AlertTriangle, WifiOff, ShieldCheck, ShieldX } from "lucide-react"
+import { Camera, CheckCircle, Loader2, MapPin, X, Clock, AlertTriangle, WifiOff, ShieldCheck, ShieldX, Sun } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
@@ -45,7 +45,7 @@ export default function MobileSelfie() {
     id: string, faceRegistered: boolean, faceDescriptor: number[], faceFailCount: number
   } | null>(null)
   const [modelsLoaded, setModelsLoaded] = useState(false)
-  const [faceGuide, setFaceGuide] = useState<"loading" | "no_face" | "ok" | "too_close" | "too_far" | "multiple" | "steady" | "verified" | "fail">("loading")
+  const [faceGuide, setFaceGuide] = useState<"loading" | "no_face" | "ok" | "too_close" | "too_far" | "multiple" | "steady" | "verified" | "fail" | "low_light">("loading")
   const [faceVerified, setFaceVerified] = useState(false)
   const [captured, setCaptured] = useState<string | null>(null)
   const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null)
@@ -161,12 +161,37 @@ export default function MobileSelfie() {
     }, 3000)
   }
 
+  const getFrameBrightness = (): number => {
+    if (!videoRef.current) return 255
+    const canvas = document.createElement("canvas")
+    canvas.width = 64
+    canvas.height = 64
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return 255
+    ctx.drawImage(videoRef.current, 0, 0, 64, 64)
+    const data = ctx.getImageData(0, 0, 64, 64).data
+    let total = 0
+    for (let i = 0; i < data.length; i += 4) {
+      // Perceived brightness (luma)
+      total += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+    }
+    return total / (64 * 64)
+  }
+
   const startFaceDetection = (faceapi: any, faceStatus: typeof pegawaiFaceStatus) => {
     const registeredDescriptor = faceStatus?.faceDescriptor
 
     detectionIntervalRef.current = setInterval(async () => {
       if (!videoRef.current || videoRef.current.readyState < 2) return
       if (captured || faceVerified) return
+
+      // 🔆 Cek pencahayaan terlebih dahulu
+      const brightness = getFrameBrightness()
+      if (brightness < 40) {
+        setFaceGuide("low_light")
+        steadyFramesRef.current = 0
+        return
+      }
 
       const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
       const dets = await faceapi.detectAllFaces(videoRef.current, opts).withFaceLandmarks()
@@ -367,6 +392,7 @@ export default function MobileSelfie() {
     too_close: { text: "Terlalu dekat! Mundur sedikit.", color: "text-amber-400", icon: AlertTriangle },
     too_far: { text: "Terlalu jauh! Mendekatlah ke kamera.", color: "text-amber-400", icon: AlertTriangle },
     multiple: { text: "Terdeteksi > 1 wajah! Hanya Anda sendiri.", color: "text-red-400", icon: AlertTriangle },
+    low_light: { text: "Pencahayaan kurang! Cari tempat yang lebih terang.", color: "text-yellow-300", icon: Sun },
     steady: { text: "Wajah terdeteksi... steady...", color: "text-emerald-400" },
     verified: { text: "✓ Wajah terverifikasi!", color: "text-emerald-400" },
     fail: { text: "Wajah tidak cocok! Coba lagi...", color: "text-red-400", icon: ShieldX },
@@ -412,6 +438,7 @@ export default function MobileSelfie() {
                   faceGuide === "verified" || faceGuide === "steady" ? "border-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.4)]"
                   : faceGuide === "fail" || faceGuide === "multiple" ? "border-red-400"
                   : faceGuide === "too_close" || faceGuide === "too_far" ? "border-amber-400"
+                  : faceGuide === "low_light" ? "border-yellow-300 shadow-[0_0_20px_rgba(253,224,71,0.3)]"
                   : "border-white/30"
                 }`}
               />

@@ -21,9 +21,6 @@ export default function MobileProfil() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passForm, setPassForm] = useState({ current: "", newPass: "", confirm: "" })
   const [formData, setFormData] = useState({
-    nama: "",
-    tempatLahir: "",
-    tanggalLahir: "",
     email: "",
     telepon: ""
   })
@@ -43,9 +40,6 @@ export default function MobileProfil() {
           setPegawai(profile)
           if (profile) {
             setFormData({
-              nama: profile.nama || "",
-              tempatLahir: profile.tempatLahir || "",
-              tanggalLahir: profile.tanggalLahir ? new Date(profile.tanggalLahir).toISOString().split("T")[0] : "",
               email: profile.email || "",
               telepon: profile.telepon || ""
             })
@@ -232,63 +226,42 @@ export default function MobileProfil() {
       {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-          <div className="w-full h-[85vh] sm:h-auto sm:w-[500px] bg-card rounded-t-3xl sm:rounded-3xl p-6 flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:fade-in">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Edit Data Diri</h2>
+          <div className="w-full sm:h-auto sm:w-[500px] bg-card rounded-t-3xl sm:rounded-3xl p-6 flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:fade-in">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-bold">Edit Kontak</h2>
               <button disabled={isSaving} onClick={() => setShowEditModal(false)} className="p-2 rounded-full bg-muted text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
-            <form onSubmit={handleSaveEdit} className="flex-1 overflow-y-auto pr-2 pb-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Nama Lengkap</label>
-                <input 
-                  type="text" required
-                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  value={formData.nama} onChange={e => setFormData(p => ({...p, nama: e.target.value}))}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Tempat Lahir</label>
-                  <input 
-                    type="text" 
-                    className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={formData.tempatLahir} onChange={e => setFormData(p => ({...p, tempatLahir: e.target.value}))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Tanggal Lahir</label>
-                  <input 
-                    type="date" 
-                    className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={formData.tanggalLahir} onChange={e => setFormData(p => ({...p, tanggalLahir: e.target.value}))}
-                  />
-                </div>
-              </div>
+            <p className="text-xs text-muted-foreground mb-5">Perubahan data resmi lainnya dilakukan melalui HRD/Admin.</p>
 
+            <form onSubmit={handleSaveEdit} className="pb-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Email Utama</label>
-                <input 
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Mail className="w-3 h-3" /> Email
+                </label>
+                <input
                   type="email" required
+                  placeholder="email@contoh.com"
                   className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   value={formData.email} onChange={e => setFormData(p => ({...p, email: e.target.value}))}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Nomor Telepon</label>
-                <input 
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone className="w-3 h-3" /> Nomor Telepon / WhatsApp
+                </label>
+                <input
                   type="tel"
+                  placeholder="08xxxxxxxxxx"
                   className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   value={formData.telepon} onChange={e => setFormData(p => ({...p, telepon: e.target.value}))}
                 />
               </div>
 
-              <div className="pt-4">
-                <button 
+              <div className="pt-2">
+                <button
                   type="submit" disabled={isSaving}
                   className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
