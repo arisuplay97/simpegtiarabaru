@@ -1589,7 +1589,10 @@ export default function EmployeeDetailPage() {
                   <F label="Jabatan">
                     <Select value={formData.tipeJabatan || ""} onValueChange={v => {
                       handleChange("tipeJabatan", v)
-                      handleChange("jabatan", "")
+                      // Auto-fill jabatan for direktur
+                      if (v === "DIREKTUR_UTAMA") handleChange("jabatan", "Direktur Utama")
+                      else if (v === "DIREKTUR") handleChange("jabatan", "Direktur")
+                      else handleChange("jabatan", "")
                     }}>
                       <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
                       <SelectContent>
@@ -1601,6 +1604,8 @@ export default function EmployeeDetailPage() {
                           </>
                         ) : (
                           <>
+                            <SelectItem value="DIREKTUR_UTAMA">⭐ Direktur Utama</SelectItem>
+                            <SelectItem value="DIREKTUR">🔹 Direktur</SelectItem>
                             <SelectItem value="KEPALA_BIDANG">Kepala Bidang/Bagian</SelectItem>
                             <SelectItem value="KASUBBID">Kasubbid / Kasi</SelectItem>
                             <SelectItem value="STAFF">Staff Pusat</SelectItem>

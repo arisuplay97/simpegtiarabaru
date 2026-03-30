@@ -19,8 +19,21 @@ const mapTipeJabatan = (val: string): string => {
     kepala_cabang: "KEPALA_CABANG",
     kasubbid_cabang: "KASUBBID_CABANG",
     staff_cabang: "STAFF_CABANG",
+    // Direktur jabatan types — kept as KEPALA_BIDANG in tipeJabatan, role handled separately
+    direktur_utama: "KEPALA_BIDANG",
+    direktur: "KEPALA_BIDANG",
   }
   return map[val?.toLowerCase()] || val || "STAFF"
+}
+
+// Helper: map tipeJabatan/jabatan to user role
+const mapJabatanToRole = (tipeJabatan: string, jabatan: string): string | null => {
+  const tj = (tipeJabatan || "").toUpperCase()
+  const jab = (jabatan || "").toLowerCase()
+  if (tj === "DIREKTUR_UTAMA" || jab.includes("direktur utama") || jab.includes("dirut")) return "DIREKSI"
+  if (tj === "DIREKTUR" || jab.includes("direktur")) return "DIREKSI"
+  if (tj === "KEPALA_BIDANG" || tj === "KEPALA_CABANG") return "KEPALA_BIDANG"
+  return null
 }
 
 // Helper: map pangkat values to valid TipePangkat enum
@@ -336,10 +349,21 @@ export async function updateEmployee(id: string, data: any, fotoFile?: File) {
   const employee = await prisma.pegawai.update({
     where: { id },
     data: stripUndefined(payload) as any,
+    include: { user: { select: { id: true, role: true } } },
   })
+
+  // Sinkronkan user.role berdasarkan jabatan baru
+  const newRole = mapJabatanToRole(data.tipeJabatan || "", data.jabatan || "")
+  if (newRole && (employee as any).user?.role !== newRole) {
+    await prisma.user.update({
+      where: { id: (employee as any).user.id },
+      data: { role: newRole as any },
+    })
+  }
 
   revalidatePath("/pegawai")
   revalidatePath(`/pegawai/${id}`)
+  revalidatePath("/organisasi")
 
   await logAudit({
     action: "UPDATE",
