@@ -145,8 +145,8 @@ export let bidangList: Bidang[] = [
 // ============ DAFTAR DIREKTUR ============
 export const direkturList = [
   "Direktur Utama",
-  "Direktur Teknik",
-  "Direktur Umum",
+  "Direktur Operasional",
+  "Direktur Umum & Keuangan",
   "Dewan Pengawas",
 ]
 
@@ -190,7 +190,16 @@ export const getJabatanOptions = (bidangId: string, bidangData: Bidang[] = bidan
   const bidang = bidangData.find(b => b.id === bidangId)
   if (!bidang) return []
 
+  const isDir = bidang.nama.toLowerCase().includes('direksi') || bidang.kode?.toLowerCase() === 'dir'
   const isCabang = bidang.nama.toLowerCase().includes('cabang')
+
+  if (isDir) {
+    return [
+      { value: "kepala_bidang", label: "Direktur Utama" },
+      { value: "kepala_bidang", label: "Direktur Operasional" },
+      { value: "kepala_bidang", label: "Direktur Umum & Keuangan" },
+    ]
+  }
 
   if (isCabang) {
     return [
