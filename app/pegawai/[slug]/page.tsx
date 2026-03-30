@@ -78,6 +78,7 @@ import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getDokumenPegawai, uploadDokumen, deleteDokumen } from "@/lib/actions/dokumen"
 import { getPegawaiActivityLogs } from "@/lib/actions/audit-log"
+import { resetFaceData } from "@/lib/actions/face"
 import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
@@ -951,6 +952,44 @@ export default function EmployeeDetailPage() {
                             </Select>
                           </div>
                         )}
+
+                        {/* Reset Verifikasi Wajah */}
+                        <div className="rounded-lg border border-red-200 bg-red-50/50 p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-red-800 flex items-center gap-2">
+                                <Camera className="h-4 w-4" />
+                                🔄 Reset Verifikasi Wajah
+                              </p>
+                              <p className="text-[11px] text-red-700 mt-1 leading-relaxed">
+                                Status: <span className={`font-bold ${employee.faceRegistered ? 'text-emerald-700' : 'text-red-600'}`}>
+                                  {employee.faceRegistered ? '✅ Wajah Terdaftar' : '❌ Belum Terdaftar'}
+                                </span>
+                                {employee.faceRegistered && ` · Gagal ${employee.faceFailCount || 0}x`}
+                              </p>
+                              <p className="text-[11px] text-red-600 mt-1">
+                                Hapus data biometrik wajah. Pegawai harus daftar ulang di aplikasi mobile.
+                              </p>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={!employee.faceRegistered}
+                              onClick={async () => {
+                                if (!confirm(`Reset data wajah ${employee.nama}? Pegawai harus scan wajah ulang.`)) return
+                                const res = await resetFaceData(employee.id)
+                                if (res?.error) {
+                                  toast.error(res.error)
+                                } else {
+                                  toast.success('Data wajah berhasil direset')
+                                  setEmployee((prev: any) => ({ ...prev, faceRegistered: false, faceFailCount: 0 }))
+                                }
+                              }}
+                            >
+                              Reset Wajah
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </CardContent>

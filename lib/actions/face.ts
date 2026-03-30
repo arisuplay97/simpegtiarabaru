@@ -146,3 +146,26 @@ export async function getPendingAbsensiList() {
     orderBy: { createdAt: "desc" }
   })
 }
+
+/**
+ * Reset (hapus) data wajah pegawai — hanya SUPERADMIN
+ */
+export async function resetFaceData(pegawaiId: string) {
+  const session = await auth()
+  const role = (session?.user as any)?.role
+  if (role !== "SUPERADMIN") return { error: "Akses ditolak. Hanya SUPERADMIN." }
+
+  try {
+    await prisma.pegawai.update({
+      where: { id: pegawaiId },
+      data: {
+        faceDescriptor: [],
+        faceRegistered: false,
+        faceFailCount: 0,
+      }
+    })
+    return { success: true }
+  } catch (e: any) {
+    return { error: "Gagal reset data wajah: " + e.message }
+  }
+}
