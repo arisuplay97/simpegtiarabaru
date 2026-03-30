@@ -36,7 +36,6 @@ const CSS = `
 
 /* Vertical connector from horizontal bar down to child node */
 .tc::after { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:1px; height:20px; background:#94a3b8; }
-.tc:only-child::after { display:none; }
 
 /* Custom overloads for invisible flex symmetry balancing */
 .tc.filler::before, .tc.filler::after { display: none !important; }

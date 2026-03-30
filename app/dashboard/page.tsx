@@ -63,8 +63,8 @@ export default function DashboardPage() {
           {/* HEADER */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white flex items-center gap-2">
-                Selamat Datang, {session?.user?.name || 'User'} <span className="hidden sm:inline">👋</span>
+              <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                Selamat Datang, {session?.user?.name || 'User'}
               </h1>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                 {format(new Date(), "EEEE, dd MMMM yyyy", { locale: id })} · Ringkasan HRIS hari ini
