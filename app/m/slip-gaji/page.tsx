@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader2, Download, ChevronDown, TrendingUp, TrendingDown, Wallet, AlertCircle } from "lucide-react"
 import { getMyPayroll } from "@/lib/actions/payroll"
 import { downloadSimplePdf } from "@/lib/demo-files"
+import { generateA5SlipGajiPdf } from "@/lib/cetak-slip"
 import { toast } from "sonner"
 
 const formatCurrency = (amount: number) =>
@@ -77,37 +78,16 @@ export default function MobileSlipGaji() {
     if (status === "authenticated") fetchSlip()
   }, [status, fetchSlip])
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!slipData) return
     const periodLabel = bulanList.find(b => b.value === selectedPeriod)?.label || selectedPeriod
-    const lines = [
-      "",
-      `Periode        : ${periodLabel}`,
-      `Nama           : ${slipData.nama}`,
-      `NIK            : ${slipData.nik}`,
-      `Unit Kerja     : ${slipData.unit}`,
-      `Golongan       : ${slipData.golongan}`,
-      `Bank           : ${slipData.bank}`,
-      `No Rekening    : ${slipData.noRekening}`,
-      "",
-      "--- PENERIMAAN ---",
-      `Gaji Pokok     : ${formatCurrency(slipData.gajiPokok)}`,
-      `Tunjangan      : ${formatCurrency(slipData.tunjangan)}`,
-      `Lembur         : ${formatCurrency(slipData.lembur)}`,
-      `Total Bruto    : ${formatCurrency(slipData.gajiPokok + slipData.tunjangan + slipData.lembur)}`,
-      "",
-      "--- POTONGAN ---",
-      `Total Potongan : ${formatCurrency(slipData.potongan)}`,
-      "",
-      "--- GAJI BERSIH ---",
-      `Take Home Pay  : ${formatCurrency(slipData.gajiBersih)}`,
-      "",
-      "",
-      "Slip gaji ini digenerate secara resmi",
-      "dari HRIS Perumdam Tirta Ardhia Rinjani",
-    ]
-    downloadSimplePdf(`slip-gaji-${selectedPeriod}.pdf`, "SLIP GAJI - Perumdam Tirta Ardhia Rinjani", lines)
-    toast.success("PDF slip gaji berhasil diunduh")
+    const loadingToast = toast.loading("Mempersiapkan PDF...")
+    try {
+      await generateA5SlipGajiPdf(slipData as any, periodLabel)
+      toast.success("PDF slip gaji (A5) berhasil diunduh", { id: loadingToast })
+    } catch (e) {
+      toast.error("Gagal men-generate PDF", { id: loadingToast })
+    }
   }
 
   const periodLabel = bulanList.find(b => b.value === selectedPeriod)?.label || selectedPeriod
