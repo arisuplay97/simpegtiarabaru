@@ -37,6 +37,13 @@ const CSS = `
 /* Vertical connector from horizontal bar down to child node */
 .tc::after { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:1px; height:20px; background:#94a3b8; }
 .tc:only-child::after { display:none; }
+
+/* Custom overloads for invisible flex symmetry balancing */
+.tc.filler::before, .tc.filler::after { display: none !important; }
+.tc.visible-first:not(.visible-only)::before { left:50% !important; right:0 !important; display:block !important; }
+.tc.visible-last:not(.visible-only)::before  { right:50% !important; left:0 !important; display:block !important; }
+.tc.visible-mid::before   { left:0 !important; right:0 !important; display:block !important; }
+.tc.visible-only::before  { display:none !important; }
 `
 
 // ─── Color map ──────────────────────────────────────────────────────────
@@ -69,7 +76,7 @@ function Node({ p, size, color, showJabatan=true }:{ p:P; size:number; color?:st
   const maxW = Math.max(size + 16, 90)
   return (
     <div className="flex flex-col items-center text-center relative" style={{maxWidth:maxW}}>
-      <div className="absolute w-px bg-[#94a3b8] -z-10" style={{ top: size/2, bottom: -1 }} />
+      <div className="absolute w-px bg-[#94a3b8] -z-10" style={{ top: size/2, bottom: -1, left: "50%", transform: "translateX(-50%)" }} />
       <Circle p={p} size={size} color={color} />
       <div className="bg-background relative px-1 mt-1 z-10 flex flex-col items-center pt-0.5 pb-1">
         <p className="text-[10px] font-bold leading-tight text-foreground line-clamp-2" style={{maxWidth:maxW, wordBreak:"break-word"}}>{p.nama}</p>
@@ -178,6 +185,18 @@ export default function OrganisasiPage() {
   const missingLeft = Math.max(0, rightDir.length - leftDir.length)
   const fillersLeft = rightDir.slice(0, missingLeft).reverse()
 
+  const visibleItems = [
+    ...leftDir.map(d => d.id),
+    ...(unlinkedBidang.length > 0 ? ['SPACER'] : []),
+    ...rightDir.map(d => d.id)
+  ]
+  const getTcClass = (id:string) => {
+    if (visibleItems.length === 1) return "visible-only"
+    if (visibleItems[0] === id) return "visible-first"
+    if (visibleItems[visibleItems.length - 1] === id) return "visible-last"
+    return "visible-mid"
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <style>{CSS}</style>
@@ -228,7 +247,8 @@ export default function OrganisasiPage() {
                     {/* Direktur Utama */}
                     {dirut ? (
                       <div className="flex flex-col items-center text-center relative">
-                        <div className="absolute w-px bg-[#94a3b8] -z-10" style={{ top: 40, bottom: -1 }} />
+                        {/* Perfect center line down to Level 2 horizontal bar */}
+                        <div className="absolute w-px bg-[#94a3b8] -z-10" style={{ top: 40, bottom: -1, left: "50%", transform: "translateX(-50%)" }} />
                         <div className="relative">
                           <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-amber-400 shadow-xl bg-primary">
                             {dirut.fotoUrl
@@ -254,20 +274,20 @@ export default function OrganisasiPage() {
                       <div className="tr">
                         {/* Invisible Fillers Left */}
                         {fillersLeft.map((dir, i) => (
-                          <div key={'fl'+i} className="tc invisible pointer-events-none" aria-hidden="true" style={{height: 1, paddingBottom: 0, overflow: 'hidden'}}>
+                          <div key={'fl'+i} className="tc filler invisible pointer-events-none" aria-hidden="true" style={{height: 1, paddingBottom: 0, overflow: 'hidden'}}>
                             <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
                         
                         {leftDir.map(dir => (
-                          <div key={dir.id} className="tc">
+                          <div key={dir.id} className={`tc ${getTcClass(dir.id)}`}>
                             <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
                         {unlinkedBidang.length > 0 && (
-                          <div className="tc relative">
-                            <div className="w-px bg-[#94a3b8]" style={{ height: "78px" }} />
-                            <div className="tr w-full pt-0" style={{ marginTop: "-20px" }}>
+                          <div className={`tc relative ${getTcClass('SPACER')}`}>
+                            <div className="absolute w-px bg-[#94a3b8]" style={{ top: 0, height: "78px", left: "50%", transform: "translateX(-50%)" }} />
+                            <div className="tr w-full pt-0" style={{ marginTop: "58px" }}>
                               {unlinkedBidang.map(b => (
                                 <div key={b.id} className="tc">
                                   <BidangNode bid={b} />
@@ -277,14 +297,14 @@ export default function OrganisasiPage() {
                           </div>
                         )}
                         {rightDir.map(dir => (
-                          <div key={dir.id} className="tc">
+                          <div key={dir.id} className={`tc ${getTcClass(dir.id)}`}>
                             <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
 
                         {/* Invisible Fillers Right */}
                         {fillersRight.map((dir, i) => (
-                          <div key={'fr'+i} className="tc invisible pointer-events-none" aria-hidden="true" style={{height: 1, paddingBottom: 0, overflow: 'hidden'}}>
+                          <div key={'fr'+i} className="tc filler invisible pointer-events-none" aria-hidden="true" style={{height: 1, paddingBottom: 0, overflow: 'hidden'}}>
                             <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
