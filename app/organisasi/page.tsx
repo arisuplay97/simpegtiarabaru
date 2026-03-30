@@ -179,11 +179,9 @@ export default function OrganisasiPage() {
   const leftDir = otherDir.slice(0, half)
   const rightDir = otherDir.slice(half)
 
-  const missingRight = Math.max(0, leftDir.length - rightDir.length)
-  const fillersRight = leftDir.slice(0, missingRight).reverse()
-
-  const missingLeft = Math.max(0, rightDir.length - leftDir.length)
-  const fillersLeft = rightDir.slice(0, missingLeft).reverse()
+  // Perfect symmetric mirroring of opposite side nodes to force flex matching widths
+  const fillersRight = [...leftDir].reverse()
+  const fillersLeft = [...rightDir].reverse()
 
   const visibleItems = [
     ...leftDir.map(d => d.id),
