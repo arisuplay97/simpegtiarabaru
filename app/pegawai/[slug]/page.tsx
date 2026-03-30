@@ -232,7 +232,7 @@ export default function EmployeeDetailPage() {
         // Reconstruct tipeJabatan for direktur because DB stores them as KEPALA_BIDANG
         if (res.tipeJabatan === "KEPALA_BIDANG" && res.user?.role === "DIREKSI") {
           const jab = (res.jabatan || "").toLowerCase()
-          res.tipeJabatan = (jab.includes("utama") || jab.includes("dirut")) ? "direktur_utama" : "direktur"
+          res.tipeJabatan = ((jab.includes("utama") || jab.includes("dirut")) ? "direktur_utama" : "direktur") as any
         }
 
         setEmployee(res)
