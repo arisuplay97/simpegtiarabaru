@@ -111,7 +111,7 @@ export async function approvePendingAbsensi(absensiId: string) {
 }
 
 /**
- * Reject absensi pending â†’ menjadi ALPA
+ * Reject absensi pending -> menjadi ALPA
  */
 export async function rejectPendingAbsensi(absensiId: string) {
   const session = await auth()
@@ -148,7 +148,7 @@ export async function getPendingAbsensiList() {
 }
 
 /**
- * Reset (hapus) data wajah pegawai — hanya SUPERADMIN
+ * Reset (hapus) data wajah pegawai - hanya SUPERADMIN
  */
 export async function resetFaceData(pegawaiId: string) {
   const session = await auth()
