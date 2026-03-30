@@ -32,8 +32,20 @@ model Bidang {
   aktif           Boolean     @default(true)
   pegawai         Pegawai[]
   subBidang       SubBidang[]
+  formasiJabatan  FormasiJabatan[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+}
+
+// ============ FORMASI JABATAN ============
+model FormasiJabatan {
+  id        String   @id @default(cuid())
+  jabatan   String
+  bidangId  String?
+  bidang    Bidang?  @relation(fields: [bidangId], references: [id])
+  kebutuhan Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ============ SUB BIDANG ============

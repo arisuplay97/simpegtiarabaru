@@ -1,0 +1,3 @@
+app/formasi/page.tsx(2,20): error TS2307: Cannot find module '@/lib/db' or its corresponding type declarations.
+lib/actions/formasi.ts(3,20): error TS2307: Cannot find module '@/lib/db' or its corresponding type declarations.
+lib/actions/formasi.ts(27,57): error TS7006: Parameter 'f' implicitly has an 'any' type.
