@@ -6,7 +6,7 @@ import { TopBar } from "@/components/simpeg/top-bar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Users, Building2, Briefcase, ChevronRight, ChevronDown } from "lucide-react"
+import { Loader2, Users, Building2, Briefcase, ChevronRight, ChevronDown, Crown } from "lucide-react"
 
 // ─── Types ───────────────────────────────────────────────────
 interface PegawaiNode {
@@ -16,6 +16,7 @@ interface PegawaiNode {
   tipeJabatan: string
   fotoUrl?: string | null
   subBidangId?: string | null
+  atasanLangsung?: string | null
 }
 
 interface SubBidangNode {
@@ -35,6 +36,7 @@ interface BidangNode {
 }
 
 interface OrgData {
+  direksiList: PegawaiNode[]
   bidangList: BidangNode[]
   stats: { totalPegawai: number; totalBidang: number; totalJabatan: number }
 }
@@ -69,22 +71,169 @@ const tipeLabel: Record<string, string> = {
   KONTRAK: "Kontrak",
 }
 
-// ─── PegawaiCard ──────────────────────────────────────────────
-function PegawaiCard({ p, size = "md" }: { p: PegawaiNode; size?: "sm" | "md" | "lg" }) {
-  const avatarSize = size === "lg" ? "h-16 w-16" : size === "md" ? "h-11 w-11" : "h-9 w-9"
-  const nameClass = size === "lg" ? "text-sm font-bold" : size === "md" ? "text-xs font-semibold" : "text-[11px] font-medium"
+// ─── DireksiCard (foto bulat besar + pohon) ───────────────────
+function DireksiPersonCard({
+  person,
+  size = "md",
+}: {
+  person: PegawaiNode
+  size?: "lg" | "md"
+}) {
+  const isLg = size === "lg"
+  return (
+    <div className="flex flex-col items-center gap-2 group">
+      <div className="relative">
+        <div
+          className={`rounded-full overflow-hidden border-4 shadow-lg transition-transform group-hover:scale-105 ${
+            isLg
+              ? "h-24 w-24 border-primary/60 shadow-primary/20"
+              : "h-16 w-16 border-blue-400/60 shadow-blue-400/20"
+          }`}
+        >
+          {person.fotoUrl ? (
+            <img src={person.fotoUrl} alt={person.nama} className="h-full w-full object-cover" />
+          ) : (
+            <div
+              className={`flex h-full w-full items-center justify-center font-bold ${
+                isLg ? "text-xl bg-primary text-primary-foreground" : "text-sm bg-blue-600 text-white"
+              }`}
+            >
+              {getInitials(person.nama)}
+            </div>
+          )}
+        </div>
+        {isLg && (
+          <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-amber-400 flex items-center justify-center shadow-md">
+            <Crown className="h-3 w-3 text-amber-900" />
+          </div>
+        )}
+      </div>
+      <div className="text-center">
+        <p className={`font-bold text-foreground leading-tight ${isLg ? "text-sm" : "text-xs"} max-w-[140px]`}>
+          {person.nama}
+        </p>
+        <p className={`text-muted-foreground leading-tight mt-0.5 ${isLg ? "text-xs" : "text-[10px]"} max-w-[140px]`}>
+          {person.jabatan}
+        </p>
+        <Badge
+          variant="outline"
+          className={`mt-1 ${isLg ? "text-[10px]" : "text-[9px]"} px-1.5 py-0 border-primary/30 text-primary`}
+        >
+          Direksi
+        </Badge>
+      </div>
+    </div>
+  )
+}
+
+function DireksiTree({ direksiList }: { direksiList: PegawaiNode[] }) {
+  if (direksiList.length === 0) return null
+
+  // Cari Direktur Utama (jabatan mengandung "Utama" atau "Direktur Utama")
+  // Sisanya sebagai direktur bawahan
+  const dirut = direksiList.find(
+    (d) =>
+      d.jabatan.toLowerCase().includes("utama") ||
+      d.jabatan.toLowerCase().includes("dirut")
+  )
+  const others = direksiList.filter((d) => d.id !== dirut?.id)
 
   return (
-    <div className="flex flex-col items-center text-center gap-1.5">
-      <Avatar className={avatarSize}>
-        {p.fotoUrl && <AvatarImage src={p.fotoUrl} alt={p.nama} />}
-        <AvatarFallback className={`text-[11px] font-bold ${tipeColor[p.tipeJabatan] || "bg-muted text-muted-foreground"}`}>
-          {getInitials(p.nama)}
-        </AvatarFallback>
-      </Avatar>
+    <Card className="card-premium mb-6 overflow-hidden">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border px-5 py-4 flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+          <Crown className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-bold text-foreground">Direksi</h3>
+          <p className="text-xs text-muted-foreground">Pimpinan Tertinggi PDAM Tirta Ardhia Rinjani</p>
+        </div>
+        <Badge variant="secondary" className="ml-auto text-xs">
+          {direksiList.length} pimpinan
+        </Badge>
+      </div>
+
+      <CardContent className="py-8 px-6">
+        <div className="flex flex-col items-center gap-0">
+          {/* Direktur Utama — satu di atas */}
+          {dirut && (
+            <>
+              <DireksiPersonCard person={dirut} size="lg" />
+              {others.length > 0 && (
+                <>
+                  {/* Garis vertikal turun */}
+                  <div className="h-8 w-px bg-border" />
+                  {/* Garis horizontal penghubung */}
+                  {others.length > 1 && (
+                    <div
+                      className="relative h-px bg-border"
+                      style={{ width: `${(others.length - 1) * 200}px`, maxWidth: "90vw" }}
+                    />
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* Direktur lainnya — sejajar */}
+          {others.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-10 mt-0">
+              {others.map((d) => (
+                <div key={d.id} className="flex flex-col items-center">
+                  {/* Garis vertikal ke atas dari setiap direktur */}
+                  <div className="h-8 w-px bg-border" />
+                  <DireksiPersonCard person={d} size="md" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Jika tidak ada dirut, tampilkan semua sejajar */}
+          {!dirut && (
+            <div className="flex flex-wrap justify-center gap-10">
+              {direksiList.map((d) => (
+                <DireksiPersonCard key={d.id} person={d} size="md" />
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── PegawaiCard (untuk bidang — foto bulat) ─────────────────
+function PegawaiCard({ p, size = "md" }: { p: PegawaiNode; size?: "sm" | "md" | "lg" }) {
+  const avatarSize = size === "lg" ? "h-16 w-16" : size === "md" ? "h-11 w-11" : "h-9 w-9"
+  const nameClass =
+    size === "lg" ? "text-sm font-bold" : size === "md" ? "text-xs font-semibold" : "text-[11px] font-medium"
+  const borderColor =
+    size === "lg"
+      ? "border-primary/40"
+      : p.tipeJabatan?.includes("KASUBBID")
+      ? "border-blue-400/40"
+      : "border-emerald-400/30"
+
+  return (
+    <div className="flex flex-col items-center text-center gap-1.5 group">
+      <div
+        className={`${avatarSize} rounded-full overflow-hidden border-2 ${borderColor} shadow transition-transform group-hover:scale-105`}
+      >
+        {p.fotoUrl ? (
+          <img src={p.fotoUrl} alt={p.nama} className="h-full w-full object-cover" />
+        ) : (
+          <div
+            className={`flex h-full w-full items-center justify-center text-[11px] font-bold ${
+              tipeColor[p.tipeJabatan] || "bg-muted text-muted-foreground"
+            }`}
+          >
+            {getInitials(p.nama)}
+          </div>
+        )}
+      </div>
       <div>
-        <p className={`${nameClass} text-foreground leading-tight max-w-[120px]`}>{p.nama}</p>
-        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 max-w-[120px]">{p.jabatan}</p>
+        <p className={`${nameClass} text-foreground leading-tight max-w-[110px]`}>{p.nama}</p>
+        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 max-w-[110px]">{p.jabatan}</p>
         <Badge variant="outline" className="mt-1 text-[9px] px-1.5 py-0">
           {tipeLabel[p.tipeJabatan] || p.tipeJabatan}
         </Badge>
@@ -97,17 +246,18 @@ function PegawaiCard({ p, size = "md" }: { p: PegawaiNode; size?: "sm" | "md" | 
 function BidangCard({ bidang }: { bidang: BidangNode }) {
   const [expanded, setExpanded] = useState(true)
 
-  // Pisahkan kepala bidang vs staff langsung (tanpa subbidang)
   const kepalaBidang = bidang.pegawai.filter(
     (p) => p.tipeJabatan === "KEPALA_BIDANG" || p.tipeJabatan === "KEPALA_CABANG"
   )
   const staffLangsung = bidang.pegawai.filter(
-    (p) => p.tipeJabatan !== "KEPALA_BIDANG" && p.tipeJabatan !== "KEPALA_CABANG" && !p.subBidangId
+    (p) =>
+      p.tipeJabatan !== "KEPALA_BIDANG" &&
+      p.tipeJabatan !== "KEPALA_CABANG" &&
+      !p.subBidangId
   )
 
   return (
     <Card className="card-premium overflow-hidden">
-      {/* Header Bidang */}
       <div
         className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border cursor-pointer hover:bg-primary/5 transition-colors"
         onClick={() => setExpanded(!expanded)}
@@ -158,10 +308,11 @@ function BidangCard({ bidang }: { bidang: BidangNode }) {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="h-px flex-1 bg-border" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">Sub Bidang</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
+                  Sub Bidang
+                </span>
                 <div className="h-px flex-1 bg-border" />
               </div>
-
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {bidang.subBidang.map((sub) => {
                   const kasubbid = sub.pegawai.filter(
@@ -181,12 +332,10 @@ function BidangCard({ bidang }: { bidang: BidangNode }) {
                           {sub.pegawai.length}
                         </Badge>
                       </div>
-
                       {sub.pegawai.length === 0 ? (
                         <p className="text-[10px] text-muted-foreground text-center py-2">Belum ada pegawai</p>
                       ) : (
                         <div className="space-y-3">
-                          {/* Kasubbid */}
                           {kasubbid.length > 0 && (
                             <div className="flex flex-wrap gap-4 justify-center">
                               {kasubbid.map((p) => (
@@ -194,7 +343,6 @@ function BidangCard({ bidang }: { bidang: BidangNode }) {
                               ))}
                             </div>
                           )}
-                          {/* Staff */}
                           {staffSub.length > 0 && (
                             <>
                               {kasubbid.length > 0 && <div className="h-px bg-border/60" />}
@@ -214,7 +362,7 @@ function BidangCard({ bidang }: { bidang: BidangNode }) {
             </div>
           )}
 
-          {/* Staff langsung tanpa subbidang */}
+          {/* Staff langsung */}
           {staffLangsung.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center gap-2 mb-3">
@@ -230,7 +378,6 @@ function BidangCard({ bidang }: { bidang: BidangNode }) {
             </div>
           )}
 
-          {/* Kosong */}
           {kepalaBidang.length === 0 && bidang.subBidang.length === 0 && staffLangsung.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">Belum ada pegawai aktif di bidang ini.</p>
           )}
@@ -298,6 +445,7 @@ export default function OrganisasiPage() {
               <div className="flex flex-wrap items-center gap-5">
                 <span className="text-sm font-medium">Keterangan:</span>
                 {[
+                  { color: "bg-amber-400", label: "Direksi" },
                   { color: "bg-primary", label: "Kepala Bidang/Cabang" },
                   { color: "bg-blue-600", label: "Kasubbid" },
                   { color: "bg-emerald-600", label: "Staff" },
@@ -321,19 +469,23 @@ export default function OrganisasiPage() {
             <Card className="border-destructive">
               <CardContent className="p-6 text-center text-destructive">{error}</CardContent>
             </Card>
-          ) : !data || data.bidangList.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center text-muted-foreground">
-                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p className="font-medium">Belum ada data bidang.</p>
-                <p className="text-sm mt-1">Tambahkan data bidang melalui menu Master Data.</p>
-              </CardContent>
-            </Card>
-          ) : (
+          ) : !data ? null : (
             <div className="space-y-4">
-              {data.bidangList.map((bidang) => (
-                <BidangCard key={bidang.id} bidang={bidang} />
-              ))}
+              {/* Direksi di paling atas */}
+              <DireksiTree direksiList={data.direksiList} />
+
+              {/* Bidang-bidang */}
+              {data.bidangList.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center text-muted-foreground">
+                    <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                    <p className="font-medium">Belum ada data bidang.</p>
+                    <p className="text-sm mt-1">Tambahkan data bidang melalui menu Master Data.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                data.bidangList.map((bidang) => <BidangCard key={bidang.id} bidang={bidang} />)
+              )}
             </div>
           )}
         </main>
