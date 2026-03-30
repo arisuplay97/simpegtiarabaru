@@ -6,173 +6,157 @@ import { TopBar } from "@/components/simpeg/top-bar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Loader2, Users, Building2, Briefcase, Crown } from "lucide-react"
 
-interface P { id: string; nama: string; jabatan: string; tipeJabatan: string; fotoUrl?: string | null; subBidangId?: string | null; atasanLangsung?: string | null }
-interface Sub { id: string; nama: string; pegawai: P[] }
-interface Bid { id: string; nama: string; kode: string; direkturAtasan: string; kepalaBidang: string; subBidang: Sub[]; pegawai: P[] }
-interface OrgData { direksiList: P[]; bidangList: Bid[]; stats: { totalPegawai: number; totalBidang: number; totalJabatan: number } }
+interface P { id:string; nama:string; jabatan:string; tipeJabatan:string; fotoUrl?:string|null; subBidangId?:string|null; atasanLangsung?:string|null }
+interface Sub { id:string; nama:string; pegawai:P[] }
+interface Bid { id:string; nama:string; kode:string; direkturAtasan:string; kepalaBidang:string; subBidang:Sub[]; pegawai:P[] }
+interface OrgData { direksiList:P[]; bidangList:Bid[]; stats:{totalPegawai:number;totalBidang:number;totalJabatan:number} }
 
-function initials(n: string) { return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase() }
+function initials(n:string){ return n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase() }
 
+// ─── CSS untuk garis pohon ────────────────────────────────────
 const CSS = `
-.org-tree { display:flex; flex-direction:column; align-items:center; }
-.org-children { display:flex; padding-top:0; position:relative; }
-.org-children::before { content:''; position:absolute; top:0; left:50%; border-left:2px solid #64748b; height:20px; }
-.org-child { display:flex; flex-direction:column; align-items:center; padding:0 8px; position:relative; }
-.org-child::before { content:''; position:absolute; top:0; border-top:2px solid #64748b; }
-.org-child:first-child:not(:only-child)::before { left:50%; right:0; }
-.org-child:last-child:not(:only-child)::before { left:0; right:50%; }
-.org-child:not(:first-child):not(:last-child)::before { left:0; right:0; }
-.org-child:only-child::before { display:none; }
-.org-child::after { content:''; display:block; width:2px; height:20px; background:#64748b; }
-.org-child:only-child::after { display:block; }
+.ot { display:flex; flex-direction:column; align-items:center; }
+.oc { display:flex; padding-top:0; position:relative; align-items:flex-start; justify-content:center; }
+.oc::before { content:''; position:absolute; top:0; left:50%; border-left:1px solid #94a3b8; height:16px; }
+.oi { display:flex; flex-direction:column; align-items:center; padding:0 10px; position:relative; }
+.oi::before { content:''; position:absolute; top:0; border-top:1px solid #94a3b8; }
+.oi:first-child:not(:only-child)::before { left:50%; right:0; }
+.oi:last-child:not(:only-child)::before { left:0; right:50%; }
+.oi:not(:first-child):not(:last-child)::before { left:0; right:0; }
+.oi:only-child::before { display:none; }
+.oi::after { content:''; display:block; width:1px; height:16px; background:#94a3b8; }
 `
 
-function PhotoCircle({ p, size="md", color="bg-slate-600" }: { p: P; size?: "xl"|"lg"|"md"|"sm"; color?: string }) {
-  const sz = { xl:"h-20 w-20 text-base border-4", lg:"h-14 w-14 text-sm border-4", md:"h-11 w-11 text-xs border-2", sm:"h-9 w-9 text-[10px] border-2" }[size]
+// ─── Foto lingkaran ───────────────────────────────────────────
+const colorMap:Record<string,string> = {
+  KEPALA_BIDANG:"bg-emerald-700", KEPALA_CABANG:"bg-emerald-700",
+  KASUBBID:"bg-blue-700", KASUBBID_CABANG:"bg-blue-700",
+  STAFF:"bg-slate-500", STAFF_CABANG:"bg-slate-500", KONTRAK:"bg-amber-600"
+}
+
+function Circle({ p, size, color }: { p:P; size:number; color?:string }) {
+  const bg = color ?? colorMap[p.tipeJabatan] ?? "bg-slate-500"
   return (
-    <div className={`${sz} rounded-full overflow-hidden border-white/40 shadow-lg flex-shrink-0`}>
+    <div
+      className={`rounded-full overflow-hidden border-2 border-white/50 shadow-md flex-shrink-0 ${bg}`}
+      style={{ width:size, height:size, minWidth:size }}
+    >
       {p.fotoUrl
         ? <img src={p.fotoUrl} alt={p.nama} className="h-full w-full object-cover" />
-        : <div className={`h-full w-full flex items-center justify-center font-bold text-white ${color}`}>{initials(p.nama)}</div>
+        : <div className="h-full w-full flex items-center justify-center text-white font-bold" style={{fontSize:size*0.3}}>
+            {initials(p.nama)}
+          </div>
       }
     </div>
   )
 }
 
-// ── Card components ──────────────────────────────────────────
-function DireksiCard({ p, isRoot=false }: { p: P; isRoot?: boolean }) {
+// ─── Node: hanya foto + teks di bawah ────────────────────────
+function Node({ p, size, color, showJabatan=true }: { p:P; size:number; color?:string; showJabatan?:boolean }) {
+  const maxW = Math.max(size + 10, 80)
   return (
-    <div className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 shadow-lg text-center ${isRoot ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30 min-w-[150px]" : "border-primary/40 bg-primary/5 min-w-[130px]"}`}>
-      <div className="relative">
-        <PhotoCircle p={p} size={isRoot?"xl":"lg"} color="bg-primary" />
-        {isRoot && <div className="absolute -top-1 -right-1 h-5 w-5 bg-amber-400 rounded-full flex items-center justify-center shadow"><Crown className="h-3 w-3 text-amber-900" /></div>}
-      </div>
-      <p className={`font-bold leading-tight ${isRoot?"text-sm":"text-xs"} max-w-[140px]`}>{p.nama}</p>
-      <p className={`text-muted-foreground leading-tight ${isRoot?"text-xs":"text-[10px]"} max-w-[140px]`}>{p.jabatan}</p>
+    <div className="flex flex-col items-center gap-1 text-center" style={{maxWidth:maxW}}>
+      <Circle p={p} size={size} color={color} />
+      <p className="text-[10px] font-bold leading-tight text-foreground" style={{maxWidth:maxW}}>{p.nama}</p>
+      {showJabatan && <p className="text-[9px] text-muted-foreground leading-tight" style={{maxWidth:maxW}}>{p.jabatan}</p>}
     </div>
   )
 }
 
-function KabidCard({ bid, kepala }: { bid: Bid; kepala: P | null }) {
+// ─── Sub Bidang node ──────────────────────────────────────────
+function SubNode({ sub }: { sub:Sub }) {
+  const kasubbid = sub.pegawai.find(p => ["KASUBBID","KASUBBID_CABANG"].includes(p.tipeJabatan))
+  const staff = sub.pegawai.filter(p => !["KASUBBID","KASUBBID_CABANG"].includes(p.tipeJabatan))
   return (
-    <div className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 border-emerald-600/40 bg-emerald-50 dark:bg-emerald-950/20 shadow text-center min-w-[120px] max-w-[140px]">
-      {kepala ? <PhotoCircle p={kepala} size="md" color="bg-emerald-700" /> : <div className="h-11 w-11 rounded-full bg-emerald-100 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-700" /></div>}
-      <p className="text-[11px] font-bold leading-tight max-w-[120px]">{kepala?.nama ?? "Kosong"}</p>
-      <p className="text-[9px] text-muted-foreground max-w-[120px]">{kepala?.jabatan ?? ""}</p>
-      <div className="text-[9px] font-semibold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40 rounded-full px-2 py-0.5 max-w-[120px] truncate">{bid.nama}</div>
-    </div>
-  )
-}
-
-function KasubbidCard({ sub, kasubbid }: { sub: Sub; kasubbid: P | null }) {
-  return (
-    <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg border border-blue-500/30 bg-blue-50 dark:bg-blue-950/20 shadow-sm text-center min-w-[100px] max-w-[120px]">
-      {kasubbid ? <PhotoCircle p={kasubbid} size="sm" color="bg-blue-700" /> : <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-[10px] text-blue-700">-</div>}
-      <p className="text-[10px] font-semibold leading-tight max-w-[110px]">{kasubbid?.nama ?? "Kosong"}</p>
-      <p className="text-[9px] text-muted-foreground max-w-[110px]">{kasubbid?.jabatan ?? ""}</p>
-      <div className="text-[8px] font-semibold text-blue-700 bg-blue-100 dark:bg-blue-900/40 rounded px-1.5 max-w-[110px] truncate">{sub.nama}</div>
-    </div>
-  )
-}
-
-function StaffCard({ p }: { p: P }) {
-  return (
-    <div className="flex items-center gap-1.5 p-1.5 rounded-lg border border-border/60 bg-muted/30 min-w-[90px] max-w-[120px]">
-      <PhotoCircle p={p} size="sm" color="bg-slate-500" />
-      <div className="min-w-0">
-        <p className="text-[10px] font-medium leading-tight truncate">{p.nama}</p>
-        <p className="text-[9px] text-muted-foreground truncate">{p.jabatan}</p>
-      </div>
-    </div>
-  )
-}
-
-// ── Tree builder functions ───────────────────────────────────
-function SubBidangNode({ sub }: { sub: Sub }) {
-  const kasubbid = sub.pegawai.find(p => p.tipeJabatan === "KASUBBID" || p.tipeJabatan === "KASUBBID_CABANG") ?? null
-  const staff = sub.pegawai.filter(p => p.tipeJabatan !== "KASUBBID" && p.tipeJabatan !== "KASUBBID_CABANG")
-  return (
-    <div className="org-tree">
-      <KasubbidCard sub={sub} kasubbid={kasubbid} />
+    <div className="ot">
+      {/* Label subbidang */}
+      <div className="text-[8px] font-semibold text-blue-700 bg-blue-100 dark:bg-blue-900/30 rounded px-2 py-0.5 mb-1 max-w-[90px] text-center leading-tight">{sub.nama}</div>
+      {kasubbid && <Node p={kasubbid} size={36} />}
       {staff.length > 0 && (
-        <div className="org-children">
-          {staff.map(s => (
-            <div key={s.id} className="org-child"><StaffCard p={s} /></div>
-          ))}
+        <div className="oc">
+          {staff.map(s => <div key={s.id} className="oi"><Node p={s} size={28} showJabatan={false} /></div>)}
         </div>
+      )}
+      {!kasubbid && staff.length === 0 && (
+        <p className="text-[8px] text-muted-foreground/60 italic">-</p>
       )}
     </div>
   )
 }
 
-function BidangNode({ bid }: { bid: Bid }) {
-  const kepala = bid.pegawai.find(p => p.tipeJabatan === "KEPALA_BIDANG" || p.tipeJabatan === "KEPALA_CABANG") ?? null
-  const hasChildren = bid.subBidang.length > 0
+// ─── Bidang node ──────────────────────────────────────────────
+function BidangNode({ bid }: { bid:Bid }) {
+  const kepala = bid.pegawai.find(p => ["KEPALA_BIDANG","KEPALA_CABANG"].includes(p.tipeJabatan))
   return (
-    <div className="org-tree">
-      <KabidCard bid={bid} kepala={kepala} />
-      {hasChildren && (
-        <div className="org-children">
-          {bid.subBidang.map(sub => (
-            <div key={sub.id} className="org-child">
-              <SubBidangNode sub={sub} />
-            </div>
-          ))}
+    <div className="ot">
+      <div className="text-[8px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 rounded px-2 py-0.5 mb-1 max-w-[100px] text-center leading-tight">{bid.nama}</div>
+      {kepala
+        ? <Node p={kepala} size={42} />
+        : <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] text-muted-foreground">-</div>
+      }
+      {bid.subBidang.length > 0 && (
+        <div className="oc">
+          {bid.subBidang.map(sub => <div key={sub.id} className="oi"><SubNode sub={sub} /></div>)}
         </div>
       )}
     </div>
   )
 }
 
-function DirekturNode({ dir, bidangList }: { dir: P; bidangList: Bid[] }) {
-  // Matching bidang.direkturAtasan ke jabatan direktur ini (case-insensitive partial match)
+// ─── Direktur node ────────────────────────────────────────────
+function DirNode({ dir, bidangList }: { dir:P; bidangList:Bid[] }) {
   const myBidang = bidangList.filter(b => {
-    const at = b.direkturAtasan?.toLowerCase() ?? ""
-    const jab = dir.jabatan?.toLowerCase() ?? ""
-    return at && jab && (at.includes(jab) || jab.includes(at) || at.split(" ").some(w => w.length > 4 && jab.includes(w)))
+    const at = (b.direkturAtasan ?? "").toLowerCase()
+    const jab = (dir.jabatan ?? "").toLowerCase()
+    if (!at || !jab) return false
+    return at === jab || at.includes(jab) || jab.includes(at) ||
+      jab.split(" ").filter((w:string)=>w.length>4).some((w:string)=>at.includes(w))
   })
   return (
-    <div className="org-tree">
-      <DireksiCard p={dir} />
+    <div className="ot">
+      <Node p={dir} size={52} color="bg-primary" />
       {myBidang.length > 0 && (
-        <div className="org-children">
-          {myBidang.map(b => (
-            <div key={b.id} className="org-child">
-              <BidangNode bid={b} />
-            </div>
-          ))}
+        <div className="oc">
+          {myBidang.map(b => <div key={b.id} className="oi"><BidangNode bid={b} /></div>)}
         </div>
       )}
     </div>
   )
 }
 
-// ── Main Page ────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────
 export default function OrganisasiPage() {
-  const [data, setData] = useState<OrgData | null>(null)
+  const [data, setData] = useState<OrgData|null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    fetch("/api/organisasi").then(r => r.json()).then(d => {
-      if (d.error) throw new Error(d.error)
+    fetch("/api/organisasi").then(r=>r.json()).then(d=>{
+      if(d.error) throw new Error(d.error)
       setData(d)
-    }).catch(e => setError(e.message)).finally(() => setLoading(false))
+    }).catch(e=>setError(e.message)).finally(()=>setLoading(false))
   }, [])
 
-  const dirut = data?.direksiList.find(d => d.jabatan?.toLowerCase().includes("utama"))
-  const otherDireksi = data?.direksiList.filter(d => d.id !== dirut?.id) ?? []
+  const dirut = data?.direksiList.find(d =>
+    d.jabatan?.toLowerCase().includes("utama") || d.jabatan?.toLowerCase().includes("dirut")
+  )
+  const otherDir = data?.direksiList.filter(d => d.id !== dirut?.id) ?? []
 
-  // Bidang pusat: non-cabang
-  const bidangPusat = data?.bidangList.filter(b => !b.nama.toLowerCase().includes("cabang") && !b.kode?.toLowerCase().startsWith("c")) ?? []
-  // Bidang cabang
-  const bidangCabang = data?.bidangList.filter(b => b.nama.toLowerCase().includes("cabang") || b.kode?.toLowerCase().startsWith("c")) ?? []
-  // Bidang belum di-link ke direktur
-  const linkedIds = new Set(otherDireksi.flatMap(dir =>
+  const bidangPusat = data?.bidangList.filter(b =>
+    !b.nama.toLowerCase().includes("cabang") && !b.kode?.toLowerCase().startsWith("c")
+  ) ?? []
+  const bidangCabang = data?.bidangList.filter(b =>
+    b.nama.toLowerCase().includes("cabang") || b.kode?.toLowerCase().startsWith("c")
+  ) ?? []
+
+  // Bidang yang sudah di-link ke salah satu direktur
+  const linkedIds = new Set(otherDir.flatMap(dir =>
     bidangPusat.filter(b => {
-      const at = b.direkturAtasan?.toLowerCase() ?? ""
-      const jab = dir.jabatan?.toLowerCase() ?? ""
-      return at && jab && (at.includes(jab) || jab.includes(at) || at.split(" ").some((w:string) => w.length > 4 && jab.includes(w)))
+      const at = (b.direkturAtasan ?? "").toLowerCase()
+      const jab = (dir.jabatan ?? "").toLowerCase()
+      if (!at || !jab) return false
+      return at === jab || at.includes(jab) || jab.includes(at) ||
+        jab.split(" ").filter((w:string)=>w.length>4).some((w:string)=>at.includes(w))
     }).map(b => b.id)
   ))
   const unlinkedBidang = bidangPusat.filter(b => !linkedIds.has(b.id))
@@ -187,26 +171,26 @@ export default function OrganisasiPage() {
 
           {/* Header */}
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-black text-foreground tracking-tight">STRUKTUR ORGANISASI</h1>
-            <p className="text-sm text-muted-foreground">PERUMDA Air Minum Tirta Ardhia Rinjani — Kabupaten Lombok Tengah</p>
+            <h1 className="text-xl font-black tracking-tight">STRUKTUR ORGANISASI</h1>
+            <p className="text-xs text-muted-foreground">PERUMDA Air Minum Tirta Ardhia Rinjani — Kabupaten Lombok Tengah</p>
           </div>
 
           {/* Stats */}
           {data && (
-            <div className="mb-6 grid gap-4 sm:grid-cols-3">
+            <div className="mb-6 grid gap-3 sm:grid-cols-3">
               {[
-                { label:"Total Pegawai Aktif", value:data.stats.totalPegawai, icon:Users, c:"text-primary" },
-                { label:"Unit Kerja / Bidang", value:data.stats.totalBidang, icon:Building2, c:"text-blue-600" },
-                { label:"Jabatan Berbeda", value:data.stats.totalJabatan, icon:Briefcase, c:"text-emerald-600" },
+                { label:"Total Pegawai Aktif", value:data.stats.totalPegawai, icon:Users },
+                { label:"Unit Kerja / Bidang", value:data.stats.totalBidang, icon:Building2 },
+                { label:"Jabatan Berbeda", value:data.stats.totalJabatan, icon:Briefcase },
               ].map(s => (
                 <Card key={s.label} className="card-premium">
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
-                      <s.icon className={`h-6 w-6 ${s.c}`} />
+                  <CardContent className="flex items-center gap-3 p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary">
+                      <s.icon className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{s.value.toLocaleString("id-ID")}</p>
-                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                      <p className="text-xl font-bold">{s.value.toLocaleString("id-ID")}</p>
+                      <p className="text-[10px] text-muted-foreground">{s.label}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -220,25 +204,44 @@ export default function OrganisasiPage() {
           ) : error ? (
             <Card><CardContent className="p-8 text-center text-destructive">{error}</CardContent></Card>
           ) : data && (
-            <Card className="card-premium overflow-auto">
-              <CardContent className="p-8">
+            <Card className="card-premium">
+              <CardContent className="p-8 overflow-auto">
                 <div className="min-w-max mx-auto">
 
                   {/* ── MAIN TREE ── */}
-                  <div className="org-tree">
-                    {/* Direktur Utama */}
-                    {dirut && <DireksiCard p={dirut} isRoot />}
+                  <div className="ot">
 
-                    {/* Level 2: Direktur-Direktur lain + Unlinked bidang */}
-                    {(otherDireksi.length > 0 || unlinkedBidang.length > 0) && (
-                      <div className="org-children">
-                        {otherDireksi.map(dir => (
-                          <div key={dir.id} className="org-child">
-                            <DirekturNode dir={dir} bidangList={bidangPusat} />
+                    {/* Direktur Utama */}
+                    {dirut ? (
+                      <div className="flex flex-col items-center gap-1 text-center relative">
+                        <div className="relative">
+                          <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-amber-400 shadow-xl">
+                            {dirut.fotoUrl
+                              ? <img src={dirut.fotoUrl} alt={dirut.nama} className="h-full w-full object-cover" />
+                              : <div className="h-full w-full bg-primary flex items-center justify-center text-white text-xl font-bold">{initials(dirut.nama)}</div>
+                            }
+                          </div>
+                          <div className="absolute -top-1 -right-1 h-6 w-6 bg-amber-400 rounded-full flex items-center justify-center shadow">
+                            <Crown className="h-3.5 w-3.5 text-amber-900" />
+                          </div>
+                        </div>
+                        <p className="text-sm font-bold max-w-[120px] leading-tight">{dirut.nama}</p>
+                        <p className="text-[10px] text-muted-foreground max-w-[120px]">{dirut.jabatan}</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Belum ada Direktur Utama</p>
+                    )}
+
+                    {/* Level 2: Direktur lain + bidang unlinked */}
+                    {(otherDir.length > 0 || unlinkedBidang.length > 0) && (
+                      <div className="oc">
+                        {otherDir.map(dir => (
+                          <div key={dir.id} className="oi">
+                            <DirNode dir={dir} bidangList={bidangPusat} />
                           </div>
                         ))}
                         {unlinkedBidang.map(b => (
-                          <div key={b.id} className="org-child">
+                          <div key={b.id} className="oi">
                             <BidangNode bid={b} />
                           </div>
                         ))}
@@ -246,20 +249,18 @@ export default function OrganisasiPage() {
                     )}
                   </div>
 
-                  {/* ── CABANG (terhubung dari Dirut) ── */}
+                  {/* ── CABANG ── */}
                   {bidangCabang.length > 0 && (
-                    <div className="mt-12">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="h-px flex-1 bg-slate-400/40 border-dashed" />
-                        <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground border border-dashed border-slate-400/60 rounded-full px-4 py-1">
-                          <Building2 className="h-4 w-4" /> Kantor Cabang
-                        </div>
-                        <div className="h-px flex-1 bg-slate-400/40 border-dashed" />
+                    <div className="mt-10">
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="h-px flex-1 border-t border-dashed border-slate-400/50" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2">Kantor Cabang</span>
+                        <div className="h-px flex-1 border-t border-dashed border-slate-400/50" />
                       </div>
-                      <div className="org-tree">
-                        <div className="org-children">
+                      <div className="ot">
+                        <div className="oc" style={{paddingTop:0}}>
                           {bidangCabang.map(b => (
-                            <div key={b.id} className="org-child">
+                            <div key={b.id} className="oi" style={{paddingTop:0}}>
                               <BidangNode bid={b} />
                             </div>
                           ))}
