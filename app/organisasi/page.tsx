@@ -121,10 +121,9 @@ function BidangNode({ bid }:{ bid:Bid }) {
 function DirNode({ dir, bidangList }:{ dir:P; bidangList:Bid[] }) {
   const jab = (dir.jabatan ?? "").toLowerCase()
   const myBidang = bidangList.filter(b => {
-    const at = (b.direkturAtasan ?? "").toLowerCase()
-    if (!at || !jab) return false
-    return at === jab || at.includes(jab) || jab.includes(at) ||
-      jab.split(" ").filter((w:string)=>w.length>4).some((w:string)=>at.includes(w))
+    const at = (b.direkturAtasan ?? "").toLowerCase().replace(/&/g, "dan").trim()
+    const j = jab.replace(/&/g, "dan").trim()
+    return at && j && (at === j)
   })
   return (
     <div className="tree">
@@ -159,11 +158,9 @@ export default function OrganisasiPage() {
 
   const linkedIds = new Set(otherDir.flatMap(dir =>
     bidangPusat.filter(b => {
-      const at  = (b.direkturAtasan ?? "").toLowerCase()
-      const jab = (dir.jabatan ?? "").toLowerCase()
-      if (!at || !jab) return false
-      return at === jab || at.includes(jab) || jab.includes(at) ||
-        jab.split(" ").filter((w:string)=>w.length>4).some((w:string)=>at.includes(w))
+      const at  = (b.direkturAtasan ?? "").toLowerCase().replace(/&/g, "dan").trim()
+      const jab = (dir.jabatan ?? "").toLowerCase().replace(/&/g, "dan").trim()
+      return at && jab && (at === jab)
     }).map(b => b.id)
   ))
   const unlinkedBidang = bidangPusat.filter(b => !linkedIds.has(b.id))

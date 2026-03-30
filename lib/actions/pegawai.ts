@@ -19,8 +19,10 @@ const mapTipeJabatan = (val: string): string => {
     kepala_cabang: "KEPALA_CABANG",
     kasubbid_cabang: "KASUBBID_CABANG",
     staff_cabang: "STAFF_CABANG",
-    // Direktur jabatan types — kept as KEPALA_BIDANG in tipeJabatan, role handled separately
+    // Direktur jabatan types — all stored as KEPALA_BIDANG, role handled separately
     direktur_utama: "KEPALA_BIDANG",
+    direktur_operasional: "KEPALA_BIDANG",
+    direktur_umum: "KEPALA_BIDANG",
     direktur: "KEPALA_BIDANG",
   }
   return map[val?.toLowerCase()] || val || "STAFF"
@@ -28,11 +30,11 @@ const mapTipeJabatan = (val: string): string => {
 
 // Helper: map tipeJabatan/jabatan to user role
 const mapJabatanToRole = (tipeJabatan: string, jabatan: string): string | null => {
-  const tj = (tipeJabatan || "").toUpperCase()
+  const tj = (tipeJabatan || "").toLowerCase()
   const jab = (jabatan || "").toLowerCase()
-  if (tj === "DIREKTUR_UTAMA" || jab.includes("direktur utama") || jab.includes("dirut")) return "DIREKSI"
-  if (tj === "DIREKTUR" || jab.includes("direktur")) return "DIREKSI"
-  if (tj === "KEPALA_BIDANG" || tj === "KEPALA_CABANG") return "KEPALA_BIDANG"
+  if (tj === "direktur_utama" || jab.includes("direktur utama") || jab.includes("dirut")) return "DIREKSI"
+  if (tj === "direktur_operasional" || tj === "direktur_umum" || tj === "direktur" || jab.includes("direktur")) return "DIREKSI"
+  if (tj === "kepala_bidang" || tj === "kepala_cabang") return "KEPALA_BIDANG"
   return null
 }
 

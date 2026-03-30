@@ -486,6 +486,27 @@ export default function EmployeeDetailPage() {
       return null
     }
 
+    // Pegawai Direksi — masa jabatan 5 tahun dari tanggalMasuk
+    const isDir = employee.user?.role === "DIREKSI" || 
+      ["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((employee.tipeJabatan || "").toLowerCase())
+
+    if (isDir) {
+      if (!employee.tanggalMasuk) return null
+      const joinDate = new Date(employee.tanggalMasuk)
+      const endDate = new Date(joinDate.getFullYear() + 5, joinDate.getMonth(), joinDate.getDate())
+      const today = new Date()
+      const diffTime = endDate.getTime() - today.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      if (diffDays <= 0) return { status: "Masa Jabatan Berakhir", color: "text-red-700 bg-red-100", percentage: 100, label: "Masa Jabatan" }
+      const totalDuration = endDate.getTime() - joinDate.getTime()
+      const elapsed = today.getTime() - joinDate.getTime()
+      const percentage = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
+      const years = Math.floor(diffDays / 365)
+      const sisaText = years > 0 ? `${years} Th ${diffDays % 365} Hr` : `${diffDays} Hari`
+      const color = diffDays <= 180 ? "text-red-700 bg-red-100" : diffDays <= 365 ? "text-amber-700 bg-amber-100" : "text-emerald-700 bg-emerald-100"
+      return { tanggal: format(endDate, "dd MMMM yyyy", { locale: idLocale }), sisaText, color, percentage, label: "Masa Jabatan Direksi" }
+    }
+
     // Pegawai tetap — pensiun 56 tahun
     if (!employee.tanggalLahir || !employee.tanggalMasuk) return null
     const birthDate = new Date(employee.tanggalLahir)
@@ -1561,6 +1582,9 @@ export default function EmployeeDetailPage() {
               <section>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Helper: check if Direksi role (hide unneeded fields) */}
+                {(() => { const isDireksi = ["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()); return null })()}
+                {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase())) && (
                   <F label="Tipe Pegawai">
                     <Select value={formData.tipePegawai || "TETAP"} onValueChange={v => {
                       handleChange("tipePegawai", v)
@@ -1577,6 +1601,7 @@ export default function EmployeeDetailPage() {
                       </SelectContent>
                     </Select>
                   </F>
+                )}
                   <F label="Kategori Penempatan">
                     <Select value={formData.kategoriPenempatan || "PUSAT"} onValueChange={v => {
                       handleChange("kategoriPenempatan", v)
@@ -1691,17 +1716,19 @@ export default function EmployeeDetailPage() {
                     </Select>
                   </F>
 
-                  <F label="SP (Jika Ada)">
-                    <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
-                      <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">Tidak Ada</SelectItem>
-                        <SelectItem value="SP1">SP 1</SelectItem>
-                        <SelectItem value="SP2">SP 2</SelectItem>
-                        <SelectItem value="SP3">SP 3</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </F>
+                  {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase())) && (
+                    <F label="SP (Jika Ada)">
+                      <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
+                        <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NONE">Tidak Ada</SelectItem>
+                          <SelectItem value="SP1">SP 1</SelectItem>
+                          <SelectItem value="SP2">SP 2</SelectItem>
+                          <SelectItem value="SP3">SP 3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </F>
+                  )}
                 </div>
                 {formData.atasanLangsung && formData.atasanLangsung !== "-" && (
                   <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center gap-2">
