@@ -17,10 +17,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-  Search, Filter, Download, Plus, Briefcase, Users, AlertCircle, CheckCircle2, Building2, Edit, Trash2, Loader2
+  Search, Filter, Download, Plus, Briefcase, Users, AlertCircle, CheckCircle2, Building2, Edit, Trash2, Loader2, Zap
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
-import { upsertFormasi, deleteFormasi } from "@/lib/actions/formasi"
+import { upsertFormasi, deleteFormasi, autoGenerateFormasi } from "@/lib/actions/formasi"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
@@ -32,6 +32,7 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
   // Modal state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -79,6 +80,20 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
     }
   }
 
+  const handleAutoGenerate = async () => {
+    if (!confirm("Fitur ini akan menscan seluruh Pegawai aktif dan membuatkan Formasi secara otomatis berdasarkan master data yang ada. Lanjutkan?")) return
+    setIsGenerating(true)
+    const res = await autoGenerateFormasi()
+    setIsGenerating(false)
+    if (res.success) {
+      if ((res as any).count === 0) toast.info("Semua jabatan sudah ada di tabel formasi.")
+      else toast.success(`Berhasil membuat ${(res as any).count} formasi baru berdasarkan data pegawai!`)
+      router.refresh()
+    } else {
+      toast.error(res.error)
+    }
+  }
+
   const filteredData = useMemo(() => {
     return initialData.filter((item) => {
       const matchSearch = item.jabatan.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -106,7 +121,11 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
                 Kelola formasi dan kebutuhan pegawai secara aktual
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={handleAutoGenerate} disabled={isGenerating} className="gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-900">
+                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                Auto-Generate
+              </Button>
               <Dialog open={isDialogOpen} onOpenChange={(val) => {
                 if (!val) resetForm()
                 setIsDialogOpen(val)

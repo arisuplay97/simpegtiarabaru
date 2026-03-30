@@ -90,3 +90,47 @@ export async function deleteFormasi(id: string) {
     return { success: false, error: "Gagal menghapus formasi" }
   }
 }
+
+export async function autoGenerateFormasi() {
+  try {
+    const pegawai = await prisma.pegawai.findMany({
+      where: { status: "AKTIF" },
+      select: { jabatan: true, bidangId: true }
+    })
+
+    const counts: Record<string, { jabatan: string; bidangId: string | null; count: number }> = {}
+
+    pegawai.forEach(p => {
+      if (!p.jabatan) return
+      const k = `${p.jabatan.trim().toLowerCase()}-${p.bidangId || "null"}`
+      if (!counts[k]) {
+        counts[k] = { jabatan: p.jabatan.trim(), bidangId: p.bidangId, count: 0 }
+      }
+      counts[k].count++
+    })
+
+    const existing = await prisma.formasiJabatan.findMany({ select: { jabatan: true, bidangId: true } })
+    const existingSet = new Set(existing.map(e => `${e.jabatan.toLowerCase()}-${e.bidangId || "null"}`))
+
+    let added = 0
+    for (const val of Object.values(counts)) {
+      const k = `${val.jabatan.toLowerCase()}-${val.bidangId || "null"}`
+      if (!existingSet.has(k)) {
+        await prisma.formasiJabatan.create({
+          data: {
+            jabatan: val.jabatan,
+            bidangId: val.bidangId,
+            kebutuhan: val.count,
+          }
+        })
+        added++
+      }
+    }
+
+    revalidatePath("/formasi")
+    return { success: true, count: added }
+  } catch (error: any) {
+    return { success: false, error: "Gagal auto-generate formasi" }
+  }
+}
+
