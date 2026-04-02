@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 const tabs = [
   { href: "/m/dashboard", label: "Beranda", icon: Home },
   { href: "/m/slip-gaji", label: "Slip Gaji", icon: Wallet },
-  { href: "/m/selfie", label: "Absen", icon: Fingerprint, isFab: true },
+  { href: "/m/fingerprint", label: "Absen", icon: Fingerprint, isFab: true },
   { href: "/m/cuti", label: "Cuti & Izin", icon: CalendarDays },
   { href: "/m/profil", label: "Profil", icon: User },
 ]
@@ -18,7 +18,7 @@ const BLUE_ACTIVE_BG = "#eff6ff"
 export function MobileBottomNav() {
   const pathname = usePathname()
 
-  if (pathname === "/m/selfie") return null
+  if (pathname === "/m/selfie" || pathname === "/m/fingerprint") return null
 
   return (
     <nav

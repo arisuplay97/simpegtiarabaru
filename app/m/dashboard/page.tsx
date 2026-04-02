@@ -93,7 +93,7 @@ function RankBadge({ rank }: { rank: number }) {
 
 // ─── Menu utama (6 menu, masing-masing unik) ────────────────────
 const menuItems = [
-  { href: "/m/selfie",    icon: Fingerprint,  label: "Absen\nSelfie"      },
+  { href: "/m/selfie",    icon: Camera,       label: "Absen\nSelfie"      },
   { href: "/m/cuti",      icon: CalendarDays, label: "Cuti &\nIzin"       },
   { href: "/m/absensi",   icon: FileText,     label: "Riwayat\nAbsensi"   },
   { href: "/m/kalender",  icon: BookOpen,     label: "Kalender\nKerja"    },

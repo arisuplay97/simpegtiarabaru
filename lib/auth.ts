@@ -24,12 +24,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
+        deviceId: { label: "Device ID", type: "text" }
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null
 
         const username = (credentials.username as string).toLowerCase().trim()
         const password = credentials.password as string
+        const deviceId = credentials.deviceId as string | undefined
 
         // Coba cari di database dulu (by email atau NIK)
         try {
@@ -45,6 +47,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           })
           if (user && user.password && bcrypt.compareSync(password, user.password)) {
+            // --- DEVICE ID BINDING LOGIC ---
+            if (user.role !== "SUPERADMIN" && user.pegawai && deviceId) {
+              const currentDeviceId = user.pegawai.deviceId
+              if (!currentDeviceId) {
+                // First time login - bind device
+                await prisma.pegawai.update({
+                  where: { id: user.pegawai.id },
+                  data: { deviceId }
+                })
+              } else if (currentDeviceId !== deviceId) {
+                // Device mismatch
+                throw new Error("DeviceMismatch")
+              }
+            }
+
             return { 
               id: user.id, 
               email: user.email, 

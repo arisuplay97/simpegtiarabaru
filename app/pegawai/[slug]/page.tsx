@@ -444,6 +444,21 @@ export default function EmployeeDetailPage() {
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
+  const handleResetDevice = async () => {
+    if (!confirm("Yakin ingin mereset Device ID? Pegawai harus login ulang di perangkat (HP) mereka.")) return
+    toast.loading("Mereset binding device...")
+    try {
+      const res = await fetch(`/api/pegawai/${employee.id}/reset-device`, { method: "POST" })
+      const json = await res.json()
+      toast.dismiss()
+      if (!res.ok) throw new Error(json.error)
+      toast.success("Device ID berhasil direset")
+    } catch (e: any) {
+      toast.dismiss()
+      toast.error(e.message || "Gagal mereset device ID")
+    }
+  }
+
   // Hitung sisa pensiun (Umur 56)
   const getPensiunInfo = () => {
     if (!employee) return null
@@ -668,6 +683,10 @@ export default function EmployeeDetailPage() {
                 {/* Right - Actions & Masa Pensiun */}
                 <div className="flex flex-col items-end gap-3">
                   <div className="flex flex-wrap gap-2 justify-end">
+                    <Button variant="outline" size="sm" className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={handleResetDevice}>
+                      <Shield className="h-4 w-4" />
+                      Reset Device
+                    </Button>
                     <Button variant="outline" size="sm" className="gap-2">
                       <Download className="h-4 w-4" />
                       Download CV

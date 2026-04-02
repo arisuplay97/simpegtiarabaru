@@ -1,6 +1,6 @@
 'use client'
 import { signIn } from "next-auth/react"
-import { useState, Suspense } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
@@ -12,6 +12,16 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [deviceId, setDeviceId] = useState("")
+
+  useEffect(() => {
+    let storedId = localStorage.getItem("deviceId")
+    if (!storedId) {
+      storedId = crypto.randomUUID()
+      localStorage.setItem("deviceId", storedId)
+    }
+    setDeviceId(storedId)
+  }, [])
 
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/"
@@ -23,10 +33,15 @@ function LoginForm() {
     const result = await signIn("credentials", {
       username: username.toLowerCase().trim(),
       password,
+      deviceId,
       redirect: false,
     })
     if (result?.error) {
-      setError("Username atau password salah")
+      if (result.error.includes("Perangkat tidak dikenali") || result.error === "DeviceMismatch") {
+        setError("Akun Anda sudah login di perangkat lain. Hubungi HRD.")
+      } else {
+        setError("Username atau password salah")
+      }
     } else {
       toast.success("Berhasil masuk")
       router.push(callbackUrl)
