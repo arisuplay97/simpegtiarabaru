@@ -57,10 +57,15 @@ export async function POST(req: Request) {
     }
 
     const pengaturan: any = await prisma.pengaturan.findFirst()
+    
+    // Konversi waktu sekarang (Vercel UTC) ke WITA agar pengecekan jam valid
+    const witaString = now.toLocaleString("en-US", { timeZone: "Asia/Makassar" });
+    const witaNow = new Date(witaString);
+    const currentHour = witaNow.getHours();
+    const currentMinute = witaNow.getMinutes();
+
     const mulaiMasukH = parseInt(pengaturan?.mulaiAbsenMasuk?.split(":")[0] || "6")
     const mulaiMasukM = parseInt(pengaturan?.mulaiAbsenMasuk?.split(":")[1] || "30")
-    const currentHour = now.getHours()
-    const currentMinute = now.getMinutes()
     const batasMasukH = parseInt(pengaturan?.batasAbsenMasuk?.split(":")[0] || "14")
     const mulaiPulangH = parseInt(pengaturan?.mulaiAbsenPulang?.split(":")[0] || "15")
     const batasPulangH = parseInt(pengaturan?.batasAbsenPulang?.split(":")[0] || "18")
