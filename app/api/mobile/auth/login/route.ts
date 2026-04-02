@@ -22,7 +22,8 @@ export async function POST(req: Request) {
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: { startsWith: raw } },
+          { email: { equals: raw, mode: "insensitive" } },
+          { email: { equals: `${raw}@tiara.com`, mode: "insensitive" } },
           { pegawai: { nik: raw } }
         ]
       },
