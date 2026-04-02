@@ -52,8 +52,12 @@ export async function POST(req: Request) {
       where: { pegawaiId, tanggal: { gte: todayStart, lte: todayEnd } }
     }) as any
 
-    if (existing && existing.jamKeluar) {
+    if (existing && existing.jamMasuk && existing.jamKeluar) {
       return NextResponse.json({ error: "Anda sudah check-in dan check-out hari ini" }, { status: 400 })
+    }
+
+    if (existing && !existing.jamMasuk && ["CUTI", "SAKIT", "IZIN", "OFF", "LIBUR", "DINAS_LUAR", "PERJALANAN_DINAS"].includes(existing.status || "")) {
+      return NextResponse.json({ error: `Hari ini Anda tercatat sedang ${existing.status}. Anda tidak perlu melakukan absensi.` }, { status: 400 })
     }
 
     const pengaturan: any = await prisma.pengaturan.findFirst()
@@ -62,11 +66,13 @@ export async function POST(req: Request) {
     const mulaiPulangH = parseInt(pengaturan?.mulaiAbsenPulang?.split(":")[0] || "15")
     const batasPulangH = parseInt(pengaturan?.batasAbsenPulang?.split(":")[0] || "18")
 
-    if (!existing) {
+    const isCheckOut = existing && existing.jamMasuk && !existing.jamKeluar
+
+    if (!isCheckOut) {
       if (currentHour >= batasMasukH) {
         return NextResponse.json({ error: `Sesi check-in hari ini sudah ditutup sejak pukul ${pengaturan?.batasAbsenMasuk || "14:00"}.` }, { status: 400 })
       }
-    } else if (existing && !existing.jamKeluar) {
+    } else {
       if (currentHour < mulaiPulangH) {
         return NextResponse.json({ error: `Maaf, belum waktunya pulang. Sesi check-out baru akan dibuka pukul ${pengaturan?.mulaiAbsenPulang || "15:00"}.` }, { status: 400 })
       }
@@ -75,7 +81,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (existing && !existing.jamKeluar) {
+    if (isCheckOut) {
       const updated = await prisma.absensi.update({
         where: { id: existing.id },
         data: {
@@ -94,20 +100,35 @@ export async function POST(req: Request) {
 
     const statusAbsen = now > limitMasuk ? "TERLAMBAT" : "HADIR"
 
-    const created = await prisma.absensi.create({
-      data: {
-        pegawaiId,
-        tanggal: new Date(todayStart),
-        status: statusAbsen as any,
-        metode: "FINGERPRINT",
-        jamMasuk: now,
-        faceVerified: true, 
-        offlineSync,
-        lokasiMasuk: `${latitude},${longitude}`,
-      } as any
-    })
-
-    return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_IN" })
+    if (existing && !existing.jamMasuk) {
+      // Overwrite cron empty record
+      const updated = await prisma.absensi.update({
+        where: { id: existing.id },
+        data: {
+          status: statusAbsen as any,
+          metode: "FINGERPRINT",
+          jamMasuk: now,
+          faceVerified: true, 
+          offlineSync,
+          lokasiMasuk: `${latitude},${longitude}`,
+        } as any
+      })
+      return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_IN" })
+    } else {
+      const created = await prisma.absensi.create({
+        data: {
+          pegawaiId,
+          tanggal: new Date(todayStart),
+          status: statusAbsen as any,
+          metode: "FINGERPRINT",
+          jamMasuk: now,
+          faceVerified: true, 
+          offlineSync,
+          lokasiMasuk: `${latitude},${longitude}`,
+        } as any
+      })
+      return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_IN" })
+    }
 
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Terjadi kesalahan sistem" }, { status: 500 })
