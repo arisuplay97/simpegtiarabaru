@@ -724,10 +724,18 @@ export default function AttendancePage() {
                         </TableCell>
                       )}
                       <TableCell className="text-center font-mono">
-                        {record.checkIn || "-"}
+                        {record.checkIn
+                          ? record.checkIn
+                          : record.status === "cuti"
+                          ? <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">Cuti</span>
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-center font-mono">
-                        {record.checkOut || "-"}
+                        {record.checkOut
+                          ? record.checkOut
+                          : record.status === "cuti"
+                          ? <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">Cuti</span>
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-center font-mono text-sm">
                         {record.workHours}
