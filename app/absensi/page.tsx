@@ -255,7 +255,7 @@ const statusConfig = {
 
 const methodConfig = {
   selfie: { label: "Selfie", icon: Camera },
-  fingerprint: { label: "Fingerprint", icon: Fingerprint },
+  fingerprint: { label: "Tap Layar", icon: Fingerprint },
   gps: { label: "GPS", icon: MapPin },
   manual: { label: "Manual", icon: Smartphone },
 }
@@ -341,14 +341,12 @@ export default function AttendancePage() {
         checkOut: formatTime(d.jamKeluar),
         status: (statusMap[d.status] || "alpha") as AttendanceRecord["status"],
         lateMinutes: (() => {
-          if (d.status !== "TERLAMBAT" || !d.jamMasuk || !currentSettings) return 0
+          // Hitung keterlambatan berdasarkan waktu nyata, bukan status DB
+          if (!d.jamMasuk || !currentSettings) return 0
           const [h, m] = currentSettings.jamMasuk.split(":").map(Number)
           const checkInTime = new Date(d.jamMasuk)
-          
-          // Lateness is checkInTime - jamMasukSetting
           const scheduledTime = new Date(checkInTime)
           scheduledTime.setHours(h, m, 0, 0)
-          
           const diffMs = checkInTime.getTime() - scheduledTime.getTime()
           return diffMs > 0 ? Math.floor(diffMs / 60000) : 0
         })(),
