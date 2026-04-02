@@ -291,6 +291,7 @@ export default function AttendancePage() {
   const [addCheckOut, setAddCheckOut] = useState("17:00")
   const [addStatus, setAddStatus] = useState("hadir")
   const [employees, setEmployees] = useState<any[]>([])
+  const [searchAddPegawai, setSearchAddPegawai] = useState("")
 
   const [editCheckIn, setEditCheckIn] = useState("")
   const [editCheckOut, setEditCheckOut] = useState("")
@@ -1330,9 +1331,19 @@ export default function AttendancePage() {
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Pegawai" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[250px]">
-                    {employees.map(e => (
-                      <SelectItem key={e.id} value={e.id}>{e.nama} — {e.nik}</SelectItem>
+                  <SelectContent className="max-h-[300px]">
+                    <div className="sticky top-0 z-10 bg-background p-2 mb-1 border-b">
+                      <Input
+                        placeholder="Ketik untuk mencari nama..."
+                        value={searchAddPegawai}
+                        onChange={(e) => setSearchAddPegawai(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    {employees
+                      .filter(e => e.nama.toLowerCase().includes(searchAddPegawai.toLowerCase()) || e.nik.includes(searchAddPegawai))
+                      .map(e => (
+                        <SelectItem key={e.id} value={e.id}>{e.nama} — {e.nik}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

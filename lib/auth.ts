@@ -33,12 +33,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials.password as string
         const deviceId = credentials.deviceId as string | undefined
 
-        // Coba cari di database dulu (by email atau NIK)
+        // Coba cari di database dulu (by email atau NIK) - gunakan exact match
         try {
           const user = await prisma.user.findFirst({
             where: {
               OR: [
-                { email: { startsWith: username } },
+                { email: { equals: username, mode: "insensitive" } },
+                { email: { equals: `${username}@tiara.com`, mode: "insensitive" } },
                 { pegawai: { nik: username } }
               ]
             },
