@@ -476,9 +476,14 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       return dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" })
     }
 
-    const waktuAbsen = absensiHariIni
-      ? `${formatTime(absensiHariIni.jamMasuk)} - ${absensiHariIni.jamKeluar ? formatTime(absensiHariIni.jamKeluar) : "--:--"}`
-      : "--:-- - --:--"
+    let waktuAbsen = "--:-- - --:--"
+    if (absensiHariIni) {
+      if (absensiHariIni.status === "CUTI") {
+        waktuAbsen = "CUTI - CUTI"
+      } else {
+        waktuAbsen = `${formatTime(absensiHariIni.jamMasuk)} - ${absensiHariIni.jamKeluar ? formatTime(absensiHariIni.jamKeluar) : "--:--"}`
+      }
+    }
 
     const summary = {
       hariKerjaAktif,
