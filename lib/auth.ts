@@ -1,7 +1,11 @@
-import NextAuth from "next-auth"
+import NextAuth, { CredentialsSignin } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
+
+class DeviceMismatchError extends CredentialsSignin {
+  code = "DeviceMismatch"
+}
 
 // Demo users dengan username (bukan email)
 const demoUsers: Record<string, any> = {
@@ -60,7 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 })
               } else if (currentDeviceId !== deviceId) {
                 // Device mismatch
-                throw new Error("DeviceMismatch")
+                throw new DeviceMismatchError()
               }
             }
 
@@ -78,8 +82,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
         } catch (error: any) {
-          if (error.message === "DeviceMismatch") {
-            throw error
+          if (error instanceof DeviceMismatchError || error.code === "DeviceMismatch" || error.message === "DeviceMismatch") {
+            throw new DeviceMismatchError()
           }
           console.error("Database connection failed, using demo fallback")
         }

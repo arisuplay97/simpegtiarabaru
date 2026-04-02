@@ -98,7 +98,7 @@ const menuItems = [
   { href: "/m/absensi",   icon: FileText,     label: "Riwayat\nAbsensi"   },
   { href: "/m/kalender",  icon: BookOpen,     label: "Kalender\nKerja"    },
   { href: "/m/indeks",    icon: TrendingUp,   label: "Indeks\nKinerja"    },
-  { href: "/m/profil",    icon: Shield,       label: "Data\nDiri"         },
+  { href: "/m/lembur",    icon: Timer,        label: "Lembur\nKerja"      },
 ]
 
 export default function MobileDashboard() {
