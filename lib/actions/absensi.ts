@@ -383,24 +383,28 @@ export async function updateAbsensi(
       updateData.status = statusMap[data.status] ?? data.status.toUpperCase()
     }
 
-    // Update jam masuk jika diisi
+    // Update jam masuk jika diisi (input dalam WITA = UTC+8, simpan sebagai UTC)
     if (data.jamMasuk !== undefined) {
       if (data.jamMasuk) {
         const [h, m] = data.jamMasuk.split(":").map(Number)
         const dt = new Date(existing.tanggal)
-        dt.setHours(h, m, 0, 0)
+        // Set jam dalam UTC, lalu kurangi 8 jam untuk konversi dari WITA ke UTC
+        dt.setUTCHours(h, m, 0, 0)
+        dt.setTime(dt.getTime() - 8 * 60 * 60 * 1000)
         updateData.jamMasuk = dt
       } else {
         updateData.jamMasuk = null
       }
     }
 
-    // Update jam keluar jika diisi
+    // Update jam keluar jika diisi (input dalam WITA = UTC+8, simpan sebagai UTC)
     if (data.jamKeluar !== undefined) {
       if (data.jamKeluar) {
         const [h, m] = data.jamKeluar.split(":").map(Number)
         const dt = new Date(existing.tanggal)
-        dt.setHours(h, m, 0, 0)
+        // Set jam dalam UTC, lalu kurangi 8 jam untuk konversi dari WITA ke UTC
+        dt.setUTCHours(h, m, 0, 0)
+        dt.setTime(dt.getTime() - 8 * 60 * 60 * 1000)
         updateData.jamKeluar = dt
       } else {
         updateData.jamKeluar = null

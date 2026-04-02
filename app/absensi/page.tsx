@@ -62,6 +62,7 @@ import {
   Trash2,
   CheckCircle,
   Eye,
+  ChevronDown,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -71,6 +72,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { getAbsensiList, checkDeviceAndAbsen,
   deleteAbsensi,
   deleteAllAbsensiByMonth,
@@ -896,18 +905,31 @@ export default function AttendancePage() {
               )}
               {isAdmin && (
                 <>
-                  <Button variant="default" size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setShowAddDialog(true)}>
-                    <CheckCircle className="h-4 w-4" />
-                    Tambah Manual
-                  </Button>
-                  <Button variant="default" size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkAllPresent}>
-                    <CheckCircle className="h-4 w-4" />
-                    Hadirkan Semua
-                  </Button>
-                  <Button variant="destructive" size="sm" className="gap-2" onClick={handleDeleteAllMonth}>
-                    <Trash2 className="h-4 w-4" />
-                    Hapus Absensi Bulan Ini
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="default" size="sm" className="gap-2">
+                        Aksi Admin
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuLabel>Pilih Aksi</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowAddDialog(true)} className="gap-2 cursor-pointer">
+                        <CheckCircle className="h-4 w-4 text-blue-600" />
+                        Tambah Manual
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleMarkAllPresent} className="gap-2 cursor-pointer">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                        Hadirkan Semua
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleDeleteAllMonth} className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                        Hapus Absensi Bulan Ini
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button variant="outline" size="sm" className="gap-2" onClick={handleExportCSV}>
                     <Download className="h-4 w-4" />
                     Export Rekap
