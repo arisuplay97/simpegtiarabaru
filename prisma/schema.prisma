@@ -385,6 +385,7 @@ model Pengaturan {
     // Absensi
     jamMasuk          String   @default("08:00")
     jamPulang         String   @default("17:00")
+    mulaiAbsenMasuk   String   @default("06:30")
     batasAbsenMasuk   String   @default("14:00")
     mulaiAbsenPulang  String   @default("15:00")
     batasAbsenPulang  String   @default("18:00")

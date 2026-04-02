@@ -23,6 +23,7 @@ export default function PengaturanSistemPage() {
   const [formData, setFormData] = useState<any>({
     jamMasuk: "08:00",
     jamPulang: "17:00",
+    mulaiAbsenMasuk: "06:30",
     batasAbsenMasuk: "14:00",
     mulaiAbsenPulang: "15:00",
     batasAbsenPulang: "18:00",
@@ -154,7 +155,23 @@ export default function PengaturanSistemPage() {
                       <Input type="time" id="jamPulang" name="jamPulang" value={formData.jamPulang || ""} onChange={handleChange} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 rounded-lg border bg-muted/30 p-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 p-4 border-blue-200">
+                    <div className="space-y-2">
+                       <Label htmlFor="mulaiAbsenMasuk" className="flex items-center gap-2">
+                         <Clock className="h-4 w-4 text-blue-500" />
+                         Mulai Buka Check-in
+                       </Label>
+                       <Input 
+                         type="time" 
+                         id="mulaiAbsenMasuk" 
+                         name="mulaiAbsenMasuk" 
+                         value={formData.mulaiAbsenMasuk || "06:30"} 
+                         onChange={handleChange} 
+                       />
+                       <p className="text-[10px] text-muted-foreground italic">
+                         Sebelum jam ini absen ditolak (mencegah absen tengah malam).
+                       </p>
+                    </div>
                     <div className="space-y-2">
                        <Label htmlFor="batasAbsenMasuk" className="flex items-center gap-2">
                          <Clock className="h-4 w-4 text-amber-500" />
@@ -171,7 +188,9 @@ export default function PengaturanSistemPage() {
                          Lewat jam ini ditolak check-in.
                        </p>
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 rounded-lg border bg-muted/30 p-4">
                     <div className="space-y-2">
                        <Label htmlFor="mulaiAbsenPulang" className="flex items-center gap-2">
                          <Clock className="h-4 w-4 text-emerald-500" />
@@ -188,7 +207,6 @@ export default function PengaturanSistemPage() {
                          Tidak bisa check-out sebelum jam ini.
                        </p>
                     </div>
-
                     <div className="space-y-2">
                        <Label htmlFor="batasAbsenPulang" className="flex items-center gap-2">
                          <Clock className="h-4 w-4 text-red-500" />
@@ -206,7 +224,7 @@ export default function PengaturanSistemPage() {
                        </p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="lokasiPusat">Titik Ordinat Koordinat Pusat (Opsional)</Label>
                     <Input id="lokasiPusat" name="lokasiPusat" value={formData.lokasiPusat || ""} onChange={handleChange} placeholder="-6.200000, 106.816666" />

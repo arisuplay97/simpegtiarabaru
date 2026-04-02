@@ -582,6 +582,7 @@ export async function getSystemSettings() {
     return {
       jamMasuk: pengaturan?.jamMasuk || "08:00",
       jamPulang: pengaturan?.jamPulang || "17:00",
+      mulaiAbsenMasuk: pengaturan?.mulaiAbsenMasuk || "06:30",
       batasAbsenMasuk: pengaturan?.batasAbsenMasuk || "14:00",
       mulaiAbsenPulang: pengaturan?.mulaiAbsenPulang || "15:00",
       batasAbsenPulang: pengaturan?.batasAbsenPulang || "18:00",
@@ -597,6 +598,7 @@ export async function getSystemSettings() {
     return {
       jamMasuk: "08:00",
       jamPulang: "17:00",
+      mulaiAbsenMasuk: "06:30",
       batasAbsenMasuk: "14:00",
       mulaiAbsenPulang: "15:00",
       batasAbsenPulang: "18:00",
@@ -622,6 +624,7 @@ export async function updateSystemSettings(data: any) {
       data: {
         jamMasuk: data.jamMasuk,
         jamPulang: data.jamPulang,
+        mulaiAbsenMasuk: data.mulaiAbsenMasuk,
         batasAbsenMasuk: data.batasAbsenMasuk,
         mulaiAbsenPulang: data.mulaiAbsenPulang,
         batasAbsenPulang: data.batasAbsenPulang,

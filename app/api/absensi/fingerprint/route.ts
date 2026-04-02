@@ -56,12 +56,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Anda sudah check-in dan check-out hari ini" }, { status: 400 })
     }
 
-    if (existing && !existing.jamMasuk && ["CUTI", "SAKIT", "IZIN", "OFF", "LIBUR", "DINAS_LUAR", "PERJALANAN_DINAS"].includes(existing.status || "")) {
-      return NextResponse.json({ error: `Hari ini Anda tercatat sedang ${existing.status}. Anda tidak perlu melakukan absensi.` }, { status: 400 })
-    }
-
     const pengaturan: any = await prisma.pengaturan.findFirst()
+    const mulaiMasukH = parseInt(pengaturan?.mulaiAbsenMasuk?.split(":")[0] || "6")
+    const mulaiMasukM = parseInt(pengaturan?.mulaiAbsenMasuk?.split(":")[1] || "30")
     const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
     const batasMasukH = parseInt(pengaturan?.batasAbsenMasuk?.split(":")[0] || "14")
     const mulaiPulangH = parseInt(pengaturan?.mulaiAbsenPulang?.split(":")[0] || "15")
     const batasPulangH = parseInt(pengaturan?.batasAbsenPulang?.split(":")[0] || "18")
@@ -69,6 +68,10 @@ export async function POST(req: Request) {
     const isCheckOut = existing && existing.jamMasuk && !existing.jamKeluar
 
     if (!isCheckOut) {
+      // Validasi jam paling pagi (tidak boleh absen tengah malam)
+      if (currentHour < mulaiMasukH || (currentHour === mulaiMasukH && currentMinute < mulaiMasukM)) {
+        return NextResponse.json({ error: `Sesi check-in belum dibuka. Absensi baru bisa dilakukan mulai pukul ${pengaturan?.mulaiAbsenMasuk || "06:30"}.` }, { status: 400 })
+      }
       if (currentHour >= batasMasukH) {
         return NextResponse.json({ error: `Sesi check-in hari ini sudah ditutup sejak pukul ${pengaturan?.batasAbsenMasuk || "14:00"}.` }, { status: 400 })
       }

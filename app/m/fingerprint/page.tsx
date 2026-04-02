@@ -55,12 +55,15 @@ export default function MobileFingerprint() {
   const getLocation = () => {
     navigator.geolocation?.getCurrentPosition(
       pos => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
-      () => toast.error("Aktifkan GPS / Lokasi di HP Anda."),
+      () => toast.error("Aktifkan GPS / Lokasi di HP Anda.", { id: "gps-error", position: "bottom-center" }),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     )
     setTimeout(() => {
       navigator.geolocation?.getCurrentPosition(
-        pos => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+        pos => {
+          toast.dismiss("gps-error")
+          setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy })
+        },
         () => {},
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       )
@@ -69,7 +72,7 @@ export default function MobileFingerprint() {
 
   const submit = useCallback(async () => {
     if (!location && isOnline) {
-      toast.error("Menunggu lokasi GPS... Pastikan GPS aktif.", { duration: 4000 })
+      toast.error("Menunggu lokasi GPS... Pastikan GPS aktif.", { id: "absen-error", duration: 4000, position: "bottom-center" })
       return
     }
 
@@ -92,10 +95,11 @@ export default function MobileFingerprint() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Gagal absensi")
 
+      toast.dismiss("absen-error")
       setResultData({ status: data.status || "HADIR", tipe: data.tipe || "CHECK_IN" })
       setDone(true)
     } catch (err: any) {
-      toast.error(err.message || "Terjadi kesalahan koneksi.")
+      toast.error(err.message || "Terjadi kesalahan koneksi.", { id: "absen-error", position: "bottom-center" })
     } finally {
       setIsSubmitting(false)
     }
