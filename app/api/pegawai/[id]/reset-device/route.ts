@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: any) {
   try {
     const session = await auth()
     if (!session?.user || ((session.user as any).role !== "HRD" && (session.user as any).role !== "SUPERADMIN")) {
