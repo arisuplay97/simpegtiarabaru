@@ -76,7 +76,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               pegawaiId: user.pegawai?.id || null,
             }
           }
-        } catch (error) {
+        } catch (error: any) {
+          if (error.message === "DeviceMismatch") {
+            throw error
+          }
           console.error("Database connection failed, using demo fallback")
         }
 
