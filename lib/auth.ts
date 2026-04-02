@@ -40,6 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               OR: [
                 { email: { equals: username, mode: "insensitive" } },
                 { email: { equals: `${username}@tiara.com`, mode: "insensitive" } },
+                { email: { startsWith: `${username}@`, mode: "insensitive" } },
                 { pegawai: { nik: username } }
               ]
             },

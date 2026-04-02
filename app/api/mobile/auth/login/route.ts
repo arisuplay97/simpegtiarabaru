@@ -24,6 +24,7 @@ export async function POST(req: Request) {
         OR: [
           { email: { equals: raw, mode: "insensitive" } },
           { email: { equals: `${raw}@tiara.com`, mode: "insensitive" } },
+          { email: { startsWith: `${raw}@`, mode: "insensitive" } },
           { pegawai: { nik: raw } }
         ]
       },
