@@ -123,9 +123,23 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     const hariKerjaWajib = hariKerja > excusedCount ? hariKerja - excusedCount : 0
 
     // ─── Skor Komponen ───
-    const skorKehadiran = hariKerjaWajib > 0 ? Math.min(40, (hadirCount / hariKerjaWajib) * 40) : (hadirCount > 0 ? 40 : (hariKerja > 0 && excusedCount >= hariKerja ? 40 : 0))
-    const skorKetepatan = hadirCount > 0 ? Math.min(30, ((hadirCount - terlambatCount) / hadirCount) * 30) : (hariKerjaWajib === 0 ? 30 : 0)
-    const skorAbsenBersih = Math.max(0, 20 - (alphaCount * 5) - (terlambatCount * 0.5))
+    // Rasio hadir: seberapa konsisten pegawai hadir dari total wajib hadir
+    const rasioHadir = hariKerjaWajib > 0 ? Math.min(1, hadirCount / hariKerjaWajib) : (excusedCount >= hariKerja && hariKerja > 0 ? 1 : 0)
+
+    // Skor Kehadiran (40 poin): proporsi hari hadir dibanding wajib hadir
+    const skorKehadiran = hariKerjaWajib > 0
+      ? Math.min(40, (hadirCount / hariKerjaWajib) * 40)
+      : (hadirCount > 0 ? 40 : (hariKerja > 0 && excusedCount >= hariKerja ? 40 : 0))
+
+    // Skor Ketepatan (30 poin): FIX — dikalikan rasioHadir agar tidak bisa
+    // mendapat nilai penuh jika jarang hadir (banyak alpha tetapi tepat waktu)
+    const skorKetepatan = hadirCount > 0
+      ? Math.min(30, ((hadirCount - terlambatCount) / hadirCount) * 30 * rasioHadir)
+      : (hariKerjaWajib === 0 && excusedCount >= hariKerja ? 30 : 0)
+
+    // Skor Absen Bersih (20 poin): alpha -5/hari, terlambat -1/kejadian (lebih tegas)
+    const skorAbsenBersih = Math.max(0, 20 - (alphaCount * 5) - (terlambatCount * 1))
+
     const skorPerilaku = spAktif ? Math.max(0, 10 - 5) : 10  // SP aktif -5 poin
 
     const totalSkor = Math.min(100, Math.round(
