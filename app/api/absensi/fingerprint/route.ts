@@ -60,19 +60,39 @@ export async function POST(req: Request) {
       
       // Radius check logic
       if (!pegawai.bebasAbsensi) {
-        if (!pegawai.lokasiAbsensi) {
-          return NextResponse.json({ error: "Lokasi absen belum diatur untuk akun Anda. Hubungi HRD." }, { status: 400 })
-        }
-        
-        const distance = getDistanceFromLatLonInM(
-          latitude, 
-          longitude, 
-          pegawai.lokasiAbsensi.latitude, 
-          pegawai.lokasiAbsensi.longitude
-        )
-        
-        if (distance > pegawai.lokasiAbsensi.radius) {
-          return NextResponse.json({ error: `Anda berada di luar jangkauan absen. Jarak Anda: ${Math.round(distance)}m (Maks: ${pegawai.lokasiAbsensi.radius}m)` }, { status: 400 })
+        if (pegawai.lokasiAbsensi) {
+          // Jika pegawai terikat pada satu Lokasi spesifik
+          const distance = getDistanceFromLatLonInM(
+            latitude, 
+            longitude, 
+            pegawai.lokasiAbsensi.latitude, 
+            pegawai.lokasiAbsensi.longitude
+          )
+          
+          if (distance > pegawai.lokasiAbsensi.radius) {
+            return NextResponse.json({ error: `Anda berada di luar jangkauan absen. Jarak: ${Math.round(distance)}m (Maks: ${pegawai.lokasiAbsensi.radius}m dari kantor/lokasi).` }, { status: 400 })
+          }
+        } else {
+          // Jika pegawai menggunakan opsi "Semua Lokasi Aktif (Default)"
+          const allLocations = await prisma.lokasiAbsensi.findMany({ where: { aktif: true } })
+          
+          if (allLocations.length > 0) {
+            let isValidLocation = false;
+            let closestDistance = Infinity;
+
+            for (const loc of allLocations) {
+              const distance = getDistanceFromLatLonInM(latitude, longitude, loc.latitude, loc.longitude);
+              if (distance < closestDistance) closestDistance = distance;
+              if (distance <= loc.radius) {
+                isValidLocation = true;
+                break;
+              }
+            }
+
+            if (!isValidLocation) {
+              return NextResponse.json({ error: `Anda berada di luar jangkauan area absen manapun. Jarak terdekat ke kantor adalah ${Math.round(closestDistance)}m.` }, { status: 400 })
+            }
+          }
         }
       }
     }
