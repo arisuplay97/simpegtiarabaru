@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/lock-leaderboard?secret=GANTI_DENGAN_CRON_SECRET_ANDA",
+      "schedule": "0 1 1 * *"
+    }
+  ]
+}

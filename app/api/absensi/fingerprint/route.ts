@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { hitungIndeksPegawai } from "@/lib/actions/indeks"
 
 // Anti-fake GPS: batas minimum akurasi yang masih diterima (meter)
 const MAX_ALLOWED_ACCURACY = 300
@@ -150,6 +151,7 @@ export async function POST(req: Request) {
           lokasiKeluar: `${latitude},${longitude}`,
         } as any
       })
+      await hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear())
       return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_OUT" })
     }
 
@@ -174,6 +176,7 @@ export async function POST(req: Request) {
           lokasiMasuk: `${latitude},${longitude}`,
         } as any
       })
+      await hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear())
       return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_IN" })
     } else {
       const created = await prisma.absensi.create({
@@ -188,6 +191,7 @@ export async function POST(req: Request) {
           lokasiMasuk: `${latitude},${longitude}`,
         } as any
       })
+      await hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear())
       return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_IN" })
     }
 

@@ -244,13 +244,29 @@ export async function getIndeksSaya() {
 }
 
 // ============================================================
-// LEADERBOARD: Top 10 skor + Top 10 Disiplin bulan ini
+// LEADERBOARD: Top 10 skor real-time bulan ini
+// Auto-recalculate skor semua pegawai aktif sebelum return
 // ============================================================
 export async function getLeaderboard(bulan?: number, tahun?: number) {
   try {
     const now = new Date()
     const b = bulan || now.getMonth() + 1
     const t = tahun || now.getFullYear()
+    const isCurrentMonth = (b === now.getMonth() + 1 && t === now.getFullYear())
+
+    // Hanya auto-recalc untuk bulan berjalan (bukan arsip bulan lalu)
+    if (isCurrentMonth) {
+      const pegawaiAktif = await prisma.pegawai.findMany({
+        where: { status: 'AKTIF' },
+        select: { id: true }
+      })
+      // Hitung paralel (max 5 sekaligus agar tidak overload DB)
+      const chunkSize = 5
+      for (let i = 0; i < pegawaiAktif.length; i += chunkSize) {
+        const chunk = pegawaiAktif.slice(i, i + chunkSize)
+        await Promise.all(chunk.map(p => hitungIndeksPegawai(p.id, b, t)))
+      }
+    }
 
     const rows = await prisma.indeksPegawai.findMany({
       where: { bulan: b, tahun: t },
@@ -260,7 +276,7 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
         }
       },
       orderBy: { totalSkor: 'desc' },
-      take: 20
+      take: 10
     })
 
     const prevBulan = b === 1 ? 12 : b - 1
