@@ -17,6 +17,18 @@ function isCoordinateValid(lat: number, lng: number): boolean {
   )
 }
 
+function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371000 // Radius bumi dalam meter
+  const dLat = (lat2 - lat1) * (Math.PI / 180)
+  const dLon = (lon2 - lon1) * (Math.PI / 180)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth()
@@ -25,7 +37,10 @@ export async function POST(req: Request) {
     const userId = (session.user as any).id
     if (!userId) return NextResponse.json({ error: "ID User tidak ditemukan" }, { status: 400 })
 
-    const pegawai = await prisma.pegawai.findUnique({ where: { userId } })
+    const pegawai = await prisma.pegawai.findUnique({ 
+      where: { userId },
+      include: { lokasiAbsensi: true }
+    })
     if (!pegawai) return NextResponse.json({ error: "Profil pegawai tidak ditemukan. Hubungi HRD." }, { status: 400 })
 
     const pegawaiId = pegawai.id
@@ -41,6 +56,24 @@ export async function POST(req: Request) {
       }
       if (accuracy > 0 && accuracy < 3) {
         return NextResponse.json({ error: "GPS terlalu akurat, terindikasi menggunakan fake/mock GPS." }, { status: 400 })
+      }
+      
+      // Radius check logic
+      if (!pegawai.bebasAbsensi) {
+        if (!pegawai.lokasiAbsensi) {
+          return NextResponse.json({ error: "Lokasi absen belum diatur untuk akun Anda. Hubungi HRD." }, { status: 400 })
+        }
+        
+        const distance = getDistanceFromLatLonInM(
+          latitude, 
+          longitude, 
+          pegawai.lokasiAbsensi.latitude, 
+          pegawai.lokasiAbsensi.longitude
+        )
+        
+        if (distance > pegawai.lokasiAbsensi.radius) {
+          return NextResponse.json({ error: `Anda berada di luar jangkauan absen. Jarak Anda: ${Math.round(distance)}m (Maks: ${pegawai.lokasiAbsensi.radius}m)` }, { status: 400 })
+        }
       }
     }
 

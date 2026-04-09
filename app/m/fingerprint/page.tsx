@@ -2,8 +2,9 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Fingerprint, CheckCircle, Loader2, MapPin, X, Clock, WifiOff } from "lucide-react"
+import { Fingerprint, CheckCircle, Loader2, MapPin, X, Clock, WifiOff, Smile, Moon } from "lucide-react"
 import { toast } from "sonner"
+import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 
@@ -35,11 +36,33 @@ export default function MobileFingerprint() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [resultData, setResultData] = useState<{ status: string; tipe: string } | null>(null)
+  const [isCheckout, setIsCheckout] = useState(false)
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
-    if (status === "authenticated") getLocation()
+    if (status === "authenticated") {
+      getLocation()
+      checkStatus()
+    }
   }, [status])
+
+  const checkStatus = async () => {
+    try {
+      const res = await fetch("/api/pegawai/me")
+      if (res.ok) {
+        const p = await res.json()
+        const s = await getEmployeeAttendanceSummary(p.id)
+        if (s?.sudahAbsenMasuk && !s?.sudahAbsenPulang) {
+          setIsCheckout(true)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoadingStatus(false)
+    }
+  }
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
@@ -156,21 +179,30 @@ export default function MobileFingerprint() {
         
         <button 
           onClick={submit}
-          disabled={isSubmitting || (!isOnline && !location)}
+          disabled={isSubmitting || isLoadingStatus || (!isOnline && !location)}
           className="relative group p-14 rounded-[3rem] active:scale-95 transition-all text-white disabled:opacity-50 disabled:active:scale-100"
           style={{ 
-            background: "linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)",
-            boxShadow: "0 20px 50px rgba(29, 78, 216, 0.45), inset 0 2px 10px rgba(255, 255, 255, 0.4)" 
+            background: isCheckout 
+              ? "linear-gradient(135deg, #1e293b 0%, #334155 100%)" // Darker for checkout
+              : "linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)", // Blue for checkin
+            boxShadow: isCheckout
+              ? "0 20px 50px rgba(51, 65, 85, 0.45), inset 0 2px 10px rgba(255, 255, 255, 0.2)"
+              : "0 20px 50px rgba(29, 78, 216, 0.45), inset 0 2px 10px rgba(255, 255, 255, 0.4)" 
           }}
         >
-          {isSubmitting ? (
+          {isSubmitting || isLoadingStatus ? (
             <Loader2 className="w-24 h-24 animate-spin opacity-80" />
+          ) : isCheckout ? (
+            <div className="relative">
+              <Moon className="w-24 h-24 opacity-90 drop-shadow-md animate-[pulse_3s_ease-in-out_infinite]" strokeWidth={1.5} />
+              <div className="absolute -top-4 -right-4 text-white font-bold opacity-70 animate-[bounce_2s_infinite]">zZ</div>
+            </div>
           ) : (
-             <Fingerprint className="w-24 h-24 opacity-90 drop-shadow-md" strokeWidth={1.5} />
+            <Smile className="w-24 h-24 opacity-90 drop-shadow-md animate-bounce" strokeWidth={1.5} />
           )}
           <div className="absolute inset-x-0 -bottom-10 text-center">
             <span className="text-sm font-bold text-slate-700 bg-white px-5 py-2 rounded-full shadow-md border border-slate-100 uppercase tracking-widest whitespace-nowrap">
-              {isSubmitting ? "Merekam..." : "TAP UNTUK ABSEN"}
+              {isSubmitting || isLoadingStatus ? "MENYIAPKAN..." : isCheckout ? "TAP UNTUK PULANG" : "TAP UNTUK MASUK"}
             </span>
           </div>
         </button>
