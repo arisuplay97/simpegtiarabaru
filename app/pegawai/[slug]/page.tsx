@@ -79,6 +79,7 @@ import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getDokumenPegawai, uploadDokumen, deleteDokumen } from "@/lib/actions/dokumen"
 import { getPegawaiActivityLogs } from "@/lib/actions/audit-log"
 import { resetFaceData } from "@/lib/actions/face"
+import { getLokasiList } from "@/lib/actions/lokasi"
 import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
@@ -214,11 +215,8 @@ export default function EmployeeDetailPage() {
 
   const fetchLokasi = async () => {
     try {
-      const res = await fetch("/api/lokasi")
-      if (res.ok) {
-        const data = await res.json()
-        setLokasiList(data)
-      }
+      const data = await getLokasiList()
+      setLokasiList(data || [])
     } catch (e) {}
   }
 
