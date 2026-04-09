@@ -3,13 +3,12 @@ import { useEffect, useState, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
-  Megaphone, Camera, AlertCircle, ChevronRight,
-  CalendarDays, Clock, Star, BookOpen,
-  Shield, Fingerprint, TrendingUp,
-  Award, Timer, UserCheck, Thermometer,
+  Megaphone, AlertCircle, ChevronRight,
+  CalendarDays, Clock, BookOpen,
+  TrendingUp, Award, Timer, UserCheck, Thermometer,
   Building2, BadgeCheck, FileText,
   CreditCard, GraduationCap, Trophy, Medal,
-  Bell, CheckCircle2, XCircle
+  Bell, CheckCircle2, XCircle, Pointer, Stamp
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount } from "@/lib/actions/notifikasi"
