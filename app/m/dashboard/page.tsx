@@ -93,7 +93,6 @@ function RankBadge({ rank }: { rank: number }) {
 
 // ─── Menu utama (6 menu, masing-masing unik) ────────────────────
 const menuItems = [
-  { href: "/m/selfie",    icon: Camera,       label: "Absen\nSelfie"      },
   { href: "/m/cuti",      icon: CalendarDays, label: "Cuti &\nIzin"       },
   { href: "/m/absensi",   icon: FileText,     label: "Riwayat\nAbsensi"   },
   { href: "/m/kalender",  icon: BookOpen,     label: "Kalender\nKerja"    },
@@ -330,10 +329,10 @@ export default function MobileDashboard() {
                     )
                   }
                   return (
-                    <Link href="/m/selfie">
+                    <Link href="/m/fingerprint">
                       <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-black active:scale-95 transition-transform"
                         style={{ background: "linear-gradient(135deg, #1e3a5f, #2563eb)", boxShadow: "0 4px 14px rgba(37,99,235,0.35)" }}>
-                        <Camera className="h-3.5 w-3.5" />
+                        <Pointer className="h-3.5 w-3.5" />
                         Masuk
                       </div>
                     </Link>
@@ -355,10 +354,10 @@ export default function MobileDashboard() {
                     )
                   }
                   return (
-                    <Link href="/m/selfie">
+                    <Link href="/m/fingerprint">
                       <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-black active:scale-95 transition-transform"
                         style={{ background: "linear-gradient(135deg, #059669, #10b981)", boxShadow: "0 4px 14px rgba(16,185,129,0.35)" }}>
-                        <Camera className="h-3.5 w-3.5" />
+                        <Pointer className="h-3.5 w-3.5" />
                         Pulang
                       </div>
                     </Link>

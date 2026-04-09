@@ -51,14 +51,14 @@ export default function MobileAbsensi() {
         </span>
       </div>
 
-      {/* Quick action selfie */}
+      {/* Quick action absen */}
       <div className="px-4 pt-4">
-        <Link href="/m/selfie" className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-primary to-blue-600 px-5 py-4 text-white shadow-md">
+        <Link href="/m/fingerprint" className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-primary to-blue-600 px-5 py-4 text-white shadow-md">
           <div>
             <p className="font-semibold">Belum absen hari ini?</p>
-            <p className="text-sm text-blue-100">Tap untuk selfie check-in</p>
+            <p className="text-sm text-blue-100">Tap untuk check-in</p>
           </div>
-          <div className="text-3xl">📸</div>
+          <div className="text-3xl">👆</div>
         </Link>
       </div>
 

@@ -1,0 +1,31 @@
+# Aturan Proyek Simpeg Tiara Baru (HRIS)
+
+Anda (AI Assistant) sedang membantu membangun proyek aplikasi manajemen kepegawaian (HRIS / SIMPEG). 
+Konteks proyek dan aturan-aturan berikut wajib diikuti sebelum menulis kode, memberikan solusi, atau membuat arsitektur baru.
+
+## 💻 Teknologi & Arsitektur Utama
+- **Framework Utama**: Next.js 15 (Selalu gunakan **App Router** dengan rute di dalam folder `app/`. Jangan gunakan Pages Router).
+- **Bahasa Pemrograman**: TypeScript (Disiplin type-checking, hindari penggunaan `any` sebisa mungkin, manfaatkan Zod jika perlu).
+- **UI & Styling**: Tailwind CSS v4 dikombinasikan dengan komponen dari Radix UI / shadcn/ui.
+- **Database & Auth**: Menggunakan Prisma ORM (`@prisma/client`) dengan NextAuth / Auth.js v5 beta (`next-auth@beta`).
+
+## 🧱 Panduan Komponen & Fetching Data
+1. **Server vs Client Components**:
+   - Jadikan Server Component sebagai *default* untuk fungsi fetching data yang cepat dan aman.
+   - Pakaikan direktif `"use client"` di paling atas file **HANYA** jika komponen membutuhkan state (`useState`, `useEffect`), interaksi (`onClick`, `onChange`), atau mengakses Browser API (seperti `window` atau `localStorage`).
+2. **Data Mutations & Form**:
+   - Gunakan **Server Actions** (`"use server"`) untuk memproses form atau merubah data di database Prisma. 
+   - Hindari membuat end-point `app/api/...` berlebihan kecuali memang ditujukan untuk diakses aplikasi mobile atau pihak ketiga (webhook).
+3. **Keamanan (Security)**:
+   - Amankan Server Actions dan halaman rahasia di dashboard dengan memvalidasi sisi server menggunakan fungsi `auth()` dari Auth.js sebelum memanggil Prisma.
+
+## 🎨 Panduan Gaya Desain (UI/UX)
+- Pastikan aplikasi terlihat **resmi, rapi, modern, dan fungsional** karena ditujukan untuk kepegawaian institusi/perusahaan (SIMPEG).
+- Gunakan `lucide-react` untuk semua keperluan ikon grafis.
+- Terapkan Feedback Pengguna yang baik (loading states, disabled states pada tombol saat form disubmit).
+- Selalu gunakan **Bahasa Indonesia** yang baik, benar, dan profesional untuk seluruh UI, peringatan (alert), serta notifikasi (`sonner` / `toast`).
+
+## 🤖 Panduan Perilaku AI/Asisten
+- Jika perintah saya menyangkut **pembuatan fitur besar**, jabarkan langkah kerja (step-by-step) dan minta persetujuan saya terlebih dahulu.
+- Perhatikan kompatibilitas **Next.js 15** dan **React 19**; ingat bahwa pada Next.js 15, `params` di Page/Layout dan struktur cache (seperti fetch) memiliki perilaku unik (terkadang `params` perlu di-`await` untuk destructuring).
+- Jangan ubah konfigurasi atau dependensi utama (`package.json`) tanpa permisi.
