@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Fingerprint, CheckCircle, Loader2, MapPin, X, Clock, WifiOff, Smile, Moon } from "lucide-react"
+import { Fingerprint, CheckCircle, Loader2, MapPin, X, Clock, WifiOff, Pointer } from "lucide-react"
 import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
@@ -192,13 +192,8 @@ export default function MobileFingerprint() {
         >
           {isSubmitting || isLoadingStatus ? (
             <Loader2 className="w-24 h-24 animate-spin opacity-80" />
-          ) : isCheckout ? (
-            <div className="relative">
-              <Moon className="w-24 h-24 opacity-90 drop-shadow-md animate-[pulse_3s_ease-in-out_infinite]" strokeWidth={1.5} />
-              <div className="absolute -top-4 -right-4 text-white font-bold opacity-70 animate-[bounce_2s_infinite]">zZ</div>
-            </div>
           ) : (
-            <Smile className="w-24 h-24 opacity-90 drop-shadow-md animate-bounce" strokeWidth={1.5} />
+            <Pointer className="w-24 h-24 opacity-90 drop-shadow-md animate-bounce transform -rotate-12" strokeWidth={1.5} />
           )}
           <div className="absolute inset-x-0 -bottom-10 text-center">
             <span className="text-sm font-bold text-slate-700 bg-white px-5 py-2 rounded-full shadow-md border border-slate-100 uppercase tracking-widest whitespace-nowrap">
