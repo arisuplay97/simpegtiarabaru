@@ -228,14 +228,23 @@ export default function LoginPage() {
           zIndex: 10,
         }}
       >
-        {/* Logo */}
-        <div style={{ marginBottom: '24px' }}>
+        {/* Logos */}
+        <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
           <Image
             src="/login2.png"
             alt="Tugu Tirta"
-            width={200}
-            height={70}
-            style={{ objectFit: 'contain', maxHeight: '70px', width: 'auto' }}
+            width={160}
+            height={60}
+            style={{ objectFit: 'contain', maxHeight: '60px', width: 'auto' }}
+            priority
+          />
+          <div style={{ width: '1.5px', height: '30px', background: '#e5e7eb' }} />
+          <Image
+            src="/ASIK.png"
+            alt="ASIK"
+            width={100}
+            height={50}
+            style={{ objectFit: 'contain', maxHeight: '50px', width: 'auto' }}
             priority
           />
         </div>
@@ -258,7 +267,7 @@ export default function LoginPage() {
           margin: '0 0 28px 0',
           fontWeight: '400',
         }}>
-          Silakan masuk menggunakan NIP dan Password.
+          Silakan masuk menggunakan NIK/Username dan Password.
         </p>
 
         {/* Form */}
