@@ -145,7 +145,7 @@ function LoginForm() {
           padding: '15px',
           borderRadius: '50px',
           border: 'none',
-          background: 'linear-gradient(to right, #84cc16, #22c55e, #14b8a6)',
+          background: 'linear-gradient(to right, #84cc16, #22c55e, #14b8a6, #0ea5e9)',
           color: '#fff',
           fontWeight: '700',
           fontSize: '14px',
@@ -157,7 +157,7 @@ function LoginForm() {
           justifyContent: 'center',
           gap: '8px',
           marginTop: '8px',
-          boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
+          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.4)',
           transition: 'opacity 0.2s, transform 0.1s',
         }}
         onMouseOver={e => { if (!isLoading) (e.currentTarget.style.opacity = '0.9') }}
@@ -184,7 +184,7 @@ export default function LoginPage() {
         background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 40%, #29b6f6 100%)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         padding: '0',
         position: 'relative',
         overflow: 'hidden',
@@ -212,18 +212,18 @@ export default function LoginPage() {
         pointerEvents: 'none',
       }} />
 
-      {/* White card - right side */}
+      {/* White card - centered */}
       <div
         style={{
           background: '#fff',
-          minHeight: '100vh',
+          borderRadius: '16px',
           width: '420px',
-          maxWidth: '100%',
+          maxWidth: 'calc(100vw - 40px)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          padding: '48px 44px',
-          boxShadow: '-8px 0 40px rgba(0,0,0,0.15)',
+          padding: '48px 44px 36px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           position: 'relative',
           zIndex: 10,
         }}
@@ -269,6 +269,17 @@ export default function LoginPage() {
         }>
           <LoginForm />
         </Suspense>
+
+        {/* Copyright */}
+        <p style={{
+          marginTop: '28px',
+          textAlign: 'center',
+          fontSize: '11px',
+          color: '#9ca3af',
+          lineHeight: '1.5',
+        }}>
+          © ASIK PERUMDA Air Minum Tirta Ardhia Rinjani Kab Lombok Tengah
+        </p>
       </div>
     </div>
   )
