@@ -57,7 +57,7 @@ function LoginForm() {
       <div>
         <input
           type="text"
-          placeholder="NIP"
+          placeholder="NIK/Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
