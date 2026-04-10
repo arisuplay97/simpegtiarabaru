@@ -283,7 +283,7 @@ export default function LoginPage() {
           color: '#9ca3af',
           lineHeight: '1.5',
         }}>
-          © ASIK PERUMDA Air Minum Tirta Ardhia Rinjani Kab Lombok Tengah
+          © ASIK PERUMDAM Tirta Ardhia Rinjani Kab Lombok Tengah
         </p>
       </div>
     </div>
