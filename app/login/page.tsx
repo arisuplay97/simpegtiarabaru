@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import Image from "next/image"
 
 function LoginForm() {
   const router = useRouter()
@@ -40,7 +41,7 @@ function LoginForm() {
       if (result.error.includes("Perangkat tidak dikenali") || result.error === "DeviceMismatch") {
         setError("Akun Anda sudah login di perangkat lain. Hubungi HRD.")
       } else {
-        setError("Username atau password salah")
+        setError("NIP atau password salah")
       }
     } else {
       toast.success("Berhasil masuk")
@@ -52,124 +53,223 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-      {/* Username / NIK */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-white/55 uppercase tracking-wider">Username / NIK</label>
+      {/* NIP */}
+      <div>
         <input
           type="text"
-          placeholder="Masukkan Username atau NIK"
+          placeholder="NIP"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
           autoComplete="username"
-          className="w-full rounded-xl bg-black/20 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-violet-400/60 focus:bg-black/30 transition-all backdrop-blur-sm"
+          style={{
+            width: '100%',
+            padding: '14px 16px',
+            border: '1.5px solid #d1d5db',
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: '#374151',
+            outline: 'none',
+            background: '#fff',
+            boxSizing: 'border-box' as const,
+          }}
+          onFocus={e => (e.target.style.borderColor = '#3b82f6')}
+          onBlur={e => (e.target.style.borderColor = '#d1d5db')}
         />
       </div>
 
       {/* Password */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-white/55 uppercase tracking-wider">Password</label>
-        <div className="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Masukkan password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            className="w-full rounded-xl bg-black/20 border border-white/15 px-4 py-3 pr-11 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-violet-400/60 focus:bg-black/30 transition-all backdrop-blur-sm"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={showPassword ? "text" : "password"}
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+          style={{
+            width: '100%',
+            padding: '14px 44px 14px 16px',
+            border: '1.5px solid #d1d5db',
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: '#374151',
+            outline: 'none',
+            background: '#fff',
+            boxSizing: 'border-box' as const,
+          }}
+          onFocus={e => (e.target.style.borderColor = '#3b82f6')}
+          onBlur={e => (e.target.style.borderColor = '#d1d5db')}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          style={{
+            position: 'absolute',
+            right: '14px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#9ca3af',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl bg-red-500/20 border border-red-400/30 px-4 py-2.5 text-sm text-red-200">
+        <div style={{
+          background: '#fee2e2',
+          border: '1px solid #fca5a5',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          fontSize: '13px',
+          color: '#dc2626',
+        }}>
           {error}
         </div>
       )}
 
-      {/* Submit button */}
+      {/* LOGIN Button */}
       <button
         type="submit"
         disabled={isLoading}
-        className="relative w-full mt-2 rounded-xl py-3 text-sm font-bold text-white overflow-hidden transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
         style={{
-          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #4c1d95 100%)',
-          boxShadow: '0 4px 24px rgba(124, 58, 237, 0.55)',
+          width: '100%',
+          padding: '15px',
+          borderRadius: '50px',
+          border: 'none',
+          background: 'linear-gradient(to right, #84cc16, #22c55e, #14b8a6)',
+          color: '#fff',
+          fontWeight: '700',
+          fontSize: '14px',
+          letterSpacing: '2px',
+          cursor: isLoading ? 'not-allowed' : 'pointer',
+          opacity: isLoading ? 0.7 : 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          marginTop: '8px',
+          boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
+          transition: 'opacity 0.2s, transform 0.1s',
         }}
+        onMouseOver={e => { if (!isLoading) (e.currentTarget.style.opacity = '0.9') }}
+        onMouseOut={e => { (e.currentTarget.style.opacity = isLoading ? '0.7' : '1') }}
+        onMouseDown={e => { if (!isLoading) (e.currentTarget.style.transform = 'scale(0.98)') }}
+        onMouseUp={e => { (e.currentTarget.style.transform = 'scale(1)') }}
       >
-        <span className="relative z-10 flex items-center justify-center gap-2">
-          {isLoading ? (
-            <><Loader2 className="h-4 w-4 animate-spin" />Memuat...</>
-          ) : (
-            "Masuk ke Sistem"
-          )}
-        </span>
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700" />
+        {isLoading ? (
+          <><Loader2 size={16} className="animate-spin" />Memuat...</>
+        ) : (
+          "LOGIN"
+        )}
       </button>
-
     </form>
   )
 }
 
 export default function LoginPage() {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center">
-      {/* ─── WALLPAPER BACKGROUND ─── */}
+    <div
+      style={{
+        minHeight: '100vh',
+        width: '100%',
+        background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 40%, #29b6f6 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        padding: '0',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Decorative circles for depth */}
+      <div style={{
+        position: 'absolute',
+        top: '-80px',
+        left: '-80px',
+        width: '320px',
+        height: '320px',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.06)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-120px',
+        left: '20%',
+        width: '500px',
+        height: '500px',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.04)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* White card - right side */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/login.png')" }}
-      />
-      <div className="absolute inset-0 bg-black/20" />
-      <div className="absolute bottom-0 inset-x-0 h-48 bg-gradient-to-t from-black/70 to-transparent" />
-
-      <div className="absolute bottom-8 left-8 z-20 flex flex-col gap-0.5 select-none hidden sm:flex">
-        <span
-          className="text-4xl font-black tracking-widest text-white leading-none"
-          style={{ textShadow: '0 0 20px rgba(168,85,247,0.9), 0 0 40px rgba(168,85,247,0.6), 0 0 80px rgba(168,85,247,0.3)', letterSpacing: '0.25em' }}
-        >
-          ASIK
-        </span>
-        <span className="text-sm font-medium text-white/70 italic leading-tight" style={{ textShadow: '0 0 12px rgba(255,255,255,0.3)' }}>
-          Aplikasi Sistem Informasi Kepegawaian
-        </span>
-        <span className="text-xs font-semibold text-white/60 leading-tight tracking-wide" style={{ textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>
-          Perumdam Tirta Ardhia Rinjani
-        </span>
-        <span className="text-[10px] font-bold text-white/40 leading-tight tracking-widest uppercase mt-1" style={{ textShadow: '0 0 8px rgba(255,255,255,0.1)' }}>
-          Kabupaten Lombok Tengah
-        </span>
-      </div>
-
-      <div className="relative z-10 w-full max-w-sm mx-4 sm:mx-auto">
-        <div className="absolute -inset-0.5 rounded-2xl bg-white/5 blur-md" />
-        <div className="relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-2xl p-8 pt-10">
-          <div className="mb-8 flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-8 mb-6 pointer-events-none">
-              <img src="/pojokkiri%20logo.png" alt="Logo Tirta Rinjani" className="h-24 w-auto object-contain opacity-95" style={{ filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.6)) drop-shadow(0 0 30px rgba(255,255,255,0.2))' }} />
-              <div className="h-16 w-px bg-white/20" />
-              <img src="/pojokkanan%20logo.png" alt="Logo ASIK" className="h-28 w-auto object-contain opacity-95" style={{ filter: 'drop-shadow(0 0 20px rgba(168,85,247,0.9)) drop-shadow(0 0 40px rgba(168,85,247,0.6))' }} />
-            </div>
-            <h1 className="text-3xl font-bold text-white mb-2 leading-tight" style={{ fontFamily: '"Georgia", "Times New Roman", serif', fontStyle: 'italic' }}>
-              Selamat Datang
-            </h1>
-            <p className="text-sm text-white/45">Masuk untuk melanjutkan ke sistem</p>
-          </div>
-
-          <Suspense fallback={<div className="py-4 text-center text-white/50"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></div>}>
-            <LoginForm />
-          </Suspense>
+        style={{
+          background: '#fff',
+          minHeight: '100vh',
+          width: '420px',
+          maxWidth: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '48px 44px',
+          boxShadow: '-8px 0 40px rgba(0,0,0,0.15)',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
+        {/* Logo */}
+        <div style={{ marginBottom: '24px' }}>
+          <Image
+            src="/login2.png"
+            alt="Tugu Tirta"
+            width={200}
+            height={70}
+            style={{ objectFit: 'contain', maxHeight: '70px', width: 'auto' }}
+            priority
+          />
         </div>
+
+        {/* Title */}
+        <h1 style={{
+          fontSize: '22px',
+          fontWeight: '700',
+          color: '#111827',
+          margin: '0 0 6px 0',
+          lineHeight: '1.3',
+        }}>
+          Log In to Your Account
+        </h1>
+
+        {/* Subtitle */}
+        <p style={{
+          fontSize: '13.5px',
+          color: '#3b82f6',
+          margin: '0 0 28px 0',
+          fontWeight: '400',
+        }}>
+          Silakan masuk menggunakan NIP dan Password.
+        </p>
+
+        {/* Form */}
+        <Suspense fallback={
+          <div style={{ textAlign: 'center', padding: '16px', color: '#9ca3af' }}>
+            <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto' }} />
+          </div>
+        }>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   )
 }
-
