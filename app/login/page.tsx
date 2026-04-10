@@ -87,9 +87,10 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
+          className="hide-password-toggle"
           style={{
             width: '100%',
-            padding: '14px 44px 14px 16px',
+            padding: '14px 16px',
             border: '1.5px solid #d1d5db',
             borderRadius: '8px',
             fontSize: '14px',
@@ -101,25 +102,6 @@ function LoginForm() {
           onFocus={e => (e.target.style.borderColor = '#3b82f6')}
           onBlur={e => (e.target.style.borderColor = '#d1d5db')}
         />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          style={{
-            position: 'absolute',
-            right: '14px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#9ca3af',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
       </div>
 
       {/* Error */}
@@ -190,6 +172,20 @@ export default function LoginPage() {
         overflow: 'hidden',
       }}
     >
+      <style>{`
+        .hide-password-toggle::-ms-reveal,
+        .hide-password-toggle::-ms-clear {
+          display: none;
+        }
+        .hide-password-toggle::-webkit-contacts-auto-fill-button,
+        .hide-password-toggle::-webkit-credentials-auto-fill-button {
+          visibility: hidden;
+          display: none !important;
+          pointer-events: none;
+          position: absolute;
+          right: 0;
+        }
+      `}</style>
       {/* Decorative circles for depth */}
       <div style={{
         position: 'absolute',
