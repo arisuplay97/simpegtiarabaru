@@ -217,7 +217,7 @@ export function SidebarNav() {
 
       {/* ── HEADER ── */}
       <div className={cn(
-        "flex h-16 items-center border-b border-[#E8EAF0]",
+        "flex h-16 items-center border-b border-[#E8EAF0] dark:border-[#27272a]",
         (!isMobileMode && collapsed) ? "justify-center px-2" : "justify-between px-4"
       )}>
         <div className={cn("flex items-center gap-3 min-w-0", (!isMobileMode && collapsed) && "justify-center")}>
@@ -229,15 +229,15 @@ export function SidebarNav() {
           </div>
           {(isMobileMode || !collapsed) && (
             <div className="flex flex-col min-w-0">
-              <span className="text-[13px] font-bold tracking-wide text-[#1E293B]">SIMPEG</span>
-              <span className="truncate text-[10px] text-[#9CA3AF]">PDAM Tirta Ardhia Rinjani</span>
+              <span className="text-[13px] font-bold tracking-wide text-[#1E293B] dark:text-[#f4f4f5]">SIMPEG</span>
+              <span className="truncate text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa]">PDAM Tirta Ardhia Rinjani</span>
             </div>
           )}
         </div>
         {isMobileMode && (
           <button
             onClick={() => setMobileOpen(false)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#64748B] transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] dark:text-[#a1a1aa] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] hover:text-[#64748B] dark:hover:text-[#d4d4d8] transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -245,7 +245,7 @@ export function SidebarNav() {
         {!isMobileMode && !collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#64748B] transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] dark:text-[#a1a1aa] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] hover:text-[#64748B] dark:hover:text-[#d4d4d8] transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -254,10 +254,10 @@ export function SidebarNav() {
 
       {/* ── USER CARD ── */}
       {(isMobileMode || !collapsed) && (
-        <div className="mx-3 my-3 rounded-xl bg-[#F0F0FF] border border-[#E8EAF0] p-3">
+        <div className="mx-3 my-3 rounded-xl bg-[#F0F0FF] dark:bg-[#18181b] border border-[#E8EAF0] dark:border-[#27272a] p-3">
           <div className="flex items-center gap-3">
             {session?.user?.image ? (
-              <div className="h-9 w-9 shrink-0 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
+              <div className="h-9 w-9 shrink-0 rounded-full overflow-hidden ring-2 ring-white dark:ring-[#27272a] shadow-sm">
                 <img src={session.user.image} alt={session.user.name || ""} className="h-full w-full object-cover" />
               </div>
             ) : (
@@ -269,10 +269,10 @@ export function SidebarNav() {
               </div>
             )}
             <div className="min-w-0">
-              <div className="text-[13px] font-semibold text-[#1E293B] truncate leading-tight">
+              <div className="text-[13px] font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate leading-tight">
                 {session?.user?.name || "User"}
               </div>
-              <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+              <div className="text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa] mt-0.5">
                 {roleInfo?.label || userRole || "—"}
               </div>
             </div>
@@ -284,7 +284,7 @@ export function SidebarNav() {
       {!isMobileMode && collapsed && (
         <button
           onClick={() => setCollapsed(false)}
-          className="mx-auto mt-3 flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#64748B] transition-colors"
+          className="mx-auto mt-3 flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] dark:text-[#a1a1aa] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] hover:text-[#64748B] dark:hover:text-[#d4d4d8] transition-colors"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -305,7 +305,7 @@ export function SidebarNav() {
                     onClick={() => toggleGroup(group.label)}
                     className={cn(
                       "flex w-full items-center justify-between rounded-lg px-3 py-1.5 mt-3 first:mt-0 transition-colors",
-                      hasActive ? "text-[#64748B]" : "text-[#9CA3AF] hover:text-[#64748B]"
+                      hasActive ? "text-[#64748B] dark:text-[#d4d4d8]" : "text-[#9CA3AF] dark:text-[#a1a1aa] hover:text-[#64748B] dark:hover:text-[#d4d4d8]"
                     )}
                   >
                     <span className="text-[10px] font-semibold uppercase tracking-widest">
@@ -334,17 +334,17 @@ export function SidebarNav() {
                               ? "justify-center px-2 py-2.5"
                               : "gap-2.5 px-3 py-[8px]",
                             isActive
-                              ? "bg-[#EFF6FF] text-[#3B82F6] font-medium"
-                              : "text-[#64748B] hover:bg-[#F3F4F6] hover:text-[#1E293B]"
+                              ? "bg-[#EFF6FF] dark:bg-blue-900/30 text-[#3B82F6] dark:text-blue-400 font-medium"
+                              : "text-[#64748B] dark:text-[#a1a1aa] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] hover:text-[#1E293B] dark:hover:text-[#f4f4f5]"
                           )}
                         >
                           {/* Active left indicator — 3px blue bar */}
                           {isActive && (
-                            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#3B82F6]" />
+                            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#3B82F6] dark:bg-blue-500" />
                           )}
                           <item.icon className={cn(
                             "h-4 w-4 shrink-0 transition-colors",
-                            isActive ? "text-[#3B82F6]" : "text-[#9CA3AF] group-hover:text-[#64748B]"
+                            isActive ? "text-[#3B82F6] dark:text-blue-400" : "text-[#9CA3AF] dark:text-[#a1a1aa] group-hover:text-[#64748B] dark:group-hover:text-[#d4d4d8]"
                           )} />
                           {(isMobileMode || !collapsed) && (
                             <>
@@ -374,18 +374,18 @@ export function SidebarNav() {
 
       {/* ── FOOTER LOGOUT ── */}
       <div className={cn(
-        "border-t border-[#E8EAF0] p-3",
+        "border-t border-[#E8EAF0] dark:border-[#27272a] p-3",
         (!isMobileMode && collapsed) && "flex justify-center"
       )}>
         <button
           onClick={handleLogout}
           title="Logout"
           className={cn(
-            "group flex items-center rounded-lg text-sm text-[#9CA3AF] transition-all hover:bg-red-50 hover:text-red-500",
+            "group flex items-center rounded-lg text-sm text-[#9CA3AF] dark:text-[#a1a1aa] transition-all hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 dark:hover:text-red-400",
             (!isMobileMode && collapsed) ? "justify-center p-2" : "w-full gap-3 px-3 py-2"
           )}
         >
-          <LogOut className="h-4 w-4 shrink-0 transition-colors group-hover:text-red-500" />
+          <LogOut className="h-4 w-4 shrink-0 transition-colors group-hover:text-red-500 dark:group-hover:text-red-400" />
           {(isMobileMode || !collapsed) && <span className="font-medium text-[13px]">Logout</span>}
         </button>
       </div>
@@ -397,7 +397,7 @@ export function SidebarNav() {
       {/* DESKTOP */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 hidden h-screen flex-col bg-[#F8F7FF] transition-all duration-300 md:flex border-r border-[#E8EAF0]",
+          "fixed left-0 top-0 z-40 hidden h-screen flex-col bg-[#F8F7FF] dark:bg-[#09090b] transition-all duration-300 md:flex border-r border-[#E8EAF0] dark:border-[#27272a]",
           collapsed ? "w-16" : "w-[220px]"
         )}
       >
@@ -415,7 +415,7 @@ export function SidebarNav() {
       {/* MOBILE DRAWER */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen w-[280px] flex-col bg-[#F8F7FF] transition-transform duration-300 md:hidden border-r border-[#E8EAF0]",
+          "fixed left-0 top-0 z-50 h-screen w-[280px] flex-col bg-[#F8F7FF] dark:bg-[#09090b] transition-transform duration-300 md:hidden border-r border-[#E8EAF0] dark:border-[#27272a]",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           "flex"
         )}
