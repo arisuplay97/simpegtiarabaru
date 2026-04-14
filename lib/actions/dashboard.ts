@@ -225,6 +225,31 @@ export async function getDashboardStats() {
     autoKgbList.sort((a, b) => a.sisaHari - b.sisaHari)
     autoPangkatList.sort((a, b) => a.sisaHari - b.sisaHari)
 
+    // Ulang Tahun Bulan Ini
+    const currentMonth = new Date().getMonth()
+    const ulangTahunBulanIni = allPegawaiActive
+      .filter((p: any) => p.tanggalLahir && new Date(p.tanggalLahir).getMonth() === currentMonth)
+      .map((p: any) => {
+        const d = new Date(p.tanggalLahir)
+        const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+        const initials = p.nama.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase()
+        // Simple distinct colors
+        const colors = ["bg-blue-500", "bg-pink-500", "bg-emerald-500", "bg-amber-500", "bg-indigo-500", "bg-violet-500", "bg-rose-500"]
+        const hash = p.nama.length
+        const color = colors[hash % colors.length]
+        
+        return {
+          id: p.id,
+          nama: p.nama,
+          jabatan: p.jabatan || "—",
+          tanggal: dateStr,
+          initials,
+          color,
+          tglNum: d.getDate()
+        }
+      })
+      .sort((a, b) => a.tglNum - b.tglNum)
+
     // 5. Data Pendukung lainnya
     const [pegawaiCutiCount, pegawaiSPCount] = await Promise.all([
       prisma.cuti.count({ where: { status: 'APPROVED', tanggalMulai: { lte: new Date() }, tanggalSelesai: { gte: new Date() } } }),
@@ -268,13 +293,14 @@ export async function getDashboardStats() {
       pegawaiSP: pegawaiSPCount,
       kgbList: autoKgbList.slice(0, 8),
       pangkatList: autoPangkatList.slice(0, 8),
+      ulangTahunBulanIni: ulangTahunBulanIni.slice(0, 5),
     }
   } catch (error) {
     console.warn("Database failed, returning mock stats for dashboard", error)
     return {
       totalPegawai: 0, totalUser: 0, approvalPending: 0, isDemo: true,
       kehadiranHariIni: { total: 0, hadir: 0, terlambat: 0, sakitCuti: 0, belumAlpa: 0, persenHadir: 0 },
-      kontrakHampirHabis: [], pensiunTerdekat: []
+      kontrakHampirHabis: [], pensiunTerdekat: [], ulangTahunBulanIni: []
     }
   }
 }

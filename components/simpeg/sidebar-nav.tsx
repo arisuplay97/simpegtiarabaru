@@ -334,17 +334,17 @@ export function SidebarNav() {
                               ? "justify-center px-2 py-2.5"
                               : "gap-2.5 px-3 py-[8px]",
                             isActive
-                              ? "bg-[#EEF2FF] text-[#4F46E5] font-medium"
+                              ? "bg-[#EFF6FF] text-[#3B82F6] font-medium"
                               : "text-[#64748B] hover:bg-[#F3F4F6] hover:text-[#1E293B]"
                           )}
                         >
-                          {/* Active left indicator — 3px indigo bar */}
+                          {/* Active left indicator — 3px blue bar */}
                           {isActive && (
-                            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#4F46E5]" />
+                            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#3B82F6]" />
                           )}
                           <item.icon className={cn(
                             "h-4 w-4 shrink-0 transition-colors",
-                            isActive ? "text-[#4F46E5]" : "text-[#9CA3AF] group-hover:text-[#64748B]"
+                            isActive ? "text-[#3B82F6]" : "text-[#9CA3AF] group-hover:text-[#64748B]"
                           )} />
                           {(isMobileMode || !collapsed) && (
                             <>

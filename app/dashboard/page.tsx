@@ -53,13 +53,7 @@ export default function DashboardPage() {
 
   const isPegawai = session?.user?.role === "PEGAWAI"
 
-  // Sample birthday data
-  const birthdayData = [
-    { nama: "Budi Santoso", jabatan: "Staff IT", tanggal: "05/04/1990", initials: "BS", color: "bg-blue-500" },
-    { nama: "Dewi Rahayu", jabatan: "HR Manager", tanggal: "12/04/1988", initials: "DR", color: "bg-pink-500" },
-    { nama: "Ahmad Fauzi", jabatan: "Kepala Bagian", tanggal: "18/04/1985", initials: "AF", color: "bg-emerald-500" },
-    { nama: "Siti Nurhaliza", jabatan: "Staf Keuangan", tanggal: "27/04/1992", initials: "SN", color: "bg-amber-500" },
-  ]
+  // Birthday data fetched from stats.ulangTahunBulanIni
 
   return (
     <div className="flex min-h-screen bg-[#F5F6FA]">
@@ -432,7 +426,9 @@ export default function DashboardPage() {
                   </div>
                   <CardContent className="p-0">
                     <div className="divide-y divide-[#E8EAF0]">
-                      {birthdayData.map((person, idx) => (
+                      {!stats?.ulangTahunBulanIni?.length ? (
+                        <div className="text-xs text-[#9CA3AF] italic text-center py-8">Belum ada data ulang tahun bulan ini</div>
+                      ) : stats.ulangTahunBulanIni.map((person: any, idx: number) => (
                         <div key={idx} className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAFAFA] transition-colors">
                           <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white", person.color)}>
                             {person.initials}
