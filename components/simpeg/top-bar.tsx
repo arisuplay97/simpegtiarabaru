@@ -234,6 +234,16 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
           </Button>
         </Link>
 
+        {/* Theme Toggle */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="relative h-9 w-9 text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a]"
+        >
+          {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+        </Button>
+
         {/* Messages — hidden on mobile */}
         <Button variant="ghost" size="icon" className="relative h-9 w-9 hidden sm:flex text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a]">
           <MessageSquare className="h-[18px] w-[18px]" />
@@ -289,11 +299,6 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             <DropdownMenuItem className="text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
               <HelpCircle className="mr-2 h-4 w-4" />
               Bantuan
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[#E8EAF0] dark:bg-[#27272a]" />
-            <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="text-[#64748B] dark:text-[#a1a1aa] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
-              {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-              {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-[#E8EAF0] dark:bg-[#27272a]" />
             <DropdownMenuItem className="text-red-500 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-600" onClick={handleLogout}>
