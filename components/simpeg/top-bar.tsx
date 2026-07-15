@@ -83,29 +83,29 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#E8EAF0] dark:border-[#27272a] bg-white dark:bg-[#09090b] px-3 md:px-5 gap-2">
+    <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between bg-[#F8FAFC]/80 dark:bg-[#09090b]/80 backdrop-blur-xl px-4 md:px-6 gap-3">
       {/* Left: Hamburger (mobile) + Breadcrumb */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         {/* Hamburger — mobile only */}
         <button
           onClick={() => setMobileOpen(true)}
-          className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] transition-colors"
+          className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-white dark:hover:bg-[#27272a] transition-all duration-150 border border-transparent hover:border-[#E5E7EB] dark:hover:border-[#27272a]"
           aria-label="Buka menu"
         >
           <Menu className="h-5 w-5 text-[#64748B] dark:text-[#a1a1aa]" />
         </button>
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-[13px] min-w-0">
+        <div className="flex items-center gap-2 text-[13px] min-w-0">
           {breadcrumb.map((item, index) => (
-            <span key={index} className="flex items-center gap-1.5 min-w-0">
-              {index > 0 && <span className="text-[#D1D5DB] dark:text-[#52525b] shrink-0">/</span>}
+            <span key={index} className="flex items-center gap-2 min-w-0">
+              {index > 0 && <span className="text-[#CBD5E1] dark:text-[#52525b] shrink-0">/</span>}
               <span
                 className={cn(
                   "truncate",
                   index === breadcrumb.length - 1
-                    ? "font-medium text-[#1E293B] dark:text-[#f4f4f5]"
-                    : "text-[#9CA3AF] dark:text-[#a1a1aa] hover:text-[#64748B] dark:hover:text-[#d4d4d8] cursor-pointer hidden sm:inline"
+                    ? "font-semibold text-[#1E293B] dark:text-[#f4f4f5]"
+                    : "text-[#94A3B8] dark:text-[#a1a1aa] hover:text-[#64748B] dark:hover:text-[#d4d4d8] cursor-pointer hidden sm:inline"
                 )}
               >
                 {item}
@@ -123,12 +123,13 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             searchFocused && "max-w-xl"
           )}
         >
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF] dark:text-[#a1a1aa]" />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] dark:text-[#a1a1aa]" />
           <input
             ref={searchRef}
             type="text"
-            placeholder="Cari pegawai, dokumen, approval, payroll... Ctrl+K"
-            className="h-10 w-full rounded-full border border-[#E8EAF0] dark:border-[#27272a] bg-[#F5F6FA] dark:bg-[#18181b] pl-10 pr-4 text-[13px] text-[#1E293B] dark:text-[#f4f4f5] placeholder:text-[#9CA3AF] dark:placeholder:text-[#a1a1aa] focus:border-[#4F46E5] dark:focus:border-blue-500 focus:bg-white dark:focus:bg-[#09090b] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/15 dark:focus:ring-blue-500/15 group-focus-within:pr-14 transition-all"
+            placeholder="Cari pegawai, dokumen, approval... Ctrl+K"
+            className="h-11 w-full rounded-full border border-[#E5E7EB] dark:border-[#27272a] bg-white dark:bg-[#111113] pl-11 pr-4 text-[13px] text-[#1E293B] dark:text-[#f4f4f5] placeholder:text-[#94A3B8] dark:placeholder:text-[#a1a1aa] focus:border-[#2563EB] dark:focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10 dark:focus:ring-blue-500/15 group-focus-within:pr-14 transition-all duration-200"
+            style={{ boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)' }}
             onFocus={() => {
               setSearchFocused(true)
               if (searchRef.current?.value.length && searchRef.current.value.length >= 2) {
@@ -160,12 +161,12 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
               }
             }}
           />
-          <kbd className="absolute right-3.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-[#E8EAF0] dark:border-[#27272a] bg-white dark:bg-[#09090b] px-1.5 py-0.5 text-[10px] font-medium text-[#9CA3AF] dark:text-[#a1a1aa] sm:block group-focus-within:hidden">
+          <kbd className="absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-lg border border-[#E5E7EB] dark:border-[#27272a] bg-[#F8FAFC] dark:bg-[#1a1a1e] px-2 py-0.5 text-[10px] font-medium text-[#94A3B8] dark:text-[#a1a1aa] sm:block group-focus-within:hidden">
             Ctrl+K
           </kbd>
           <Button 
             size="sm" 
-            className="absolute right-1 top-1/2 h-8 -translate-y-1/2 hidden group-focus-within:flex rounded-full bg-[#4F46E5] hover:bg-[#4338CA] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs"
+            className="absolute right-1.5 top-1/2 h-8 -translate-y-1/2 hidden group-focus-within:flex rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs font-medium"
             onClick={() => {
               if (searchRef.current?.value.trim()) {
                 router.push(`/pegawai?search=${encodeURIComponent(searchRef.current.value.trim())}`)
@@ -178,21 +179,23 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
 
           {/* Search Suggestions Dropdown */}
           {showSuggestions && (suggestions.length > 0 || isSearching) && (
-            <div className="absolute top-full left-0 right-0 mt-2 max-h-80 overflow-auto rounded-xl border border-[#E8EAF0] dark:border-[#27272a] bg-white dark:bg-[#09090b] shadow-lg z-50 animate-in fade-in zoom-in duration-200">
+            <div className="absolute top-full left-0 right-0 mt-2 max-h-80 overflow-auto rounded-2xl border border-[#E5E7EB] dark:border-[#27272a] bg-white dark:bg-[#111113] z-50 animate-in fade-in zoom-in duration-200"
+              style={{ boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)' }}
+            >
               {isSearching && suggestions.length === 0 ? (
-                <div className="flex items-center justify-center p-4 text-[13px] text-[#9CA3AF] dark:text-[#a1a1aa]">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#4F46E5] dark:border-blue-500 border-t-transparent mr-2" />
+                <div className="flex items-center justify-center p-4 text-[13px] text-[#94A3B8] dark:text-[#a1a1aa]">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#2563EB] dark:border-blue-500 border-t-transparent mr-2" />
                   Mencari...
                 </div>
               ) : suggestions.length > 0 ? (
                 <div className="py-2">
-                  <p className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF] dark:text-[#a1a1aa]">
+                  <p className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] dark:text-[#a1a1aa]">
                     Saran Pegawai
                   </p>
                   {suggestions.map((s) => (
                     <button
                       key={s.id}
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F5F6FA] dark:hover:bg-[#18181b] transition-colors"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F8FAFC] dark:hover:bg-[#1a1a1e] transition-colors duration-150"
                       onMouseDown={(e) => {
                         e.preventDefault() // Prevent blur before navigation
                         router.push(`/pegawai/${s.id}`)
@@ -202,11 +205,11 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={s.fotoUrl || ""} />
-                        <AvatarFallback className="text-[10px] bg-[#EEF2FF] dark:bg-blue-900/30 text-[#4F46E5] dark:text-blue-400 font-semibold">{s.nama.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-[10px] bg-[#EFF6FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-400 font-semibold">{s.nama.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-[#1E293B] dark:text-[#f4f4f5] truncate">{s.nama}</p>
-                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa] truncate">{s.nik} • {s.jabatan}</p>
+                        <p className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] truncate">{s.nik} • {s.jabatan}</p>
                       </div>
                     </button>
                   ))}
@@ -218,10 +221,10 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
       </div>
 
       {/* Right: Action buttons */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         {/* Notifications */}
         <Link href="/notifikasi" passHref legacyBehavior>
-          <Button variant="ghost" size="icon" className="relative h-9 w-9 text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a]" asChild>
+          <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150" asChild>
             <a href="/notifikasi">
               <Bell className="h-[18px] w-[18px]" />
               {unreadNotif > 0 && (
@@ -239,69 +242,71 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
           variant="ghost" 
           size="icon" 
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="relative h-9 w-9 text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a]"
+          className="relative h-9 w-9 rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150"
         >
           {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
         </Button>
 
         {/* Messages — hidden on mobile */}
-        <Button variant="ghost" size="icon" className="relative h-9 w-9 hidden sm:flex text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a]">
+        <Button variant="ghost" size="icon" className="relative h-9 w-9 hidden sm:flex rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150">
           <MessageSquare className="h-[18px] w-[18px]" />
         </Button>
 
         {/* Settings — hidden on mobile */}
-        <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a]">
+        <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150">
           <Settings className="h-[18px] w-[18px]" />
         </Button>
 
-        <div className="h-6 w-px bg-[#E8EAF0] dark:bg-[#27272a] mx-1 hidden sm:block" />
+        <div className="h-7 w-px bg-[#E5E7EB] dark:bg-[#27272a] mx-1 hidden sm:block" />
 
         {/* User Avatar Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 pl-1 pr-2 h-9 hover:bg-[#F3F4F6] dark:hover:bg-[#27272a]">
-              <Avatar className="h-7 w-7 md:h-8 md:w-8 ring-2 ring-[#EEF2FF] dark:ring-blue-900/40">
+            <Button variant="ghost" className="gap-2.5 pl-1.5 pr-2.5 h-10 rounded-xl hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150">
+              <Avatar className="h-8 w-8 ring-2 ring-[#EFF6FF] dark:ring-blue-900/40">
                 <AvatarImage src={user?.image || ""} alt={user?.name || "User"} />
-                <AvatarFallback className="bg-[#4F46E5] dark:bg-blue-600 text-xs text-white font-semibold">{user?.name?.charAt(0) ?? "?"}</AvatarFallback>
+                <AvatarFallback className="bg-[#2563EB] dark:bg-blue-600 text-xs text-white font-semibold">{user?.name?.charAt(0) ?? "?"}</AvatarFallback>
               </Avatar>
               <div className="hidden flex-col items-start text-left lg:flex">
-                <span className="text-[13px] font-medium leading-none text-[#1E293B] dark:text-[#f4f4f5]">{user?.name ?? "Guest"}</span>
-                <span className="text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa] mt-0.5">{userRole ? roleLabels[userRole] : ""}</span>
+                <span className="text-[13px] font-semibold leading-none text-[#1E293B] dark:text-[#f4f4f5]">{user?.name ?? "Guest"}</span>
+                <span className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] mt-0.5">{userRole ? roleLabels[userRole] : ""}</span>
               </div>
-              <ChevronDown className="h-3 w-3 text-[#9CA3AF] dark:text-[#a1a1aa] hidden sm:block" />
+              <ChevronDown className="h-3 w-3 text-[#94A3B8] dark:text-[#a1a1aa] hidden sm:block" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-xl border-[#E8EAF0] dark:border-[#27272a] dark:bg-[#09090b] shadow-lg">
+          <DropdownMenuContent align="end" className="w-56 rounded-2xl border-[#E5E7EB] dark:border-[#27272a] dark:bg-[#111113] p-1"
+            style={{ boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)' }}
+          >
             <DropdownMenuLabel>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="truncate text-[#1E293B] dark:text-[#f4f4f5]">{user?.name ?? "User"}</span>
-                  <Badge className="text-[10px] bg-[#EEF2FF] dark:bg-blue-900/30 text-[#4F46E5] dark:text-blue-400 border-0">
+                  <Badge className="text-[10px] bg-[#EFF6FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-400 border-0 rounded-lg">
                     {userRole ? roleLabels[userRole] : "Guest"}
                   </Badge>
                 </div>
-                <span className="text-xs font-normal text-[#9CA3AF] dark:text-[#a1a1aa]">
+                <span className="text-xs font-normal text-[#94A3B8] dark:text-[#a1a1aa]">
                   {user?.email ?? ""}
                 </span>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-[#E8EAF0] dark:bg-[#27272a]" />
-            <DropdownMenuItem asChild>
+            <DropdownMenuSeparator className="bg-[#E5E7EB] dark:bg-[#27272a]" />
+            <DropdownMenuItem asChild className="rounded-xl">
               <Link href="/pegawai/profil" className="flex items-center w-full text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
                 <User className="mr-2 h-4 w-4" />
                 Profil Saya
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
+            <DropdownMenuItem className="rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
               <Settings className="mr-2 h-4 w-4" />
               Pengaturan
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
+            <DropdownMenuItem className="rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
               <HelpCircle className="mr-2 h-4 w-4" />
               Bantuan
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[#E8EAF0] dark:bg-[#27272a]" />
-            <DropdownMenuItem className="text-red-500 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-600" onClick={handleLogout}>
+            <DropdownMenuSeparator className="bg-[#E5E7EB] dark:bg-[#27272a]" />
+            <DropdownMenuItem className="rounded-xl text-red-500 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-600" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </DropdownMenuItem>

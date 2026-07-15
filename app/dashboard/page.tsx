@@ -55,23 +55,23 @@ export default function DashboardPage() {
   // Birthday data fetched from stats.ulangTahunBulanIni
 
   return (
-    <div className="flex min-h-screen bg-[#F5F6FA] dark:bg-black">
+    <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-[#09090b]">
       <SidebarNav />
       <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Dashboard", "Utama"]} />
-        <main className="flex-1 p-4 lg:p-6 xl:p-8 space-y-5 max-w-[1440px] mx-auto w-full">
+        <main className="flex-1 p-4 lg:p-6 xl:p-8 space-y-6 max-w-[1440px] mx-auto w-full">
 
           {/* HEADER */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold tracking-tight text-[#1E293B] dark:text-[#f4f4f5]">
                 Selamat Datang, {session?.user?.name || 'User'}
               </h1>
-              <p className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa] mt-0.5">
+              <p className="text-[13px] text-[#94A3B8] dark:text-[#a1a1aa] mt-1">
                 {format(new Date(), "EEEE, dd MMMM yyyy", { locale: id })} · Ringkasan HRIS hari ini
               </p>
             </div>
-            <Badge className="w-fit px-3 py-1 text-xs font-semibold border border-[#E8EAF0] dark:border-[#27272a] bg-white dark:bg-[#09090b] text-[#64748B] dark:text-[#a1a1aa] rounded-full shadow-none">
+            <Badge className="w-fit px-3.5 py-1.5 text-xs font-semibold border border-[#E5E7EB] dark:border-[#27272a] bg-white dark:bg-[#111113] text-[#64748B] dark:text-[#a1a1aa] rounded-full shadow-none">
               {session?.user?.role || 'Guest'}
             </Badge>
           </div>
@@ -81,7 +81,7 @@ export default function DashboardPage() {
             // PEGAWAI VIEW
             // ============================
             <div className="space-y-5">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard title="Sisa Cuti" value={`${stats?.sisaCuti ?? 0}`} unit="Hari" icon={CalendarDays} color="blue" sub="Hak cuti tahun ini" />
                 <KpiCard title="Kehadiran" value={stats?.statusAbsensi || "-"} icon={BadgeCheck} color="emerald" sub={stats?.waktuAbsen ? `Masuk: ${stats.waktuAbsen}` : "Belum absen"} />
                 <KpiCard title="Gaji Terakhir" value={stats?.gajiTerbaru ? `${(stats.gajiTerbaru/1e6).toFixed(1)}jt` : "0"} icon={Wallet} color="violet" sub={stats?.periodeGaji || "—"} />
@@ -92,10 +92,10 @@ export default function DashboardPage() {
             // ============================
             // SUPERADMIN / HRD VIEW
             // ============================
-            <div className="space-y-5">
+            <div className="space-y-6">
 
               {/* ROW 1: KPI CARDS — 5 cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
                 <KpiCard
                   title="Total Pegawai"
                   value={stats?.totalPegawai || "0"}
@@ -139,23 +139,23 @@ export default function DashboardPage() {
               </div>
 
               {/* ROW 2: TOP 5 LEADERBOARD */}
-              <Card className="bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium">
-                <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+              <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
+                <div className="px-6 pt-5 pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/30">
                       <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                     </div>
                     <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Top 5 Indeks Pegawai Bulan Ini</span>
                   </div>
-                  <Link href="/indeks" className="flex items-center gap-1 text-xs text-[#4F46E5] dark:text-blue-400 hover:text-[#4338CA] dark:hover:text-blue-300 transition-colors font-medium">
+                  <Link href="/indeks" className="flex items-center gap-1 text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 transition-colors duration-150 font-medium">
                     Lihat semua <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
-                <CardContent className="p-4 pt-2">
+                <CardContent className="p-5 pt-2">
                   {leaderboard.length === 0 ? (
                     <div className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa] text-center py-6 italic">Belum ada data poin bulan ini</div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                       {leaderboard.slice(0, 5).map((lb: any, i: number) => {
                         const rankColors = [
                           { bg: "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30", badge: "bg-amber-500", text: "text-amber-600 dark:text-amber-500", icon: "👑" },
@@ -205,11 +205,11 @@ export default function DashboardPage() {
               </Card>
 
               {/* ROW 3: THREE COLUMNS */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* COL 1: KEHADIRAN HARI INI */}
-                <Card className="bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium flex flex-col">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E8EAF0] dark:border-[#27272a] flex items-center justify-between">
+                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium flex flex-col">
+                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
                         <BadgeCheck className="w-4 h-4 text-emerald-500" />
@@ -226,10 +226,10 @@ export default function DashboardPage() {
                   </div>
                   <CardContent className="flex-1 p-5 flex flex-col gap-4">
                     <div>
-                      <div className="text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa] uppercase tracking-wider font-semibold mb-1">Tingkat Kedatangan</div>
+                      <div className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider font-semibold mb-1">Tingkat Kedatangan</div>
                       <div className="flex items-end gap-2 mb-3">
                         <span className="text-4xl font-extrabold text-[#1E293B] dark:text-[#f4f4f5] tracking-tight leading-none">{stats?.kehadiranHariIni?.persenHadir || 0}</span>
-                        <span className="text-lg font-semibold text-[#9CA3AF] dark:text-[#a1a1aa] mb-0.5">%</span>
+                        <span className="text-lg font-semibold text-[#94A3B8] dark:text-[#a1a1aa] mb-0.5">%</span>
                       </div>
                       <div className="h-1.5 w-full bg-[#F0F0F5] dark:bg-[#27272a] rounded-full overflow-hidden">
                         <div
@@ -246,7 +246,7 @@ export default function DashboardPage() {
                         { label: "Belum Absen", val: stats?.kehadiranHariIni?.belumAbsen || 0, color: "text-red-600 dark:text-red-500", bg: "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30" },
                       ].map(({ label, val, color, bg }) => (
                         <div key={label} className={cn("rounded-xl p-3 border", bg)}>
-                          <div className="text-[10px] font-semibold text-[#9CA3AF] dark:text-[#a1a1aa] uppercase tracking-wider mb-1">{label}</div>
+                          <div className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-1">{label}</div>
                           <div className={cn("text-xl font-bold leading-none", color)}>{val}</div>
                         </div>
                       ))}
@@ -255,35 +255,35 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* COL 2: MASA KONTRAK & PENSIUN */}
-                <Card className="bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium flex flex-col">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E8EAF0] dark:border-[#27272a] flex items-center justify-between">
+                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium flex flex-col">
+                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-950/30">
                         <Timer className="w-4 h-4 text-orange-500" />
                       </div>
                       <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Masa Kontrak & Pensiun</span>
                     </div>
-                    <Link href="/kontrak" className="text-xs text-[#4F46E5] dark:text-blue-400 hover:text-[#4338CA] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
+                    <Link href="/kontrak" className="text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
                   </div>
                   <CardContent className="flex-1 p-0">
                     <ScrollArea className="max-h-[340px]">
                       <div className="p-4 space-y-4">
                         <div>
-                          <p className="text-[10px] font-semibold text-[#9CA3AF] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kontrak Habis</p>
+                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kontrak Habis</p>
                           <div className="space-y-2">
                             {!stats?.kontrakHampirHabis?.length ? (
-                              <div className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa] italic text-center py-3 rounded-xl border border-dashed border-[#E8EAF0] dark:border-[#27272a]">Tidak ada kontrak mendekati habis</div>
+                              <div className="text-xs text-[#94A3B8] dark:text-[#a1a1aa] italic text-center py-3 rounded-xl border border-dashed border-[#E8EAF0] dark:border-[#27272a]">Tidak ada kontrak mendekati habis</div>
                             ) : (
                               stats.kontrakHampirHabis.map((k: any) => (
-                                <div key={k.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[#FAFAFA] dark:bg-[#18181b] border border-[#E8EAF0] dark:border-[#27272a] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] transition-colors">
+                                <div key={k.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-[#18181b] border border-[#E8EAF0] dark:border-[#27272a] hover:bg-[#F3F4F6] dark:hover:bg-[#1e1e22] transition-colors">
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <Avatar className="h-7 w-7 shrink-0">
                                       <AvatarImage src={k.pegawai?.fotoUrl} />
-                                      <AvatarFallback className="text-[9px] font-bold bg-[#EEF2FF] dark:bg-blue-900/30 text-[#4F46E5] dark:text-blue-400">{k.pegawai?.nama.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-[9px] font-bold bg-[#EEF2FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-400">{k.pegawai?.nama.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
                                       <p className="text-xs font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{k.pegawai?.nama}</p>
-                                      <p className="text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa] truncate">{k.pegawai?.jabatan || "—"}</p>
+                                      <p className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] truncate">{k.pegawai?.jabatan || "—"}</p>
                                     </div>
                                   </div>
                                   <span className={cn("text-[10px] font-bold px-2 py-1 rounded-lg shrink-0",
@@ -297,21 +297,21 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-[10px] font-semibold text-[#9CA3AF] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Mendekati Pensiun</p>
+                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Mendekati Pensiun</p>
                           <div className="space-y-2">
                             {!stats?.pensiunTerdekat?.length ? (
-                              <div className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa] italic text-center py-3 rounded-xl border border-dashed border-[#E8EAF0] dark:border-[#27272a]">Belum ada data pensiun terdekat</div>
+                              <div className="text-xs text-[#94A3B8] dark:text-[#a1a1aa] italic text-center py-3 rounded-xl border border-dashed border-[#E8EAF0] dark:border-[#27272a]">Belum ada data pensiun terdekat</div>
                             ) : (
                               stats.pensiunTerdekat.map((p: any) => (
-                                <div key={p.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[#FAFAFA] dark:bg-[#18181b] border border-[#E8EAF0] dark:border-[#27272a] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] transition-colors">
+                                <div key={p.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-[#18181b] border border-[#E8EAF0] dark:border-[#27272a] hover:bg-[#F3F4F6] dark:hover:bg-[#1e1e22] transition-colors">
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <Avatar className="h-7 w-7 shrink-0">
                                       <AvatarImage src={p.fotoUrl} />
-                                      <AvatarFallback className="text-[9px] font-bold bg-[#EEF2FF] dark:bg-blue-900/30 text-[#4F46E5] dark:text-blue-400">{p.nama.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-[9px] font-bold bg-[#EEF2FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-400">{p.nama.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
                                       <p className="text-xs font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{p.nama}</p>
-                                      <p className="text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa] truncate">{p.jabatan || "—"}</p>
+                                      <p className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] truncate">{p.jabatan || "—"}</p>
                                     </div>
                                   </div>
                                   <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30">
@@ -328,30 +328,30 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* COL 3: KENAIKAN GAJI & PANGKAT */}
-                <Card className="bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium flex flex-col">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E8EAF0] dark:border-[#27272a] flex items-center justify-between">
+                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium flex flex-col">
+                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-950/30">
                         <ArrowUpCircle className="w-4 h-4 text-violet-500" />
                       </div>
                       <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Kenaikan Gaji & Pangkat</span>
                     </div>
-                    <Link href="/kgb" className="text-xs text-[#4F46E5] dark:text-blue-400 hover:text-[#4338CA] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
+                    <Link href="/kgb" className="text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
                   </div>
                   <CardContent className="flex-1 p-0">
                     <ScrollArea className="max-h-[340px]">
                       <div className="p-4 space-y-4">
                         <div>
-                          <p className="text-[10px] font-semibold text-[#9CA3AF] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kenaikan Gaji Berkala (KGB)</p>
+                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kenaikan Gaji Berkala (KGB)</p>
                           <div className="space-y-2">
                             {!stats?.kgbList?.length ? (
                               <div className="flex flex-col items-center py-5 text-center">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F6FA] dark:bg-[#18181b] mb-2">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F1F5F9] dark:bg-[#18181b] mb-2">
                                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                 </div>
-                                <p className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa]">Belum ada pegawai eligible KGB bulan ini</p>
+                                <p className="text-xs text-[#94A3B8] dark:text-[#a1a1aa]">Belum ada pegawai eligible KGB bulan ini</p>
                               </div>
                             ) : (
                               stats.kgbList.map((k: any) => (
@@ -372,16 +372,16 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-[10px] font-semibold text-[#9CA3AF] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kenaikan Pangkat</p>
+                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kenaikan Pangkat</p>
                           <div className="space-y-2">
                             {!stats?.pangkatList?.length ? (
                               <div className="flex flex-col items-center py-5 text-center">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F6FA] dark:bg-[#18181b] mb-2">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F1F5F9] dark:bg-[#18181b] mb-2">
                                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M12 15L8.5359 16.8541L9.2918 12.927L6.5836 10.1459L10.518 9.57295L12 6L13.482 9.57295L17.4164 10.1459L14.7082 12.927L15.4641 16.8541L12 15Z" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                 </div>
-                                <p className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa]">Belum ada pegawai eligible naik pangkat</p>
+                                <p className="text-xs text-[#94A3B8] dark:text-[#a1a1aa]">Belum ada pegawai eligible naik pangkat</p>
                               </div>
                             ) : (
                               stats.pangkatList.map((p: any) => (
@@ -408,17 +408,17 @@ export default function DashboardPage() {
               </div>
 
               {/* ROW 4: TWO COLUMNS — Birthday + Status SDM */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* ULANG TAHUN BULAN INI */}
-                <Card className="bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E8EAF0] dark:border-[#27272a] flex items-center justify-between">
+                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
+                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-50 dark:bg-pink-950/30">
                         <Cake className="w-4 h-4 text-pink-500" />
                       </div>
                       <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Ulang Tahun Bulan Ini</span>
                     </div>
-                    <button className="flex items-center gap-1 text-xs text-[#64748B] dark:text-[#a1a1aa] bg-[#F5F6FA] dark:bg-[#18181b] hover:bg-[#E8EAF0] dark:hover:bg-[#27272a] px-2.5 py-1 rounded-lg font-medium transition-colors">
+                    <button className="flex items-center gap-1 text-xs text-[#64748B] dark:text-[#a1a1aa] bg-[#F1F5F9] dark:bg-[#18181b] hover:bg-[#E8EAF0] dark:hover:bg-[#27272a] px-2.5 py-1 rounded-lg font-medium transition-colors">
                       Bulan ini
                       <ChevronRight className="w-3 h-3 rotate-90" />
                     </button>
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                   <CardContent className="p-0">
                     <div className="divide-y divide-[#E8EAF0] dark:divide-[#27272a]">
                       {!stats?.ulangTahunBulanIni?.length ? (
-                        <div className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa] italic text-center py-8">Belum ada data ulang tahun bulan ini</div>
+                        <div className="text-xs text-[#94A3B8] dark:text-[#a1a1aa] italic text-center py-8">Belum ada data ulang tahun bulan ini</div>
                       ) : stats.ulangTahunBulanIni.map((person: any, idx: number) => (
                         <div key={idx} className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAFAFA] dark:hover:bg-[#18181b] transition-colors">
                           <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white", person.color)}>
@@ -434,7 +434,7 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{person.nama}</p>
-                            <p className="text-[11px] text-[#9CA3AF] dark:text-[#a1a1aa] truncate">{person.jabatan}</p>
+                            <p className="text-[11px] text-[#94A3B8] dark:text-[#a1a1aa] truncate">{person.jabatan}</p>
                           </div>
                           <span className="text-[12px] text-[#64748B] dark:text-[#a1a1aa] font-medium shrink-0">{person.tanggal}</span>
                         </div>
@@ -444,8 +444,8 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* STATUS SDM */}
-                <Card className="bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E8EAF0] dark:border-[#27272a] flex items-center gap-2">
+                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
+                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-950/30">
                       <TrendingUp className="w-4 h-4 text-violet-500" />
                     </div>
@@ -474,7 +474,7 @@ export default function DashboardPage() {
                       </div>
                     ))}
                     <div className="pt-2">
-                      <Link href="/pegawai" className="text-xs text-[#4F46E5] dark:text-blue-400 hover:text-[#4338CA] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-1">
+                      <Link href="/pegawai" className="text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-1">
                         Lihat data pegawai <ArrowRight className="w-3 h-3" />
                       </Link>
                     </div>
@@ -483,10 +483,10 @@ export default function DashboardPage() {
               </div>
 
               {/* ROW 5: ANALYTICS */}
-              <Card className="bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium">
-                <div className="px-5 pt-4 pb-3 border-b border-[#E8EAF0] dark:border-[#27272a] flex items-center gap-2">
+              <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
+                <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 dark:bg-blue-950/30">
-                    <BarChart3 className="w-4 h-4 text-[#4F46E5] dark:text-blue-400" />
+                    <BarChart3 className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
                   </div>
                   <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Analitik Kepegawaian</span>
                 </div>
@@ -503,14 +503,14 @@ export default function DashboardPage() {
         {approvalOpen && (
           <div className="fixed inset-0 z-50 flex items-start justify-end p-4 pt-16">
             <div
-              className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm"
               onClick={() => setApprovalOpen(false)}
             />
-            <div className="relative z-10 w-full max-w-md h-[calc(100vh-80px)] flex flex-col bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-right-10 duration-300">
-              <div className="px-5 pt-4 pb-3 border-b border-[#E8EAF0] dark:border-[#27272a] flex items-center justify-between shrink-0">
+            <div className="relative z-10 w-full max-w-md h-[calc(100vh-80px)] flex flex-col bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] rounded-3xl overflow-hidden animate-in slide-in-from-right-10 duration-300" style={{ boxShadow: '0 8px 40px rgba(15, 23, 42, 0.1)' }}>
+              <div className="px-5 pt-5 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 dark:bg-blue-950/30">
-                    <ShieldCheck className="w-4 h-4 text-[#4F46E5] dark:text-blue-400" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                    <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
                   </div>
                   <span className="text-sm font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Approval Center</span>
                   {stats?.approvalPending > 0 && (
@@ -519,18 +519,18 @@ export default function DashboardPage() {
                 </div>
                 <button
                   onClick={() => setApprovalOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] dark:text-[#a1a1aa] hover:text-[#64748B] dark:hover:text-[#d4d4d8] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-[#94A3B8] dark:text-[#a1a1aa] hover:text-[#64748B] dark:hover:text-[#d4d4d8] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] transition-all duration-150"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <ScrollArea className="flex-1">
-                <div className="p-4">
+                <div className="p-5">
                   <ApprovalPanel />
                 </div>
               </ScrollArea>
-              <div className="px-4 py-3 border-t border-[#E8EAF0] dark:border-[#27272a] shrink-0">
-                <Link href="/approval" onClick={() => setApprovalOpen(false)} className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-sm font-semibold py-2.5 transition-colors">
+              <div className="px-5 py-4 border-t border-[#E5E7EB] dark:border-[#27272a] shrink-0">
+                <Link href="/approval" onClick={() => setApprovalOpen(false)} className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-sm font-semibold py-2.5 transition-all duration-150">
                   Buka Approval Center <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -544,13 +544,13 @@ export default function DashboardPage() {
 }
 
 // ======================================
-// REUSABLE KPI CARD — FLOOPYINN STYLE
+// REUSABLE KPI CARD — MODERN SAAS STYLE
 // ======================================
 function KpiCard({ title, value, unit, icon: Icon, color = "indigo", sub, href, onClick }: {
   title: string; value: any; unit?: string; icon: any; color?: string; sub?: string; href?: string; onClick?: () => void;
 }) {
   const colorMap: Record<string, { iconBg: string; iconColor: string }> = {
-    indigo:  { iconBg: "bg-indigo-50 dark:bg-blue-950/30",  iconColor: "text-[#4F46E5] dark:text-blue-400" },
+    indigo:  { iconBg: "bg-blue-50 dark:bg-blue-950/30",    iconColor: "text-[#2563EB] dark:text-blue-400" },
     blue:    { iconBg: "bg-blue-50 dark:bg-blue-950/30",    iconColor: "text-[#3B82F6] dark:text-blue-400" },
     emerald: { iconBg: "bg-emerald-50 dark:bg-emerald-950/30", iconColor: "text-[#10B981] dark:text-emerald-400" },
     amber:   { iconBg: "bg-amber-50 dark:bg-amber-950/30",   iconColor: "text-[#F59E0B] dark:text-amber-500" },
@@ -565,27 +565,27 @@ function KpiCard({ title, value, unit, icon: Icon, color = "indigo", sub, href, 
 
   const card = (
     <Card className={cn(
-      "bg-white dark:bg-[#09090b] border border-[#E8EAF0] dark:border-[#27272a] shadow-none rounded-[14px] card-premium transition-all duration-200",
+      "bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium transition-all duration-150",
       (href || onClick) && "hover:shadow-md dark:hover:bg-[#18181b] hover:-translate-y-0.5 cursor-pointer"
     )}>
-      <CardContent className="p-4 flex flex-col gap-3">
+      <CardContent className="p-5 flex flex-col gap-3.5">
         <div className="flex items-center justify-between">
-          <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", colors.iconBg)}>
-            <Icon className={cn("w-5 h-5", colors.iconColor)} />
+          <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", colors.iconBg)}>
+            <Icon className={cn("w-[18px] h-[18px]", colors.iconColor)} />
           </div>
           {href && (
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#F5F6FA] dark:bg-[#18181b]">
-              <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] dark:text-[#a1a1aa]" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#F1F5F9] dark:bg-[#18181b]">
+              <ChevronRight className="w-3.5 h-3.5 text-[#94A3B8] dark:text-[#a1a1aa]" />
             </div>
           )}
         </div>
         <div>
-          <div className="flex items-end gap-1 leading-none mb-1">
-            <span className="text-2xl font-extrabold text-[#1E293B] dark:text-[#f4f4f5] tracking-tight">{value}</span>
-            {unit && <span className="text-sm font-semibold text-[#9CA3AF] dark:text-[#a1a1aa] mb-0.5">{unit}</span>}
+          <div className="flex items-end gap-1.5 leading-none mb-1.5">
+            <span className="text-[26px] font-bold text-[#1E293B] dark:text-[#f4f4f5] tracking-tight">{value}</span>
+            {unit && <span className="text-sm font-semibold text-[#94A3B8] dark:text-[#a1a1aa] mb-0.5">{unit}</span>}
           </div>
           <p className="text-[12px] font-semibold text-[#64748B] dark:text-[#a1a1aa]">{title}</p>
-          {sub && <p className="text-[11px] text-[#9CA3AF] dark:text-[#52525b] mt-0.5 truncate">{sub}</p>}
+          {sub && <p className="text-[11px] text-[#94A3B8] dark:text-[#52525b] mt-0.5 truncate">{sub}</p>}
         </div>
       </CardContent>
     </Card>

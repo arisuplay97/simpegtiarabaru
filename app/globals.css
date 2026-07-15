@@ -3,120 +3,131 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   SIMPEG Modern SaaS Design System
+   Inspired by Linear / Plane / Height / Trackline
+   ============================================================ */
+
 :root {
-  --sidebar-width: 220px;
-  /* SIMPEG Floopyinn-Style Color System */
-  --background: #F5F6FA;
+  --sidebar-width: 260px;
+  --sidebar-inset: 16px;
+
+  /* Core Background */
+  --background: #F8FAFC;
   --foreground: #1E293B;
-  
+
+  /* Cards */
   --card: #FFFFFF;
   --card-foreground: #1E293B;
-  
+
+  /* Popovers */
   --popover: #FFFFFF;
   --popover-foreground: #1E293B;
-  
-  /* Primary - Indigo */
-  --primary: #4F46E5;
+
+  /* Primary — Company Blue */
+  --primary: #2563EB;
   --primary-foreground: #FFFFFF;
-  
-  /* Secondary - Light Indigo */
-  --secondary: #EEF2FF;
-  --secondary-foreground: #4F46E5;
-  
+
+  /* Secondary */
+  --secondary: #EFF6FF;
+  --secondary-foreground: #2563EB;
+
   /* Muted */
-  --muted: #F5F6FA;
+  --muted: #F1F5F9;
   --muted-foreground: #64748B;
-  
-  /* Accent - Indigo */
-  --accent: #EEF2FF;
-  --accent-foreground: #4F46E5;
-  
-  /* Success - Emerald */
+
+  /* Accent */
+  --accent: #EFF6FF;
+  --accent-foreground: #2563EB;
+
+  /* Success */
   --success: #10B981;
   --success-foreground: #FFFFFF;
-  
-  /* Warning - Amber */
+
+  /* Warning */
   --warning: #F59E0B;
   --warning-foreground: #1E293B;
-  
-  /* Destructive - Red */
+
+  /* Destructive */
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  
-  --border: #E8EAF0;
-  --input: #E8EAF0;
-  --ring: #4F46E5;
-  
+
+  /* Borders & Input */
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #2563EB;
+
   /* Chart Colors */
-  --chart-1: #4F46E5;
+  --chart-1: #2563EB;
   --chart-2: #10B981;
   --chart-3: #F59E0B;
   --chart-4: #EF4444;
   --chart-5: #3B82F6;
-  
+
+  /* Radius System */
   --radius: 0.875rem;
-  
-  /* Sidebar - Light */
-  --sidebar: #F8F7FF;
+
+  /* Sidebar */
+  --sidebar: #FFFFFF;
   --sidebar-foreground: #1E293B;
-  --sidebar-primary: #4F46E5;
+  --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #EEF2FF;
-  --sidebar-accent-foreground: #4F46E5;
-  --sidebar-border: #E8EAF0;
-  --sidebar-ring: #4F46E5;
-  --sidebar-muted: #9CA3AF;
+  --sidebar-accent: #EFF6FF;
+  --sidebar-accent-foreground: #2563EB;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #2563EB;
+  --sidebar-muted: #94A3B8;
 }
 
 .dark {
   --background: #09090b;
   --foreground: #f4f4f5;
-  
-  --card: #18181b;
+
+  --card: #111113;
   --card-foreground: #f4f4f5;
-  
-  --popover: #18181b;
+
+  --popover: #111113;
   --popover-foreground: #f4f4f5;
-  
-  --primary: #6366F1;
+
+  --primary: #3B82F6;
   --primary-foreground: #FFFFFF;
-  
-  --secondary: #27272a;
+
+  --secondary: #1e1e22;
   --secondary-foreground: #a1a1aa;
-  
-  --muted: #27272a;
+
+  --muted: #1e1e22;
   --muted-foreground: #a1a1aa;
-  
-  --accent: #27272a;
+
+  --accent: #1e1e22;
   --accent-foreground: #f4f4f5;
-  
+
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  
+
   --border: #27272a;
   --input: #27272a;
-  --ring: #6366F1;
-  
-  --chart-1: #6366F1;
+  --ring: #3B82F6;
+
+  --chart-1: #3B82F6;
   --chart-2: #34D399;
   --chart-3: #FBBF24;
   --chart-4: #F87171;
   --chart-5: #60A5FA;
-  
-  --sidebar: #18181b;
+
+  --sidebar: #111113;
   --sidebar-foreground: #f4f4f5;
-  --sidebar-primary: #6366F1;
+  --sidebar-primary: #3B82F6;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #27272a;
+  --sidebar-accent: #1e1e22;
   --sidebar-accent-foreground: #f4f4f5;
   --sidebar-border: #27272a;
-  --sidebar-ring: #6366F1;
+  --sidebar-ring: #3B82F6;
   --sidebar-muted: #71717a;
 }
 
 @theme inline {
-  --font-sans: 'Inter', 'Geist', sans-serif;
-  --font-mono: 'Geist Mono', monospace;
+  --font-sans: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -160,10 +171,12 @@
   --color-sidebar-muted: var(--sidebar-muted);
 }
 
-/* Sidebar offset — 0 on mobile (drawer), variable-based on desktop */
+/* ============================================================
+   Layout: Sidebar offset
+   ============================================================ */
 .sidebar-offset {
   padding-left: 0;
-  transition: padding-left 0.3s ease;
+  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (min-width: 768px) {
@@ -172,19 +185,26 @@
   }
 }
 
+/* ============================================================
+   Base Styles
+   ============================================================ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Custom Scrollbar — thin & elegant */
+/* ============================================================
+   Scrollbar — Ultra-thin & Elegant
+   ============================================================ */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -192,15 +212,14 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: #CBD5E1;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #94A3B8;
 }
 
-/* Scrollbar Hide (mobile horizontal scroll) */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -209,16 +228,42 @@
   scrollbar-width: none;
 }
 
-/* Micro-animations */
+/* ============================================================
+   Premium Card Shadows — SaaS Style
+   ============================================================ */
+.card-premium {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02), 0 4px 16px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+}
+
+.card-premium:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05), 0 2px 8px rgba(15, 23, 42, 0.03);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   Sidebar Active State
+   ============================================================ */
+.sidebar-active {
+  background: #EFF6FF;
+  color: #2563EB;
+  border-left: 3px solid #2563EB;
+}
+
+/* ============================================================
+   Animations — Subtle & Fast
+   ============================================================ */
+
+/* Fade + slide up */
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-slide-up {
-  animation: fadeSlideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+  animation: fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Live pulse animation for badges */
+/* Live pulse for badges */
 @keyframes livePulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.5); }
@@ -227,19 +272,19 @@
   animation: livePulse 2s ease-in-out infinite;
 }
 
-/* Stagger animation for cards */
+/* Stagger card entrance */
 @keyframes cardEnter {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-card-enter {
-  animation: cardEnter 0.5s cubic-bezier(0.22,1,0.36,1) both;
+  animation: cardEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .animate-card-enter:nth-child(1) { animation-delay: 0ms; }
-.animate-card-enter:nth-child(2) { animation-delay: 60ms; }
-.animate-card-enter:nth-child(3) { animation-delay: 120ms; }
-.animate-card-enter:nth-child(4) { animation-delay: 180ms; }
-.animate-card-enter:nth-child(5) { animation-delay: 240ms; }
+.animate-card-enter:nth-child(2) { animation-delay: 50ms; }
+.animate-card-enter:nth-child(3) { animation-delay: 100ms; }
+.animate-card-enter:nth-child(4) { animation-delay: 150ms; }
+.animate-card-enter:nth-child(5) { animation-delay: 200ms; }
 
 /* Marquee scroll for broadcast ticker */
 @keyframes marquee-scroll {
@@ -247,26 +292,10 @@
   100% { transform: translateX(-50%); }
 }
 
-/* Floopyinn-style card shadows */
-.card-premium {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.02);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.card-premium:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-  transform: translateY(-1px);
-}
-
-/* Sidebar Active State — flat indigo */
-.sidebar-active {
-  background: #EEF2FF;
-  color: #4F46E5;
-  border-left: 3px solid #4F46E5;
-}
-
+/* ============================================================
+   Print Styles
+   ============================================================ */
 @media print {
-  /* Sembunyikan elemen navigasi */
   aside,
   header,
   nav,
@@ -276,30 +305,25 @@
     visibility: hidden !important;
   }
 
-  /* Hapus padding kiri karena sidebar hidden */
   .pl-64,
   .sidebar-offset {
     padding-left: 0 !important;
   }
 
-  /* Sembunyikan semua tombol */
   button {
     display: none !important;
   }
 
-  /* Sembunyikan header halaman (judul + dropdown pilih pegawai/periode) */
   main > div:first-child {
     display: none !important;
   }
 
-  /* Background putih */
   body, html {
     background: white !important;
     color: black !important;
     font-size: 10pt !important;
   }
 
-  /* Slip gaji tampil penuh tanpa card shadow */
   .card-premium,
   .shadow-xl,
   .shadow-md,
@@ -308,7 +332,6 @@
     border: 1px solid #e5e7eb !important;
   }
 
-  /* Max width penuh */
   .max-w-4xl,
   .max-w-3xl,
   .max-w-2xl {
@@ -316,7 +339,6 @@
     width: 100% !important;
   }
 
-  /* Ukuran teks proporsional */
   .text-3xl { font-size: 18pt !important; }
   .text-2xl { font-size: 14pt !important; }
   .text-xl  { font-size: 12pt !important; }
@@ -324,14 +346,12 @@
   .text-sm  { font-size: 9pt !important; }
   .text-xs  { font-size: 8pt !important; }
 
-  /* Padding lebih kecil */
   .p-6 { padding: 0.6rem !important; }
   .p-4 { padding: 0.4rem !important; }
   .mb-6 { margin-bottom: 0.5rem !important; }
   .mt-6 { margin-top: 0.5rem !important; }
   .gap-6 { gap: 0.5rem !important; }
 
-  /* Gradient background jadi solid untuk print */
   .bg-gradient-to-r,
   .bg-gradient-to-br {
     background: oklch(0.35 0.12 250) !important;
@@ -339,7 +359,6 @@
     print-color-adjust: exact !important;
   }
 
-  /* QR code area tetap tampil */
   .border-dashed {
     border: 2px dashed #9ca3af !important;
   }
