@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import Lottie, { LottieRefCurrentProps } from "lottie-react"
+import Lottie from "lottie-react"
 import fingerprintAnimation from "@/public/animations/fingerprint.json"
 import successAnimation from "@/public/animations/success.json"
 
@@ -41,7 +41,8 @@ export default function MobileFingerprint() {
   const [resultData, setResultData] = useState<{ status: string; tipe: string } | null>(null)
   const [isCheckout, setIsCheckout] = useState(false)
   const [isLoadingStatus, setIsLoadingStatus] = useState(true)
-  const fingerprintLottieRef = useRef<LottieRefCurrentProps>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fingerprintLottieRef = useRef<any>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -195,9 +196,13 @@ export default function MobileFingerprint() {
                 animationData={fingerprintAnimation} 
                 loop={false}
                 initialSegment={[0, 260]}
+                onLoopComplete={() => {
+                  if (fingerprintLottieRef.current) {
+                    fingerprintLottieRef.current.playSegments([150, 260], true);
+                  }
+                }}
                 onComplete={() => {
                   if (fingerprintLottieRef.current) {
-                    fingerprintLottieRef.current.setLoop(true);
                     fingerprintLottieRef.current.playSegments([150, 260], true);
                   }
                 }}
