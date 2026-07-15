@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Fingerprint, CheckCircle, Loader2, MapPin, X, Clock, WifiOff, Pointer } from "lucide-react"
@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import Lottie from "lottie-react"
+import Lottie, { LottieRefCurrentProps } from "lottie-react"
 import fingerprintAnimation from "@/public/animations/fingerprint.json"
 import successAnimation from "@/public/animations/success.json"
 
@@ -41,6 +41,7 @@ export default function MobileFingerprint() {
   const [resultData, setResultData] = useState<{ status: string; tipe: string } | null>(null)
   const [isCheckout, setIsCheckout] = useState(false)
   const [isLoadingStatus, setIsLoadingStatus] = useState(true)
+  const fingerprintLottieRef = useRef<LottieRefCurrentProps>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -137,7 +138,7 @@ export default function MobileFingerprint() {
       <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-slate-50">
         <div className="w-full max-w-sm bg-white rounded-3xl p-8 flex flex-col items-center shadow-lg relative overflow-hidden border border-slate-100">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-indigo-600" />
-          <div className="h-40 w-40 flex items-center justify-center mb-2">
+          <div className="w-56 h-56 flex items-center justify-center mb-2">
             <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
           </div>
           <h2 className="text-2xl font-black text-slate-800 text-center mb-2">
@@ -188,8 +189,20 @@ export default function MobileFingerprint() {
           {isSubmitting || isLoadingStatus ? (
             <Loader2 className="w-32 h-32 animate-spin opacity-80 text-indigo-600" />
           ) : (
-            <div className="w-64 h-64 opacity-90 drop-shadow-lg">
-              <Lottie animationData={fingerprintAnimation} loop={true} className="w-full h-full" />
+            <div className="w-80 h-80 opacity-90 drop-shadow-lg">
+              <Lottie 
+                lottieRef={fingerprintLottieRef}
+                animationData={fingerprintAnimation} 
+                loop={false}
+                initialSegment={[0, 260]}
+                onComplete={() => {
+                  if (fingerprintLottieRef.current) {
+                    fingerprintLottieRef.current.setLoop(true);
+                    fingerprintLottieRef.current.playSegments([150, 260], true);
+                  }
+                }}
+                className="w-full h-full" 
+              />
             </div>
           )}
           <div className="mt-2 text-center z-10">
