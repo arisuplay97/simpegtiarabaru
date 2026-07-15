@@ -165,10 +165,10 @@ export default function LoginPage() {
           </div>
           <div className="login-left-illustration">
             <Image
-              src="/login.png"
+              src="/login3.png"
               alt="Ilustrasi"
-              width={400}
-              height={400}
+              width={600}
+              height={600}
               className="login-left-illustration-img"
               priority
             />
