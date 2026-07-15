@@ -118,7 +118,7 @@ function LoginForm() {
           <span className="login-remember-text">Ingat saya</span>
         </label>
         <button type="button" className="login-forgot-link">
-          Lupa Kata Sandi?
+          Lupa kata sandi?
         </button>
       </div>
 
@@ -150,72 +150,46 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="login-page">
-      {/* ── Kiri: Panel Branding ── */}
-      <div className="login-branding">
-        <div className="login-branding-content">
+      <div className="login-card">
+        {/* Logo */}
+        <div className="login-logo">
           <Image
-            src="/putih.png"
+            src="/login2.png"
             alt="PERUMDAM Tirta Ardhia Rinjani"
-            width={120}
-            height={120}
-            className="login-branding-logo"
+            width={280}
+            height={72}
+            className="login-logo-img"
             priority
           />
-          <h1 className="login-branding-title">SIMPEG</h1>
-          <p className="login-branding-subtitle">
-            Sistem Informasi Manajemen Kepegawaian
-          </p>
-          <div className="login-branding-divider" />
-          <p className="login-branding-desc">
-            Kelola data pegawai, kehadiran, cuti, penilaian kinerja,
-            kenaikan pangkat, dan informasi organisasi dalam satu
-            platform terpadu.
-          </p>
-          <div className="login-branding-badge">
-            PERUMDAM Tirta Ardhia Rinjani — Kab. Lombok Tengah
-          </div>
         </div>
-      </div>
 
-      {/* ── Kanan: Form Login ── */}
-      <div className="login-form-panel">
-        <div className="login-form-container">
-          <div className="login-form-logo">
-            <Image
-              src="/login2.png"
-              alt="PERUMDAM Tirta Ardhia Rinjani"
-              width={280}
-              height={72}
-              className="login-form-logo-img"
-              priority
-            />
-          </div>
+        {/* Heading */}
+        <h2 className="login-heading">Selamat Datang di SIMPEG.</h2>
+        <p className="login-subheading">
+          Masuk untuk mengelola data kepegawaian Anda.
+        </p>
 
-          <h2 className="login-form-heading">Selamat Datang</h2>
-          <p className="login-form-subheading">
-            Masuk dengan NIK atau Username dan Kata Sandi Anda
-          </p>
+        {/* Form */}
+        <Suspense
+          fallback={
+            <div style={{ textAlign: "center", padding: "32px 0" }}>
+              <Loader2
+                size={24}
+                className="login-spinner"
+                style={{ color: "#94A3B8", margin: "0 auto" }}
+              />
+            </div>
+          }
+        >
+          <LoginForm />
+        </Suspense>
 
-          <Suspense
-            fallback={
-              <div style={{ textAlign: "center", padding: "32px 0" }}>
-                <Loader2
-                  size={24}
-                  className="login-spinner"
-                  style={{ color: "#94A3B8", margin: "0 auto" }}
-                />
-              </div>
-            }
-          >
-            <LoginForm />
-          </Suspense>
-
-          <p className="login-footer">
-            © {new Date().getFullYear()} PERUMDAM Tirta Ardhia Rinjani
-            <br />
-            Kab. Lombok Tengah
-          </p>
-        </div>
+        {/* Footer */}
+        <p className="login-footer">
+          © {new Date().getFullYear()} PERUMDAM Tirta Ardhia Rinjani
+          <br />
+          Kab. Lombok Tengah
+        </p>
       </div>
     </div>
   )
