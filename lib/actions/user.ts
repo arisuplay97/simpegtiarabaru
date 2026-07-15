@@ -59,8 +59,18 @@ export async function updateSystemUser(id: string, data: any) {
 
     const updated = await prisma.user.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      include: {
+        pegawai: true
+      }
     })
+
+    if (data.password && updated.pegawai && updated.pegawai.deviceId) {
+      await prisma.pegawai.update({
+        where: { id: updated.pegawai.id },
+        data: { deviceId: null }
+      })
+    }
 
     revalidatePath("/settings/users")
     return { success: true, data: updated }
@@ -100,13 +110,23 @@ export async function resetUserPassword(id: string) {
     const defaultPass = "Simpeg@2025"
     const hashedPassword = await bcrypt.hash(defaultPass, 12)
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id },
       data: {
         password: hashedPassword,
         mustChangePassword: true // Paksa ganti password saat login berikutnya
+      },
+      include: {
+        pegawai: true
       }
     })
+
+    if (updatedUser.pegawai && updatedUser.pegawai.deviceId) {
+      await prisma.pegawai.update({
+        where: { id: updatedUser.pegawai.id },
+        data: { deviceId: null }
+      })
+    }
 
     revalidatePath("/settings/users")
     return { success: true, message: "Password berhasil direset. Pegawai wajib mengganti password saat login berikutnya." }
