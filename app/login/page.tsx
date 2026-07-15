@@ -151,45 +151,57 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        {/* Logo */}
-        <div className="login-logo">
-          <Image
-            src="/login2.png"
-            alt="PERUMDAM Tirta Ardhia Rinjani"
-            width={280}
-            height={72}
-            className="login-logo-img"
-            priority
-          />
+        {/* ── Left: Logo + Illustration ── */}
+        <div className="login-left">
+          <div className="login-left-logo">
+            <Image
+              src="/login2.png"
+              alt="PERUMDAM Tirta Ardhia Rinjani"
+              width={200}
+              height={52}
+              className="login-left-logo-img"
+              priority
+            />
+          </div>
+          <div className="login-left-illustration">
+            <Image
+              src="/login.png"
+              alt="Ilustrasi"
+              width={400}
+              height={400}
+              className="login-left-illustration-img"
+              priority
+            />
+          </div>
         </div>
 
-        {/* Heading */}
-        <h2 className="login-heading">Selamat Datang di SIMPEG.</h2>
-        <p className="login-subheading">
-          Masuk untuk mengelola data kepegawaian Anda.
-        </p>
+        {/* ── Right: Form ── */}
+        <div className="login-right">
+          <h2 className="login-heading">Selamat Datang di SIMPEG.</h2>
+          <p className="login-subheading">
+            Masuk untuk mengelola data kepegawaian Anda.
+          </p>
 
-        {/* Form */}
-        <Suspense
-          fallback={
-            <div style={{ textAlign: "center", padding: "32px 0" }}>
-              <Loader2
-                size={24}
-                className="login-spinner"
-                style={{ color: "#94A3B8", margin: "0 auto" }}
-              />
-            </div>
-          }
-        >
-          <LoginForm />
-        </Suspense>
+          <Suspense
+            fallback={
+              <div style={{ textAlign: "center", padding: "32px 0" }}>
+                <Loader2
+                  size={24}
+                  className="login-spinner"
+                  style={{ color: "#94A3B8", margin: "0 auto" }}
+                />
+              </div>
+            }
+          >
+            <LoginForm />
+          </Suspense>
 
-        {/* Footer */}
-        <p className="login-footer">
-          © {new Date().getFullYear()} PERUMDAM Tirta Ardhia Rinjani
-          <br />
-          Kab. Lombok Tengah
-        </p>
+          <p className="login-footer">
+            © {new Date().getFullYear()} PERUMDAM Tirta Ardhia Rinjani
+            <br />
+            Kab. Lombok Tengah
+          </p>
+        </div>
       </div>
     </div>
   )
