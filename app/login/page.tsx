@@ -4,91 +4,9 @@ import { signIn } from "next-auth/react"
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
-import { Eye, EyeOff, Loader2, Users, CalendarCheck, CalendarOff, TrendingUp, Network, GraduationCap } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Image from "next/image"
 import "@/styles/login.css"
-
-/* ──────────────────────────────────────────────
-   Dashboard Preview Cards — Branding Panel
-   ────────────────────────────────────────────── */
-
-const dashboardCards = [
-  {
-    label: "Total Pegawai",
-    value: "248",
-    change: "+12 bulan ini",
-    icon: Users,
-    iconClass: "employees",
-    bars: [40, 55, 70, 50, 85, 65, 90],
-  },
-  {
-    label: "Kehadiran",
-    value: "96.4%",
-    change: "↑ 2.1% dari bulan lalu",
-    icon: CalendarCheck,
-    iconClass: "attendance",
-    bars: [80, 70, 85, 90, 75, 95, 88],
-  },
-  {
-    label: "Pengajuan Cuti",
-    value: "14",
-    change: "3 menunggu persetujuan",
-    icon: CalendarOff,
-    iconClass: "leave",
-    bars: [30, 45, 20, 60, 35, 25, 50],
-  },
-  {
-    label: "Kinerja",
-    value: "87.2",
-    change: "Rata-rata skor",
-    icon: TrendingUp,
-    iconClass: "performance",
-    bars: [75, 80, 65, 90, 85, 70, 88],
-  },
-  {
-    label: "Struktur Organisasi",
-    value: "12",
-    change: "Unit kerja aktif",
-    icon: Network,
-    iconClass: "organization",
-    bars: [60, 45, 70, 55, 80, 50, 65],
-  },
-  {
-    label: "Progress Pelatihan",
-    value: "78%",
-    change: "Target tercapai",
-    icon: GraduationCap,
-    iconClass: "training",
-    bars: [50, 60, 45, 75, 80, 55, 70],
-  },
-]
-
-function DashboardCard({ card }: { card: typeof dashboardCards[number] }) {
-  const Icon = card.icon
-  return (
-    <div className="login-dashboard-card">
-      <div className={`login-dashboard-card-icon ${card.iconClass}`}>
-        <Icon size={15} />
-      </div>
-      <div className="login-dashboard-card-label">{card.label}</div>
-      <div className="login-dashboard-card-value">{card.value}</div>
-      <div className="login-dashboard-card-change">{card.change}</div>
-      <div className="login-mini-bars">
-        {card.bars.map((h, i) => (
-          <div
-            key={i}
-            className={`login-mini-bar ${i >= card.bars.length - 3 ? "active" : ""}`}
-            style={{ height: `${(h / 100) * 24}px` }}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ──────────────────────────────────────────────
-   Login Form (wrapped in Suspense for searchParams)
-   ────────────────────────────────────────────── */
 
 function LoginForm() {
   const router = useRouter()
@@ -144,7 +62,6 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleLogin} className="login-form" id="login-form">
-      {/* Username / NIK */}
       <div className="login-field-group">
         <label htmlFor="login-username" className="login-field-label">
           Username / NIK
@@ -163,16 +80,15 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Password */}
       <div className="login-field-group">
         <label htmlFor="login-password" className="login-field-label">
-          Password
+          Kata Sandi
         </label>
         <div className="login-field-wrapper">
           <input
             id="login-password"
             type={showPassword ? "text" : "password"}
-            placeholder="Masukkan password"
+            placeholder="Masukkan kata sandi"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -183,14 +99,13 @@ function LoginForm() {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="login-password-toggle"
-            aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+            aria-label={showPassword ? "Sembunyikan" : "Tampilkan"}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
       </div>
 
-      {/* Remember Me & Forgot Password */}
       <div className="login-options-row">
         <label className="login-remember" htmlFor="login-remember">
           <input
@@ -203,18 +118,16 @@ function LoginForm() {
           <span className="login-remember-text">Ingat saya</span>
         </label>
         <button type="button" className="login-forgot-link">
-          Lupa Password?
+          Lupa Kata Sandi?
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="login-error" role="alert">
           {error}
         </div>
       )}
 
-      {/* Sign In Button */}
       <button
         type="submit"
         disabled={isLoading}
@@ -227,28 +140,24 @@ function LoginForm() {
             Memproses...
           </>
         ) : (
-          "Sign In"
+          "Masuk"
         )}
       </button>
     </form>
   )
 }
 
-/* ──────────────────────────────────────────────
-   Main Login Page
-   ────────────────────────────────────────────── */
-
 export default function LoginPage() {
   return (
     <div className="login-page">
-      {/* ── Left: Branding Panel ── */}
+      {/* ── Kiri: Panel Branding ── */}
       <div className="login-branding">
         <div className="login-branding-content">
           <Image
             src="/putih.png"
             alt="PERUMDAM Tirta Ardhia Rinjani"
-            width={56}
-            height={56}
+            width={120}
+            height={120}
             className="login-branding-logo"
             priority
           />
@@ -256,43 +165,37 @@ export default function LoginPage() {
           <p className="login-branding-subtitle">
             Sistem Informasi Manajemen Kepegawaian
           </p>
+          <div className="login-branding-divider" />
           <p className="login-branding-desc">
-            Manage employee data, attendance, leave, performance evaluation,
-            promotions, and organizational information through one integrated
-            platform.
+            Kelola data pegawai, kehadiran, cuti, penilaian kinerja,
+            kenaikan pangkat, dan informasi organisasi dalam satu
+            platform terpadu.
           </p>
-
-          {/* Dashboard Preview Grid */}
-          <div className="login-dashboard-grid">
-            {dashboardCards.map((card) => (
-              <DashboardCard key={card.label} card={card} />
-            ))}
+          <div className="login-branding-badge">
+            PERUMDAM Tirta Ardhia Rinjani — Kab. Lombok Tengah
           </div>
         </div>
       </div>
 
-      {/* ── Right: Login Form Panel ── */}
+      {/* ── Kanan: Form Login ── */}
       <div className="login-form-panel">
         <div className="login-form-container">
-          {/* Logo */}
           <div className="login-form-logo">
             <Image
               src="/login2.png"
               alt="PERUMDAM Tirta Ardhia Rinjani"
-              width={160}
-              height={44}
-              style={{ height: '44px', width: 'auto', objectFit: 'contain' }}
+              width={280}
+              height={72}
+              className="login-form-logo-img"
               priority
             />
           </div>
 
-          {/* Heading */}
-          <h2 className="login-form-heading">Welcome Back</h2>
+          <h2 className="login-form-heading">Selamat Datang</h2>
           <p className="login-form-subheading">
-            Silakan masuk menggunakan NIK/Username dan Password Anda.
+            Masuk dengan NIK atau Username dan Kata Sandi Anda
           </p>
 
-          {/* Form */}
           <Suspense
             fallback={
               <div style={{ textAlign: "center", padding: "32px 0" }}>
@@ -307,7 +210,6 @@ export default function LoginPage() {
             <LoginForm />
           </Suspense>
 
-          {/* Footer */}
           <p className="login-footer">
             © {new Date().getFullYear()} PERUMDAM Tirta Ardhia Rinjani
             <br />
