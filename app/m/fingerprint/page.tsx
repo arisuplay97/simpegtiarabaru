@@ -7,6 +7,9 @@ import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
+import Lottie from "lottie-react"
+import fingerprintAnimation from "@/public/animations/fingerprint.json"
+import successAnimation from "@/public/animations/success.json"
 
 function WatermarkClock() {
   const [time, setTime] = useState(new Date())
@@ -134,8 +137,8 @@ export default function MobileFingerprint() {
       <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-slate-50">
         <div className="w-full max-w-sm bg-white rounded-3xl p-8 flex flex-col items-center shadow-lg relative overflow-hidden border border-slate-100">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-indigo-600" />
-          <div className="h-20 w-20 rounded-full flex items-center justify-center mb-6 ring-8 bg-indigo-50 ring-indigo-50">
-            <CheckCircle className="h-10 w-10 text-indigo-600" />
+          <div className="h-28 w-28 flex items-center justify-center mb-4">
+            <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
           </div>
           <h2 className="text-2xl font-black text-slate-800 text-center mb-2">
             {isCheckIn ? "Check-In Berhasil" : "Check-Out Berhasil"}
@@ -193,7 +196,9 @@ export default function MobileFingerprint() {
           {isSubmitting || isLoadingStatus ? (
             <Loader2 className="w-24 h-24 animate-spin opacity-80" />
           ) : (
-            <Pointer className="w-24 h-24 opacity-90 drop-shadow-md animate-bounce transform -rotate-12" strokeWidth={1.5} />
+            <div className="w-32 h-32 opacity-90 drop-shadow-md">
+              <Lottie animationData={fingerprintAnimation} loop={true} className="w-full h-full" />
+            </div>
           )}
           <div className="absolute inset-x-0 -bottom-10 text-center">
             <span className="text-sm font-bold text-slate-700 bg-white px-5 py-2 rounded-full shadow-md border border-slate-100 uppercase tracking-widest whitespace-nowrap">
