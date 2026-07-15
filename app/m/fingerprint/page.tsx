@@ -137,7 +137,7 @@ export default function MobileFingerprint() {
       <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-slate-50">
         <div className="w-full max-w-sm bg-white rounded-3xl p-8 flex flex-col items-center shadow-lg relative overflow-hidden border border-slate-100">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-indigo-600" />
-          <div className="h-28 w-28 flex items-center justify-center mb-4">
+          <div className="h-40 w-40 flex items-center justify-center mb-2">
             <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
           </div>
           <h2 className="text-2xl font-black text-slate-800 text-center mb-2">
@@ -183,24 +183,16 @@ export default function MobileFingerprint() {
         <button 
           onClick={submit}
           disabled={isSubmitting || isLoadingStatus || (!isOnline && !location)}
-          className="relative group p-14 rounded-[3rem] active:scale-95 transition-all text-white disabled:opacity-50 disabled:active:scale-100"
-          style={{ 
-            background: isCheckout 
-              ? "linear-gradient(135deg, #1e293b 0%, #334155 100%)" // Darker for checkout
-              : "linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)", // Blue for checkin
-            boxShadow: isCheckout
-              ? "0 20px 50px rgba(51, 65, 85, 0.45), inset 0 2px 10px rgba(255, 255, 255, 0.2)"
-              : "0 20px 50px rgba(29, 78, 216, 0.45), inset 0 2px 10px rgba(255, 255, 255, 0.4)" 
-          }}
+          className="relative group active:scale-95 transition-all text-slate-800 disabled:opacity-50 disabled:active:scale-100 flex flex-col items-center justify-center"
         >
           {isSubmitting || isLoadingStatus ? (
-            <Loader2 className="w-24 h-24 animate-spin opacity-80" />
+            <Loader2 className="w-32 h-32 animate-spin opacity-80 text-indigo-600" />
           ) : (
-            <div className="w-32 h-32 opacity-90 drop-shadow-md">
+            <div className="w-64 h-64 opacity-90 drop-shadow-lg">
               <Lottie animationData={fingerprintAnimation} loop={true} className="w-full h-full" />
             </div>
           )}
-          <div className="absolute inset-x-0 -bottom-10 text-center">
+          <div className="mt-2 text-center z-10">
             <span className="text-sm font-bold text-slate-700 bg-white px-5 py-2 rounded-full shadow-md border border-slate-100 uppercase tracking-widest whitespace-nowrap">
               {isSubmitting || isLoadingStatus ? "MENYIAPKAN..." : isCheckout ? "TAP UNTUK PULANG" : "TAP UNTUK MASUK"}
             </span>
