@@ -83,17 +83,17 @@ import { getLokasiList } from "@/lib/actions/lokasi"
 import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
 import { Camera } from "lucide-react"
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  AKTIF: { label: "Aktif", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  CUTI: { label: "Cuti", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  NON_AKTIF: { label: "Non-Aktif", className: "bg-gray-100 text-gray-700 border-gray-200" },
-  PENSIUN: { label: "Pensiun", className: "bg-red-100 text-red-700 border-red-200" },
+const statusConfig: Record<string, { label: string; dot: string; className: string }> = {
+  AKTIF: { label: "Aktif", dot: "bg-emerald-500", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+  CUTI: { label: "Cuti", dot: "bg-amber-500", className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+  NON_AKTIF: { label: "Non-Aktif", dot: "bg-slate-400", className: "border-slate-300 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300" },
+  PENSIUN: { label: "Pensiun", dot: "bg-rose-500", className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400" },
 }
 
-const spConfig = {
-  SP1: { label: "SP-1", className: "bg-gray-100 text-gray-600 border-gray-300" },
-  SP2: { label: "SP-2", className: "bg-amber-100 text-amber-700 border-amber-300" },
-  SP3: { label: "SP-3", className: "bg-red-100 text-red-700 border-red-300" },
+const spConfig: Record<string, { label: string; className: string }> = {
+  SP1: { label: "SP-1", className: "border-slate-300 text-slate-600 dark:text-zinc-300 dark:border-zinc-700" },
+  SP2: { label: "SP-2", className: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10" },
+  SP3: { label: "SP-3", className: "border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10" },
 }
 
 // ... (other histories stay the same or could be made dynamic if needed)
@@ -483,9 +483,9 @@ export default function EmployeeDetailPage() {
         const years = Math.floor(diffDays / 365)
         let sisaText = years > 0 ? `${years} Tahun ${diffDays % 365} Hari` : `${diffDays} Hari`
 
-        let color = "text-emerald-700 bg-emerald-100"
-        if (diffDays <= 30) color = "text-red-700 bg-red-100"
-        else if (diffDays <= 90) color = "text-amber-700 bg-amber-100"
+        let color = "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+        if (diffDays <= 30) color = "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400"
+        else if (diffDays <= 90) color = "border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400"
 
         return {
           tanggal: format(endDate, "dd MMMM yyyy", { locale: idLocale }),
@@ -510,13 +510,13 @@ export default function EmployeeDetailPage() {
       const today = new Date()
       const diffTime = endDate.getTime() - today.getTime()
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      if (diffDays <= 0) return { status: "Masa Jabatan Berakhir", color: "text-red-700 bg-red-100", percentage: 100, label: "Masa Jabatan" }
+      if (diffDays <= 0) return { status: "Masa Jabatan Berakhir", color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", percentage: 100, label: "Masa Jabatan" }
       const totalDuration = endDate.getTime() - joinDate.getTime()
       const elapsed = today.getTime() - joinDate.getTime()
       const percentage = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
       const years = Math.floor(diffDays / 365)
       const sisaText = years > 0 ? `${years} Th ${diffDays % 365} Hr` : `${diffDays} Hari`
-      const color = diffDays <= 180 ? "text-red-700 bg-red-100" : diffDays <= 365 ? "text-amber-700 bg-amber-100" : "text-emerald-700 bg-emerald-100"
+      const color = diffDays <= 180 ? "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400" : diffDays <= 365 ? "border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400" : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
       return { tanggal: format(endDate, "dd MMMM yyyy", { locale: idLocale }), sisaText, color, percentage, label: "Masa Jabatan Direksi" }
     }
 
@@ -535,15 +535,15 @@ export default function EmployeeDetailPage() {
     const percentage = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100))
 
     if (diffDays <= 0) {
-      return { status: "Sudah Pensiun", color: "text-red-700 bg-red-100", percentage: 100, label: "Masa Pensiun" }
+      return { status: "Sudah Pensiun", color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", percentage: 100, label: "Masa Pensiun" }
     }
     
     const years = Math.floor(diffDays / 365)
     let sisaText = years > 0 ? `${years} Tahun ${diffDays % 365} Hari` : `${diffDays} Hari`
     
-    let color = "text-emerald-700 bg-emerald-100"
-    if (years <= 1) color = "text-red-700 bg-red-100"
-    else if (years <= 5) color = "text-amber-700 bg-amber-100"
+    let color = "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+    if (years <= 1) color = "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400"
+    else if (years <= 5) color = "border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400"
 
     return { 
       tanggal: format(pensiunDate, "dd MMMM yyyy", { locale: idLocale }),
@@ -609,201 +609,210 @@ export default function EmployeeDetailPage() {
           </div>
 
           {/* Profile Header */}
-          <Card className="card-premium mb-6">
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                {/* Left - Avatar & Basic Info */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                  <div className="flex flex-col items-center gap-2">
-                    <Avatar className="h-28 w-28 shrink-0 border-2 border-primary/10">
+          <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-5 sm:p-7 shadow-xs mb-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              {/* Left - Avatar & Basic Info */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                <div className="flex flex-col items-center gap-2 shrink-0">
+                  <div className="relative group">
+                    <Avatar className="h-24 w-24 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-xs">
                       {employee.fotoUrl ? (
                         <AvatarImage src={employee.fotoUrl} className="object-cover" />
                       ) : null}
-                      <AvatarFallback className="bg-primary/5 text-3xl text-primary">
+                      <AvatarFallback className="rounded-2xl bg-slate-100 dark:bg-zinc-800 text-2xl font-bold text-slate-700 dark:text-zinc-200">
                         {(employee.nama || "P").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <label className="cursor-pointer">
+                    <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white rounded-2xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-medium">
+                      <Camera className="h-4 w-4 mb-0.5" />
+                      Ubah
                       <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
-                      <span className="flex items-center gap-1 text-[10px] text-primary hover:underline">
-                        <Camera className="h-3 w-3" /> Ganti Foto
-                      </span>
                     </label>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h1 className="text-2xl font-bold text-foreground">{employee.nama}</h1>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className={statusConfig[employee.status || "AKTIF"]?.className || ""}
-                        >
-                          {statusConfig[employee.status || "AKTIF"]?.label || employee.status || "AKTIF"}
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                    <span className="flex items-center gap-1 text-[11px] text-primary hover:underline font-medium">
+                      <Camera className="h-3 w-3" /> Ganti Foto
+                    </span>
+                  </label>
+                </div>
+
+                <div className="text-center sm:text-left space-y-2">
+                  <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
+                      {employee.nama}
+                    </h1>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          statusConfig[employee.status || "AKTIF"]?.className || ""
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            statusConfig[employee.status || "AKTIF"]?.dot || "bg-emerald-500"
+                          }`}
+                        />
+                        {statusConfig[employee.status || "AKTIF"]?.label || employee.status || "AKTIF"}
+                      </span>
+                      {employee.sp && spConfig[employee.sp as keyof typeof spConfig] && (
+                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 font-mono ${spConfig[employee.sp as keyof typeof spConfig].className}`}>
+                          {spConfig[employee.sp as keyof typeof spConfig].label}
                         </Badge>
-                        {employee.sp === "SP1" && <Badge variant="outline" className={spConfig.SP1.className}>SP-1</Badge>}
-                        {employee.sp === "SP2" && <Badge variant="outline" className={spConfig.SP2.className}>SP-2</Badge>}
-                        {employee.sp === "SP3" && <Badge variant="outline" className={spConfig.SP3.className}>SP-3</Badge>}
-                      </div>
+                      )}
                     </div>
-                    <p className="mt-1 text-lg text-muted-foreground">{employee.jabatan}</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <User className="h-4 w-4" />
-                        <span className="font-semibold text-primary">{employee.tipePegawai || "TETAP"}</span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Building2 className="h-4 w-4" />
-                        {employee.bidang?.nama || "-"}
-                        {employee.subBidang ? ` — ${employee.subBidang.nama}` : ""}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Briefcase className="h-4 w-4" />
-                        Golongan {employee.golongan || "-"}
-                      </span>
-                      <span className="flex items-center gap-1.5" suppressHydrationWarning>
-                        <Calendar className="h-4 w-4" />
-                        Masuk: {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "-"}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                      <a href={`mailto:${employee.email}`} className="flex items-center gap-1.5 text-primary hover:underline">
-                        <Mail className="h-4 w-4" />
+                  </div>
+
+                  <p className="text-sm font-medium text-slate-600 dark:text-zinc-400">
+                    {employee.jabatan}
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-slate-600 dark:text-zinc-400">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80 font-mono text-[11px]">
+                      NIK: {employee.nik}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80">
+                      <Building2 className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+                      {employee.bidang?.nama || "—"}
+                      {employee.subBidang ? ` — ${employee.subBidang.nama}` : ""}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80 font-mono">
+                      Gol. {employee.golongan || "—"}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80" suppressHydrationWarning>
+                      <Calendar className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+                      TMT: {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "—"}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-1 text-xs">
+                    {employee.email && (
+                      <a href={`mailto:${employee.email}`} className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-primary transition-colors">
+                        <Mail className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
                         {employee.email}
                       </a>
-                      <a href={`tel:${employee.telepon}`} className="flex items-center gap-1.5 text-primary hover:underline">
-                        <Phone className="h-4 w-4" />
+                    )}
+                    {employee.telepon && (
+                      <a href={`tel:${employee.telepon}`} className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-primary transition-colors font-mono">
+                        <Phone className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
                         {employee.telepon}
                       </a>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right - Actions & Masa Pensiun */}
-                <div className="flex flex-col items-end gap-3">
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    <Button variant="outline" size="sm" className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={handleResetDevice}>
-                      <Shield className="h-4 w-4" />
-                      Reset Device
-                    </Button>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Download className="h-4 w-4" />
-                      Download CV
-                    </Button>
-                    <Button size="sm" className="gap-2" onClick={handleOpenEdit}>
-                      <Edit className="h-4 w-4" />
-                      Edit Data
-                    </Button>
-                  </div>
-                  {pensiunInfo && (
-                    <div className="w-64 mt-1 p-3 rounded-xl border border-primary/10 bg-card shadow-sm flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground mr-2">{pensiunInfo.label || "Masa Pensiun"}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap ${pensiunInfo.color}`}>
-                          {pensiunInfo.status || `< ${pensiunInfo.sisaText}`} 
-                        </span>
-                      </div>
-                      <Progress 
-                        value={pensiunInfo.percentage} 
-                        className="h-2 bg-secondary" 
-                        indicatorClassName={pensiunInfo.color.includes('red') ? 'bg-red-500' : (pensiunInfo.color.includes('amber') ? 'bg-amber-500' : 'bg-emerald-500')} 
-                      />
-                      <span className="text-[10px] text-muted-foreground text-right">{pensiunInfo.tanggal ?? "-"}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="mt-6 grid gap-4 border-t border-border pt-6 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <GraduationCap className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Pendidikan</p>
-                    <p className="font-medium">{employee.pendidikanTerakhir}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
-                    <CreditCard className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Bank</p>
-                    <p className="font-medium">{employee.bank}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                    <Shield className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">BPJS Kesehatan</p>
-                    <p className="font-medium">{employee.bpjsKesehatan}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                    <User className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Atasan Langsung</p>
-                    <p className="font-medium">{employee.atasanLangsung}</p>
+                    )}
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Right - Actions & Masa Pensiun */}
+              <div className="flex flex-col items-center sm:items-end gap-3 shrink-0">
+                <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs text-amber-600 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    onClick={handleResetDevice}
+                  >
+                    <Shield className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    Reset Device
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs border-slate-200 dark:border-zinc-800">
+                    <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    Unduh CV
+                  </Button>
+                  <Button size="sm" className="h-8 gap-1.5 text-xs bg-primary text-primary-foreground shadow-xs" onClick={handleOpenEdit}>
+                    <Edit className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    Edit Data
+                  </Button>
+                </div>
+
+                {pensiunInfo && (
+                  <div className="w-64 p-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50 flex flex-col gap-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">{pensiunInfo.label || "Masa Pensiun"}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap ${pensiunInfo.color}`}>
+                        {pensiunInfo.status || `< ${pensiunInfo.sisaText}`}
+                      </span>
+                    </div>
+                    <Progress
+                      value={pensiunInfo.percentage}
+                      className="h-1.5 bg-slate-200 dark:bg-zinc-800"
+                      indicatorClassName={pensiunInfo.color.includes("red") ? "bg-rose-500" : pensiunInfo.color.includes("amber") ? "bg-amber-500" : "bg-emerald-500"}
+                    />
+                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 text-right">{pensiunInfo.tanggal ?? "—"}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Stats 4 Metrics */}
+            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-500">Pendidikan Terakhir</span>
+                <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">{employee.pendidikanTerakhir || "—"}</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-500">Rekening Bank</span>
+                <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">{employee.bank ? `${employee.bank} - ${employee.noRekening || ""}` : "—"}</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-500">BPJS Kesehatan</span>
+                <p className="mt-0.5 font-semibold font-mono text-slate-800 dark:text-zinc-200 truncate">{employee.bpjsKesehatan || "—"}</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-500">Atasan Langsung</span>
+                <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">{employee.atasanLangsung || "—"}</p>
+              </div>
+            </div>
+          </div>
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6 w-full justify-start overflow-x-auto">
-              <TabsTrigger value="profil" className="gap-2">
-                <User className="h-4 w-4" />
+            <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-slate-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-slate-200 dark:border-zinc-800 h-auto">
+              <TabsTrigger value="profil" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <User className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Profil
               </TabsTrigger>
-              <TabsTrigger value="keluarga" className="gap-2">
-                <Users className="h-4 w-4" />
+              <TabsTrigger value="keluarga" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Keluarga
               </TabsTrigger>
-              <TabsTrigger value="pendidikan" className="gap-2">
-                <GraduationCap className="h-4 w-4" />
+              <TabsTrigger value="pendidikan" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <GraduationCap className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Pendidikan
               </TabsTrigger>
-              <TabsTrigger value="jabatan" className="gap-2">
-                <Briefcase className="h-4 w-4" />
+              <TabsTrigger value="jabatan" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <Briefcase className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Jabatan
               </TabsTrigger>
-              <TabsTrigger value="pangkat" className="gap-2">
-                <TrendingUp className="h-4 w-4" />
+              <TabsTrigger value="pangkat" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Pangkat
               </TabsTrigger>
-              <TabsTrigger value="gaji" className="gap-2">
-                <CreditCard className="h-4 w-4" />
+              <TabsTrigger value="gaji" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <CreditCard className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Gaji
               </TabsTrigger>
-              <TabsTrigger value="absensi" className="gap-2">
-                <Clock className="h-4 w-4" />
+              <TabsTrigger value="absensi" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <Clock className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Absensi
               </TabsTrigger>
-              <TabsTrigger value="cuti" className="gap-2">
-                <Calendar className="h-4 w-4" />
+              <TabsTrigger value="cuti" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <Calendar className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Cuti
               </TabsTrigger>
-              <TabsTrigger value="kinerja" className="gap-2">
-                <Target className="h-4 w-4" />
+              <TabsTrigger value="kinerja" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <Target className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Kinerja
               </TabsTrigger>
-              <TabsTrigger value="dokumen" className="gap-2">
-                <FileText className="h-4 w-4" />
+              <TabsTrigger value="dokumen" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Dokumen
               </TabsTrigger>
-              <TabsTrigger value="pelatihan" className="gap-2">
-                <BookOpen className="h-4 w-4" />
+              <TabsTrigger value="pelatihan" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Pelatihan
               </TabsTrigger>
-              <TabsTrigger value="riwayat" className="gap-2">
-                <History className="h-4 w-4" />
+              <TabsTrigger value="riwayat" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+                <History className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Riwayat
               </TabsTrigger>
             </TabsList>
@@ -811,7 +820,7 @@ export default function EmployeeDetailPage() {
             {/* Profil Tab */}
             <TabsContent value="profil">
               <div className="grid gap-6 lg:grid-cols-2">
-                <Card className="card-premium">
+                <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                   <CardHeader>
                     <CardTitle className="text-base">Data Pribadi</CardTitle>
                   </CardHeader>
@@ -866,7 +875,7 @@ export default function EmployeeDetailPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="card-premium">
+                <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                   <CardHeader>
                     <CardTitle className="text-base">Data Kepegawaian</CardTitle>
                   </CardHeader>
@@ -1047,7 +1056,7 @@ export default function EmployeeDetailPage() {
 
             {/* Keluarga Tab */}
             <TabsContent value="keluarga">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Data Keluarga</CardTitle>
                 </CardHeader>
@@ -1082,7 +1091,7 @@ export default function EmployeeDetailPage() {
 
             {/* Pendidikan Tab */}
             <TabsContent value="pendidikan">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Riwayat Pendidikan</CardTitle>
                 </CardHeader>
@@ -1117,7 +1126,7 @@ export default function EmployeeDetailPage() {
 
             {/* Jabatan Tab */}
             <TabsContent value="jabatan">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Riwayat Jabatan</CardTitle>
                 </CardHeader>
@@ -1142,7 +1151,7 @@ export default function EmployeeDetailPage() {
                           <TableCell>{pos.tanggalMulai ? new Date(pos.tanggalMulai).toLocaleDateString("id-ID") : "-"}</TableCell>
                           <TableCell>
                             {!pos.tanggalSelesai ? (
-                              <Badge className="bg-emerald-100 text-emerald-700">Aktif</Badge>
+                              <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border font-medium">Aktif</Badge>
                             ) : new Date(pos.tanggalSelesai).toLocaleDateString("id-ID")}
                           </TableCell>
                           <TableCell className="font-mono text-xs">-</TableCell>
@@ -1156,7 +1165,7 @@ export default function EmployeeDetailPage() {
 
             {/* Pangkat Tab */}
             <TabsContent value="pangkat">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Riwayat Pangkat / Golongan</CardTitle>
                 </CardHeader>
@@ -1191,7 +1200,7 @@ export default function EmployeeDetailPage() {
 
             {/* Gaji Tab */}
             <TabsContent value="gaji">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Riwayat Gaji</CardTitle>
                 </CardHeader>
@@ -1224,7 +1233,7 @@ export default function EmployeeDetailPage() {
 
             {/* Absensi Tab */}
             <TabsContent value="absensi">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Rekap Absensi Bulan Ini</CardTitle>
                 </CardHeader>
@@ -1267,7 +1276,7 @@ export default function EmployeeDetailPage() {
 
             {/* Cuti Tab */}
             <TabsContent value="cuti">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Saldo Cuti Tahun 2026</CardTitle>
                 </CardHeader>
@@ -1310,11 +1319,11 @@ export default function EmployeeDetailPage() {
 
             {/* Kinerja Tab */}
             <TabsContent value="kinerja">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">KPI Tahun {kpiSummary.year}</CardTitle>
-                    <Badge className="bg-emerald-100 text-emerald-700">
+                    <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border font-medium">
                       Score: {kpiSummary.overallScore}%
                     </Badge>
                   </div>
@@ -1349,7 +1358,7 @@ export default function EmployeeDetailPage() {
 
             {/* Dokumen Tab */}
             <TabsContent value="dokumen">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Dokumen Kepegawaian</CardTitle>
                 </CardHeader>
@@ -1375,7 +1384,7 @@ export default function EmployeeDetailPage() {
                           </TableCell>
                           <TableCell>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("id-ID") : "-"}</TableCell>
                           <TableCell>
-                            <Badge className="bg-emerald-100 text-emerald-700">Valid</Badge>
+                            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border font-medium">Valid</Badge>
                           </TableCell>
                           <TableCell>
                             {doc.fileUrl ? (
@@ -1396,7 +1405,7 @@ export default function EmployeeDetailPage() {
 
             {/* Dokumen Tab */}
             <TabsContent value="dokumen">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
                   <div>
                     <CardTitle className="text-base flex items-center gap-2">
@@ -1476,7 +1485,7 @@ export default function EmployeeDetailPage() {
 
             {/* Pelatihan Tab */}
             <TabsContent value="pelatihan">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Riwayat Pelatihan</CardTitle>
                 </CardHeader>
@@ -1500,7 +1509,7 @@ export default function EmployeeDetailPage() {
                           <TableCell>{training.penyelenggara}</TableCell>
                           <TableCell>{training.tahun}</TableCell>
                           <TableCell>
-                            <Badge className="bg-emerald-100 text-emerald-700">Selesai</Badge>
+                            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border font-medium">Selesai</Badge>
                           </TableCell>
                           <TableCell>
                             <span className="text-muted-foreground">-</span>
@@ -1515,7 +1524,7 @@ export default function EmployeeDetailPage() {
 
             {/* Riwayat Tab */}
             <TabsContent value="riwayat">
-              <Card className="card-premium">
+              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
                 <CardHeader>
                   <CardTitle className="text-base">Log Aktivitas</CardTitle>
                 </CardHeader>
