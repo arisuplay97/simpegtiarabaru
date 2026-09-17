@@ -20,6 +20,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { getUnreadCount } from "@/lib/actions/notifikasi"
 import { getSearchSuggestions } from "@/lib/actions/pegawai"
+import { format } from "date-fns"
+import { id } from "date-fns/locale"
 import {
   Search,
   Bell,
@@ -33,6 +35,7 @@ import {
   Moon,
   Sun,
   Menu,
+  CalendarDays,
 } from "lucide-react"
 import { useSidebar } from "@/components/simpeg/sidebar-nav"
 
@@ -83,29 +86,34 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between bg-[#F8FAFC]/80 dark:bg-[#09090b]/80 backdrop-blur-xl px-4 md:px-6 gap-3">
-      {/* Left: Hamburger (mobile) + Breadcrumb */}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-zinc-800/80 bg-white/85 dark:bg-[#09090b]/85 backdrop-blur-md px-4 sm:px-6 gap-3">
+      {/* Left: Hamburger (mobile) + Page Icon Badge + Breadcrumb */}
       <div className="flex items-center gap-3 min-w-0">
         {/* Hamburger — mobile only */}
         <button
           onClick={() => setMobileOpen(true)}
-          className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-white dark:hover:bg-[#27272a] transition-all duration-150 border border-transparent hover:border-[#E5E7EB] dark:hover:border-[#27272a]"
+          className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition-colors"
           aria-label="Buka menu"
         >
-          <Menu className="h-5 w-5 text-[#64748B] dark:text-[#a1a1aa]" />
+          <Menu className="h-5 w-5" />
         </button>
+
+        {/* Page Icon Badge (like reference design) */}
+        <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs shrink-0">
+          <Building2 className="h-4 w-4" />
+        </div>
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-[13px] min-w-0">
           {breadcrumb.map((item, index) => (
             <span key={index} className="flex items-center gap-2 min-w-0">
-              {index > 0 && <span className="text-[#CBD5E1] dark:text-[#52525b] shrink-0">/</span>}
+              {index > 0 && <span className="text-slate-300 dark:text-zinc-600 shrink-0">/</span>}
               <span
                 className={cn(
                   "truncate",
                   index === breadcrumb.length - 1
-                    ? "font-semibold text-[#1E293B] dark:text-[#f4f4f5]"
-                    : "text-[#94A3B8] dark:text-[#a1a1aa] hover:text-[#64748B] dark:hover:text-[#d4d4d8] cursor-pointer hidden sm:inline"
+                    ? "font-bold text-slate-900 dark:text-zinc-100 text-[14px]"
+                    : "text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors hidden sm:inline"
                 )}
               >
                 {item}
@@ -221,16 +229,22 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
       </div>
 
       {/* Right: Action buttons */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Date Pill (like reference image) */}
+        <div className="hidden lg:flex items-center gap-2 rounded-full border border-slate-200/90 dark:border-zinc-800 bg-slate-50/90 dark:bg-zinc-900/70 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-zinc-300">
+          <CalendarDays className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+          <span>{format(new Date(), "EEE, dd MMM yyyy", { locale: id })}</span>
+        </div>
+
         {/* Notifications */}
         <Link href="/notifikasi" passHref legacyBehavior>
-          <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150" asChild>
-            <a href="/notifikasi">
+          <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors" asChild>
+            <a href="/notifikasi" aria-label="Notifikasi">
               <Bell className="h-[18px] w-[18px]" />
               {unreadNotif > 0 && (
                 <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
                 </span>
               )}
             </a>
@@ -242,41 +256,39 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
           variant="ghost" 
           size="icon" 
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="relative h-9 w-9 rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150"
+          className="relative h-9 w-9 rounded-xl text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+          aria-label="Ubah tema"
         >
           {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
         </Button>
 
-        {/* Messages — hidden on mobile */}
-        <Button variant="ghost" size="icon" className="relative h-9 w-9 hidden sm:flex rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150">
-          <MessageSquare className="h-[18px] w-[18px]" />
-        </Button>
-
         {/* Settings — hidden on mobile */}
-        <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150">
-          <Settings className="h-[18px] w-[18px]" />
+        <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex rounded-xl text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors" asChild>
+          <Link href="/settings/sistem" aria-label="Pengaturan">
+            <Settings className="h-[18px] w-[18px]" />
+          </Link>
         </Button>
 
-        <div className="h-7 w-px bg-[#E5E7EB] dark:bg-[#27272a] mx-1 hidden sm:block" />
+        <div className="h-6 w-px bg-slate-200 dark:bg-zinc-800 mx-1 hidden sm:block" />
 
         {/* User Avatar Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2.5 pl-1.5 pr-2.5 h-10 rounded-xl hover:bg-white dark:hover:bg-[#27272a] hover:border-[#E5E7EB] dark:hover:border-[#27272a] border border-transparent transition-all duration-150">
-              <Avatar className="h-8 w-8 ring-2 ring-[#EFF6FF] dark:ring-blue-900/40">
+            <Button variant="ghost" className="gap-2.5 pl-1 pr-2.5 h-9 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+              <Avatar className="h-8 w-8 ring-2 ring-blue-500/20 dark:ring-blue-400/20">
                 <AvatarImage src={user?.image || ""} alt={user?.name || "User"} />
-                <AvatarFallback className="bg-[#2563EB] dark:bg-blue-600 text-xs text-white font-semibold">{user?.name?.charAt(0) ?? "?"}</AvatarFallback>
+                <AvatarFallback className="bg-blue-600 text-xs text-white font-bold tracking-tight">
+                  {userRole === "HRD" ? "HR" : (user?.name?.slice(0, 2).toUpperCase() || "US")}
+                </AvatarFallback>
               </Avatar>
-              <div className="hidden flex-col items-start text-left lg:flex">
-                <span className="text-[13px] font-semibold leading-none text-[#1E293B] dark:text-[#f4f4f5]">{user?.name ?? "Guest"}</span>
-                <span className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] mt-0.5">{userRole ? roleLabels[userRole] : ""}</span>
+              <div className="hidden flex-col items-start text-left xl:flex">
+                <span className="text-[13px] font-semibold leading-none text-slate-900 dark:text-zinc-100 truncate max-w-[120px]">{user?.name ?? "User"}</span>
+                <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">{userRole ? roleLabels[userRole] : ""}</span>
               </div>
-              <ChevronDown className="h-3 w-3 text-[#94A3B8] dark:text-[#a1a1aa] hidden sm:block" />
+              <ChevronDown className="h-3 w-3 text-slate-400 hidden sm:block" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-2xl border-[#E5E7EB] dark:border-[#27272a] dark:bg-[#111113] p-1"
-            style={{ boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)' }}
-          >
+          <DropdownMenuContent align="end" className="w-56 rounded-2xl border-slate-200 dark:border-zinc-800 dark:bg-[#111113] p-1 shadow-xl">
             <DropdownMenuLabel>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">

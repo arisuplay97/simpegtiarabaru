@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
 
 import {
   PieChart,
@@ -106,12 +107,18 @@ const trendMetrics = [
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border border-border bg-card p-3 shadow-lg">
-        <p className="mb-2 text-sm font-medium">{label}</p>
+      <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 shadow-md text-xs">
+        <p className="mb-1.5 font-bold text-slate-900 dark:text-zinc-100">{label}</p>
         {payload.map((entry, index) => (
-          <p key={index} className="text-xs" style={{ color: entry.color }}>
-            {entry.name}: {typeof entry.value === 'number' && entry.value > 1000 ? `${(entry.value / 1000).toFixed(1)}rb` : entry.value}
-          </p>
+          <div key={index} className="flex items-center justify-between gap-4 py-0.5 text-xs">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              {entry.name}
+            </span>
+            <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">
+              {typeof entry.value === 'number' && entry.value > 1000 ? `${(entry.value / 1000).toFixed(1)}rb` : entry.value}
+            </span>
+          </div>
         ))}
       </div>
     )
@@ -119,14 +126,14 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   return null
 }
 
-function MiniSparkline({ data, color = "#3b82f6" }: { data: number[]; color?: string }) {
+function MiniSparkline({ data, color = "#2563eb" }: { data: number[]; color?: string }) {
   const chartData = data.map((value, index) => ({ value, index }))
   return (
     <ResponsiveContainer width="100%" height={40}>
       <AreaChart data={chartData}>
         <defs>
           <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+            <stop offset="0%" stopColor={color} stopOpacity={0.2} />
             <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
@@ -143,11 +150,11 @@ function MiniSparkline({ data, color = "#3b82f6" }: { data: number[]; color?: st
 }
 
 const attendanceConfig = {
-  hadir: { label: "Hadir", color: "hsl(var(--chart-1))" },
-  izin: { label: "Izin", color: "hsl(var(--chart-2))" },
-  cuti: { label: "Cuti", color: "hsl(var(--chart-4))" },
-  alpha: { label: "Alpa", color: "hsl(var(--chart-5))" },
-  belumAbsen: { label: "Belum Absen", color: "hsl(var(--chart-3))" },
+  hadir: { label: "Hadir", color: "#2563eb" },
+  izin: { label: "Izin", color: "#38bdf8" },
+  cuti: { label: "Cuti", color: "#fbbf24" },
+  alpha: { label: "Alpa", color: "#ef4444" },
+  belumAbsen: { label: "Belum Absen", color: "#94a3b8" },
 } satisfies ChartConfig
 
 export function AnalyticsCharts({ data }: { data?: any }) {
@@ -169,11 +176,11 @@ export function AnalyticsCharts({ data }: { data?: any }) {
     return (
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <div className="h-[300px] rounded-xl border bg-muted animate-pulse" />
-          <div className="h-[300px] rounded-xl border bg-muted animate-pulse" />
+          <div className="h-[300px] rounded-2xl border border-slate-200/60 dark:border-zinc-800 bg-slate-100/60 dark:bg-zinc-900/60 animate-pulse" />
+          <div className="h-[300px] rounded-2xl border border-slate-200/60 dark:border-zinc-800 bg-slate-100/60 dark:bg-zinc-900/60 animate-pulse" />
         </div>
         <div className="space-y-6">
-          <div className="h-[200px] rounded-xl border bg-muted animate-pulse" />
+          <div className="h-[200px] rounded-2xl border border-slate-200/60 dark:border-zinc-800 bg-slate-100/60 dark:bg-zinc-900/60 animate-pulse" />
         </div>
       </div>
     )
@@ -184,74 +191,85 @@ export function AnalyticsCharts({ data }: { data?: any }) {
       {/* Left Column - 2/3 width */}
       <div className="flex flex-col gap-6 lg:col-span-2">
         {/* Attendance Chart */}
-        <Card className="card-premium">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">
-              Kehadiran 7 Hari Terakhir
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs">
+          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                Statistik Kehadiran 7 Hari Terakhir
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                Fluktuasi kehadiran staf tepat waktu vs izin & alpa
+              </p>
+            </div>
+            <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-full">
+              Live Tracker
+            </span>
+          </div>
+          <div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={displayAttendance} barGap={2}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <BarChart data={displayAttendance} barGap={3}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis 
                     dataKey="day" 
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    axisLine={{ stroke: '#e2e8f0' }}
                   />
                   <YAxis 
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    axisLine={{ stroke: '#e2e8f0' }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend 
-                    wrapperStyle={{ fontSize: '12px', paddingTop: '16px' }}
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '16px' }}
                   />
-                  <Bar dataKey="hadir" name="Hadir" fill="#1e40af" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="izin" name="Izin" fill="#60a5fa" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="hadir" name="Hadir" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="izin" name="Izin" fill="#38bdf8" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="cuti" name="Cuti" fill="#fbbf24" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="alpha" name="Alpha" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="alpha" name="Alpa" fill="#ef4444" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Payroll Trend */}
-        <Card className="card-premium">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">
-                {data?.payrollTrend ? "Tren Payroll 12 Bulan (Juta Rupiah)" : "Tren Payroll 12 Bulan (Mock)"}
-              </CardTitle>
-              <Tabs defaultValue="total" className="w-auto">
-                <TabsList className="h-8">
-                  <TabsTrigger value="total" className="text-xs px-3 py-1">Total</TabsTrigger>
-                  <TabsTrigger value="detail" className="text-xs px-3 py-1">Detail</TabsTrigger>
-                </TabsList>
-              </Tabs>
+        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs">
+          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                {data?.payrollTrend ? "Tren Anggaran Payroll (Juta Rupiah)" : "Tren Anggaran Payroll 12 Bulan"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                Total realisasi gaji pokok dan tunjangan pegawai
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
+            <Tabs defaultValue="total" className="w-auto">
+              <TabsList className="h-7 text-xs bg-slate-100 dark:bg-zinc-800">
+                <TabsTrigger value="total" className="text-xs px-2.5 py-0.5">Total</TabsTrigger>
+                <TabsTrigger value="detail" className="text-xs px-2.5 py-0.5">Detail</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={displayPayroll}>
                   <defs>
                     <linearGradient id="payrollGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#1e40af" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#1e40af" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis 
                     dataKey="month" 
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    axisLine={{ stroke: '#e2e8f0' }}
                   />
                   <YAxis 
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    axisLine={{ stroke: '#e2e8f0' }}
                     tickFormatter={(value) => `${(value / 1000).toFixed(1)}M`}
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -259,45 +277,45 @@ export function AnalyticsCharts({ data }: { data?: any }) {
                     type="monotone"
                     dataKey="total"
                     name="Total Payroll"
-                    stroke="#1e40af"
-                    strokeWidth={2}
+                    stroke="#2563eb"
+                    strokeWidth={2.5}
                     fill="url(#payrollGradient)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Mini Trend Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           {displayTrendMetrics.map((metric: any) => (
-            <Card key={metric.label} className="card-premium">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {metric.label}
-                  </span>
-                  <span
-                    className={`text-xs font-medium ${
-                      metric.isPositive ? "text-emerald-600" : "text-red-600"
-                    }`}
-                  >
-                    {metric.change > 0 ? "+" : ""}
-                    {metric.change}%
-                  </span>
-                </div>
-                <p className="mt-1 text-xl font-bold text-foreground">
-                  {metric.value}
-                </p>
-                <div className="mt-2">
-                  <MiniSparkline
-                    data={metric.data}
-                    color={metric.isPositive ? "#10b981" : "#ef4444"}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div key={metric.label} className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  {metric.label}
+                </span>
+                <span
+                  className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                    metric.isPositive
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                      : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
+                  }`}
+                >
+                  {metric.change > 0 ? "+" : ""}
+                  {metric.change}%
+                </span>
+              </div>
+              <p className="mt-2 text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-50">
+                {metric.value}
+              </p>
+              <div className="mt-2.5">
+                <MiniSparkline
+                  data={metric.data}
+                  color={metric.isPositive ? "#10b981" : "#ef4444"}
+                />
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -305,13 +323,16 @@ export function AnalyticsCharts({ data }: { data?: any }) {
       {/* Right Column - 1/3 width */}
       <div className="flex flex-col gap-6">
         {/* Unit Distribution */}
-        <Card className="card-premium">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">
+        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs">
+          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
               Sebaran Pegawai per Unit
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              Komposisi per bagian kerja aktif
+            </p>
+          </div>
+          <div>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -321,7 +342,7 @@ export function AnalyticsCharts({ data }: { data?: any }) {
                     cy="50%"
                     innerRadius={50}
                     outerRadius={80}
-                    paddingAngle={2}
+                    paddingAngle={3}
                     dataKey="value"
                   >
                     {displayUnitDist.map((entry: any, index: number) => (
@@ -333,9 +354,9 @@ export function AnalyticsCharts({ data }: { data?: any }) {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload
                         return (
-                          <div className="rounded-lg border border-border bg-card p-2 shadow-lg">
-                            <p className="text-xs font-medium">{data.name}</p>
-                            <p className="text-sm font-bold">{data.value} orang</p>
+                          <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2.5 shadow-md">
+                            <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100">{data.name}</p>
+                            <p className="text-xs font-bold font-mono text-blue-600 dark:text-blue-400">{data.value} orang</p>
                           </div>
                         )
                       }
@@ -347,91 +368,94 @@ export function AnalyticsCharts({ data }: { data?: any }) {
             </div>
             <div className="mt-4 space-y-2">
               {displayUnitDist.slice(0, 6).map((unit: any) => (
-                <div key={unit.name} className="flex items-center justify-between text-sm">
+                <div key={unit.name} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <div
-                      className="h-3 w-3 rounded-full"
+                      className="h-2.5 w-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: unit.color }}
                     />
-                    <span className="text-muted-foreground">{unit.name}</span>
+                    <span className="text-slate-600 dark:text-zinc-400">{unit.name}</span>
                   </div>
-                  <span className="font-medium">{unit.value}</span>
+                  <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{unit.value}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Employee Status */}
-        <Card className="card-premium">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">
+        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs">
+          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
               Status Kepegawaian
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {displayEmpStatus.map((status: any) => (
-                <div key={status.status}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{status.status}</span>
-                    <span className="font-medium">{status.count}</span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              Rasio pegawai tetap vs kontrak PKWT
+            </p>
+          </div>
+          <div className="space-y-3.5">
+            {displayEmpStatus.map((status: any) => (
+              <div key={status.status}>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-slate-600 dark:text-zinc-400 font-medium">{status.status}</span>
+                  <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{status.count} Staf</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
+                  <div
+                    className="h-full rounded-full bg-blue-600 transition-all duration-500"
+                    style={{ width: `${status.percentage}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Performing Units */}
+        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs">
+          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+              Kinerja Kedisiplinan Unit
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              Tingkat kehadiran 30 hari terakhir
+            </p>
+          </div>
+          <div className="space-y-3">
+            {displayTopUnits.map((unit: any, index: number) => (
+              <div key={unit.unit} className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold font-mono",
+                    index === 0
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                      : index === 1
+                      ? "bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300"
+                      : index === 2
+                      ? "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300"
+                      : "bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400"
+                  )}
+                >
+                  {index + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{unit.unit}</span>
+                    <span className="font-bold font-mono text-blue-600 dark:text-blue-400">
+                      {unit.score}%
+                    </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
                     <div
-                      className="h-full rounded-full bg-primary transition-all duration-500"
-                      style={{ width: `${status.percentage}%` }}
+                      className="h-full rounded-full bg-blue-600 transition-all duration-500"
+                      style={{ width: `${unit.score}%` }}
                     />
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Performing Units */}
-        <Card className="card-premium">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">
-              Kinerja Unit Tertinggi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {displayTopUnits.map((unit: any, index: number) => (
-                <div key={unit.unit} className="flex items-center gap-3">
-                  <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                      index === 0
-                        ? "bg-amber-100 text-amber-700"
-                        : index === 1
-                        ? "bg-gray-100 text-gray-700"
-                        : index === 2
-                        ? "bg-orange-100 text-orange-700"
-                        : "bg-secondary text-muted-foreground"
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{unit.unit}</span>
-                      <span className="text-sm font-bold text-primary">
-                        {unit.score}%
-                      </span>
-                    </div>
-                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
-                        style={{ width: `${unit.score}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

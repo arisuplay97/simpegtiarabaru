@@ -19,7 +19,8 @@ export async function getDashboardStats() {
       attendanceRaw,
       payrollRaw,
       unitCounts,
-      attendance30Days
+      attendance30Days,
+      recentAbsensiRaw
     ] = await Promise.all([
       prisma.pegawai.count({ where: { status: 'AKTIF' } }),
       prisma.user.count(),
@@ -62,6 +63,22 @@ export async function getDashboardStats() {
       prisma.absensi.findMany({
         where: { tanggal: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
         select: { status: true, pegawai: { select: { bidang: { select: { id: true, nama: true } } } } }
+      }),
+      // Aktivitas Terakhir (Recent Attendance / Activity Logs)
+      prisma.absensi.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          pegawai: {
+            select: {
+              id: true,
+              nama: true,
+              jabatan: true,
+              fotoUrl: true,
+              bidang: { select: { nama: true } }
+            }
+          }
+        }
       })
     ])
     
@@ -256,6 +273,121 @@ export async function getDashboardStats() {
       prisma.pegawai.count({ where: { sp: { not: null }, status: 'AKTIF' } }),
     ])
 
+    // 6. Format Aktivitas Terakhir (Live Recent Activities Feed)
+    const aktivitasTerakhir = recentAbsensiRaw && recentAbsensiRaw.length > 0
+      ? recentAbsensiRaw.map((a: any) => {
+          const isCheckout = Boolean(a.jamKeluar && !a.jamMasuk) || (Boolean(a.jamKeluar) && a.jamKeluar > (a.jamMasuk || 0))
+          const eventTime = isCheckout ? a.jamKeluar : (a.jamMasuk || a.createdAt)
+          const timeFormatted = eventTime
+            ? new Date(eventTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            : 'Baru saja'
+
+          let tipe: 'MASUK' | 'PULANG' | 'IZIN' | 'CUTI' | 'TERLAMBAT' = 'MASUK'
+          let label = 'Presensi Masuk'
+          let statusBadge = 'Tepat Waktu'
+          let variant: 'success' | 'warning' | 'info' | 'neutral' = 'success'
+
+          if (isCheckout) {
+            tipe = 'PULANG'
+            label = 'Presensi Pulang'
+            statusBadge = 'Selesai Tugas'
+            variant = 'info'
+          } else if (a.status === 'TERLAMBAT') {
+            tipe = 'TERLAMBAT'
+            label = 'Presensi Masuk'
+            statusBadge = 'Terlambat'
+            variant = 'warning'
+          } else if (a.status === 'IZIN' || a.status === 'SAKIT') {
+            tipe = 'IZIN'
+            label = `Izin / ${a.status === 'SAKIT' ? 'Sakit' : 'Dispensasi'}`
+            statusBadge = 'Tercatat'
+            variant = 'neutral'
+          } else if (a.status === 'CUTI') {
+            tipe = 'CUTI'
+            label = 'Pengajuan Cuti'
+            statusBadge = 'Cuti Aktif'
+            variant = 'neutral'
+          }
+
+          return {
+            id: a.id,
+            pegawaiId: a.pegawaiId,
+            nama: a.pegawai?.nama || 'Pegawai',
+            jabatan: a.pegawai?.jabatan || 'Staf',
+            bidang: a.pegawai?.bidang?.nama || 'Operasional',
+            fotoUrl: a.pegawai?.fotoUrl || null,
+            tipe,
+            label,
+            statusBadge,
+            variant,
+            metode: a.metode || 'SELFIE',
+            waktu: timeFormatted,
+            timestamp: eventTime ? new Date(eventTime).getTime() : Date.now()
+          }
+        })
+      : [
+          {
+            id: 'mock-1',
+            pegawaiId: '1',
+            nama: 'Budi Santoso',
+            jabatan: 'Operator Transmisi',
+            bidang: 'Distribusi & Transmisi',
+            fotoUrl: null,
+            tipe: 'MASUK',
+            label: 'Presensi Masuk',
+            statusBadge: 'Tepat Waktu',
+            variant: 'success',
+            metode: 'FINGERPRINT',
+            waktu: '07:45',
+            timestamp: Date.now() - 1000 * 60 * 12
+          },
+          {
+            id: 'mock-2',
+            pegawaiId: '2',
+            nama: 'Dewi Anggraini',
+            jabatan: 'Analis Keuangan',
+            bidang: 'Keuangan & Akuntansi',
+            fotoUrl: null,
+            tipe: 'MASUK',
+            label: 'Presensi Masuk',
+            statusBadge: 'Tepat Waktu',
+            variant: 'success',
+            metode: 'SELFIE',
+            waktu: '07:50',
+            timestamp: Date.now() - 1000 * 60 * 25
+          },
+          {
+            id: 'mock-3',
+            pegawaiId: '3',
+            nama: 'Rahmat Hidayat',
+            jabatan: 'Teknisi Jaringan',
+            bidang: 'Pelayanan Teknik',
+            fotoUrl: null,
+            tipe: 'TERLAMBAT',
+            label: 'Presensi Masuk',
+            statusBadge: 'Terlambat 12m',
+            variant: 'warning',
+            metode: 'SELFIE',
+            waktu: '08:12',
+            timestamp: Date.now() - 1000 * 60 * 45
+          },
+          {
+            id: 'mock-4',
+            pegawaiId: '4',
+            nama: 'Siti Aminah',
+            jabatan: 'Staf Administrasi HRD',
+            bidang: 'SDM & Umum',
+            fotoUrl: null,
+            tipe: 'IZIN',
+            label: 'Izin Sakit',
+            statusBadge: 'Surat Terlampir',
+            variant: 'neutral',
+            metode: 'SISTEM',
+            waktu: '08:30',
+            timestamp: Date.now() - 1000 * 60 * 60
+          }
+        ]
+
     return {
       totalPegawai,
       totalUser,
@@ -294,6 +426,7 @@ export async function getDashboardStats() {
       kgbList: autoKgbList.slice(0, 8),
       pangkatList: autoPangkatList.slice(0, 8),
       ulangTahunBulanIni: ulangTahunBulanIni.slice(0, 5),
+      aktivitasTerakhir: aktivitasTerakhir.slice(0, 8),
     }
   } catch (error) {
     console.warn("Database failed, returning mock stats for dashboard", error)

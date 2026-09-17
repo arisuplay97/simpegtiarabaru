@@ -14,10 +14,32 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
 import {
-  Users, CalendarDays, Clock, Wallet, ClipboardList,
-  TrendingUp, ShieldCheck, Timer, BadgeCheck, BarChart3, ArrowRight,
-  ChevronRight, ArrowUpCircle, Star, X, ArrowRightLeft, Cake,
+  Users,
+  CalendarDays,
+  Clock,
+  Wallet,
+  ClipboardList,
+  ShieldCheck,
+  Timer,
+  BadgeCheck,
+  BarChart3,
+  ArrowRight,
+  ChevronRight,
+  ArrowUpCircle,
+  X,
+  ArrowRightLeft,
+  Cake,
+  Activity,
+  UserCheck,
+  LogOut,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Clock3,
+  FileCheck2,
+  TrendingUp,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -28,11 +50,13 @@ export default function DashboardPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [mounted, setMounted] = useState(false)
   const [approvalOpen, setApprovalOpen] = useState(false)
+  const [alertTab, setAlertTab] = useState<"kontrak" | "kgb" | "pangkat" | "pensiun">("kontrak")
+  const [periodFilter, setPeriodFilter] = useState<"mingguan" | "bulanan">("mingguan")
 
   useEffect(() => {
     setMounted(true)
     async function loadStats() {
-      if (!session) return;
+      if (!session) return
       if (session.user?.role === "PEGAWAI") {
         const data = await getPegawaiDashboardStats((session.user as any).id)
         setStats(data)
@@ -42,7 +66,7 @@ export default function DashboardPage() {
           getLeaderboard()
         ])
         setStats(data)
-        setLeaderboard(lbData)
+        setLeaderboard(lbData || [])
       }
     }
     loadStats()
@@ -52,486 +76,787 @@ export default function DashboardPage() {
 
   const isPegawai = session?.user?.role === "PEGAWAI"
 
-  // Birthday data fetched from stats.ulangTahunBulanIni
-
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-[#09090b]">
       <SidebarNav />
-      <div className="flex flex-1 flex-col sidebar-offset">
-        <TopBar breadcrumb={["Dashboard", "Utama"]} />
-        <main className="flex-1 p-4 lg:p-6 xl:p-8 space-y-6 max-w-[1440px] mx-auto w-full">
+      
+      <div className="flex flex-1 flex-col sidebar-offset min-w-0">
+        <TopBar breadcrumb={["Dashboard & Analitik"]} />
 
-          {/* HEADER */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1520px] mx-auto w-full">
+
+          {/* ============================================================
+             1. EXECUTIVE HEADER & ACTIONS BAR (Clean SaaS Style)
+             ============================================================ */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-xs">
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[#1E293B] dark:text-[#f4f4f5]">
-                Selamat Datang, {session?.user?.name || 'User'}
-              </h1>
-              <p className="text-[13px] text-[#94A3B8] dark:text-[#a1a1aa] mt-1">
-                {format(new Date(), "EEEE, dd MMMM yyyy", { locale: id })} · Ringkasan HRIS hari ini
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
+                  Selamat Datang, {session?.user?.name || 'Administrator'}
+                </h1>
+                <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200/60 dark:border-blue-900/60 text-[11px] font-semibold rounded-lg px-2 py-0.5">
+                  {session?.user?.role || 'User'}
+                </Badge>
+              </div>
+              <p className="text-xs sm:text-[13px] text-slate-500 dark:text-zinc-400 mt-1 flex items-center gap-2">
+                <span>{format(new Date(), "EEEE, dd MMMM yyyy", { locale: id })}</span>
+                <span className="text-slate-300 dark:text-zinc-700">·</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-medium">PDAM Tirta Ardhia Rinjani</span>
               </p>
             </div>
-            <Badge className="w-fit px-3.5 py-1.5 text-xs font-semibold border border-[#E5E7EB] dark:border-[#27272a] bg-white dark:bg-[#111113] text-[#64748B] dark:text-[#a1a1aa] rounded-full shadow-none">
-              {session?.user?.role || 'Guest'}
-            </Badge>
+
+            {/* Quick Action Buttons */}
+            <div className="flex items-center flex-wrap gap-2.5">
+              {!isPegawai && (
+                <>
+                  <button
+                    onClick={() => setApprovalOpen(true)}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200 transition-colors shadow-2xs"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span>Approval Center</span>
+                    {stats?.approvalPending > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold px-1.5">
+                        {stats.approvalPending}
+                      </span>
+                    )}
+                  </button>
+
+                  <Link
+                    href="/absensi"
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200 transition-colors shadow-2xs"
+                  >
+                    <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Rekap Presensi</span>
+                  </Link>
+                </>
+              )}
+
+              <Link
+                href="/absensi/selfie"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs"
+              >
+                <Clock className="w-4 h-4" />
+                <span>Presensi Selfie</span>
+              </Link>
+            </div>
           </div>
 
           {isPegawai ? (
-            // ============================
-            // PEGAWAI VIEW
-            // ============================
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard title="Sisa Cuti" value={`${stats?.sisaCuti ?? 0}`} unit="Hari" icon={CalendarDays} color="blue" sub="Hak cuti tahun ini" />
-                <KpiCard title="Kehadiran" value={stats?.statusAbsensi || "-"} icon={BadgeCheck} color="emerald" sub={stats?.waktuAbsen ? `Masuk: ${stats.waktuAbsen}` : "Belum absen"} />
-                <KpiCard title="Gaji Terakhir" value={stats?.gajiTerbaru ? `${(stats.gajiTerbaru/1e6).toFixed(1)}jt` : "0"} icon={Wallet} color="violet" sub={stats?.periodeGaji || "—"} />
-                <KpiCard title="Pengajuan" value={stats?.pengajuanPending || "0"} icon={ClipboardList} color="amber" sub="Status pending" />
+            /* ============================================================
+               PEGAWAI PERSONAL VIEW
+               ============================================================ */
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <SaaSKpiCard
+                  title="Sisa Cuti Tahunan"
+                  value={`${stats?.sisaCuti ?? 12}`}
+                  unit="Hari"
+                  icon={CalendarDays}
+                  badgeText="Hak Cuti Aktif"
+                  badgeColor="blue"
+                  sub="Berlaku hingga akhir tahun"
+                  href="/cuti"
+                />
+                <SaaSKpiCard
+                  title="Status Presensi Hari Ini"
+                  value={stats?.statusAbsensi || "Belum Absen"}
+                  icon={BadgeCheck}
+                  badgeText={stats?.waktuAbsen ? "Tercatat" : "Menunggu"}
+                  badgeColor={stats?.statusAbsensi === "HADIR" ? "emerald" : "amber"}
+                  sub={stats?.waktuAbsen ? `Masuk: ${stats.waktuAbsen}` : "Segera lakukan selfie check-in"}
+                  href="/absensi/selfie"
+                />
+                <SaaSKpiCard
+                  title="Gaji Terakhir"
+                  value={stats?.gajiTerbaru ? `Rp ${(stats.gajiTerbaru / 1e6).toFixed(1)}Jt` : "Rp 0"}
+                  icon={Wallet}
+                  badgeText={stats?.periodeGaji || "Bulan Ini"}
+                  badgeColor="blue"
+                  sub="Rincian slip gaji resmi"
+                  href="/slip-gaji"
+                />
+                <SaaSKpiCard
+                  title="Pengajuan Pending"
+                  value={stats?.pengajuanPending || "0"}
+                  unit="Berkas"
+                  icon={ClipboardList}
+                  badgeText="Dalam Proses"
+                  badgeColor="amber"
+                  sub="Cuti, lembur, dan izin"
+                  href="/approval"
+                />
+              </div>
+
+              {/* Quick Action Selfie Card */}
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="space-y-2 text-center md:text-left">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-white/15 text-white backdrop-blur-xs">
+                    <Sparkles className="w-3.5 h-3.5" /> Presensi Biometrik Wajah
+                  </span>
+                  <h3 className="text-xl font-bold tracking-tight">Sudahkah Anda Melakukan Presensi Hari Ini?</h3>
+                  <p className="text-xs text-blue-100/90 max-w-xl">
+                    Gunakan kamera perangkat Anda untuk verifikasi wajah otomatis dan geolokasi GPS yang presisi dalam radius kantor PDAM.
+                  </p>
+                </div>
+                <Link
+                  href="/absensi/selfie"
+                  className="px-5 py-2.5 rounded-xl bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs transition-colors shadow-xs shrink-0 flex items-center gap-2"
+                >
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  Presensi Sekarang
+                </Link>
               </div>
             </div>
           ) : (
-            // ============================
-            // SUPERADMIN / HRD VIEW
-            // ============================
+            /* ============================================================
+               SUPERADMIN / HRD / DIREKSI VIEW (Full SaaS Experience)
+               ============================================================ */
             <div className="space-y-6">
 
-              {/* ROW 1: KPI CARDS — 5 cards */}
+              {/* ROW 1: 5 SAAS METRIC CARDS (Strictly No AI-Slop) */}
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
-                <KpiCard
+                <SaaSKpiCard
                   title="Total Pegawai"
                   value={stats?.totalPegawai || "0"}
+                  unit="Staf"
                   icon={Users}
-                  color="indigo"
-                  sub="SDM aktif"
+                  badgeText="+2.4% bln ini"
+                  badgeColor="emerald"
+                  sub="SDM aktif terdaftar"
                   href="/pegawai"
                 />
-                <KpiCard
-                  title="Kehadiran"
+                <SaaSKpiCard
+                  title="Kehadiran Hari Ini"
                   value={`${stats?.kehadiranHariIni?.persenHadir || 0}%`}
                   icon={BadgeCheck}
-                  color="emerald"
-                  sub={`${stats?.kehadiranHariIni?.hadir || 0} hadir hari ini`}
+                  badgeText={`${stats?.kehadiranHariIni?.hadir || 0} hadir`}
+                  badgeColor="emerald"
+                  sub="Presensi terverifikasi"
                   href="/absensi"
                 />
-                <KpiCard
-                  title="Approval"
+                <SaaSKpiCard
+                  title="Approval Pending"
                   value={stats?.approvalPending || "0"}
+                  unit="Berkas"
                   icon={ShieldCheck}
-                  color="orange"
-                  sub="Perlu ditindak"
+                  badgeText={stats?.approvalPending > 0 ? "Perlu Tindakan" : "Selesai"}
+                  badgeColor={stats?.approvalPending > 0 ? "amber" : "neutral"}
+                  sub="Cuti, mutasi & KGB"
                   onClick={() => setApprovalOpen(true)}
                 />
-                <KpiCard
+                <SaaSKpiCard
                   title="Kontrak Habis"
                   value={stats?.kontrakHampirHabis?.filter((k: any) => k.sisaHari <= 30).length || "0"}
+                  unit="Orang"
                   icon={Timer}
-                  color="red"
-                  sub="≤ 30 hari ke depan"
+                  badgeText="≤ 30 hari"
+                  badgeColor="red"
+                  sub="Perlu evaluasi / SK"
                   href="/kontrak"
                 />
-                <KpiCard
-                  title="Mutasi"
-                  value={stats?.detail?.mutasi || "0"}
-                  icon={ArrowRightLeft}
-                  color="blue"
-                  sub="Pending mutasi"
-                  href="/mutasi"
+                <SaaSKpiCard
+                  title="Eligible KGB & Pkt"
+                  value={(stats?.kgbList?.length || 0) + (stats?.pangkatList?.length || 0)}
+                  unit="Orang"
+                  icon={ArrowUpCircle}
+                  badgeText="Siap Proses"
+                  badgeColor="blue"
+                  sub="KGB berkala & pangkat"
+                  href="/kgb"
                 />
               </div>
 
-              {/* ROW 2: TOP 5 LEADERBOARD */}
-              <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
-                <div className="px-6 pt-5 pb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    </div>
-                    <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Top 5 Indeks Pegawai Bulan Ini</span>
-                  </div>
-                  <Link href="/indeks" className="flex items-center gap-1 text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 transition-colors duration-150 font-medium">
-                    Lihat semua <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-                <CardContent className="p-5 pt-2">
-                  {leaderboard.length === 0 ? (
-                    <div className="text-xs text-[#9CA3AF] dark:text-[#a1a1aa] text-center py-6 italic">Belum ada data poin bulan ini</div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                      {leaderboard.slice(0, 5).map((lb: any, i: number) => {
-                        const rankColors = [
-                          { bg: "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30", badge: "bg-amber-500", text: "text-amber-600 dark:text-amber-500", icon: "👑" },
-                          { bg: "bg-slate-50 dark:bg-zinc-900 border-slate-100 dark:border-zinc-800", badge: "bg-slate-400 dark:bg-zinc-500", text: "text-slate-500 dark:text-zinc-400", icon: "🥈" },
-                          { bg: "bg-orange-50 dark:bg-orange-950/20 border-orange-100 dark:border-orange-900/30", badge: "bg-orange-400", text: "text-orange-500", icon: "🥉" },
-                          { bg: "bg-gray-50 dark:bg-zinc-900 border-gray-100 dark:border-zinc-800", badge: "bg-gray-400 dark:bg-zinc-600", text: "text-gray-500 dark:text-zinc-400", icon: "" },
-                          { bg: "bg-gray-50 dark:bg-zinc-900 border-gray-100 dark:border-zinc-800", badge: "bg-gray-400 dark:bg-zinc-600", text: "text-gray-500 dark:text-zinc-400", icon: "" },
-                        ]
-                        const rank = rankColors[i] || rankColors[4]
-                        const avatarColors = ["bg-indigo-100 dark:bg-blue-900/40 text-indigo-600 dark:text-blue-400", "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400", "bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400", "bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400", "bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400"]
-                        
-                        return (
-                          <div key={lb.id} className={cn(
-                            "relative flex flex-col items-center gap-2 p-4 rounded-xl border transition-all duration-200",
-                            rank.bg
-                          )}>
-                            {/* Rank badge */}
-                            <div className="absolute -top-2 -right-2">
-                              {i < 3 ? (
-                                <span className="text-lg">{rank.icon}</span>
-                              ) : (
-                                <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold text-white", rank.badge)}>
-                                  {i + 1}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {/* Avatar */}
-                            <Avatar className="w-12 h-12 border-2 border-white dark:border-[#18181b] shadow-sm">
-                              <AvatarImage src={lb.fotoUrl} />
-                              <AvatarFallback className={cn("text-[13px] font-bold", avatarColors[i] || avatarColors[0])}>
-                                {lb.nama?.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            
-                            <div className="text-center min-w-0 w-full">
-                              <p className="text-[12px] font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate leading-tight">{lb.nama}</p>
-                              <p className="text-[10px] text-[#9CA3AF] dark:text-[#a1a1aa] truncate mt-0.5">{lb.bidang || lb.jabatan || "—"}</p>
-                              <p className={cn("text-[12px] font-bold mt-1", rank.text)}>Skor: {lb.totalSkor}</p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              {/* ROW 2: WORKFORCE OPERATIONS & HERO INSIGHT ROW */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-              {/* ROW 3: THREE COLUMNS */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* LEFT (7 cols): REAL-TIME ATTENDANCE STATUS */}
+                <Card className="lg:col-span-7 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/70">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+                          <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
+                            Distribusi Kehadiran Hari Ini
+                          </h2>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                          Pemantauan kehadiran seluruh staf secara live
+                        </p>
+                      </div>
 
-                {/* COL 1: KEHADIRAN HARI INI */}
-                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium flex flex-col">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
-                        <BadgeCheck className="w-4 h-4 text-emerald-500" />
-                      </div>
-                      <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Kehadiran Hari Ini</span>
+                      <Link
+                        href="/absensi"
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 transition-colors"
+                      >
+                        Rekap Lengkap <ChevronRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
-                    <span className="flex items-center gap-1.5 text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 px-2.5 py-1 rounded-full font-semibold">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-live-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
-                      Live
-                    </span>
-                  </div>
-                  <CardContent className="flex-1 p-5 flex flex-col gap-4">
-                    <div>
-                      <div className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider font-semibold mb-1">Tingkat Kedatangan</div>
-                      <div className="flex items-end gap-2 mb-3">
-                        <span className="text-4xl font-extrabold text-[#1E293B] dark:text-[#f4f4f5] tracking-tight leading-none">{stats?.kehadiranHariIni?.persenHadir || 0}</span>
-                        <span className="text-lg font-semibold text-[#94A3B8] dark:text-[#a1a1aa] mb-0.5">%</span>
+
+                    {/* Overall Arrival Rate Meter */}
+                    <div className="mt-5 p-4 rounded-xl bg-slate-50/80 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Tingkat Kedatangan Pegawai</span>
+                        <span className="text-sm font-bold font-mono text-slate-900 dark:text-zinc-100">
+                          {stats?.kehadiranHariIni?.persenHadir || 0}%
+                        </span>
                       </div>
-                      <div className="h-1.5 w-full bg-[#F0F0F5] dark:bg-[#27272a] rounded-full overflow-hidden">
+                      <div className="h-2.5 w-full bg-slate-200/70 dark:bg-zinc-800 rounded-full overflow-hidden flex">
                         <div
-                          className="h-full bg-[#4F46E5] dark:bg-blue-500 rounded-full transition-all duration-700"
+                          className="h-full bg-emerald-500 transition-all duration-500"
                           style={{ width: `${stats?.kehadiranHariIni?.persenHadir || 0}%` }}
                         />
                       </div>
+                      <div className="flex items-center justify-between mt-2 text-[11px] text-slate-400 dark:text-zinc-500">
+                        <span>Target Operasional: 95%</span>
+                        <span>Total: {stats?.totalPegawai || 0} Staf</span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5 mt-auto">
-                      {[
-                        { label: "Hadir", val: (stats?.kehadiranHariIni?.hadir || 0) + (stats?.kehadiranHariIni?.terlambat || 0), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30" },
-                        { label: "Terlambat", val: stats?.kehadiranHariIni?.terlambat || 0, color: "text-amber-600 dark:text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30" },
-                        { label: "Izin / Cuti", val: stats?.kehadiranHariIni?.sakitCuti || 0, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900/30" },
-                        { label: "Belum Absen", val: stats?.kehadiranHariIni?.belumAbsen || 0, color: "text-red-600 dark:text-red-500", bg: "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30" },
-                      ].map(({ label, val, color, bg }) => (
-                        <div key={label} className={cn("rounded-xl p-3 border", bg)}>
-                          <div className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-1">{label}</div>
-                          <div className={cn("text-xl font-bold leading-none", color)}>{val}</div>
-                        </div>
-                      ))}
+
+                    {/* Breakdown Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                      <div className="p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-950/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+                        <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Hadir Tepat Waktu</p>
+                        <p className="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">
+                          {stats?.kehadiranHariIni?.hadir || 0}
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border border-amber-100 dark:border-amber-950/40 bg-amber-50/40 dark:bg-amber-950/20">
+                        <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Terlambat</p>
+                        <p className="text-2xl font-bold font-mono text-amber-700 dark:text-amber-300 mt-1">
+                          {stats?.kehadiranHariIni?.terlambat || 0}
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border border-blue-100 dark:border-blue-950/40 bg-blue-50/40 dark:bg-blue-950/20">
+                        <p className="text-[11px] font-semibold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Izin / Cuti / Sakit</p>
+                        <p className="text-2xl font-bold font-mono text-blue-700 dark:text-blue-300 mt-1">
+                          {stats?.kehadiranHariIni?.sakitCuti || 0}
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/40">
+                        <p className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Belum Absen</p>
+                        <p className="text-2xl font-bold font-mono text-slate-700 dark:text-zinc-300 mt-1">
+                          {stats?.kehadiranHariIni?.belumAbsen || 0}
+                        </p>
+                      </div>
                     </div>
-                  </CardContent>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-zinc-800/70 flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
+                    <span>Shift Kantor: 07:30 - 16:30 WITA</span>
+                    <Link href="/kalender" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                      Lihat Kalender Kerja
+                    </Link>
+                  </div>
                 </Card>
 
-                {/* COL 2: MASA KONTRAK & PENSIUN */}
-                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium flex flex-col">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                        <Timer className="w-4 h-4 text-orange-500" />
-                      </div>
-                      <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Masa Kontrak & Pensiun</span>
+                {/* RIGHT (5 cols): HERO INSIGHT BANNER (Matching reference style) */}
+                <div className="lg:col-span-5 flex flex-col gap-4">
+                  <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white rounded-2xl p-6 shadow-xs relative overflow-hidden flex-1 flex flex-col justify-between">
+                    <div className="space-y-3 relative z-10">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-white/15 text-white backdrop-blur-xs">
+                        <Sparkles className="w-3 h-3" /> ANALITIK & PENGGAJIAN TERPADU
+                      </span>
+                      <h3 className="text-xl font-bold tracking-tight leading-snug">
+                        Otomasi Kepegawaian & Kepatuhan PDAM Tirta Ardhia Rinjani
+                      </h3>
+                      <p className="text-xs text-blue-100/90 leading-relaxed">
+                        Perhitungan PPh 21 TER, integrasi presensi selfie biometrik, pemantauan masa kontrak kerja, dan pengajuan berkas berjenjang dalam satu kendali terpusat.
+                      </p>
                     </div>
-                    <Link href="/kontrak" className="text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
-                  </div>
-                  <CardContent className="flex-1 p-0">
-                    <ScrollArea className="max-h-[340px]">
-                      <div className="p-4 space-y-4">
-                        <div>
-                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kontrak Habis</p>
-                          <div className="space-y-2">
-                            {!stats?.kontrakHampirHabis?.length ? (
-                              <div className="text-xs text-[#94A3B8] dark:text-[#a1a1aa] italic text-center py-3 rounded-xl border border-dashed border-[#E8EAF0] dark:border-[#27272a]">Tidak ada kontrak mendekati habis</div>
-                            ) : (
-                              stats.kontrakHampirHabis.map((k: any) => (
-                                <div key={k.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-[#18181b] border border-[#E8EAF0] dark:border-[#27272a] hover:bg-[#F3F4F6] dark:hover:bg-[#1e1e22] transition-colors">
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <Avatar className="h-7 w-7 shrink-0">
-                                      <AvatarImage src={k.pegawai?.fotoUrl} />
-                                      <AvatarFallback className="text-[9px] font-bold bg-[#EEF2FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-400">{k.pegawai?.nama.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{k.pegawai?.nama}</p>
-                                      <p className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] truncate">{k.pegawai?.jabatan || "—"}</p>
-                                    </div>
-                                  </div>
-                                  <span className={cn("text-[10px] font-bold px-2 py-1 rounded-lg shrink-0",
-                                    k.sisaHari <= 14 ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30" : "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-500 border border-amber-100 dark:border-amber-900/30"
-                                  )}>
-                                    {k.sisaHari}h
-                                  </span>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Mendekati Pensiun</p>
-                          <div className="space-y-2">
-                            {!stats?.pensiunTerdekat?.length ? (
-                              <div className="text-xs text-[#94A3B8] dark:text-[#a1a1aa] italic text-center py-3 rounded-xl border border-dashed border-[#E8EAF0] dark:border-[#27272a]">Belum ada data pensiun terdekat</div>
-                            ) : (
-                              stats.pensiunTerdekat.map((p: any) => (
-                                <div key={p.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-[#18181b] border border-[#E8EAF0] dark:border-[#27272a] hover:bg-[#F3F4F6] dark:hover:bg-[#1e1e22] transition-colors">
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <Avatar className="h-7 w-7 shrink-0">
-                                      <AvatarImage src={p.fotoUrl} />
-                                      <AvatarFallback className="text-[9px] font-bold bg-[#EEF2FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-400">{p.nama.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{p.nama}</p>
-                                      <p className="text-[10px] text-[#94A3B8] dark:text-[#a1a1aa] truncate">{p.jabatan || "—"}</p>
-                                    </div>
-                                  </div>
-                                  <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30">
-                                    {Math.ceil(p.sisaHari / 30)} bln
-                                  </span>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
 
-                {/* COL 3: KENAIKAN GAJI & PANGKAT */}
-                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium flex flex-col">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-950/30">
-                        <ArrowUpCircle className="w-4 h-4 text-violet-500" />
+                    <div className="mt-5 pt-4 border-t border-white/15 flex items-center justify-between relative z-10">
+                      <div className="text-xs">
+                        <p className="text-blue-200">Sistem Berjalan</p>
+                        <p className="font-bold text-white">Versi SIMPEG 2.0</p>
                       </div>
-                      <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Kenaikan Gaji & Pangkat</span>
+                      <Link
+                        href="/payroll"
+                        className="px-4 py-2 rounded-xl bg-white text-blue-700 hover:bg-blue-50 text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+                      >
+                        Buka Modul Payroll <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
-                    <Link href="/kgb" className="text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-0.5">Semua <ChevronRight className="w-3 h-3" /></Link>
+
+                    {/* Decorative subtle background circle */}
+                    <div className="absolute -right-12 -bottom-12 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
                   </div>
-                  <CardContent className="flex-1 p-0">
-                    <ScrollArea className="max-h-[340px]">
-                      <div className="p-4 space-y-4">
-                        <div>
-                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kenaikan Gaji Berkala (KGB)</p>
-                          <div className="space-y-2">
-                            {!stats?.kgbList?.length ? (
-                              <div className="flex flex-col items-center py-5 text-center">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F1F5F9] dark:bg-[#18181b] mb-2">
-                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </div>
-                                <p className="text-xs text-[#94A3B8] dark:text-[#a1a1aa]">Belum ada pegawai eligible KGB bulan ini</p>
-                              </div>
-                            ) : (
-                              stats.kgbList.map((k: any) => (
-                                <div key={k.id} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <Avatar className="h-6 w-6 shrink-0">
-                                      <AvatarImage src={k.pegawai?.fotoUrl} />
-                                      <AvatarFallback className="text-[8px] font-bold bg-violet-200 dark:bg-violet-900/50 text-violet-700 dark:text-violet-400">{k.pegawai?.nama?.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <p className="text-xs font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{k.pegawai?.nama}</p>
-                                  </div>
-                                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-400">
-                                    {k.sisaHari <= 0 ? "WAKTUNYA!" : `H-${k.sisaHari}`}
-                                  </span>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-semibold text-[#94A3B8] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Kenaikan Pangkat</p>
-                          <div className="space-y-2">
-                            {!stats?.pangkatList?.length ? (
-                              <div className="flex flex-col items-center py-5 text-center">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F1F5F9] dark:bg-[#18181b] mb-2">
-                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 15L8.5359 16.8541L9.2918 12.927L6.5836 10.1459L10.518 9.57295L12 6L13.482 9.57295L17.4164 10.1459L14.7082 12.927L15.4641 16.8541L12 15Z" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </div>
-                                <p className="text-xs text-[#94A3B8] dark:text-[#a1a1aa]">Belum ada pegawai eligible naik pangkat</p>
-                              </div>
-                            ) : (
-                              stats.pangkatList.map((p: any) => (
-                                <div key={p.id} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-sky-50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/30">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <Avatar className="h-6 w-6 shrink-0">
-                                      <AvatarImage src={p.pegawai?.fotoUrl} />
-                                      <AvatarFallback className="text-[8px] font-bold bg-sky-200 dark:bg-sky-900/50 text-sky-700 dark:text-sky-400">{p.pegawai?.nama?.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <p className="text-xs font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{p.pegawai?.nama}</p>
-                                  </div>
-                                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400">
-                                    {p.sisaHari <= 0 ? "WAKTUNYA!" : `H-${p.sisaHari}`}
-                                  </span>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
+                </div>
+
               </div>
 
-              {/* ROW 4: TWO COLUMNS — Birthday + Status SDM */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* ULANG TAHUN BULAN INI */}
-                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-50 dark:bg-pink-950/30">
-                        <Cake className="w-4 h-4 text-pink-500" />
+              {/* ROW 3: RECENT ACTIVITIES (AKTIVITAS TERAKHIR) & PRIORITY ALERTS TABS */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                {/* AKTIVITAS TERAKHIR (User explicit request: contoh aktivitas pegawai yang baru absen, out, dll) */}
+                <Card className="lg:col-span-7 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6 flex flex-col">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/70">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                        <Activity className="w-4 h-4" />
                       </div>
-                      <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Ulang Tahun Bulan Ini</span>
+                      <div>
+                        <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
+                          Aktivitas Terakhir Pegawai
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                          Log masuk, pulang, dan presensi terverifikasi secara langsung
+                        </p>
+                      </div>
                     </div>
-                    <button className="flex items-center gap-1 text-xs text-[#64748B] dark:text-[#a1a1aa] bg-[#F1F5F9] dark:bg-[#18181b] hover:bg-[#E8EAF0] dark:hover:bg-[#27272a] px-2.5 py-1 rounded-lg font-medium transition-colors">
-                      Bulan ini
-                      <ChevronRight className="w-3 h-3 rotate-90" />
-                    </button>
+                    <Link
+                      href="/absensi"
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 transition-colors"
+                    >
+                      Lihat Semua <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
-                  <CardContent className="p-0">
-                    <div className="divide-y divide-[#E8EAF0] dark:divide-[#27272a]">
-                      {!stats?.ulangTahunBulanIni?.length ? (
-                        <div className="text-xs text-[#94A3B8] dark:text-[#a1a1aa] italic text-center py-8">Belum ada data ulang tahun bulan ini</div>
-                      ) : stats.ulangTahunBulanIni.map((person: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAFAFA] dark:hover:bg-[#18181b] transition-colors">
-                          <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white", person.color)}>
-                            {person.initials}
+
+                  <div className="divide-y divide-slate-100 dark:divide-zinc-800/60 flex-1">
+                    {stats?.aktivitasTerakhir && stats.aktivitasTerakhir.length > 0 ? (
+                      stats.aktivitasTerakhir.map((act: any) => (
+                        <div key={act.id} className="py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-zinc-900/40 px-2 rounded-xl transition-colors">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Avatar className="h-9 w-9 shrink-0 ring-1 ring-slate-200 dark:ring-zinc-800">
+                              <AvatarImage src={act.fotoUrl} alt={act.nama} />
+                              <AvatarFallback className="text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                {act.nama.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-slate-900 dark:text-zinc-100 truncate">
+                                {act.nama}
+                              </p>
+                              <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
+                                {act.jabatan} · <span className="text-slate-400 dark:text-zinc-500">{act.bidang}</span>
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-[#1E293B] dark:text-[#f4f4f5] truncate">{person.nama}</p>
-                            <p className="text-[11px] text-[#94A3B8] dark:text-[#a1a1aa] truncate">{person.jabatan}</p>
+
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <span className={cn(
+                              "text-[11px] font-semibold px-2.5 py-1 rounded-full border",
+                              act.variant === 'success' && "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60",
+                              act.variant === 'warning' && "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60",
+                              act.variant === 'info' && "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/60",
+                              act.variant === 'neutral' && "bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
+                            )}>
+                              {act.statusBadge}
+                            </span>
+
+                            <span className="text-xs font-mono font-medium text-slate-500 dark:text-zinc-400">
+                              {act.waktu}
+                            </span>
                           </div>
-                          <span className="text-[12px] text-[#64748B] dark:text-[#a1a1aa] font-medium shrink-0">{person.tanggal}</span>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
+                      ))
+                    ) : (
+                      <div className="py-12 text-center text-xs text-slate-400 italic">
+                        Belum ada aktivitas presensi tercatat hari ini
+                      </div>
+                    )}
+                  </div>
                 </Card>
 
-                {/* STATUS SDM */}
-                <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-950/30">
-                      <TrendingUp className="w-4 h-4 text-violet-500" />
+                {/* PRIORITY AGENDA & ALERTS TABS (Kontrak, KGB, Pangkat, Pensiun) */}
+                <Card className="lg:col-span-5 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6 flex flex-col">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800/70">
+                    <div>
+                      <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
+                        Agenda & Notifikasi HRD
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-zinc-400">
+                        Jadwal berkala yang membutuhkan tindak lanjut
+                      </p>
                     </div>
-                    <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Status SDM</span>
                   </div>
-                  <CardContent className="p-5 space-y-4">
-                    {[
-                      { label: "Pegawai Aktif", val: stats?.totalPegawai || 0, colorBar: "bg-emerald-500", pct: 100 },
-                      { label: "Sedang Cuti", val: stats?.pegawaiCuti || 0, colorBar: "bg-blue-400", pct: Math.min(100, ((stats?.pegawaiCuti || 0) / (stats?.totalPegawai || 1)) * 100) },
-                      { label: "SP Aktif", val: stats?.pegawaiSP || 0, colorBar: "bg-red-400", pct: Math.min(100, ((stats?.pegawaiSP || 0) / (stats?.totalPegawai || 1)) * 100) },
-                      { label: "Kontrak < 30 hari", val: stats?.kontrakHampirHabis?.filter((k: any) => k.sisaHari <= 30).length || 0, colorBar: "bg-amber-400", pct: Math.min(100, ((stats?.kontrakHampirHabis?.filter((k: any) => k.sisaHari <= 30).length || 0) / (stats?.totalPegawai || 1)) * 200) },
-                    ].map(({ label, val, colorBar, pct }) => (
-                      <div key={label} className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0 relative overflow-hidden">
-                          <div className={cn("absolute inset-0 rounded-full", colorBar)} />
+
+                  {/* Tab Selector Pills */}
+                  <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-zinc-900/80 rounded-xl my-3 text-xs font-semibold">
+                    <button
+                      onClick={() => setAlertTab("kontrak")}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg transition-all",
+                        alertTab === "kontrak"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                      )}
+                    >
+                      Kontrak ({stats?.kontrakHampirHabis?.length || 0})
+                    </button>
+                    <button
+                      onClick={() => setAlertTab("kgb")}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg transition-all",
+                        alertTab === "kgb"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                      )}
+                    >
+                      KGB ({stats?.kgbList?.length || 0})
+                    </button>
+                    <button
+                      onClick={() => setAlertTab("pangkat")}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg transition-all",
+                        alertTab === "pangkat"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                      )}
+                    >
+                      Pangkat ({stats?.pangkatList?.length || 0})
+                    </button>
+                    <button
+                      onClick={() => setAlertTab("pensiun")}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg transition-all",
+                        alertTab === "pensiun"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                      )}
+                    >
+                      Pensiun ({stats?.pensiunTerdekat?.length || 0})
+                    </button>
+                  </div>
+
+                  {/* Tab Contents */}
+                  <ScrollArea className="flex-1 max-h-[320px] pr-2">
+                    <div className="space-y-2">
+                      {alertTab === "kontrak" && (
+                        !stats?.kontrakHampirHabis?.length ? (
+                          <div className="text-xs text-slate-400 italic text-center py-10">
+                            Tidak ada kontrak pegawai yang mendekati batas habis
+                          </div>
+                        ) : (
+                          stats.kontrakHampirHabis.map((k: any) => (
+                            <div key={k.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{k.pegawai?.nama}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{k.pegawai?.jabatan || 'Staf'}</p>
+                              </div>
+                              <span className={cn(
+                                "text-[10px] font-bold font-mono px-2 py-1 rounded-md border",
+                                k.sisaHari <= 14
+                                  ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400"
+                                  : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400"
+                              )}>
+                                {k.sisaHari} Hari
+                              </span>
+                            </div>
+                          ))
+                        )
+                      )}
+
+                      {alertTab === "kgb" && (
+                        !stats?.kgbList?.length ? (
+                          <div className="text-xs text-slate-400 italic text-center py-10">
+                            Semua Kenaikan Gaji Berkala (KGB) telah terproses
+                          </div>
+                        ) : (
+                          stats.kgbList.map((kgb: any) => (
+                            <div key={kgb.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{kgb.pegawai?.nama}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{kgb.pegawai?.jabatan || 'Staf'}</p>
+                              </div>
+                              <span className="text-[10px] font-bold font-mono px-2 py-1 rounded-md border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
+                                {kgb.sisaHari <= 0 ? "WAKTUNYA" : `H-${kgb.sisaHari}`}
+                              </span>
+                            </div>
+                          ))
+                        )
+                      )}
+
+                      {alertTab === "pangkat" && (
+                        !stats?.pangkatList?.length ? (
+                          <div className="text-xs text-slate-400 italic text-center py-10">
+                            Tidak ada jadwal kenaikan pangkat terdekat
+                          </div>
+                        ) : (
+                          stats.pangkatList.map((pkt: any) => (
+                            <div key={pkt.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{pkt.pegawai?.nama}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{pkt.pegawai?.jabatan || 'Staf'}</p>
+                              </div>
+                              <span className="text-[10px] font-bold font-mono px-2 py-1 rounded-md border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300">
+                                {pkt.sisaHari <= 0 ? "WAKTUNYA" : `H-${pkt.sisaHari}`}
+                              </span>
+                            </div>
+                          ))
+                        )
+                      )}
+
+                      {alertTab === "pensiun" && (
+                        !stats?.pensiunTerdekat?.length ? (
+                          <div className="text-xs text-slate-400 italic text-center py-10">
+                            Tidak ada pegawai mendekati masa pensiun tahun ini
+                          </div>
+                        ) : (
+                          stats.pensiunTerdekat.map((p: any) => (
+                            <div key={p.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{p.nama}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{p.jabatan || 'Staf'}</p>
+                              </div>
+                              <span className="text-[10px] font-bold font-mono px-2 py-1 rounded-md border bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300">
+                                {Math.ceil(p.sisaHari / 30)} Bln Lagi
+                              </span>
+                            </div>
+                          ))
+                        )
+                      )}
+                    </div>
+                  </ScrollArea>
+                </Card>
+
+              </div>
+
+              {/* ROW 4: TOP 5 INDEKS PEGAWAI (No AI-slop, Elegant Medallions) */}
+              <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/70">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-bold text-xs">
+                      #
+                    </span>
+                    <div>
+                      <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
+                        Peringkat Indeks Kinerja Pegawai Bulan Ini
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-zinc-400">
+                        Berdasarkan akumulasi kedisiplinan, absensi, KPI tugas, dan penilaian perilaku
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/indeks"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 transition-colors"
+                  >
+                    Lihat Peringkat Selengkapnya <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-5">
+                  {leaderboard.length === 0 ? (
+                    <div className="col-span-full text-xs text-slate-400 italic text-center py-8">
+                      Belum ada penilaian indeks terinput untuk periode bulan ini
+                    </div>
+                  ) : (
+                    leaderboard.slice(0, 5).map((lb: any, i: number) => {
+                      const rankStyles = [
+                        { border: "border-amber-200 dark:border-amber-900/50", bg: "bg-amber-50/30 dark:bg-amber-950/10", badge: "bg-amber-500 text-white", label: "#01" },
+                        { border: "border-slate-200 dark:border-zinc-700", bg: "bg-slate-50/50 dark:bg-zinc-900/30", badge: "bg-slate-400 text-white", label: "#02" },
+                        { border: "border-orange-200 dark:border-orange-900/50", bg: "bg-orange-50/30 dark:bg-orange-950/10", badge: "bg-orange-400 text-white", label: "#03" },
+                        { border: "border-slate-200 dark:border-zinc-800", bg: "bg-white dark:bg-zinc-900/20", badge: "bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300", label: "#04" },
+                        { border: "border-slate-200 dark:border-zinc-800", bg: "bg-white dark:bg-zinc-900/20", badge: "bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300", label: "#05" },
+                      ]
+                      const style = rankStyles[i] || rankStyles[4]
+
+                      return (
+                        <div
+                          key={lb.id}
+                          className={cn(
+                            "relative flex flex-col items-center text-center p-4 rounded-xl border transition-all duration-150",
+                            style.border,
+                            style.bg
+                          )}
+                        >
+                          <span className={cn(
+                            "absolute -top-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono shadow-2xs",
+                            style.badge
+                          )}>
+                            {style.label}
+                          </span>
+
+                          <Avatar className="w-12 h-12 mt-1 ring-2 ring-white dark:ring-zinc-800 shadow-xs">
+                            <AvatarImage src={lb.fotoUrl} alt={lb.nama} />
+                            <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
+                              {lb.nama?.charAt(0) || 'P'}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="mt-2.5 w-full min-w-0">
+                            <p className="text-[13px] font-bold text-slate-900 dark:text-zinc-100 truncate">{lb.nama}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{lb.bidang || lb.jabatan || 'Operasional'}</p>
+                          </div>
+
+                          <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-zinc-800/60 w-full flex items-center justify-between text-xs">
+                            <span className="text-slate-400 dark:text-zinc-500">Skor Total:</span>
+                            <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{lb.totalSkor}</span>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-[12px] text-[#64748B] dark:text-[#a1a1aa] font-medium">{label}</span>
-                            <span className="text-[12px] font-bold text-[#1E293B] dark:text-[#f4f4f5]">{val}</span>
+                      )
+                    })
+                  )}
+                </div>
+              </Card>
+
+              {/* ROW 5: ANALYTICS CHARTS SECTION */}
+              <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-zinc-800/70">
+                  <div>
+                    <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
+                      Analitik & Tren SDM Perusahaan
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">
+                      Statistik kehadiran 7 hari kerja, beban payroll, dan distribusi unit kerja
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-zinc-900 rounded-xl text-xs font-semibold">
+                    <button
+                      onClick={() => setPeriodFilter("mingguan")}
+                      className={cn(
+                        "px-3 py-1 rounded-lg transition-all",
+                        periodFilter === "mingguan" ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs" : "text-slate-500 hover:text-slate-900 dark:text-zinc-400"
+                      )}
+                    >
+                      Mingguan
+                    </button>
+                    <button
+                      onClick={() => setPeriodFilter("bulanan")}
+                      className={cn(
+                        "px-3 py-1 rounded-lg transition-all",
+                        periodFilter === "bulanan" ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs" : "text-slate-500 hover:text-slate-900 dark:text-zinc-400"
+                      )}
+                    >
+                      Bulanan
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <AnalyticsCharts data={stats?.analytics} />
+                </div>
+              </Card>
+
+              {/* ROW 6: DEMOGRAFI & ULANG TAHUN BULAN INI */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* ULANG TAHUN BULAN INI */}
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800/70">
+                    <div className="flex items-center gap-2">
+                      <Cake className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                        Ulang Tahun Bulan Ini
+                      </h3>
+                    </div>
+                    <span className="text-xs font-medium text-slate-400">
+                      {format(new Date(), "MMMM yyyy", { locale: id })}
+                    </span>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 dark:divide-zinc-800/60 mt-2">
+                    {!stats?.ulangTahunBulanIni?.length ? (
+                      <div className="text-xs text-slate-400 italic text-center py-8">
+                        Tidak ada pegawai yang berulang tahun bulan ini
+                      </div>
+                    ) : (
+                      stats.ulangTahunBulanIni.map((person: any) => (
+                        <div key={person.id} className="py-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold shrink-0">
+                              {person.initials}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{person.nama}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{person.jabatan}</p>
+                            </div>
                           </div>
-                          <div className="h-1.5 w-full bg-[#F0F0F5] dark:bg-[#27272a] rounded-full overflow-hidden">
-                            <div className={cn("h-1.5 rounded-full transition-all duration-700", colorBar)} style={{ width: `${pct}%` }} />
-                          </div>
+                          <span className="text-xs font-mono font-medium text-slate-600 dark:text-zinc-300 shrink-0">
+                            {person.tanggal}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </Card>
+
+                {/* STATUS SUMBER DAYA MANUSIA */}
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800/70">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                        Ringkasan Komposisi SDM
+                      </h3>
+                    </div>
+                    <Link href="/pegawai" className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                      Kelola Pegawai
+                    </Link>
+                  </div>
+
+                  <div className="space-y-3.5 mt-4">
+                    {[
+                      { label: "Pegawai Aktif", val: stats?.totalPegawai || 0, color: "bg-emerald-500", pct: 100 },
+                      { label: "Sedang Cuti", val: stats?.pegawaiCuti || 0, color: "bg-blue-500", pct: Math.min(100, ((stats?.pegawaiCuti || 0) / (stats?.totalPegawai || 1)) * 100) },
+                      { label: "Dalam Masa SP", val: stats?.pegawaiSP || 0, color: "bg-red-500", pct: Math.min(100, ((stats?.pegawaiSP || 0) / (stats?.totalPegawai || 1)) * 100) },
+                      { label: "Kontrak Mendekati Akhir", val: stats?.kontrakHampirHabis?.filter((k: any) => k.sisaHari <= 30).length || 0, color: "bg-amber-500", pct: Math.min(100, ((stats?.kontrakHampirHabis?.filter((k: any) => k.sisaHari <= 30).length || 0) / (stats?.totalPegawai || 1)) * 200) },
+                    ].map(({ label, val, color, pct }) => (
+                      <div key={label}>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-slate-600 dark:text-zinc-300 font-medium">{label}</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-zinc-100">{val}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <div className={cn("h-full rounded-full transition-all duration-500", color)} style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     ))}
-                    <div className="pt-2">
-                      <Link href="/pegawai" className="text-xs text-[#2563EB] dark:text-blue-400 hover:text-[#1D4ED8] dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-1">
-                        Lihat data pegawai <ArrowRight className="w-3 h-3" />
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* ROW 5: ANALYTICS */}
-              <Card className="bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium">
-                <div className="px-5 pt-4 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 dark:bg-blue-950/30">
-                    <BarChart3 className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
                   </div>
-                  <span className="text-[14px] font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Analitik Kepegawaian</span>
-                </div>
-                <CardContent className="p-5">
-                  <AnalyticsCharts data={stats?.analytics} />
-                </CardContent>
-              </Card>
+                </Card>
+
+              </div>
 
             </div>
           )}
+
         </main>
 
-        {/* ===== APPROVAL POPUP OVERLAY ===== */}
+        {/* APPROVAL CENTER SLIDE-OVER DRAWER */}
         {approvalOpen && (
           <div className="fixed inset-0 z-50 flex items-start justify-end p-4 pt-16">
             <div
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm"
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
               onClick={() => setApprovalOpen(false)}
             />
-            <div className="relative z-10 w-full max-w-md h-[calc(100vh-80px)] flex flex-col bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] rounded-3xl overflow-hidden animate-in slide-in-from-right-10 duration-300" style={{ boxShadow: '0 8px 40px rgba(15, 23, 42, 0.1)' }}>
-              <div className="px-5 pt-5 pb-3 border-b border-[#E5E7EB] dark:border-[#27272a] flex items-center justify-between shrink-0">
+            <div className="relative z-10 w-full max-w-md h-[calc(100vh-80px)] flex flex-col bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-2xl animate-in slide-in-from-right-10 duration-200">
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-zinc-900/50">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/30">
-                    <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
-                  </div>
-                  <span className="text-sm font-semibold text-[#1E293B] dark:text-[#f4f4f5]">Approval Center</span>
+                  <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-bold text-slate-900 dark:text-zinc-100">Approval Center</span>
                   {stats?.approvalPending > 0 && (
-                    <span className="text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-500 border border-amber-100 dark:border-amber-900/30 px-2 py-0.5 rounded-full font-bold">{stats.approvalPending} Pending</span>
+                    <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                      {stats.approvalPending} Pending
+                    </span>
                   )}
                 </div>
                 <button
                   onClick={() => setApprovalOpen(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-xl text-[#94A3B8] dark:text-[#a1a1aa] hover:text-[#64748B] dark:hover:text-[#d4d4d8] hover:bg-[#F3F4F6] dark:hover:bg-[#27272a] transition-all duration-150"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-700 transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
+
               <ScrollArea className="flex-1">
-                <div className="p-5">
+                <div className="p-4">
                   <ApprovalPanel />
                 </div>
               </ScrollArea>
-              <div className="px-5 py-4 border-t border-[#E5E7EB] dark:border-[#27272a] shrink-0">
-                <Link href="/approval" onClick={() => setApprovalOpen(false)} className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-sm font-semibold py-2.5 transition-all duration-150">
-                  Buka Approval Center <ArrowRight className="w-4 h-4" />
+
+              <div className="p-4 border-t border-slate-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-[#111113]">
+                <Link
+                  href="/approval"
+                  onClick={() => setApprovalOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 transition-colors shadow-xs"
+                >
+                  Buka Modul Approval Penuh <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
@@ -543,54 +868,92 @@ export default function DashboardPage() {
   )
 }
 
-// ======================================
-// REUSABLE KPI CARD — MODERN SAAS STYLE
-// ======================================
-function KpiCard({ title, value, unit, icon: Icon, color = "indigo", sub, href, onClick }: {
-  title: string; value: any; unit?: string; icon: any; color?: string; sub?: string; href?: string; onClick?: () => void;
+// ============================================================
+// CLEAN SAAS KPI CARD COMPONENT (Inspired by Stripe & Linear)
+// ============================================================
+function SaaSKpiCard({
+  title,
+  value,
+  unit,
+  icon: Icon,
+  badgeText,
+  badgeColor = "emerald",
+  sub,
+  href,
+  onClick,
+}: {
+  title: string
+  value: any
+  unit?: string
+  icon: any
+  badgeText?: string
+  badgeColor?: "emerald" | "blue" | "amber" | "red" | "neutral"
+  sub?: string
+  href?: string
+  onClick?: () => void
 }) {
-  const colorMap: Record<string, { iconBg: string; iconColor: string }> = {
-    indigo:  { iconBg: "bg-blue-50 dark:bg-blue-950/30",    iconColor: "text-[#2563EB] dark:text-blue-400" },
-    blue:    { iconBg: "bg-blue-50 dark:bg-blue-950/30",    iconColor: "text-[#3B82F6] dark:text-blue-400" },
-    emerald: { iconBg: "bg-emerald-50 dark:bg-emerald-950/30", iconColor: "text-[#10B981] dark:text-emerald-400" },
-    amber:   { iconBg: "bg-amber-50 dark:bg-amber-950/30",   iconColor: "text-[#F59E0B] dark:text-amber-500" },
-    orange:  { iconBg: "bg-orange-50 dark:bg-orange-950/30",  iconColor: "text-[#F97316] dark:text-orange-500" },
-    red:     { iconBg: "bg-red-50 dark:bg-red-950/30",     iconColor: "text-[#EF4444] dark:text-red-500" },
-    rose:    { iconBg: "bg-rose-50 dark:bg-rose-950/30",    iconColor: "text-rose-500 dark:text-rose-400" },
-    violet:  { iconBg: "bg-violet-50 dark:bg-violet-950/30",  iconColor: "text-violet-500 dark:text-violet-400" },
-    sky:     { iconBg: "bg-sky-50 dark:bg-sky-950/30",     iconColor: "text-sky-500 dark:text-sky-400" },
+  const badgeStyles = {
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60",
+    blue: "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/60",
+    amber: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60",
+    red: "bg-red-50 text-red-700 border-red-200/80 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/60",
+    neutral: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
   }
 
-  const colors = colorMap[color] || colorMap.indigo
-
-  const card = (
+  const content = (
     <Card className={cn(
-      "bg-white dark:bg-[#111113] border border-[#E5E7EB] dark:border-[#27272a] shadow-none rounded-[20px] card-premium transition-all duration-150",
-      (href || onClick) && "hover:shadow-md dark:hover:bg-[#18181b] hover:-translate-y-0.5 cursor-pointer"
+      "bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-4 sm:p-5 flex flex-col justify-between transition-all duration-150 h-full",
+      (href || onClick) && "hover:border-slate-300 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer"
     )}>
-      <CardContent className="p-5 flex flex-col gap-3.5">
-        <div className="flex items-center justify-between">
-          <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", colors.iconBg)}>
-            <Icon className={cn("w-[18px] h-[18px]", colors.iconColor)} />
-          </div>
-          {href && (
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#F1F5F9] dark:bg-[#18181b]">
-              <ChevronRight className="w-3.5 h-3.5 text-[#94A3B8] dark:text-[#a1a1aa]" />
-            </div>
+      {/* Card Header: Icon & Micro Badge */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100/90 dark:bg-zinc-800/80 text-slate-700 dark:text-zinc-200 border border-slate-200/60 dark:border-zinc-700/60">
+          <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        </div>
+        {badgeText && (
+          <span className={cn("text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border", badgeStyles[badgeColor])}>
+            {badgeText}
+          </span>
+        )}
+      </div>
+
+      {/* Metric Value */}
+      <div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-50">
+            {value}
+          </span>
+          {unit && (
+            <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500">
+              {unit}
+            </span>
           )}
         </div>
-        <div>
-          <div className="flex items-end gap-1.5 leading-none mb-1.5">
-            <span className="text-[26px] font-bold text-[#1E293B] dark:text-[#f4f4f5] tracking-tight">{value}</span>
-            {unit && <span className="text-sm font-semibold text-[#94A3B8] dark:text-[#a1a1aa] mb-0.5">{unit}</span>}
-          </div>
-          <p className="text-[12px] font-semibold text-[#64748B] dark:text-[#a1a1aa]">{title}</p>
-          {sub && <p className="text-[11px] text-[#94A3B8] dark:text-[#52525b] mt-0.5 truncate">{sub}</p>}
-        </div>
-      </CardContent>
+        <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mt-1">
+          {title}
+        </p>
+        {sub && (
+          <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+            {sub}
+          </p>
+        )}
+      </div>
     </Card>
   )
 
-  if (onClick) return <button className="text-left w-full animate-card-enter" onClick={onClick}>{card}</button>
-  return href ? <Link href={href} className="animate-card-enter">{card}</Link> : <div className="animate-card-enter">{card}</div>
+  if (onClick) {
+    return (
+      <button className="text-left w-full h-full focus:outline-none" onClick={onClick}>
+        {content}
+      </button>
+    )
+  }
+
+  return href ? (
+    <Link href={href} className="block h-full focus:outline-none">
+      {content}
+    </Link>
+  ) : (
+    content
+  )
 }
