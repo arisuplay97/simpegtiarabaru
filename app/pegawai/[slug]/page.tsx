@@ -49,6 +49,7 @@ import {
   UploadCloud,
   Plus,
   File,
+  Sparkles,
 } from "lucide-react"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -492,7 +493,11 @@ export default function EmployeeDetailPage() {
           sisaText,
           color,
           percentage,
-          label: kontrakAktif.tipe === "MAGANG" ? "Masa Magang" : "Masa Kontrak"
+          label: kontrakAktif.tipe === "MAGANG" ? "Masa Magang" : "Masa Kontrak",
+          targetYear: endDate.getFullYear(),
+          yearsLeft: years,
+          daysLeft: diffDays % 365,
+          totalDays: diffDays
         }
       }
       // Tidak ada kontrak aktif
@@ -510,14 +515,24 @@ export default function EmployeeDetailPage() {
       const today = new Date()
       const diffTime = endDate.getTime() - today.getTime()
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      if (diffDays <= 0) return { status: "Masa Jabatan Berakhir", color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", percentage: 100, label: "Masa Jabatan" }
+      if (diffDays <= 0) return { status: "Masa Jabatan Berakhir", color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", percentage: 100, label: "Masa Jabatan", targetYear: endDate.getFullYear(), yearsLeft: 0, daysLeft: 0, totalDays: 0 }
       const totalDuration = endDate.getTime() - joinDate.getTime()
       const elapsed = today.getTime() - joinDate.getTime()
       const percentage = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
       const years = Math.floor(diffDays / 365)
       const sisaText = years > 0 ? `${years} Th ${diffDays % 365} Hr` : `${diffDays} Hari`
       const color = diffDays <= 180 ? "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400" : diffDays <= 365 ? "border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400" : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-      return { tanggal: format(endDate, "dd MMMM yyyy", { locale: idLocale }), sisaText, color, percentage, label: "Masa Jabatan Direksi" }
+      return { 
+        tanggal: format(endDate, "dd MMMM yyyy", { locale: idLocale }), 
+        sisaText, 
+        color, 
+        percentage, 
+        label: "Masa Jabatan Direksi",
+        targetYear: endDate.getFullYear(),
+        yearsLeft: years,
+        daysLeft: diffDays % 365,
+        totalDays: diffDays
+      }
     }
 
     // Pegawai tetap — pensiun 56 tahun
@@ -535,7 +550,7 @@ export default function EmployeeDetailPage() {
     const percentage = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100))
 
     if (diffDays <= 0) {
-      return { status: "Sudah Pensiun", color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", percentage: 100, label: "Masa Pensiun" }
+      return { status: "Sudah Pensiun", color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", percentage: 100, label: "Masa Pensiun", targetYear: pensiunDate.getFullYear(), yearsLeft: 0, daysLeft: 0, totalDays: 0 }
     }
     
     const years = Math.floor(diffDays / 365)
@@ -550,7 +565,11 @@ export default function EmployeeDetailPage() {
       sisaText,
       color,
       percentage,
-      label: "Masa Pensiun"
+      label: "Masa Pensiun",
+      targetYear: pensiunDate.getFullYear(),
+      yearsLeft: years,
+      daysLeft: diffDays % 365,
+      totalDays: diffDays
     }
   }
 
@@ -597,35 +616,69 @@ export default function EmployeeDetailPage() {
       <SidebarNav />
       <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Kepegawaian", "Data Pegawai", employee?.nama]} />
-        <main className="flex-1 overflow-auto p-6">
-          {/* Back Button */}
-          <div className="mb-4">
-            <Link href="/pegawai">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Kembali ke Daftar Pegawai
-              </Button>
+        <main className="flex-1 p-6 space-y-6">
+          {/* Top Bar Navigation & Actions */}
+          <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <Link
+              href="/pegawai"
+              className="inline-flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors px-3 py-2 rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-[#111113] shadow-xs w-fit"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <span>Kembali ke Direktori Pegawai</span>
             </Link>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-xl"
+                onClick={handleResetDevice}
+              >
+                <Shield className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Reset Device
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs border-slate-200 dark:border-zinc-800 rounded-xl"
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Unduh CV
+              </Button>
+              <Button
+                size="sm"
+                className="h-9 gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-950 shadow-xs rounded-xl font-medium"
+                onClick={handleOpenEdit}
+              >
+                <Edit className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Edit Data Pegawai
+              </Button>
+            </div>
           </div>
 
-          {/* Profile Header */}
-          <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-5 sm:p-7 shadow-xs mb-6">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              {/* Left - Avatar & Basic Info */}
+          {/* Executive Profile Showcase Grid (Hero + Animated Masa Pensiun) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
+            {/* Left: Main Profile Hero Card (8 cols) */}
+            <div className="lg:col-span-8 rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-6 shadow-xs flex flex-col justify-between relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                {/* Avatar with Status Ring */}
                 <div className="flex flex-col items-center gap-2 shrink-0">
                   <div className="relative group">
-                    <Avatar className="h-24 w-24 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-xs">
+                    <Avatar className="h-28 w-28 rounded-2xl border-2 border-slate-200/90 dark:border-zinc-700 shadow-sm object-cover">
                       {employee.fotoUrl ? (
                         <AvatarImage src={employee.fotoUrl} className="object-cover" />
                       ) : null}
-                      <AvatarFallback className="rounded-2xl bg-slate-100 dark:bg-zinc-800 text-2xl font-bold text-slate-700 dark:text-zinc-200">
+                      <AvatarFallback className="rounded-2xl bg-slate-100 dark:bg-zinc-800 text-3xl font-bold text-slate-700 dark:text-zinc-200">
                         {(employee.nama || "P").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white rounded-2xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-medium">
+                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-[#111113]" />
+                    </span>
+                    <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 text-white rounded-2xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-medium">
                       <Camera className="h-4 w-4 mb-0.5" />
-                      Ubah
+                      Ubah Foto
                       <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
                     </label>
                   </div>
@@ -637,22 +690,15 @@ export default function EmployeeDetailPage() {
                   </label>
                 </div>
 
-                <div className="text-center sm:text-left space-y-2">
-                  <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
-                      {employee.nama}
-                    </h1>
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                          statusConfig[employee.status || "AKTIF"]?.className || ""
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            statusConfig[employee.status || "AKTIF"]?.dot || "bg-emerald-500"
-                          }`}
-                        />
+                {/* Main Info */}
+                <div className="text-center sm:text-left space-y-2.5 flex-1 min-w-0">
+                  <div>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-zinc-50">
+                        {employee.nama}
+                      </h1>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[employee.status || "AKTIF"]?.className || ""}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[employee.status || "AKTIF"]?.dot || "bg-emerald-500"}`} />
                         {statusConfig[employee.status || "AKTIF"]?.label || employee.status || "AKTIF"}
                       </span>
                       {employee.sp && spConfig[employee.sp as keyof typeof spConfig] && (
@@ -661,157 +707,213 @@ export default function EmployeeDetailPage() {
                         </Badge>
                       )}
                     </div>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-zinc-300 mt-1">
+                      {employee.jabatan} <span className="text-slate-400 font-normal">di</span> {employee.bidang?.nama || "Kantor Pusat"}{employee.subBidang ? ` — ${employee.subBidang.nama}` : ""}
+                    </p>
                   </div>
 
-                  <p className="text-sm font-medium text-slate-600 dark:text-zinc-400">
-                    {employee.jabatan}
-                  </p>
-
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-slate-600 dark:text-zinc-400">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80 font-mono text-[11px]">
+                  {/* Badges / Pill row */}
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 font-mono text-[11px] text-slate-700 dark:text-zinc-300">
                       NIK: {employee.nik}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80">
-                      <Building2 className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                      {employee.bidang?.nama || "—"}
-                      {employee.subBidang ? ` — ${employee.subBidang.nama}` : ""}
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
+                      <User className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+                      {employee.tipePegawai || "TETAP"}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80 font-mono">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 font-mono text-slate-700 dark:text-zinc-300">
                       Gol. {employee.golongan || "—"}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80" suppressHydrationWarning>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300" suppressHydrationWarning>
                       <Calendar className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                      TMT: {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "—"}
+                      TMT {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "—"}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-1 text-xs">
+                  {/* Contact Chips */}
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-1 text-xs">
                     {employee.email && (
-                      <a href={`mailto:${employee.email}`} className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-primary transition-colors">
+                      <a
+                        href={`mailto:${employee.email}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60 hover:border-slate-300 dark:hover:border-zinc-700 text-slate-700 dark:text-zinc-300 transition-colors"
+                      >
                         <Mail className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                        {employee.email}
+                        <span>{employee.email}</span>
                       </a>
                     )}
                     {employee.telepon && (
-                      <a href={`tel:${employee.telepon}`} className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-primary transition-colors font-mono">
+                      <a
+                        href={`tel:${employee.telepon}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60 hover:border-slate-300 dark:hover:border-zinc-700 text-slate-700 dark:text-zinc-300 transition-colors font-mono"
+                      >
                         <Phone className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                        {employee.telepon}
+                        <span>{employee.telepon}</span>
                       </a>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Right - Actions & Masa Pensiun */}
-              <div className="flex flex-col items-center sm:items-end gap-3 shrink-0">
-                <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 text-xs text-amber-600 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                    onClick={handleResetDevice}
-                  >
-                    <Shield className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Reset Device
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs border-slate-200 dark:border-zinc-800">
-                    <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Unduh CV
-                  </Button>
-                  <Button size="sm" className="h-8 gap-1.5 text-xs bg-primary text-primary-foreground shadow-xs" onClick={handleOpenEdit}>
-                    <Edit className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Edit Data
-                  </Button>
+              {/* Quick 4 Metrics Grid with elegant fallback */}
+              <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                  <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">Pendidikan Terakhir</span>
+                  <p className="mt-1 font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                    {employee.pendidikanTerakhir || <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum diisi</span>}
+                  </p>
                 </div>
-
-                {pensiunInfo && (
-                  <div className="w-64 p-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50 flex flex-col gap-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">{pensiunInfo.label || "Masa Pensiun"}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap ${pensiunInfo.color}`}>
-                        {pensiunInfo.status || `< ${pensiunInfo.sisaText}`}
-                      </span>
-                    </div>
-                    <Progress
-                      value={pensiunInfo.percentage}
-                      className="h-1.5 bg-slate-200 dark:bg-zinc-800"
-                      indicatorClassName={pensiunInfo.color.includes("red") ? "bg-rose-500" : pensiunInfo.color.includes("amber") ? "bg-amber-500" : "bg-emerald-500"}
-                    />
-                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 text-right">{pensiunInfo.tanggal ?? "—"}</span>
-                  </div>
-                )}
+                <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                  <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">Rekening Bank</span>
+                  <p className="mt-1 font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                    {employee.bank ? `${employee.bank} - ${employee.noRekening || ""}` : <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum terdaftar</span>}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                  <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">BPJS Kesehatan</span>
+                  <p className="mt-1 font-semibold font-mono text-slate-800 dark:text-zinc-200 truncate">
+                    {employee.bpjsKesehatan || <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum diverifikasi</span>}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                  <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">Atasan Langsung</span>
+                  <p className="mt-1 font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                    {employee.atasanLangsung || <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum ditentukan</span>}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Quick Stats 4 Metrics */}
-            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            {/* Right: The Showstopper Animated Masa Pensiun Card (4 cols) */}
+            <div className="lg:col-span-4 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#0A0D14] border border-slate-800 text-white p-6 shadow-xl flex flex-col justify-between">
+              {/* Ambient Glows */}
+              <div className="absolute -top-12 -right-12 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+
+              {/* Header */}
               <div>
-                <span className="text-[11px] text-slate-400 dark:text-zinc-500">Pendidikan Terakhir</span>
-                <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">{employee.pendidikanTerakhir || "—"}</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                    </div>
+                    <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-400">
+                      {pensiunInfo?.label || "Masa Pensiun"}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md border border-slate-700 bg-slate-800/80 text-slate-300">
+                    Target {pensiunInfo?.targetYear || "2055"}
+                  </span>
+                </div>
+
+                {/* Sisa Pengabdian Big Numbers */}
+                <div className="mt-5">
+                  <p className="text-[11px] font-medium text-slate-400">Sisa Waktu Pengabdian</p>
+                  <div className="mt-1">
+                    <span className="text-3xl font-extrabold tracking-tight font-mono text-white drop-shadow-md">
+                      {pensiunInfo?.sisaText || "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Animated Shimmer Bar */}
+                <div className="mt-5 space-y-1.5">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-400">Perjalanan Karir</span>
+                    <span className="font-mono font-semibold text-emerald-400">
+                      {Math.round(pensiunInfo?.percentage || 0)}% Terlampaui
+                    </span>
+                  </div>
+                  <div className="relative h-3 w-full rounded-full bg-slate-800/90 border border-slate-700/80 overflow-hidden p-0.5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 relative transition-all duration-1000"
+                      style={{ width: `${Math.max(6, Math.min(100, pensiunInfo?.percentage || 0))}%` }}
+                    >
+                      {/* Shimmer light sweep */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-[11px] text-slate-400 dark:text-zinc-500">Rekening Bank</span>
-                <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">{employee.bank ? `${employee.bank} - ${employee.noRekening || ""}` : "—"}</p>
-              </div>
-              <div>
-                <span className="text-[11px] text-slate-400 dark:text-zinc-500">BPJS Kesehatan</span>
-                <p className="mt-0.5 font-semibold font-mono text-slate-800 dark:text-zinc-200 truncate">{employee.bpjsKesehatan || "—"}</p>
-              </div>
-              <div>
-                <span className="text-[11px] text-slate-400 dark:text-zinc-500">Atasan Langsung</span>
-                <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">{employee.atasanLangsung || "—"}</p>
+
+              {/* Footer Milestones & Status */}
+              <div className="mt-5 space-y-3">
+                <div className="pt-3 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">TMT Mulai</span>
+                    <span className="font-mono text-[11px] text-slate-200 font-medium">
+                      {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd MMM yyyy", { locale: idLocale }) : "—"}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Purna Tugas</span>
+                    <span className="font-mono text-[11px] text-emerald-300 font-medium">
+                      {pensiunInfo?.tanggal || "—"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-[11px]">
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                    <Sparkles className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: "8s" }} />
+                    Fase Pengabdian Aktif
+                  </span>
+                  <span className="text-slate-400 font-mono text-[10px]">
+                    Batas Usia: 56 Th
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-slate-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-slate-200 dark:border-zinc-800 h-auto">
-              <TabsTrigger value="profil" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+            <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-slate-100/90 dark:bg-zinc-900/90 p-1.5 rounded-2xl border border-slate-200/90 dark:border-zinc-800 h-auto gap-1">
+              <TabsTrigger value="profil" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <User className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Profil
               </TabsTrigger>
-              <TabsTrigger value="keluarga" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="keluarga" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Keluarga
               </TabsTrigger>
-              <TabsTrigger value="pendidikan" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="pendidikan" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <GraduationCap className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Pendidikan
               </TabsTrigger>
-              <TabsTrigger value="jabatan" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="jabatan" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <Briefcase className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Jabatan
               </TabsTrigger>
-              <TabsTrigger value="pangkat" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="pangkat" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Pangkat
               </TabsTrigger>
-              <TabsTrigger value="gaji" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="gaji" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <CreditCard className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Gaji
               </TabsTrigger>
-              <TabsTrigger value="absensi" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="absensi" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <Clock className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Absensi
               </TabsTrigger>
-              <TabsTrigger value="cuti" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="cuti" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <Calendar className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Cuti
               </TabsTrigger>
-              <TabsTrigger value="kinerja" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="kinerja" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <Target className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Kinerja
               </TabsTrigger>
-              <TabsTrigger value="dokumen" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="dokumen" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Dokumen
               </TabsTrigger>
-              <TabsTrigger value="pelatihan" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="pelatihan" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Pelatihan
               </TabsTrigger>
-              <TabsTrigger value="riwayat" className="gap-1.5 text-xs rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs">
+              <TabsTrigger value="riwayat" className="gap-1.5 text-xs rounded-xl py-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs font-medium">
                 <History className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Riwayat
               </TabsTrigger>
@@ -820,126 +922,103 @@ export default function EmployeeDetailPage() {
             {/* Profil Tab */}
             <TabsContent value="profil">
               <div className="grid gap-6 lg:grid-cols-2">
-                <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                  <CardHeader>
-                    <CardTitle className="text-base">Data Pribadi</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">NIK</p>
-                        <p className="font-mono font-medium">{employee.nik}</p>
+                {/* Data Pribadi Card */}
+                <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-300">
+                        <User className="h-4 w-4" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Tempat, Tanggal Lahir</p>
-                        <p className="font-medium">{employee.tempatLahir || "-"}, {employee.tanggalLahir ? format(new Date(employee.tanggalLahir), "dd MMMM yyyy", { locale: idLocale }) : "-"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Usia</p>
-                        <p className="font-medium">
-                          {employee.tanggalLahir ? (() => {
-                            const today = new Date()
-                            const birth = new Date(employee.tanggalLahir)
-                            let age = today.getFullYear() - birth.getFullYear()
-                            const m = today.getMonth() - birth.getMonth()
-                            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-                            return `${age} Tahun`
-                          })() : "-"}
-                        </p>
-                      </div>
-                      <div className="hidden">
-                        {/* dipindahkan ke header kanan */}
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Jenis Kelamin</p>
-                        <p className="font-medium">{employee.jenisKelamin}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Agama</p>
-                        <p className="font-medium">{employee.agama}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Status Pernikahan</p>
-                        <p className="font-medium">{employee.statusNikah}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">NPWP</p>
-                        <p className="font-mono font-medium">{employee.npwp}</p>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-50">Data Pribadi</h3>
+                        <p className="text-[11px] text-slate-400 dark:text-zinc-500">Identitas resmi pegawai sesuai dokumen kependudukan</p>
                       </div>
                     </div>
-                    <Separator />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Alamat</p>
-                      <p className="font-medium">{employee.alamat}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <Badge variant="outline" className="text-[10px] font-medium text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700">
+                      Dukcapil
+                    </Badge>
+                  </div>
 
-                <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                  <CardHeader>
-                    <CardTitle className="text-base">Data Kepegawaian</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Tanggal Masuk Kerja</p>
-                        <p className="font-medium" suppressHydrationWarning>{employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "-"}</p>
+                  <div className="divide-y divide-slate-100 dark:divide-zinc-800/70 text-xs">
+                    {[
+                      { label: "Nomor Induk Karyawan (NIK)", value: employee.nik, mono: true },
+                      { label: "Tempat, Tanggal Lahir", value: `${employee.tempatLahir || "—"}, ${employee.tanggalLahir ? format(new Date(employee.tanggalLahir), "dd MMMM yyyy", { locale: idLocale }) : "—"}` },
+                      {
+                        label: "Usia Saat Ini",
+                        value: employee.tanggalLahir ? (() => {
+                          const today = new Date()
+                          const birth = new Date(employee.tanggalLahir)
+                          let age = today.getFullYear() - birth.getFullYear()
+                          const m = today.getMonth() - birth.getMonth()
+                          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+                          return `${age} Tahun`
+                        })() : null
+                      },
+                      { label: "Jenis Kelamin", value: employee.jenisKelamin === "L" ? "Laki-laki" : employee.jenisKelamin === "P" ? "Perempuan" : null },
+                      { label: "Agama", value: employee.agama },
+                      { label: "Status Pernikahan", value: employee.statusNikah },
+                      { label: "Nomor Pokok Wajib Pajak (NPWP)", value: employee.npwp, mono: true },
+                      { label: "Alamat Domisili Lengkap", value: employee.alamat },
+                    ].map(row => (
+                      <div key={row.label} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+                        <span className="text-slate-500 dark:text-zinc-400 shrink-0 text-xs font-medium">{row.label}</span>
+                        <span className={`text-right text-slate-900 dark:text-zinc-100 font-medium ${row.mono ? "font-mono" : ""}`}>
+                          {row.value || <span className="text-slate-400 dark:text-zinc-600 italic font-normal">Belum dilengkapi</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Data Kepegawaian Card */}
+                <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-300">
+                        <Briefcase className="h-4 w-4" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Masa Kerja</p>
-                        <p className="font-medium">
-                          {employee.tanggalMasuk ? (() => {
-                            const start = new Date(employee.tanggalMasuk)
-                            const now = new Date()
-                            let years = now.getFullYear() - start.getFullYear()
-                            let months = now.getMonth() - start.getMonth()
-                            if (months < 0) { years--; months += 12 }
-                            if (years === 0 && months === 0) return "Kurang dari 1 Bulan"
-                            if (years === 0) return `${months} Bulan`
-                            return `${years} Tahun ${months} Bulan`
-                          })() : "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Jabatan</p>
-                        <p className="font-medium">{employee.jabatan}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Unit Kerja</p>
-                        <p className="font-medium">{employee.bidang?.nama || "-"}</p>
-                      </div>
-                      {employee.tipeJabatan !== 'KONTRAK' && employee.tipeJabatan !== 'MAGANG' && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Golongan</p>
-                          <p className="font-medium">{employee.golongan}</p>
-                        </div>
-                      )}
-                      {employee.subBidang && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Sub Bidang / Seksi</p>
-                          <p className="font-medium">{employee.subBidang.nama}</p>
-                        </div>
-                      )}
-                    </div>
-                    <Separator />
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Bank</p>
-                        <p className="font-medium">{employee.bank}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">No. Rekening</p>
-                        <p className="font-mono font-medium">{employee.noRekening}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">BPJS Kesehatan</p>
-                        <p className="font-mono font-medium">{employee.bpjsKesehatan}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">BPJS Ketenagakerjaan</p>
-                        <p className="font-mono font-medium">{employee.bpjsKetenagakerjaan}</p>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-50">Data Kepegawaian</h3>
+                        <p className="text-[11px] text-slate-400 dark:text-zinc-500">Struktur penempatan kerja, jenjang kepangkatan, dan finansial</p>
                       </div>
                     </div>
+                    <Badge variant="outline" className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
+                      SDM Aktif
+                    </Badge>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 dark:divide-zinc-800/70 text-xs">
+                    {[
+                      { label: "Tanggal Mulai Tugas (TMT)", value: employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd MMMM yyyy", { locale: idLocale }) : null },
+                      {
+                        label: "Masa Pengabdian",
+                        value: employee.tanggalMasuk ? (() => {
+                          const start = new Date(employee.tanggalMasuk)
+                          const now = new Date()
+                          let years = now.getFullYear() - start.getFullYear()
+                          let months = now.getMonth() - start.getMonth()
+                          if (months < 0) { years--; months += 12 }
+                          if (years === 0 && months === 0) return "Kurang dari 1 Bulan"
+                          if (years === 0) return `${months} Bulan`
+                          return `${years} Tahun ${months} Bulan`
+                        })() : null
+                      },
+                      { label: "Jabatan Struktural", value: employee.jabatan },
+                      { label: "Unit Kerja / Bidang", value: employee.bidang?.nama },
+                      { label: "Sub Bidang / Seksi", value: employee.subBidang?.nama },
+                      { label: "Golongan & Pangkat", value: `${employee.golongan || "—"} / ${employee.pangkat || "—"}` },
+                      { label: "Rekening Bank Gaji", value: employee.bank ? `${employee.bank} - ${employee.noRekening || ""}` : null },
+                      { label: "BPJS Kesehatan", value: employee.bpjsKesehatan, mono: true },
+                      { label: "BPJS Ketenagakerjaan", value: employee.bpjsKetenagakerjaan, mono: true },
+                    ].map(row => (
+                      <div key={row.label} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+                        <span className="text-slate-500 dark:text-zinc-400 shrink-0 text-xs font-medium">{row.label}</span>
+                        <span className={`text-right text-slate-900 dark:text-zinc-100 font-medium ${row.mono ? "font-mono" : ""}`}>
+                          {row.value || <span className="text-slate-400 dark:text-zinc-600 italic font-normal">Belum diset</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
 
                     {/* ============ REVISI ABSENSI: FITUR 2 & 3 ============ */}
                     {(session?.user as any)?.role === "SUPERADMIN" && (
@@ -1049,10 +1128,9 @@ export default function EmployeeDetailPage() {
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+                  </div>
+                </div>
+              </TabsContent>
 
             {/* Keluarga Tab */}
             <TabsContent value="keluarga">

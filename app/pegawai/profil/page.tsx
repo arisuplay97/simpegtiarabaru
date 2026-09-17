@@ -11,7 +11,6 @@ import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getDokumenPegawai } from "@/lib/actions/dokumen"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -19,29 +18,30 @@ import {
   User, Building2, Briefcase, Calendar, Mail, Phone,
   GraduationCap, CreditCard, Shield, Clock, Target,
   FileText, BookOpen, History, Users, TrendingUp,
-  CheckCircle2, AlertCircle, Camera, Download, ExternalLink
+  CheckCircle2, AlertCircle, Camera, Download, ExternalLink,
+  Sparkles
 } from "lucide-react"
 
-const statusConfig: Record<string, { label: string; dot: string; badgeClass: string }> = {
+const statusConfig: Record<string, { label: string; dot: string; className: string }> = {
   AKTIF: { 
     label: "Aktif", 
     dot: "bg-emerald-500", 
-    badgeClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
   },
   CUTI: { 
     label: "Cuti", 
     dot: "bg-amber-500", 
-    badgeClass: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400" 
+    className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400" 
   },
   NON_AKTIF: { 
     label: "Non-Aktif", 
     dot: "bg-slate-400", 
-    badgeClass: "border-slate-300 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300" 
+    className: "border-slate-300 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300" 
   },
   PENSIUN: { 
     label: "Pensiun", 
     dot: "bg-rose-500", 
-    badgeClass: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400" 
+    className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400" 
   },
 }
 
@@ -124,6 +124,50 @@ export default function ProfilBasePage() {
     }
   }
 
+  const getPensiunInfo = () => {
+    if (!employee) return null
+    if (!employee.tanggalLahir || !employee.tanggalMasuk) return null
+    const birthDate = new Date(employee.tanggalLahir)
+    const pensiunDate = new Date(birthDate.getFullYear() + 56, birthDate.getMonth(), birthDate.getDate())
+    const joinDate = new Date(employee.tanggalMasuk)
+    const today = new Date()
+    
+    const diffTime = pensiunDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    const totalDuration = pensiunDate.getTime() - joinDate.getTime()
+    const elapsedDuration = today.getTime() - joinDate.getTime()
+    const percentage = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100))
+
+    if (diffDays <= 0) {
+      return { 
+        status: "Sudah Pensiun", 
+        color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", 
+        percentage: 100, 
+        label: "Masa Pensiun", 
+        targetYear: pensiunDate.getFullYear(), 
+        yearsLeft: 0, 
+        daysLeft: 0, 
+        totalDays: 0 
+      }
+    }
+    
+    const years = Math.floor(diffDays / 365)
+    const sisaText = years > 0 ? `${years} Tahun ${diffDays % 365} Hari` : `${diffDays} Hari`
+    
+    return { 
+      tanggal: format(pensiunDate, "dd MMMM yyyy", { locale: idLocale }),
+      sisaText,
+      percentage,
+      label: "Masa Pensiun",
+      targetYear: pensiunDate.getFullYear(),
+      yearsLeft: years,
+      daysLeft: diffDays % 365,
+      totalDays: diffDays
+    }
+  }
+
+  const pensiunInfo = getPensiunInfo()
   const statusKey = (employee?.status || "AKTIF").toUpperCase()
   const statusInfo = statusConfig[statusKey] || statusConfig.AKTIF
 
@@ -134,7 +178,7 @@ export default function ProfilBasePage() {
         <TopBar breadcrumb={["Kepegawaian", "Profil Saya"]} />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
-          <div className="mx-auto max-w-5xl space-y-6">
+          <div className="mx-auto max-w-6xl space-y-6">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24 gap-3">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
@@ -152,138 +196,206 @@ export default function ProfilBasePage() {
               </div>
             ) : employee ? (
               <>
-                {/* Executive Profile Card */}
-                <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-5 sm:p-7 shadow-xs">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                    {/* Avatar + change button */}
-                    <div className="flex flex-col items-center gap-2 shrink-0">
-                      <div className="relative group">
-                        <Avatar className="h-24 w-24 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-xs">
-                          {employee.fotoUrl ? (
-                            <AvatarImage src={employee.fotoUrl} className="object-cover" />
-                          ) : null}
-                          <AvatarFallback className="rounded-2xl bg-slate-100 dark:bg-zinc-800 text-2xl font-bold text-slate-700 dark:text-zinc-200">
-                            {(employee.nama || "P")
-                              .split(" ")
-                              .map((n: string) => n[0])
-                              .join("")
-                              .slice(0, 2)
-                              .toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white rounded-2xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-medium">
-                          <Camera className="h-4 w-4 mb-0.5" />
-                          Ganti
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleFileUpload}
-                            disabled={isUploading}
-                          />
+                {/* Executive Profile Showcase Grid (Hero + Animated Masa Pensiun) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  {/* Left: Main Profile Hero Card (8 cols) */}
+                  <div className="lg:col-span-8 rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-6 shadow-xs flex flex-col justify-between relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                      {/* Avatar with Status Ring */}
+                      <div className="flex flex-col items-center gap-2 shrink-0">
+                        <div className="relative group">
+                          <Avatar className="h-28 w-28 rounded-2xl border-2 border-slate-200/90 dark:border-zinc-700 shadow-sm object-cover">
+                            {employee.fotoUrl ? (
+                              <AvatarImage src={employee.fotoUrl} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="rounded-2xl bg-slate-100 dark:bg-zinc-800 text-3xl font-bold text-slate-700 dark:text-zinc-200">
+                              {(employee.nama || "P").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-[#111113]" />
+                          </span>
+                          <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 text-white rounded-2xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-medium">
+                            <Camera className="h-4 w-4 mb-0.5" />
+                            Ubah Foto
+                            <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                          </label>
+                        </div>
+                        <label className="cursor-pointer">
+                          <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                          <span className="flex items-center gap-1 text-[11px] text-primary hover:underline font-medium">
+                            <Camera className="h-3 w-3" /> Ganti Foto
+                          </span>
                         </label>
                       </div>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                          disabled={isUploading}
-                        />
-                        <span className="flex items-center gap-1 text-[11px] text-primary hover:underline font-medium">
-                          <Camera className="h-3 w-3" />
-                          {isUploading ? "Mengunggah..." : "Ubah Foto"}
-                        </span>
-                      </label>
-                    </div>
 
-                    {/* Basic Info */}
-                    <div className="flex-1 min-w-0 text-center sm:text-left space-y-3">
-                      <div>
-                        <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
-                          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
-                            {employee.nama}
-                          </h1>
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusInfo.badgeClass}`}
-                          >
-                            <span className={`h-1.5 w-1.5 rounded-full ${statusInfo.dot}`} />
-                            {statusInfo.label}
+                      {/* Main Info */}
+                      <div className="text-center sm:text-left space-y-2.5 flex-1 min-w-0">
+                        <div>
+                          <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-zinc-50">
+                              {employee.nama}
+                            </h1>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusInfo.className}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${statusInfo.dot}`} />
+                              {statusInfo.label}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-zinc-300 mt-1">
+                            {employee.jabatan} <span className="text-slate-400 font-normal">di</span> {employee.bidang?.nama || "Kantor Pusat"}
+                          </p>
+                        </div>
+
+                        {/* Badges / Pill row */}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 font-mono text-[11px] text-slate-700 dark:text-zinc-300">
+                            NIK: {employee.nik}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
+                            <User className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+                            {employee.tipePegawai || "TETAP"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 font-mono text-slate-700 dark:text-zinc-300">
+                            Gol. {employee.golongan || "—"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300" suppressHydrationWarning>
+                            <Calendar className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+                            TMT {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "—"}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
-                          {employee.jabatan || "Pegawai"}
+
+                        {/* Contact Chips */}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-1 text-xs">
+                          {employee.email && (
+                            <a
+                              href={`mailto:${employee.email}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60 hover:border-slate-300 dark:hover:border-zinc-700 text-slate-700 dark:text-zinc-300 transition-colors"
+                            >
+                              <Mail className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+                              <span>{employee.email}</span>
+                            </a>
+                          )}
+                          {employee.telepon && (
+                            <a
+                              href={`tel:${employee.telepon}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60 hover:border-slate-300 dark:hover:border-zinc-700 text-slate-700 dark:text-zinc-300 transition-colors font-mono"
+                            >
+                              <Phone className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+                              <span>{employee.telepon}</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick 4 Metrics Grid */}
+                    <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                        <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">Pendidikan Terakhir</span>
+                        <p className="mt-1 font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                          {employee.pendidikanTerakhir || <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum diisi</span>}
                         </p>
                       </div>
-
-                      {/* Attribute Pills */}
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-slate-600 dark:text-zinc-400">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80 font-mono text-[11px]">
-                          NIK: {employee.nik}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80">
-                          <Building2 className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                          {employee.bidang?.nama || "Kantor Pusat"}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80 font-mono">
-                          Gol. {employee.golongan || "—"}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-700/80" suppressHydrationWarning>
-                          <Calendar className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                          TMT: {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd/MM/yyyy") : "—"}
-                        </span>
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                        <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">Rekening Bank</span>
+                        <p className="mt-1 font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                          {employee.bank ? `${employee.bank} - ${employee.noRekening || ""}` : <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum terdaftar</span>}
+                        </p>
                       </div>
-
-                      {/* Contact Links */}
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-1 text-xs">
-                        {employee.email && (
-                          <a
-                            href={`mailto:${employee.email}`}
-                            className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-primary transition-colors"
-                          >
-                            <Mail className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                            {employee.email}
-                          </a>
-                        )}
-                        {employee.telepon && (
-                          <a
-                            href={`tel:${employee.telepon}`}
-                            className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-primary transition-colors font-mono"
-                          >
-                            <Phone className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
-                            {employee.telepon}
-                          </a>
-                        )}
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                        <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">BPJS Kesehatan</span>
+                        <p className="mt-1 font-semibold font-mono text-slate-800 dark:text-zinc-200 truncate">
+                          {employee.bpjsKesehatan || <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum diverifikasi</span>}
+                        </p>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800/70">
+                        <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">Atasan Langsung</span>
+                        <p className="mt-1 font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                          {employee.atasanLangsung || <span className="text-slate-400 dark:text-zinc-600 font-normal italic text-[11px]">Belum ditentukan</span>}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* 4 Summary Quick Stats */}
-                  <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                  {/* Right: The Showstopper Animated Masa Pensiun Card (4 cols) */}
+                  <div className="lg:col-span-4 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#0A0D14] border border-slate-800 text-white p-6 shadow-xl flex flex-col justify-between">
+                    {/* Ambient Glows */}
+                    <div className="absolute -top-12 -right-12 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+
+                    {/* Header */}
                     <div>
-                      <span className="text-[11px] text-slate-400 dark:text-zinc-500">Pendidikan Terakhir</span>
-                      <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">
-                        {employee.pendidikanTerakhir || "—"}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                          </div>
+                          <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-400">
+                            {pensiunInfo?.label || "Masa Pensiun"}
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md border border-slate-700 bg-slate-800/80 text-slate-300">
+                          Target {pensiunInfo?.targetYear || "2055"}
+                        </span>
+                      </div>
+
+                      {/* Sisa Pengabdian Big Numbers */}
+                      <div className="mt-5">
+                        <p className="text-[11px] font-medium text-slate-400">Sisa Waktu Pengabdian</p>
+                        <div className="mt-1">
+                          <span className="text-3xl font-extrabold tracking-tight font-mono text-white drop-shadow-md">
+                            {pensiunInfo?.sisaText || "—"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Animated Shimmer Bar */}
+                      <div className="mt-5 space-y-1.5">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-slate-400">Perjalanan Karir</span>
+                          <span className="font-mono font-semibold text-emerald-400">
+                            {Math.round(pensiunInfo?.percentage || 0)}% Terlampaui
+                          </span>
+                        </div>
+                        <div className="relative h-3 w-full rounded-full bg-slate-800/90 border border-slate-700/80 overflow-hidden p-0.5">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 relative transition-all duration-1000"
+                            style={{ width: `${Math.max(6, Math.min(100, pensiunInfo?.percentage || 0))}%` }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[11px] text-slate-400 dark:text-zinc-500">Rekening Bank</span>
-                      <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">
-                        {employee.bank ? `${employee.bank} - ${employee.noRekening || ""}` : "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-slate-400 dark:text-zinc-500">BPJS Kesehatan</span>
-                      <p className="mt-0.5 font-semibold font-mono text-slate-800 dark:text-zinc-200 truncate">
-                        {employee.bpjsKesehatan || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-slate-400 dark:text-zinc-500">Atasan Langsung</span>
-                      <p className="mt-0.5 font-semibold text-slate-800 dark:text-zinc-200 truncate">
-                        {employee.atasanLangsung || "—"}
-                      </p>
+
+                    {/* Footer Milestones & Status */}
+                    <div className="mt-5 space-y-3">
+                      <div className="pt-3 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase tracking-wider block">TMT Mulai</span>
+                          <span className="font-mono text-[11px] text-slate-200 font-medium">
+                            {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd MMM yyyy", { locale: idLocale }) : "—"}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Purna Tugas</span>
+                          <span className="font-mono text-[11px] text-emerald-300 font-medium">
+                            {pensiunInfo?.tanggal || "—"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-[11px]">
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                          <Sparkles className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: "8s" }} />
+                          Fase Pengabdian Aktif
+                        </span>
+                        <span className="text-slate-400 font-mono text-[10px]">
+                          Batas Usia: 56 Th
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -326,17 +438,17 @@ export default function ProfilBasePage() {
 
                 {/* Detail Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                  <TabsList className="bg-slate-100 dark:bg-zinc-900 p-1 rounded-xl border border-slate-200 dark:border-zinc-800">
+                  <TabsList className="bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200 dark:border-zinc-800">
                     <TabsTrigger
                       value="profil"
-                      className="rounded-lg text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs gap-1.5"
+                      className="rounded-xl text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs gap-1.5 py-2 px-3.5"
                     >
                       <User className="h-3.5 w-3.5" strokeWidth={1.75} />
                       Data Lengkap Pegawai
                     </TabsTrigger>
                     <TabsTrigger
                       value="dokumen"
-                      className="rounded-lg text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs gap-1.5"
+                      className="rounded-xl text-xs font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-xs gap-1.5 py-2 px-3.5"
                     >
                       <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
                       Dokumen Pegawai ({dokumenList.length})
@@ -345,28 +457,37 @@ export default function ProfilBasePage() {
 
                   {/* Tab Content: Profil Data */}
                   <TabsContent value="profil" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       {/* Card Data Pribadi */}
-                      <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-5 shadow-xs space-y-4">
-                        <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800">
-                          <User className="h-4 w-4 text-primary" strokeWidth={1.75} />
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
-                            Identitas & Biodata Pribadi
-                          </h3>
+                      <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-6 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-300">
+                              <User className="h-4 w-4" strokeWidth={1.75} />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-50">Identitas Pribadi</h3>
+                              <p className="text-[11px] text-slate-400 dark:text-zinc-500">Data kependudukan terverifikasi</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] font-medium text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700">
+                            Dukcapil
+                          </Badge>
                         </div>
+
                         <div className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-xs">
                           {[
                             { label: "Nomor Induk Karyawan (NIK)", value: employee.nik, mono: true },
-                            { label: "Jenis Kelamin", value: employee.jenisKelamin === "L" ? "Laki-laki" : employee.jenisKelamin === "P" ? "Perempuan" : "—" },
+                            { label: "Jenis Kelamin", value: employee.jenisKelamin === "L" ? "Laki-laki" : employee.jenisKelamin === "P" ? "Perempuan" : null },
                             { label: "Tempat, Tanggal Lahir", value: `${employee.tempatLahir || "—"}, ${employee.tanggalLahir ? format(new Date(employee.tanggalLahir), "dd MMMM yyyy", { locale: idLocale }) : "—"}` },
                             { label: "Agama", value: employee.agama },
                             { label: "Status Pernikahan", value: employee.statusNikah },
                             { label: "Alamat Domisili", value: employee.alamat },
                           ].map(row => (
-                            <div key={row.label} className="py-2.5 flex justify-between gap-4">
-                              <span className="text-slate-500 dark:text-zinc-400 shrink-0">{row.label}</span>
-                              <span className={`font-medium text-right text-slate-900 dark:text-zinc-100 ${row.mono ? "font-mono" : ""}`}>
-                                {row.value || "—"}
+                            <div key={row.label} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+                              <span className="text-slate-500 dark:text-zinc-400 shrink-0 text-xs font-medium">{row.label}</span>
+                              <span className={`text-right text-slate-900 dark:text-zinc-100 font-medium ${row.mono ? "font-mono" : ""}`}>
+                                {row.value || <span className="text-slate-400 dark:text-zinc-600 italic font-normal">Belum dilengkapi</span>}
                               </span>
                             </div>
                           ))}
@@ -374,13 +495,22 @@ export default function ProfilBasePage() {
                       </div>
 
                       {/* Card Data Kepegawaian & Finansial */}
-                      <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-5 shadow-xs space-y-4">
-                        <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800">
-                          <Briefcase className="h-4 w-4 text-primary" strokeWidth={1.75} />
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
-                            Kepegawaian & Finansial
-                          </h3>
+                      <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-6 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-300">
+                              <Briefcase className="h-4 w-4" strokeWidth={1.75} />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-50">Kepegawaian & Finansial</h3>
+                              <p className="text-[11px] text-slate-400 dark:text-zinc-500">Informasi jabatan struktural dan jaminan</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
+                            SDM Aktif
+                          </Badge>
                         </div>
+
                         <div className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-xs">
                           {[
                             { label: "Jabatan Struktural", value: employee.jabatan },
@@ -388,12 +518,12 @@ export default function ProfilBasePage() {
                             { label: "Golongan & Pangkat", value: `${employee.golongan || "—"} / ${employee.pangkat || "—"}` },
                             { label: "NPWP", value: employee.npwp, mono: true },
                             { label: "BPJS Ketenagakerjaan", value: employee.bpjsKetenagakerjaan, mono: true },
-                            { label: "Bank & Nomor Rekening", value: employee.bank ? `${employee.bank} - ${employee.noRekening || "—"}` : "—" },
+                            { label: "Bank & Nomor Rekening", value: employee.bank ? `${employee.bank} - ${employee.noRekening || "—"}` : null },
                           ].map(row => (
-                            <div key={row.label} className="py-2.5 flex justify-between gap-4">
-                              <span className="text-slate-500 dark:text-zinc-400 shrink-0">{row.label}</span>
-                              <span className={`font-medium text-right text-slate-900 dark:text-zinc-100 ${row.mono ? "font-mono" : ""}`}>
-                                {row.value || "—"}
+                            <div key={row.label} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+                              <span className="text-slate-500 dark:text-zinc-400 shrink-0 text-xs font-medium">{row.label}</span>
+                              <span className={`text-right text-slate-900 dark:text-zinc-100 font-medium ${row.mono ? "font-mono" : ""}`}>
+                                {row.value || <span className="text-slate-400 dark:text-zinc-600 italic font-normal">Belum diset</span>}
                               </span>
                             </div>
                           ))}
@@ -404,7 +534,7 @@ export default function ProfilBasePage() {
 
                   {/* Tab Content: Dokumen */}
                   <TabsContent value="dokumen">
-                    <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-5 shadow-xs space-y-3">
+                    <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-6 shadow-xs space-y-3">
                       <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-primary" strokeWidth={1.75} />

@@ -282,6 +282,15 @@
   100% { transform: translateX(-50%); }
 }
 
+/* Shimmer light sweep for career milestone bars */
+@keyframes shimmerSweep {
+  0% { transform: translateX(-150%); }
+  50%, 100% { transform: translateX(250%); }
+}
+.animate-shimmer {
+  animation: shimmerSweep 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* ============================================================
    Print Styles
    ============================================================ */
