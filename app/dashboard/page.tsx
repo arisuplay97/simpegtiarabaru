@@ -40,6 +40,8 @@ import {
   Clock3,
   FileCheck2,
   TrendingUp,
+  Trophy,
+  Medal,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -271,13 +273,13 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 {/* LEFT (7 cols): REAL-TIME ATTENDANCE STATUS */}
-                <Card className="lg:col-span-7 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6 flex flex-col justify-between">
+                <Card className="lg:col-span-7 bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-5 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/70">
+                    <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-zinc-800/70">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
-                          <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
+                          <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
                             Distribusi Kehadiran Hari Ini
                           </h2>
                         </div>
@@ -295,14 +297,14 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Overall Arrival Rate Meter */}
-                    <div className="mt-5 p-4 rounded-xl bg-slate-50/80 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="mt-4 p-3.5 rounded-lg bg-slate-50/80 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60">
+                      <div className="flex items-center justify-between mb-1.5">
                         <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Tingkat Kedatangan Pegawai</span>
                         <span className="text-sm font-bold font-mono text-slate-900 dark:text-zinc-100">
                           {stats?.kehadiranHariIni?.persenHadir || 0}%
                         </span>
                       </div>
-                      <div className="h-2.5 w-full bg-slate-200/70 dark:bg-zinc-800 rounded-full overflow-hidden flex">
+                      <div className="h-2 w-full bg-slate-200/70 dark:bg-zinc-800 rounded-full overflow-hidden flex">
                         <div
                           className="h-full bg-emerald-500 transition-all duration-500"
                           style={{ width: `${stats?.kehadiranHariIni?.persenHadir || 0}%` }}
@@ -315,48 +317,48 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Breakdown Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                      <div className="p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-950/40 bg-emerald-50/40 dark:bg-emerald-950/20">
-                        <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Hadir Tepat Waktu</p>
-                        <p className="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5">
+                      <div className="p-3 rounded-lg border border-emerald-100 dark:border-emerald-950/40 bg-emerald-50/40 dark:bg-emerald-950/20">
+                        <p className="text-[10px] font-semibold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Tepat Waktu</p>
+                        <p className="text-xl font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">
                           {stats?.kehadiranHariIni?.hadir || 0}
                         </p>
                       </div>
 
-                      <div className="p-3.5 rounded-xl border border-amber-100 dark:border-amber-950/40 bg-amber-50/40 dark:bg-amber-950/20">
-                        <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Terlambat</p>
-                        <p className="text-2xl font-bold font-mono text-amber-700 dark:text-amber-300 mt-1">
+                      <div className="p-3 rounded-lg border border-amber-100 dark:border-amber-950/40 bg-amber-50/40 dark:bg-amber-950/20">
+                        <p className="text-[10px] font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Terlambat</p>
+                        <p className="text-xl font-bold font-mono text-amber-700 dark:text-amber-300 mt-1">
                           {stats?.kehadiranHariIni?.terlambat || 0}
                         </p>
                       </div>
 
-                      <div className="p-3.5 rounded-xl border border-blue-100 dark:border-blue-950/40 bg-blue-50/40 dark:bg-blue-950/20">
-                        <p className="text-[11px] font-semibold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Izin / Cuti / Sakit</p>
-                        <p className="text-2xl font-bold font-mono text-blue-700 dark:text-blue-300 mt-1">
+                      <div className="p-3 rounded-lg border border-blue-100 dark:border-blue-950/40 bg-blue-50/40 dark:bg-blue-950/20">
+                        <p className="text-[10px] font-semibold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Izin/Cuti/Sakit</p>
+                        <p className="text-xl font-bold font-mono text-blue-700 dark:text-blue-300 mt-1">
                           {stats?.kehadiranHariIni?.sakitCuti || 0}
                         </p>
                       </div>
 
-                      <div className="p-3.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/40">
-                        <p className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Belum Absen</p>
-                        <p className="text-2xl font-bold font-mono text-slate-700 dark:text-zinc-300 mt-1">
+                      <div className="p-3 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/40">
+                        <p className="text-[10px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Belum Absen</p>
+                        <p className="text-xl font-bold font-mono text-slate-700 dark:text-zinc-300 mt-1">
                           {stats?.kehadiranHariIni?.belumAbsen || 0}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-zinc-800/70 flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
-                    <span>Shift Kantor: 07:30 - 16:30 WITA</span>
+                  <div className="pt-3.5 mt-3.5 border-t border-slate-100 dark:border-zinc-800/70 flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
+                    <span>Shift: 07:30 - 16:30 WITA</span>
                     <Link href="/kalender" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
-                      Lihat Kalender Kerja
+                      Kalender Kerja
                     </Link>
                   </div>
                 </Card>
 
                 {/* RIGHT (5 cols): HERO INSIGHT BANNER (Matching reference style) */}
                 <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white rounded-2xl p-6 shadow-xs relative overflow-hidden flex-1 flex flex-col justify-between">
+                  <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white rounded-xl p-5 shadow-2xs relative overflow-hidden flex-1 flex flex-col justify-between">
                     <div className="space-y-3 relative z-10">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-white/15 text-white backdrop-blur-xs">
                         <Sparkles className="w-3 h-3" /> ANALITIK & PENGGAJIAN TERPADU
@@ -389,100 +391,186 @@ export default function DashboardPage() {
 
               </div>
 
-              {/* ROW 3: RECENT ACTIVITIES (AKTIVITAS TERAKHIR) & PRIORITY ALERTS TABS */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* ROW 3: 3 EQUAL SEJAJAR CARDS (Aktivitas Terakhir, Peringkat Indeks Kinerja, Agenda & Notifikasi HRD) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
 
-                {/* AKTIVITAS TERAKHIR (User explicit request: contoh aktivitas pegawai yang baru absen, out, dll) */}
-                <Card className="lg:col-span-7 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6 flex flex-col">
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/70">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
-                        <Activity className="w-4 h-4" />
+                {/* CARD 1: AKTIVITAS TERAKHIR PEGAWAI */}
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px]">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-zinc-800/70 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                        <Activity className="w-3.5 h-3.5" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
                           Aktivitas Terakhir Pegawai
                         </h2>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400">
-                          Log masuk, pulang, dan presensi terverifikasi secara langsung
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          Log presensi live
                         </p>
                       </div>
                     </div>
                     <Link
                       href="/absensi"
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 transition-colors"
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-0.5 transition-colors"
                     >
-                      Lihat Semua <ChevronRight className="w-3.5 h-3.5" />
+                      Semua <ChevronRight className="w-3 h-3" />
                     </Link>
                   </div>
 
-                  <div className="divide-y divide-slate-100 dark:divide-zinc-800/60 flex-1">
-                    {stats?.aktivitasTerakhir && stats.aktivitasTerakhir.length > 0 ? (
-                      stats.aktivitasTerakhir.map((act: any) => (
-                        <div key={act.id} className="py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-zinc-900/40 px-2 rounded-xl transition-colors">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Avatar className="h-9 w-9 shrink-0 ring-1 ring-slate-200 dark:ring-zinc-800">
-                              <AvatarImage src={act.fotoUrl} alt={act.nama} />
-                              <AvatarFallback className="text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                {act.nama.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <p className="text-[13px] font-semibold text-slate-900 dark:text-zinc-100 truncate">
-                                {act.nama}
-                              </p>
-                              <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
-                                {act.jabatan} · <span className="text-slate-400 dark:text-zinc-500">{act.bidang}</span>
-                              </p>
+                  <ScrollArea className="flex-1 mt-2 -mr-2 pr-2">
+                    <div className="divide-y divide-slate-100 dark:divide-zinc-800/50">
+                      {stats?.aktivitasTerakhir && stats.aktivitasTerakhir.length > 0 ? (
+                        stats.aktivitasTerakhir.map((act: any) => (
+                          <div key={act.id} className="py-2.5 flex items-center justify-between gap-2.5 hover:bg-slate-50/60 dark:hover:bg-zinc-900/40 px-1.5 rounded-lg transition-colors">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Avatar className="h-7 w-7 shrink-0 ring-1 ring-slate-200 dark:ring-zinc-800">
+                                <AvatarImage src={act.fotoUrl} alt={act.nama} />
+                                <AvatarFallback className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                  {act.nama.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">
+                                  {act.nama}
+                                </p>
+                                <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">
+                                  {act.jabatan}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={cn(
+                                "text-[10px] font-semibold px-2 py-0.5 rounded-full border font-mono",
+                                act.variant === 'success' && "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60",
+                                act.variant === 'warning' && "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60",
+                                act.variant === 'info' && "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/60",
+                                act.variant === 'neutral' && "bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
+                              )}>
+                                {act.statusBadge}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">
+                                {act.waktu}
+                              </span>
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-2.5 shrink-0">
-                            <span className={cn(
-                              "text-[11px] font-semibold px-2.5 py-1 rounded-full border",
-                              act.variant === 'success' && "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60",
-                              act.variant === 'warning' && "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60",
-                              act.variant === 'info' && "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/60",
-                              act.variant === 'neutral' && "bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
-                            )}>
-                              {act.statusBadge}
-                            </span>
-
-                            <span className="text-xs font-mono font-medium text-slate-500 dark:text-zinc-400">
-                              {act.waktu}
-                            </span>
-                          </div>
+                        ))
+                      ) : (
+                        <div className="py-16 text-center text-xs text-slate-400 italic">
+                          Belum ada aktivitas presensi
                         </div>
-                      ))
-                    ) : (
-                      <div className="py-12 text-center text-xs text-slate-400 italic">
-                        Belum ada aktivitas presensi tercatat hari ini
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  </ScrollArea>
                 </Card>
 
-                {/* PRIORITY AGENDA & ALERTS TABS (Kontrak, KGB, Pangkat, Pensiun) */}
-                <Card className="lg:col-span-5 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6 flex flex-col">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800/70">
-                    <div>
-                      <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
-                        Agenda & Notifikasi HRD
-                      </h2>
-                      <p className="text-xs text-slate-500 dark:text-zinc-400">
-                        Jadwal berkala yang membutuhkan tindak lanjut
-                      </p>
+                {/* CARD 2: PERINGKAT INDEKS KINERJA PEGAWAI BULAN INI */}
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px]">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-zinc-800/70 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                        <Trophy className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                          Peringkat Indeks Kinerja
+                        </h2>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          Top 5 pegawai bulan ini
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/indeks"
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-0.5 transition-colors"
+                    >
+                      Peringkat <ChevronRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+
+                  <ScrollArea className="flex-1 mt-2 -mr-2 pr-2">
+                    <div className="space-y-2">
+                      {leaderboard.length === 0 ? (
+                        <div className="py-16 text-center text-xs text-slate-400 italic">
+                          Belum ada penilaian indeks bulan ini
+                        </div>
+                      ) : (
+                        leaderboard.slice(0, 5).map((lb: any, i: number) => {
+                          const rankBadges = [
+                            { label: "#1", bg: "bg-amber-500 text-white border-amber-600" },
+                            { label: "#2", bg: "bg-slate-400 text-white border-slate-500" },
+                            { label: "#3", bg: "bg-amber-700 text-white border-amber-800" },
+                            { label: "#4", bg: "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700" },
+                            { label: "#5", bg: "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700" },
+                          ]
+                          const badge = rankBadges[i] || rankBadges[4]
+
+                          return (
+                            <div
+                              key={lb.id}
+                              className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 hover:bg-slate-50 dark:hover:bg-zinc-900/60 transition-colors"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={cn("flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-mono font-bold border shrink-0", badge.bg)}>
+                                  {badge.label}
+                                </span>
+                                <Avatar className="h-7 w-7 shrink-0 ring-1 ring-slate-200 dark:ring-zinc-800">
+                                  <AvatarImage src={lb.fotoUrl} alt={lb.nama} />
+                                  <AvatarFallback className="bg-blue-600 text-white font-bold text-[10px]">
+                                    {lb.nama?.charAt(0) || 'P'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">
+                                    {lb.nama}
+                                  </p>
+                                  <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">
+                                    {lb.bidang || lb.jabatan || 'Operasional'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                                  {lb.totalSkor}
+                                </span>
+                                <span className="text-[10px] text-slate-400 dark:text-zinc-500 block">poin</span>
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </Card>
+
+                {/* CARD 3: AGENDA & NOTIFIKASI HRD */}
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px]">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-zinc-800/70 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                        <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                          Agenda & Notifikasi HRD
+                        </h2>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          Jadwal berkala
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Tab Selector Pills */}
-                  <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-zinc-900/80 rounded-xl my-3 text-xs font-semibold">
+                  <div className="flex items-center gap-1 p-1 bg-slate-100/80 dark:bg-zinc-900/80 rounded-lg my-2.5 text-[11px] font-semibold shrink-0">
                     <button
                       onClick={() => setAlertTab("kontrak")}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg transition-all",
+                        "flex-1 py-1 rounded-md transition-all text-center",
                         alertTab === "kontrak"
-                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold"
                           : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
                       )}
                     >
@@ -491,9 +579,9 @@ export default function DashboardPage() {
                     <button
                       onClick={() => setAlertTab("kgb")}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg transition-all",
+                        "flex-1 py-1 rounded-md transition-all text-center",
                         alertTab === "kgb"
-                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold"
                           : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
                       )}
                     >
@@ -502,20 +590,20 @@ export default function DashboardPage() {
                     <button
                       onClick={() => setAlertTab("pangkat")}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg transition-all",
+                        "flex-1 py-1 rounded-md transition-all text-center",
                         alertTab === "pangkat"
-                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold"
                           : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
                       )}
                     >
-                      Pangkat ({stats?.pangkatList?.length || 0})
+                      Pkt ({stats?.pangkatList?.length || 0})
                     </button>
                     <button
                       onClick={() => setAlertTab("pensiun")}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg transition-all",
+                        "flex-1 py-1 rounded-md transition-all text-center",
                         alertTab === "pensiun"
-                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs"
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold"
                           : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
                       )}
                     >
@@ -524,22 +612,22 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Tab Contents */}
-                  <ScrollArea className="flex-1 max-h-[320px] pr-2">
+                  <ScrollArea className="flex-1 -mr-2 pr-2">
                     <div className="space-y-2">
                       {alertTab === "kontrak" && (
                         !stats?.kontrakHampirHabis?.length ? (
-                          <div className="text-xs text-slate-400 italic text-center py-10">
-                            Tidak ada kontrak pegawai yang mendekati batas habis
+                          <div className="text-xs text-slate-400 italic text-center py-12">
+                            Tidak ada kontrak mendekati batas
                           </div>
                         ) : (
                           stats.kontrakHampirHabis.map((k: any) => (
-                            <div key={k.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                            <div key={k.id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30">
                               <div className="min-w-0">
                                 <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{k.pegawai?.nama}</p>
-                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{k.pegawai?.jabatan || 'Staf'}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-zinc-400">{k.pegawai?.jabatan || 'Staf'}</p>
                               </div>
                               <span className={cn(
-                                "text-[10px] font-bold font-mono px-2 py-1 rounded-md border",
+                                "text-[10px] font-bold font-mono px-2 py-0.5 rounded border",
                                 k.sisaHari <= 14
                                   ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400"
                                   : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400"
@@ -553,18 +641,18 @@ export default function DashboardPage() {
 
                       {alertTab === "kgb" && (
                         !stats?.kgbList?.length ? (
-                          <div className="text-xs text-slate-400 italic text-center py-10">
-                            Semua Kenaikan Gaji Berkala (KGB) telah terproses
+                          <div className="text-xs text-slate-400 italic text-center py-12">
+                            Semua KGB telah terproses
                           </div>
                         ) : (
                           stats.kgbList.map((kgb: any) => (
-                            <div key={kgb.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                            <div key={kgb.id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30">
                               <div className="min-w-0">
                                 <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{kgb.pegawai?.nama}</p>
-                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{kgb.pegawai?.jabatan || 'Staf'}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-zinc-400">{kgb.pegawai?.jabatan || 'Staf'}</p>
                               </div>
-                              <span className="text-[10px] font-bold font-mono px-2 py-1 rounded-md border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
-                                {kgb.sisaHari <= 0 ? "WAKTUNYA" : `H-${kgb.sisaHari}`}
+                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
+                                {kgb.sisaHari <= 0 ? "Waktunya" : `H-${kgb.sisaHari}`}
                               </span>
                             </div>
                           ))
@@ -573,18 +661,18 @@ export default function DashboardPage() {
 
                       {alertTab === "pangkat" && (
                         !stats?.pangkatList?.length ? (
-                          <div className="text-xs text-slate-400 italic text-center py-10">
-                            Tidak ada jadwal kenaikan pangkat terdekat
+                          <div className="text-xs text-slate-400 italic text-center py-12">
+                            Tidak ada jadwal kenaikan pangkat
                           </div>
                         ) : (
                           stats.pangkatList.map((pkt: any) => (
-                            <div key={pkt.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                            <div key={pkt.id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30">
                               <div className="min-w-0">
                                 <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{pkt.pegawai?.nama}</p>
-                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{pkt.pegawai?.jabatan || 'Staf'}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-zinc-400">{pkt.pegawai?.jabatan || 'Staf'}</p>
                               </div>
-                              <span className="text-[10px] font-bold font-mono px-2 py-1 rounded-md border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300">
-                                {pkt.sisaHari <= 0 ? "WAKTUNYA" : `H-${pkt.sisaHari}`}
+                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300">
+                                {pkt.sisaHari <= 0 ? "Waktunya" : `H-${pkt.sisaHari}`}
                               </span>
                             </div>
                           ))
@@ -593,17 +681,17 @@ export default function DashboardPage() {
 
                       {alertTab === "pensiun" && (
                         !stats?.pensiunTerdekat?.length ? (
-                          <div className="text-xs text-slate-400 italic text-center py-10">
-                            Tidak ada pegawai mendekati masa pensiun tahun ini
+                          <div className="text-xs text-slate-400 italic text-center py-12">
+                            Tidak ada pegawai pensiun tahun ini
                           </div>
                         ) : (
                           stats.pensiunTerdekat.map((p: any) => (
-                            <div key={p.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/70 bg-slate-50/50 dark:bg-zinc-900/40">
+                            <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30">
                               <div className="min-w-0">
                                 <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 truncate">{p.nama}</p>
-                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{p.jabatan || 'Staf'}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-zinc-400">{p.jabatan || 'Staf'}</p>
                               </div>
-                              <span className="text-[10px] font-bold font-mono px-2 py-1 rounded-md border bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300">
+                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded border bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300">
                                 {Math.ceil(p.sisaHari / 30)} Bln Lagi
                               </span>
                             </div>
@@ -616,87 +704,8 @@ export default function DashboardPage() {
 
               </div>
 
-              {/* ROW 4: TOP 5 INDEKS PEGAWAI (No AI-slop, Elegant Medallions) */}
-              <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/70">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-bold text-xs">
-                      #
-                    </span>
-                    <div>
-                      <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
-                        Peringkat Indeks Kinerja Pegawai Bulan Ini
-                      </h2>
-                      <p className="text-xs text-slate-500 dark:text-zinc-400">
-                        Berdasarkan akumulasi kedisiplinan, absensi, KPI tugas, dan penilaian perilaku
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/indeks"
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 transition-colors"
-                  >
-                    Lihat Peringkat Selengkapnya <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-5">
-                  {leaderboard.length === 0 ? (
-                    <div className="col-span-full text-xs text-slate-400 italic text-center py-8">
-                      Belum ada penilaian indeks terinput untuk periode bulan ini
-                    </div>
-                  ) : (
-                    leaderboard.slice(0, 5).map((lb: any, i: number) => {
-                      const rankStyles = [
-                        { border: "border-amber-200 dark:border-amber-900/50", bg: "bg-amber-50/30 dark:bg-amber-950/10", badge: "bg-amber-500 text-white", label: "#01" },
-                        { border: "border-slate-200 dark:border-zinc-700", bg: "bg-slate-50/50 dark:bg-zinc-900/30", badge: "bg-slate-400 text-white", label: "#02" },
-                        { border: "border-orange-200 dark:border-orange-900/50", bg: "bg-orange-50/30 dark:bg-orange-950/10", badge: "bg-orange-400 text-white", label: "#03" },
-                        { border: "border-slate-200 dark:border-zinc-800", bg: "bg-white dark:bg-zinc-900/20", badge: "bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300", label: "#04" },
-                        { border: "border-slate-200 dark:border-zinc-800", bg: "bg-white dark:bg-zinc-900/20", badge: "bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300", label: "#05" },
-                      ]
-                      const style = rankStyles[i] || rankStyles[4]
-
-                      return (
-                        <div
-                          key={lb.id}
-                          className={cn(
-                            "relative flex flex-col items-center text-center p-4 rounded-xl border transition-all duration-150",
-                            style.border,
-                            style.bg
-                          )}
-                        >
-                          <span className={cn(
-                            "absolute -top-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono shadow-2xs",
-                            style.badge
-                          )}>
-                            {style.label}
-                          </span>
-
-                          <Avatar className="w-12 h-12 mt-1 ring-2 ring-white dark:ring-zinc-800 shadow-xs">
-                            <AvatarImage src={lb.fotoUrl} alt={lb.nama} />
-                            <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
-                              {lb.nama?.charAt(0) || 'P'}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          <div className="mt-2.5 w-full min-w-0">
-                            <p className="text-[13px] font-bold text-slate-900 dark:text-zinc-100 truncate">{lb.nama}</p>
-                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{lb.bidang || lb.jabatan || 'Operasional'}</p>
-                          </div>
-
-                          <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-zinc-800/60 w-full flex items-center justify-between text-xs">
-                            <span className="text-slate-400 dark:text-zinc-500">Skor Total:</span>
-                            <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{lb.totalSkor}</span>
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </Card>
-
               {/* ROW 5: ANALYTICS CHARTS SECTION */}
-              <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
+              <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-5 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-zinc-800/70">
                   <div>
                     <h2 className="text-[15px] font-bold text-slate-900 dark:text-zinc-100">
@@ -738,7 +747,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* ULANG TAHUN BULAN INI */}
-                <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-5 sm:p-6">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800/70">
                     <div className="flex items-center gap-2">
                       <Cake className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -778,7 +787,7 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* STATUS SUMBER DAYA MANUSIA */}
-                <Card className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-6">
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-5 sm:p-6">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800/70">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -892,53 +901,70 @@ function SaaSKpiCard({
   href?: string
   onClick?: () => void
 }) {
-  const badgeStyles = {
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60",
-    blue: "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/60",
-    amber: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60",
-    red: "bg-red-50 text-red-700 border-red-200/80 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/60",
-    neutral: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
+  const dotColor = {
+    emerald: "bg-emerald-500",
+    blue: "bg-blue-500",
+    amber: "bg-amber-500",
+    red: "bg-rose-500",
+    neutral: "bg-slate-400",
+  }
+
+  const textColor = {
+    emerald: "text-emerald-700 dark:text-emerald-400",
+    blue: "text-blue-700 dark:text-blue-400",
+    amber: "text-amber-700 dark:text-amber-400",
+    red: "text-rose-700 dark:text-rose-400",
+    neutral: "text-slate-600 dark:text-zinc-400",
   }
 
   const content = (
-    <Card className={cn(
-      "bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs p-4 sm:p-5 flex flex-col justify-between transition-all duration-150 h-full",
-      (href || onClick) && "hover:border-slate-300 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer"
-    )}>
-      {/* Card Header: Icon & Micro Badge */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100/90 dark:bg-zinc-800/80 text-slate-700 dark:text-zinc-200 border border-slate-200/60 dark:border-zinc-700/60">
-          <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+    <div
+      className={cn(
+        "group relative bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-150 shadow-2xs h-full",
+        (href || onClick) && "hover:border-slate-300 dark:hover:border-zinc-700 hover:shadow-xs cursor-pointer"
+      )}
+    >
+      {/* Top row: Clean title on left, subtle icon on right */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[12px] font-medium text-slate-500 dark:text-zinc-400 truncate">
+          {title}
+        </span>
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50 dark:bg-zinc-800/60 text-slate-400 dark:text-zinc-400 group-hover:text-slate-600 dark:group-hover:text-zinc-200 transition-colors shrink-0">
+          <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
         </div>
-        {badgeText && (
-          <span className={cn("text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border", badgeStyles[badgeColor])}>
-            {badgeText}
-          </span>
-        )}
       </div>
 
-      {/* Metric Value */}
-      <div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-50">
+      {/* Middle row: Crisp tabular figure */}
+      <div className="mt-2.5">
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl sm:text-[26px] font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-100 leading-none">
             {value}
           </span>
           {unit && (
-            <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500">
+            <span className="text-[11px] font-medium text-slate-400 dark:text-zinc-500">
               {unit}
             </span>
           )}
         </div>
-        <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mt-1">
-          {title}
-        </p>
-        {sub && (
-          <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+      </div>
+
+      {/* Bottom row: Clean minimal status/trend indicator */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-zinc-800/60 flex items-center justify-between gap-1 text-[11px] min-h-[20px]">
+        {badgeText ? (
+          <span className={cn("inline-flex items-center gap-1.5 font-medium truncate text-[11px]", textColor[badgeColor])}>
+            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor[badgeColor])} />
+            {badgeText}
+          </span>
+        ) : (
+          <span className="text-slate-400 dark:text-zinc-500 truncate text-[11px]">{sub || "—"}</span>
+        )}
+        {badgeText && sub && (
+          <span className="text-[10px] text-slate-400 dark:text-zinc-500 truncate hidden sm:inline text-right">
             {sub}
-          </p>
+          </span>
         )}
       </div>
-    </Card>
+    </div>
   )
 
   if (onClick) {
