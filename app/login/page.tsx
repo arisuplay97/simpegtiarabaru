@@ -165,76 +165,72 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-[#C4BAF8] dark:bg-[#07070B] transition-colors duration-300">
-      {/* ── Main Outer Stage Box (Matches Reference Frame) ── */}
-      <div className="w-full max-w-[1240px] h-[92vh] max-h-[820px] min-h-[580px] bg-[#08080C] rounded-[28px] sm:rounded-[36px] shadow-[0_30px_100px_rgba(0,0,0,0.6)] relative overflow-hidden flex items-center justify-center border border-white/5">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#07070A] text-white relative overflow-hidden">
+      
+      {/* ── Atmospheric Planetary Horizon Glow (The signature curved light line across viewport) ── */}
+      <div 
+        className="absolute w-[140%] -left-[20%] top-[48%] h-[380px] pointer-events-none"
+        style={{
+          borderRadius: "50% 50% 0 0 / 100% 100% 0 0",
+          background: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.08) 35%, transparent 70%)",
+          boxShadow: "0 -2px 36px 1px rgba(168, 85, 247, 0.3)",
+          borderTop: "1px solid rgba(192, 132, 252, 0.25)"
+        }}
+      />
+
+      {/* Ambient Dark Vignette & Background Radial Depth */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(20,20,35,0.4)_0%,rgba(7,7,10,0.98)_75%)] pointer-events-none" />
+
+      {/* Subtle background star dust / particles */}
+      <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:36px_36px] opacity-[0.03] pointer-events-none" />
+
+      {/* ── Glassmorphism Card (Centered) ── */}
+      <div className="relative z-10 w-full max-w-[400px] sm:max-w-[420px] mx-auto p-7 sm:p-9 rounded-[28px] bg-[#0F1118]/85 border border-white/[0.08] border-t-white/[0.18] backdrop-blur-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95),0_0_50px_rgba(139,92,246,0.06)]">
         
-        {/* ── Atmospheric Planetary Horizon Glow (The signature curved light line) ── */}
-        <div 
-          className="absolute w-[140%] -left-[20%] top-[48%] h-[360px] pointer-events-none"
-          style={{
-            borderRadius: "50% 50% 0 0 / 100% 100% 0 0",
-            background: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(139, 92, 246, 0.22) 0%, rgba(99, 102, 241, 0.08) 35%, transparent 70%)",
-            boxShadow: "0 -2px 36px 1px rgba(168, 85, 247, 0.35)",
-            borderTop: "1px solid rgba(192, 132, 252, 0.3)"
-          }}
-        />
+        {/* Logo PDAM (slip.png) dengan Efek Glow */}
+        <div className="relative flex items-center justify-center mb-5">
+          {/* Ambient pulsating glow halo */}
+          <div className="absolute w-32 h-32 bg-gradient-to-tr from-blue-500/50 via-indigo-400/40 to-teal-400/35 rounded-full blur-2xl animate-pulse pointer-events-none" />
 
-        {/* Ambient Dark Vignette & Background Radial Depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(30,27,75,0.25)_0%,rgba(8,8,12,0.95)_75%)] pointer-events-none" />
+          {/* Glowing Logo Card Badge */}
+          <div className="relative z-10 px-4 py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-white/40 shadow-[0_0_28px_rgba(59,130,246,0.55),0_8px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_0_38px_rgba(59,130,246,0.75)] transition-all duration-300 hover:scale-105">
+            <Image
+              src="/slip.png"
+              alt="PERUMDAM Tirta Ardhia Rinjani"
+              width={70}
+              height={98}
+              className="h-16 w-auto object-contain drop-shadow-sm"
+              priority
+            />
+          </div>
+        </div>
 
-        {/* Subtle background star dust / particles */}
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:36px_36px] opacity-[0.03] pointer-events-none" />
+        {/* Heading (Bahasa Indonesia) */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Selamat Datang
+          </h1>
+          <p className="text-xs text-zinc-400 font-normal mt-1">
+            Silakan masukkan kredensial akun Anda.
+          </p>
+        </div>
 
-        {/* ── Glassmorphism Card (Centered) ── */}
-        <div className="relative z-10 w-full max-w-[390px] sm:max-w-[420px] mx-4 p-7 sm:p-8 rounded-[28px] bg-[#0F1118]/85 border border-white/[0.08] border-t-white/[0.18] backdrop-blur-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_50px_rgba(139,92,246,0.06)]">
-          
-          {/* Logo PDAM (slip.png) dengan Efek Glow */}
-          <div className="relative flex items-center justify-center mb-5">
-            {/* Ambient pulsating glow halo */}
-            <div className="absolute w-32 h-32 bg-gradient-to-tr from-blue-500/50 via-indigo-400/40 to-teal-400/35 rounded-full blur-2xl animate-pulse pointer-events-none" />
-
-            {/* Glowing Logo Card Badge */}
-            <div className="relative z-10 px-4 py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-white/40 shadow-[0_0_28px_rgba(59,130,246,0.55),0_8px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_0_38px_rgba(59,130,246,0.75)] transition-all duration-300 hover:scale-105">
-              <Image
-                src="/slip.png"
-                alt="PERUMDAM Tirta Ardhia Rinjani"
-                width={70}
-                height={98}
-                className="h-16 w-auto object-contain drop-shadow-sm"
-                priority
-              />
+        {/* Form */}
+        <Suspense
+          fallback={
+            <div className="py-12 flex justify-center items-center">
+              <Loader2 className="animate-spin text-zinc-400" size={24} />
             </div>
-          </div>
+          }
+        >
+          <LoginForm />
+        </Suspense>
 
-          {/* Heading (Bahasa Indonesia) */}
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Selamat Datang
-            </h1>
-            <p className="text-xs text-zinc-400 font-normal mt-1">
-              Silakan masukkan kredensial akun Anda.
-            </p>
-          </div>
-
-          {/* Form */}
-          <Suspense
-            fallback={
-              <div className="py-12 flex justify-center items-center">
-                <Loader2 className="animate-spin text-zinc-400" size={24} />
-              </div>
-            }
-          >
-            <LoginForm />
-          </Suspense>
-
-          {/* Discreet Footer Note */}
-          <div className="mt-6 pt-4 border-t border-white/[0.06] text-center">
-            <p className="text-[11px] text-zinc-500">
-              SIMPEG &bull; PERUMDAM Tirta Ardhia Rinjani
-            </p>
-          </div>
-
+        {/* Discreet Footer Note */}
+        <div className="mt-6 pt-4 border-t border-white/[0.06] text-center">
+          <p className="text-[11px] text-zinc-500">
+            SIMPEG &bull; PERUMDAM Tirta Ardhia Rinjani
+          </p>
         </div>
 
       </div>
