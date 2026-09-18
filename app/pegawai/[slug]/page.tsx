@@ -86,6 +86,7 @@ import { getPegawaiActivityLogs } from "@/lib/actions/audit-log"
 import { resetFaceData } from "@/lib/actions/face"
 import { getLokasiList } from "@/lib/actions/lokasi"
 import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
+import { generateCvPdf } from "@/lib/generate-cv-pdf"
 import { Camera } from "lucide-react"
 
 const statusConfig: Record<string, { label: string; dot: string; className: string }> = {
@@ -248,6 +249,26 @@ export default function EmployeeDetailPage() {
       const data = await getLokasiList()
       setLokasiList(data || [])
     } catch (e) {}
+  }
+
+  const [isGeneratingCv, setIsGeneratingCv] = useState(false)
+
+  const handleDownloadCv = async () => {
+    if (!employee) {
+      toast.error("Data profil pegawai belum siap diunduh")
+      return
+    }
+    setIsGeneratingCv(true)
+    const toastId = toast.loading("Menyiapkan dokumen CV ATS PDF...")
+    try {
+      await generateCvPdf(employee)
+      toast.success("CV ATS (PDF) berhasil diunduh!", { id: toastId })
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Gagal mengunduh CV ATS", { id: toastId })
+    } finally {
+      setIsGeneratingCv(false)
+    }
   }
 
   const fetchEmployee = async () => {
@@ -705,10 +726,17 @@ export default function EmployeeDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 gap-1.5 text-xs border-slate-200 dark:border-zinc-800 rounded-xl"
+                className="h-9 gap-1.5 text-xs border-slate-200 dark:border-zinc-800 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/60 cursor-pointer"
+                onClick={handleDownloadCv}
+                disabled={isGeneratingCv || !employee}
+                title="Unduh Curriculum Vitae format ATS (PDF)"
               >
-                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-                Unduh CV
+                {isGeneratingCv ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
+                )}
+                <span>{isGeneratingCv ? "Menyiapkan PDF..." : "Unduh CV (ATS)"}</span>
               </Button>
               <Button
                 size="sm"
