@@ -39,11 +39,23 @@ import { hasPermission } from "@/lib/auth/permissions"
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "approved":
-      return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><CheckCircle2 className="w-3 h-3 mr-1" /> Disetujui</Badge>
+      return (
+        <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 font-semibold text-[11px] gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Disetujui
+        </Badge>
+      )
     case "rejected":
-      return <Badge className="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"><XCircle className="w-3 h-3 mr-1" /> Ditolak</Badge>
+      return (
+        <Badge variant="outline" className="bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/60 font-semibold text-[11px] gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Ditolak
+        </Badge>
+      )
     case "pending":
-      return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><Clock className="w-3 h-3 mr-1" /> Diproses</Badge>
+      return (
+        <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/60 font-semibold text-[11px] gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> Menunggu Approval
+        </Badge>
+      )
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -52,14 +64,30 @@ const getStatusBadge = (status: string) => {
 const getTypeBadge = (type: string) => {
   switch (type) {
     case "promosi":
-      return <Badge className="bg-blue-100 text-blue-700 border-none">Promosi</Badge>
+      return (
+        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/60 font-semibold text-[11px]">
+          Promosi
+        </Badge>
+      )
     case "demosi":
-      return <Badge className="bg-rose-100 text-rose-700 border-none">Demosi</Badge>
+      return (
+        <Badge variant="outline" className="bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/60 font-semibold text-[11px]">
+          Demosi
+        </Badge>
+      )
     case "rotasi":
-      return <Badge className="bg-purple-100 text-purple-700 border-none">Rotasi</Badge>
+      return (
+        <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/60 font-semibold text-[11px]">
+          Rotasi
+        </Badge>
+      )
     case "mutasi":
     default:
-      return <Badge className="bg-slate-100 text-slate-700 border-none">Mutasi</Badge>
+      return (
+        <Badge variant="outline" className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 font-semibold text-[11px]">
+          Mutasi
+        </Badge>
+      )
   }
 }
 
@@ -226,7 +254,7 @@ export default function MutasiPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-background">
       <SidebarNav />
       <div className="flex flex-1 flex-col sidebar-offset">
         <TopBar breadcrumb={["Kepegawaian", "Mutasi & Promosi"]} />
@@ -235,73 +263,89 @@ export default function MutasiPage() {
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Mutasi & Promosi Pegawai</h1>
-                <p className="text-slate-500 text-sm mt-1">
-                  Kelola dan pantau pergerakan karir pegawai PDAM Tirta
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">Mutasi & Promosi Pegawai</h1>
+                <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm mt-1">
+                  Kelola dan pantau rotasi, promosi, mutasi divisi, serta demosi pegawai perusahaan
                 </p>
               </div>
               {canManage && (
-                <Button onClick={() => setShowAjukanModal(true)}>
-                  <Plus className="w-4 h-4 mr-2" /> Ajukan Mutasi
+                <Button onClick={() => setShowAjukanModal(true)} className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs">
+                  <Plus className="w-3.5 h-3.5" /> Ajukan Mutasi
                 </Button>
               )}
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="border-slate-200">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><ArrowRightLeft className="w-5 h-5" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Mutasi</p>
-                    <p className="text-2xl font-bold">{mutasiData.filter(m => m.type === "mutasi").length}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 p-4 shadow-2xs transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Total Mutasi</span>
+                  <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/50">
+                    <ArrowRightLeft className="w-4 h-4" />
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="border-slate-200">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><TrendingUp className="w-5 h-5" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Promosi</p>
-                    <p className="text-2xl font-bold">{mutasiData.filter(m => m.type === "promosi").length}</p>
+                </div>
+                <p className="mt-2 text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-100">
+                  {mutasiData.filter(m => m.type === "mutasi").length}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Perpindahan unit/divisi kerja</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 p-4 shadow-2xs transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Promosi Jabatan</span>
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/50">
+                    <TrendingUp className="w-4 h-4" />
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="border-slate-200">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 bg-amber-50 text-amber-600 rounded-lg"><Clock className="w-5 h-5" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Pending</p>
-                    <p className="text-2xl font-bold">{mutasiData.filter(m => m.status === "pending").length}</p>
+                </div>
+                <p className="mt-2 text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-100">
+                  {mutasiData.filter(m => m.type === "promosi").length}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Kenaikan jenjang karir pegawai</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 p-4 shadow-2xs transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Menunggu Approval</span>
+                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/50">
+                    <Clock className="w-4 h-4" />
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="border-slate-200">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 bg-purple-50 text-purple-600 rounded-lg"><Users className="w-5 h-5" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Rotasi</p>
-                    <p className="text-2xl font-bold">{mutasiData.filter(m => m.type === "rotasi").length}</p>
+                </div>
+                <p className="mt-2 text-2xl font-bold font-mono tracking-tight text-amber-600 dark:text-amber-400">
+                  {mutasiData.filter(m => m.status === "pending").length}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Perlu tinjauan & persetujuan Direksi</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 p-4 shadow-2xs transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Rotasi Tugas</span>
+                  <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-900/50">
+                    <Users className="w-4 h-4" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                <p className="mt-2 text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-100">
+                  {mutasiData.filter(m => m.type === "rotasi").length}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Penyegaran tugas dalam divisi</p>
+              </div>
             </div>
 
-            <Card className="border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-1 border-b bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            {/* Table Card */}
+            <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 shadow-2xs overflow-hidden">
+              <div className="p-2.5 sm:px-4 border-b border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-                  <TabsList className="bg-transparent">
-                    <TabsTrigger value="semua" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Semua</TabsTrigger>
-                    <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Menunggu Approval</TabsTrigger>
-                    <TabsTrigger value="approved" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Disetujui</TabsTrigger>
-                    <TabsTrigger value="rejected" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Ditolak</TabsTrigger>
+                  <TabsList className="h-8 bg-slate-200/60 dark:bg-zinc-800/70 p-0.5 rounded-lg">
+                    <TabsTrigger value="semua" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-2xs">Semua</TabsTrigger>
+                    <TabsTrigger value="pending" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-2xs">Menunggu Approval</TabsTrigger>
+                    <TabsTrigger value="approved" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-2xs">Disetujui</TabsTrigger>
+                    <TabsTrigger value="rejected" className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-2xs">Ditolak</TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <div className="relative w-full sm:w-72 px-4 pb-4 sm:p-0">
-                  <Search className="absolute left-6 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <Input 
-                    placeholder="Cari NIK atau Nama Pegawai..." 
-                    className="pl-9 mr-4 sm:mr-0 bg-white"
+                    placeholder="Cari NIK atau nama pegawai..." 
+                    className="pl-9 h-8 text-xs bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -311,32 +355,32 @@ export default function MutasiPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/50">
-                      <TableHead className="w-[250px]">Pegawai</TableHead>
-                      <TableHead>Jenis</TableHead>
-                      <TableHead>Dari</TableHead>
-                      <TableHead>Ke (Tujuan)</TableHead>
-                      <TableHead>Tanggal Efektif</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-center w-[80px]">Aksi</TableHead>
+                    <TableRow className="bg-slate-50/60 dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800">
+                      <TableHead className="w-[240px] text-xs font-semibold">Pegawai</TableHead>
+                      <TableHead className="text-xs font-semibold">Jenis</TableHead>
+                      <TableHead className="text-xs font-semibold">Posisi Asal</TableHead>
+                      <TableHead className="text-xs font-semibold">Posisi Tujuan</TableHead>
+                      <TableHead className="text-xs font-semibold">Tanggal Efektif</TableHead>
+                      <TableHead className="text-xs font-semibold">Status</TableHead>
+                      <TableHead className="text-center w-[70px] text-xs font-semibold">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-500">Memuat data mutasi...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-400 dark:text-zinc-500 text-xs italic">Memuat data mutasi...</TableCell></TableRow>
                     ) : filteredData.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-500">Pencarian tidak ditemukan.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-400 dark:text-zinc-500 text-xs italic">Tidak ada data mutasi yang cocok.</TableCell></TableRow>
                     ) : (
                       filteredData.map((item) => (
-                        <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableRow key={item.id} className="border-slate-100 dark:border-zinc-800/80 hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors">
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-9 w-9 border">
-                                <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">{item.inisial}</AvatarFallback>
+                              <Avatar className="h-8 w-8 border border-slate-200 dark:border-zinc-800">
+                                <AvatarFallback className="bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 text-xs font-bold font-mono">{item.inisial}</AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-medium text-slate-900 leading-none mb-1">{item.namaPegawai}</p>
-                                <p className="text-xs text-slate-500 font-mono">{item.nik}</p>
+                                <p className="font-semibold text-xs text-slate-900 dark:text-zinc-100 leading-tight mb-0.5">{item.namaPegawai}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono">{item.nik}</p>
                               </div>
                             </div>
                           </TableCell>
@@ -344,36 +388,34 @@ export default function MutasiPage() {
                             {getTypeBadge(item.type)}
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-slate-700">{item.jabatanAsal}</span>
-                              <span className="text-xs text-slate-500">{item.unitAsal}</span>
+                            <div className="flex flex-col text-xs">
+                              <span className="font-medium text-slate-800 dark:text-zinc-200">{item.jabatanAsal}</span>
+                              <span className="text-[11px] text-slate-500 dark:text-zinc-400">{item.unitAsal}</span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold text-emerald-700">{item.jabatanTujuan}</span>
-                              <span className="text-xs text-emerald-600/80">{item.unitTujuan}</span>
+                            <div className="flex flex-col text-xs">
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">{item.jabatanTujuan}</span>
+                              <span className="text-[11px] text-slate-500 dark:text-zinc-400">{item.unitTujuan}</span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm">{item.tanggalEfektif}</span>
+                            <span className="text-xs font-mono text-slate-700 dark:text-zinc-300">{item.tanggalEfektif}</span>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-col gap-1 items-start">
-                              {getStatusBadge(item.status)}
-                            </div>
+                            {getStatusBadge(item.status)}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button 
                               variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
+                              size="icon" 
+                              className="h-7 w-7 text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
                               onClick={() => {
                                 setSelectedMutasi(item)
                                 setShowDetailModal(true)
                               }}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -382,7 +424,7 @@ export default function MutasiPage() {
                   </TableBody>
                 </Table>
               </div>
-            </Card>
+            </div>
 
           </div>
         </main>
@@ -390,21 +432,21 @@ export default function MutasiPage() {
 
       {/* DIALOG AJUKAN MUTASI */}
       <Dialog open={showAjukanModal} onOpenChange={setShowAjukanModal}>
-        <DialogContent className="sm:max-w-[600px] overflow-visible">
+        <DialogContent className="sm:max-w-[560px] border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <DialogHeader>
-            <DialogTitle>Form Pengajuan Mutasi / Promosi</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-slate-900 dark:text-zinc-100 text-base font-bold">Form Pengajuan Mutasi & Promosi</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
               Isi data pergerakan karir pegawai baru sesuai kebijakan perusahaan.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
-            <div className="space-y-2">
-              <Label>Pegawai</Label>
+          <div className="grid gap-3.5 py-2 max-h-[70vh] overflow-y-auto px-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Pegawai</Label>
               <Select value={form.pegawaiId} onValueChange={(val) => setForm({...form, pegawaiId: val})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Pegawai" />
+                <SelectTrigger className="h-9 text-xs bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800">
+                  <SelectValue placeholder="Pilih Pegawai..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
                    {pegawaiList.map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.nama} - {p.nik}</SelectItem>
                    ))}
@@ -412,74 +454,71 @@ export default function MutasiPage() {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label>Jenis Pergerakan</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Jenis Pergerakan</Label>
               <Select value={form.type} onValueChange={(val) => setForm({...form, type: val})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Jenis" />
+                <SelectTrigger className="h-9 text-xs bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800">
+                  <SelectValue placeholder="Pilih Jenis..." />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mutasi">Mutasi (Pindah Unit, Level Sama)</SelectItem>
-                  <SelectItem value="promosi">Promosi (Naik Level Jabatan)</SelectItem>
-                  <SelectItem value="rotasi">Rotasi (Pindah Jobdesk, Unit Sama)</SelectItem>
-                  <SelectItem value="demosi">Demosi (Turun Level Jabatan)</SelectItem>
+                <SelectContent className="border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                  <SelectItem value="mutasi">Mutasi (Pindah Unit / Lokasi)</SelectItem>
+                  <SelectItem value="promosi">Promosi (Kenaikan Jenjang Jabatan)</SelectItem>
+                  <SelectItem value="rotasi">Rotasi (Penyegaran Jobdesk / Bagian)</SelectItem>
+                  <SelectItem value="demosi">Demosi (Penurunan Level Jabatan)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Unit / Bidang Tujuan</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Unit / Bidang Tujuan</Label>
                 <Select value={form.unitTujuan} onValueChange={(val) => setForm({...form, unitTujuan: val})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Unit" />
+                  <SelectTrigger className="h-9 text-xs bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800">
+                    <SelectValue placeholder="Pilih Unit Tujuan..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
                      {bidangList.map(b => (
-                        <SelectItem key={b.kode} value={b.nama}>{b.nama}</SelectItem>
+                        <SelectItem key={b.id || b.kode} value={b.nama}>{b.nama}</SelectItem>
                      ))}
                   </SelectContent>
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label>Jabatan Tujuan</Label>
-                <Select value={form.jabatanTujuan} onValueChange={(val) => setForm({...form, jabatanTujuan: val})} disabled={!form.unitTujuan}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Jabatan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                     {jabatanOptions.map((j: any) => (
-                        <SelectItem key={j.value} value={j.label}>{j.label}</SelectItem>
-                     ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Jabatan Baru</Label>
+                <Input
+                  placeholder="Contoh: Kepala Seksi Distribusi"
+                  value={form.jabatanTujuan}
+                  onChange={e => setForm({...form, jabatanTujuan: e.target.value})}
+                  className="h-9 text-xs bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800"
+                />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Tanggal Efektif</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Tanggal Efektif Berlaku</Label>
               <Input 
                  type="date" 
                  value={form.tanggalEfektif} 
                  onChange={e => setForm({...form, tanggalEfektif: e.target.value})}
+                 className="h-9 text-xs bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Alasan Pengajuan</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Alasan & Dasar Pertimbangan</Label>
               <Textarea 
-                placeholder="Deskripsikan alasan atau dasar pertimbangan HRD..." 
-                className="resize-none"
+                placeholder="Deskripsikan alasan mutasi/promosi, dasar SK, atau evaluasi kinerja..." 
+                className="resize-none text-xs bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 min-h-[70px]"
                 value={form.alasan}
                 onChange={e => setForm({...form, alasan: e.target.value})}
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAjukanModal(false)}>Batal</Button>
-            <Button onClick={handleAjukan} disabled={isSubmitting}>
-               {isSubmitting ? "Mengirim..." : "Ajukan"}
+          <DialogFooter className="pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowAjukanModal(false)}>Batal</Button>
+            <Button size="sm" onClick={handleAjukan} disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
+               {isSubmitting ? "Mengirim..." : "Kirim Pengajuan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -487,83 +526,82 @@ export default function MutasiPage() {
 
       {/* DIALOG DETAIL / APPROVAL */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[560px] border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <DialogHeader>
-            <DialogTitle>Detail Mutasi & Promosi</DialogTitle>
-            <DialogDescription>Informasi pergerakan posisi pegawai.</DialogDescription>
+            <DialogTitle className="text-slate-900 dark:text-zinc-100 text-base font-bold">Detail Mutasi & Promosi</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">Informasi lengkap pergerakan posisi pegawai.</DialogDescription>
           </DialogHeader>
           
           {selectedMutasi && (
-            <div className="space-y-6 py-4">
-              <div className="flex items-center justify-between border-b pb-4">
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border border-slate-200">
-                    <AvatarFallback className="bg-primary/10 text-primary">{selectedMutasi.inisial}</AvatarFallback>
+                  <Avatar className="h-9 w-9 border border-slate-200 dark:border-zinc-800">
+                    <AvatarFallback className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-xs font-bold">{selectedMutasi.inisial}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold text-slate-900">{selectedMutasi.namaPegawai}</p>
-                    <p className="text-xs text-slate-500 font-mono">{selectedMutasi.nik}</p>
+                    <p className="font-semibold text-xs text-slate-900 dark:text-zinc-100">{selectedMutasi.namaPegawai}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono">{selectedMutasi.nik}</p>
                   </div>
                 </div>
                 {getStatusBadge(selectedMutasi.status)}
               </div>
 
               {/* Current vs Target */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Posisi Asal</p>
-                  <div className="space-y-1">
-                    <p className="font-medium text-slate-900">{selectedMutasi.jabatanAsal}</p>
-                    <p className="text-sm text-slate-500">{selectedMutasi.unitAsal}</p>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="bg-slate-50 dark:bg-zinc-800/50 border border-slate-200/80 dark:border-zinc-800 rounded-xl p-3.5">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Posisi Asal</p>
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-slate-900 dark:text-zinc-100">{selectedMutasi.jabatanAsal}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400">{selectedMutasi.unitAsal}</p>
                   </div>
                 </div>
                 
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 relative overflow-hidden">
-                  <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-100/50 rounded-full"></div>
-                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-3 relative z-10">Tujuan ({selectedMutasi.type.toUpperCase()})</p>
-                  <div className="space-y-1 relative z-10">
-                    <p className="font-semibold text-blue-900">{selectedMutasi.jabatanTujuan}</p>
-                    <p className="text-sm text-blue-700">{selectedMutasi.unitTujuan}</p>
+                <div className="bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/50 rounded-xl p-3.5">
+                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">Posisi Tujuan ({selectedMutasi.type.toUpperCase()})</p>
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-blue-950 dark:text-blue-200">{selectedMutasi.jabatanTujuan}</p>
+                    <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80">{selectedMutasi.unitTujuan}</p>
                   </div>
                 </div>
               </div>
 
               {/* Status & Dates */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-xs p-3 rounded-lg bg-slate-50/60 dark:bg-zinc-800/30 border border-slate-100 dark:border-zinc-800">
                 <div>
-                  <span className="text-slate-500 block text-xs">Tanggal Pengajuan</span>
-                  <span className="font-medium">{selectedMutasi.tanggalPengajuan}</span>
+                  <span className="text-slate-400 dark:text-zinc-500 block text-[11px]">Tanggal Pengajuan</span>
+                  <span className="font-mono font-medium text-slate-900 dark:text-zinc-100">{selectedMutasi.tanggalPengajuan}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-xs">Tanggal Efektif Berlaku</span>
-                  <span className="font-medium text-emerald-600">{selectedMutasi.tanggalEfektif}</span>
+                  <span className="text-slate-400 dark:text-zinc-500 block text-[11px]">Tanggal Efektif Berlaku</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{selectedMutasi.tanggalEfektif}</span>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-slate-900">Alasan/Pertimbangan</h4>
-                <div className="p-3 bg-slate-50 rounded-lg border text-sm text-slate-700">
+              <div className="space-y-1">
+                <h4 className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Alasan & Pertimbangan</h4>
+                <div className="p-3 bg-slate-50 dark:bg-zinc-800/40 rounded-lg border border-slate-200 dark:border-zinc-800 text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">
                   {selectedMutasi.alasan}
                 </div>
               </div>
 
               {selectedMutasi.status !== "pending" && (
-                <div className="p-4 bg-slate-100 rounded-lg">
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Informasi Approval</h4>
-                  <div className="grid grid-cols-2 gap-y-2 text-sm">
+                <div className="p-3 bg-slate-100/70 dark:bg-zinc-800/60 rounded-xl border border-slate-200/80 dark:border-zinc-700/60 text-xs space-y-2">
+                  <h4 className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Informasi Keputusan Direksi</h4>
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-slate-500 block text-xs">Diresmikan Oleh</span>
-                      <span className="font-medium">{selectedMutasi.approvedBy || "Admin"}</span>
+                      <span className="text-slate-400 dark:text-zinc-500 block text-[10px]">Diresmikan Oleh</span>
+                      <span className="font-medium text-slate-900 dark:text-zinc-100">{selectedMutasi.approvedBy || "Direksi / HRD"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-xs">Nomor SK Direksi</span>
-                      <span className="font-medium text-blue-600 font-mono">{selectedMutasi.nomorSK || "-"}</span>
+                      <span className="text-slate-400 dark:text-zinc-500 block text-[10px]">Nomor SK Direksi</span>
+                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{selectedMutasi.nomorSK || "-"}</span>
                     </div>
                   </div>
                   {selectedMutasi.catatanApproval && (
-                    <div className="mt-3 text-sm">
-                      <span className="text-slate-500 block text-xs">Catatan Direksi</span>
-                      <span>{selectedMutasi.catatanApproval}</span>
+                    <div className="pt-1.5 border-t border-slate-200 dark:border-zinc-700">
+                      <span className="text-slate-400 dark:text-zinc-500 block text-[10px]">Catatan Keputusan</span>
+                      <span className="text-slate-700 dark:text-zinc-300">{selectedMutasi.catatanApproval}</span>
                     </div>
                   )}
                 </div>
@@ -571,26 +609,26 @@ export default function MutasiPage() {
 
               {/* Approve form for DIREKSI or SUPERADMIN if pending */}
               {selectedMutasi.status === "pending" && canApprove && (
-                <div className="mt-4 pt-4 border-t border-slate-200">
-                   <h4 className="text-sm font-semibold text-slate-900 mb-3">Tindakan Admin/Direksi</h4>
-                   <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                            <Label>Nomor SK Direksi <span className="text-red-500">*</span></Label>
-                            <Input 
-                               placeholder="Contoh: SK/MUT/2026/001" 
-                               value={approveForm.nomorSK}
-                               onChange={e => setApproveForm({...approveForm, nomorSK: e.target.value})}
-                            />
-                         </div>
+                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-zinc-800 space-y-3">
+                   <h4 className="text-xs font-bold text-slate-900 dark:text-zinc-100 uppercase tracking-wider">Tindakan Otorisasi Direksi</h4>
+                   <div className="space-y-2.5">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Nomor SK Direksi <span className="text-rose-500">*</span></Label>
+                        <Input 
+                           placeholder="Contoh: SK/DIR/MUT/2026/012" 
+                           value={approveForm.nomorSK}
+                           onChange={e => setApproveForm({...approveForm, nomorSK: e.target.value})}
+                           className="h-9 text-xs font-mono bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800"
+                        />
                       </div>
-                      <div className="space-y-2">
-                         <Label>Catatan Pribadi/Direksi</Label>
-                         <Textarea 
-                            placeholder="Opsional..."
-                            value={approveForm.catatan}
-                            onChange={e => setApproveForm({...approveForm, catatan: e.target.value})}
-                         />
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Catatan Otorisasi (Opsional)</Label>
+                        <Textarea 
+                           placeholder="Catatan tambahan untuk pegawai atau arsip HRD..."
+                           value={approveForm.catatan}
+                           onChange={e => setApproveForm({...approveForm, catatan: e.target.value})}
+                           className="text-xs bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 min-h-[60px]"
+                        />
                       </div>
                    </div>
                 </div>
@@ -599,20 +637,20 @@ export default function MutasiPage() {
             </div>
           )}
 
-          <DialogFooter className="flex-row sm:justify-between items-center w-full">
+          <DialogFooter className="flex-row sm:justify-between items-center w-full pt-2">
             <div>
               {selectedMutasi?.status === "pending" && canManage && (
-                 <Button variant="ghost" className="text-red-500" onClick={() => handleDelete(selectedMutasi.id)} disabled={isSubmitting}>
-                    <Trash2 className="w-4 h-4 mr-2"/> Batal/Hapus Pengajuan
+                 <Button variant="ghost" size="sm" className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs" onClick={() => handleDelete(selectedMutasi.id)} disabled={isSubmitting}>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5"/> Hapus Pengajuan
                  </Button>
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowDetailModal(false)}>Tutup</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowDetailModal(false)}>Tutup</Button>
               {selectedMutasi?.status === "pending" && canApprove && (
                 <>
-                  <Button variant="destructive" onClick={() => handleApproveReject(false)} disabled={isSubmitting}>Tolak</Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleApproveReject(true)} disabled={isSubmitting}>Setujui & Terbitkan SK</Button>
+                  <Button variant="outline" size="sm" className="border-rose-200 dark:border-rose-900/50 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40" onClick={() => handleApproveReject(false)} disabled={isSubmitting}>Tolak</Button>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleApproveReject(true)} disabled={isSubmitting}>Setujui & Terbitkan SK</Button>
                 </>
               )}
             </div>

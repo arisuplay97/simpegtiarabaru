@@ -91,32 +91,57 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
   try {
     const status: StatusMutasi = isApprove ? "APPROVED" : "REJECTED"
 
+    // Resolve approver pegawai ID safely (if User.id or Pegawai.id is passed)
+    let actualApproverId: string | null = null
+    if (approverId) {
+      const pDirect = await prisma.pegawai.findUnique({ where: { id: approverId }, select: { id: true } })
+      if (pDirect) {
+        actualApproverId = pDirect.id
+      } else {
+        const pByUser = await prisma.pegawai.findUnique({ where: { userId: approverId }, select: { id: true } })
+        if (pByUser) {
+          actualApproverId = pByUser.id
+        }
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       const updated = await tx.mutasi.update({
         where: { id },
         data: {
           status,
-          approvedById: approverId,
+          approvedById: actualApproverId,
           catatan,
           nomorSK
         }
       })
 
-      // Jika diapprove, update data pegawai terkait unit/jabatan? 
-      // Untuk HRIS nyata, ini dilakukan saat tanggal efektif.
-      // Namun krn ini simulasi, kita bisa lgsung update
       if (isApprove) {
-        // Find bidang id dari unit tujuan
+        // Find bidang id dari unit tujuan secara case-insensitive
+        const cleanUnit = (updated.unitTujuan || "").trim()
         const bidangTarget = await tx.bidang.findFirst({
-          where: { nama: updated.unitTujuan }
+          where: {
+            nama: { equals: cleanUnit, mode: 'insensitive' }
+          }
         })
+
+        // Auto update tipeJabatan jika relevan
+        let newTipeJabatan: any = undefined
+        const lowJab = updated.jabatanTujuan.toLowerCase()
+        if (lowJab.includes("kepala bidang") || lowJab.includes("kabid")) newTipeJabatan = "KEPALA_BIDANG"
+        else if (lowJab.includes("kepala cabang") || lowJab.includes("kacab")) newTipeJabatan = "KEPALA_CABANG"
+        else if (lowJab.includes("kasubbid") || lowJab.includes("kepala sub")) {
+          newTipeJabatan = lowJab.includes("cabang") ? "KASUBBID_CABANG" : "KASUBBID"
+        } else if (lowJab.includes("cabang")) {
+          newTipeJabatan = "STAFF_CABANG"
+        }
 
         await tx.pegawai.update({
           where: { id: updated.pegawaiId },
           data: {
             jabatan: updated.jabatanTujuan,
-            bidangId: bidangTarget?.id || null 
-            // Jika bidang target ngga ketemu, kita set yg lama / keep null sesuai behavior HRIS sederhana
+            ...(bidangTarget ? { bidangId: bidangTarget.id } : {}),
+            ...(newTipeJabatan ? { tipeJabatan: newTipeJabatan } : {})
           }
         })
       }

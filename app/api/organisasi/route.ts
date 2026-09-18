@@ -13,14 +13,14 @@ export async function GET() {
             include: {
               pegawai: {
                 where: { status: "AKTIF" },
-                select: { id: true, nama: true, jabatan: true, tipeJabatan: true, fotoUrl: true },
+                select: { id: true, nama: true, jabatan: true, tipeJabatan: true, fotoUrl: true, email: true, telepon: true, golongan: true },
                 orderBy: { tipeJabatan: "asc" },
               },
             },
           },
           pegawai: {
             where: { status: "AKTIF" },
-            select: { id: true, nama: true, jabatan: true, tipeJabatan: true, fotoUrl: true, subBidangId: true },
+            select: { id: true, nama: true, jabatan: true, tipeJabatan: true, fotoUrl: true, subBidangId: true, email: true, telepon: true, golongan: true },
             orderBy: { tipeJabatan: "asc" },
           },
         },
@@ -44,7 +44,7 @@ export async function GET() {
             : []),
         ],
       },
-      select: { id: true, nama: true, jabatan: true, tipeJabatan: true, fotoUrl: true, atasanLangsung: true },
+      select: { id: true, nama: true, jabatan: true, tipeJabatan: true, fotoUrl: true, atasanLangsung: true, email: true, telepon: true, golongan: true },
       orderBy: { jabatan: "asc" },
     })
 

@@ -31,15 +31,22 @@ export async function getFormasiList() {
             equals: f.jabatan,
             mode: "insensitive"
           },
-          bidangId: f.bidangId,
+          ...(f.bidangId ? { bidangId: f.bidangId } : {}),
           status: "AKTIF"
         }
       })
+      const kebutuhan = Math.max(1, f.kebutuhan || 1)
+      let statusEnum = "penuh"
+      if (terisi < kebutuhan) statusEnum = "kurang"
+      else if (terisi > kebutuhan) statusEnum = "lebih"
+
       return {
         ...f,
+        kebutuhan,
         terisi,
-        kosong: Math.max(0, f.kebutuhan - terisi),
-        statusEnum: terisi >= f.kebutuhan ? "penuh" : "kurang"
+        kosong: Math.max(0, kebutuhan - terisi),
+        selisih: terisi - kebutuhan,
+        statusEnum
       }
     }))
 
