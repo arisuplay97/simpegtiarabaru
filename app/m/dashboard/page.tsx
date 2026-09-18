@@ -18,6 +18,7 @@ import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import Link from "next/link"
 import Image from "next/image"
+import { VerifiedBadge } from "@/components/simpeg/verified-badge"
 
 // ─── Digital Clock ──────────────────────────────────────────────
 function DigitalClock() {
@@ -227,8 +228,11 @@ export default function MobileDashboard() {
               <h1 className="text-[1.4rem] font-black text-white leading-tight">
                 Selamat Datang Kembali,
               </h1>
-              <h2 className="text-[1.65rem] font-black text-blue-300 leading-tight mt-0.5">
-                {session?.user?.name}
+              <h2 className="text-[1.65rem] font-black text-blue-300 leading-tight mt-0.5 flex items-center gap-2">
+                <span>{session?.user?.name}</span>
+                {((session?.user as any)?.role?.toString().toUpperCase() === "SUPERADMIN" || (session?.user as any)?.role?.toString().toLowerCase() === "super_admin" || (session?.user?.name || "").toLowerCase().includes("super admin")) && (
+                  <VerifiedBadge className="w-5 h-5 shrink-0 inline-flex" />
+                )}
               </h2>
             </div>
 

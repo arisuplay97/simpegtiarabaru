@@ -13,6 +13,7 @@ import { getLeaderboard } from "@/lib/actions/indeks"
 import { TiaraAiOrb } from "@/components/simpeg/tiara-ai-orb"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { VerifiedBadge } from "@/components/simpeg/verified-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
@@ -78,6 +79,12 @@ export default function DashboardPage() {
   if (!mounted) return null
 
   const isPegawai = session?.user?.role === "PEGAWAI"
+  const userRole = (session?.user as any)?.role?.toString()
+  const userName = session?.user?.name || ""
+  const isSuperAdmin =
+    userRole?.toUpperCase() === "SUPERADMIN" ||
+    userRole?.toLowerCase() === "super_admin" ||
+    userName.toLowerCase().includes("super admin")
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-[#09090b]">
@@ -93,10 +100,15 @@ export default function DashboardPage() {
              ============================================================ */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-xs">
             <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
-                  Selamat Datang, {session?.user?.name || 'Administrator'}
-                </h1>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
+                    Selamat Datang, {session?.user?.name || 'Administrator'}
+                  </h1>
+                  {isSuperAdmin && (
+                    <VerifiedBadge className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+                  )}
+                </div>
                 <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200/60 dark:border-blue-900/60 text-[11px] font-semibold rounded-lg px-2 py-0.5">
                   {session?.user?.role || 'User'}
                 </Badge>
