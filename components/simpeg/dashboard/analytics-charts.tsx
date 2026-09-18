@@ -23,13 +23,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig } from "@/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+const MODERN_UNIT_COLORS = ['#3b82f6', '#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6']
+
 const unitDistribution = [
-  { name: "Distribusi", value: 345, color: "#1e40af" },
-  { name: "Produksi", value: 287, color: "#3b82f6" },
-  { name: "Pelayanan", value: 198, color: "#60a5fa" },
-  { name: "Keuangan", value: 156, color: "#93c5fd" },
-  { name: "SDM & Umum", value: 142, color: "#bfdbfe" },
-  { name: "IT & Sistem", value: 119, color: "#dbeafe" },
+  { name: "Distribusi", value: 345, color: "#3b82f6" },
+  { name: "Produksi", value: 287, color: "#6366f1" },
+  { name: "Pelayanan", value: 198, color: "#06b6d4" },
+  { name: "Keuangan", value: 156, color: "#10b981" },
+  { name: "SDM & Umum", value: 142, color: "#f59e0b" },
+  { name: "IT & Sistem", value: 119, color: "#8b5cf6" },
 ]
 
 const attendanceData = [
@@ -126,6 +128,75 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   return null
 }
 
+const AttendanceTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const hadir = payload.find((p: any) => p.dataKey === 'hadir')?.value || 0
+    const izin = payload.find((p: any) => p.dataKey === 'izin')?.value || 0
+    const cuti = payload.find((p: any) => p.dataKey === 'cuti')?.value || 0
+    const alpha = payload.find((p: any) => p.dataKey === 'alpha')?.value || 0
+    const total = hadir + izin + cuti + alpha
+    const rate = total > 0 ? ((hadir / total) * 100).toFixed(1) : "0"
+
+    return (
+      <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3.5 shadow-xl text-xs min-w-[190px]">
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-zinc-800">
+          <span className="font-bold text-slate-900 dark:text-zinc-100">{label}</span>
+          <span className="text-[11px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50">
+            {rate}% Hadir
+          </span>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-blue-500" /> Hadir
+            </span>
+            <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{hadir.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-cyan-500" /> Izin
+            </span>
+            <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{izin.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-amber-500" /> Cuti
+            </span>
+            <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{cuti.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-rose-500" /> Alpa
+            </span>
+            <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{alpha.toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  return null
+}
+
+const UnitTooltip = ({ active, payload, totalStaff }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    const pct = totalStaff > 0 ? ((data.value / totalStaff) * 100).toFixed(1) : "0"
+    return (
+      <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3 shadow-xl text-xs min-w-[170px]">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="h-2.5 w-2.5 rounded-xs shrink-0" style={{ backgroundColor: data.color }} />
+          <p className="font-bold text-slate-900 dark:text-zinc-100 truncate">{data.name}</p>
+        </div>
+        <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 pt-1.5 border-t border-slate-100 dark:border-zinc-800">
+          <span>{data.value.toLocaleString('id-ID')} orang</span>
+          <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{pct}%</span>
+        </div>
+      </div>
+    )
+  }
+  return null
+}
+
 function MiniSparkline({ data, color = "#2563eb" }: { data: number[]; color?: string }) {
   const chartData = data.map((value, index) => ({ value, index }))
   return (
@@ -167,10 +238,22 @@ export function AnalyticsCharts({ data }: { data?: any }) {
   // Dynamic Data Logic with fallbacks
   const displayAttendance = data?.attendanceTrend && data.attendanceTrend.length > 0 ? data.attendanceTrend : attendanceData
   const displayPayroll = data?.payrollTrend && data.payrollTrend.length > 0 ? data.payrollTrend : payrollTrend
-  const displayUnitDist = data?.unitDistribution && data.unitDistribution.length > 0 ? data.unitDistribution : unitDistribution
+  const rawUnitDist = data?.unitDistribution && data.unitDistribution.length > 0 ? data.unitDistribution : unitDistribution
+  const displayUnitDist = rawUnitDist.map((item: any, idx: number) => ({
+    ...item,
+    color: item.color && !['#1e40af', '#bfdbfe', '#dbeafe'].includes(item.color)
+      ? item.color
+      : MODERN_UNIT_COLORS[idx % MODERN_UNIT_COLORS.length]
+  }))
   const displayEmpStatus = data?.employeeStatus && data.employeeStatus.length > 0 ? data.employeeStatus : employeeStatus
   const displayTopUnits = data?.topPerformingUnits && data.topPerformingUnits.length > 0 ? data.topPerformingUnits : topPerformingUnits
   const displayTrendMetrics = data?.trendMetrics && data.trendMetrics.length > 0 ? data.trendMetrics : trendMetrics
+
+  // Calculated metrics
+  const totalHadir7Hari = displayAttendance.reduce((acc: number, d: any) => acc + (d.hadir || 0), 0)
+  const totalAll7Hari = displayAttendance.reduce((acc: number, d: any) => acc + (d.hadir || 0) + (d.izin || 0) + (d.cuti || 0) + (d.alpha || 0), 0)
+  const avgAttendanceRate = totalAll7Hari > 0 ? ((totalHadir7Hari / totalAll7Hari) * 100).toFixed(1) : "96.4"
+  const totalStaffDist = displayUnitDist.reduce((acc: number, item: any) => acc + (item.value || 0), 0)
 
   if (!mounted) {
     return (
@@ -191,44 +274,71 @@ export function AnalyticsCharts({ data }: { data?: any }) {
       {/* Left Column - 2/3 width */}
       <div className="flex flex-col gap-6 lg:col-span-2">
         {/* Attendance Chart */}
-        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs">
-          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs transition-colors">
+          <div className="pb-3.5 border-b border-slate-100 dark:border-zinc-800/70 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
                 Statistik Kehadiran 7 Hari Terakhir
               </h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Fluktuasi kehadiran staf tepat waktu vs izin & alpa
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                Monitoring komparatif kehadiran, izin, cuti, dan alpa harian
               </p>
             </div>
-            <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-full">
-              Live Tracker
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50 text-[11px] font-semibold">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>Rerata: {avgAttendanceRate}%</span>
+              </div>
+            </div>
           </div>
           <div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={displayAttendance} barGap={3}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <BarChart data={displayAttendance} barGap={4} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
                   <XAxis 
                     dataKey="day" 
-                    tick={{ fontSize: 11, fill: '#64748b' }}
-                    axisLine={{ stroke: '#e2e8f0' }}
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                    tickLine={false}
                   />
                   <YAxis 
-                    tick={{ fontSize: 11, fill: '#64748b' }}
-                    axisLine={{ stroke: '#e2e8f0' }}
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                    tickLine={false}
                   />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend 
-                    wrapperStyle={{ fontSize: '11px', paddingTop: '16px' }}
-                  />
-                  <Bar dataKey="hadir" name="Hadir" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="izin" name="Izin" fill="#38bdf8" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="cuti" name="Cuti" fill="#fbbf24" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="alpha" name="Alpa" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Tooltip content={<AttendanceTooltip />} />
+                  <Bar dataKey="hadir" name="Hadir" fill="#3b82f6" stackId="att" maxBarSize={32} />
+                  <Bar dataKey="izin" name="Izin" fill="#06b6d4" stackId="att" maxBarSize={32} />
+                  <Bar dataKey="cuti" name="Cuti" fill="#f59e0b" stackId="att" maxBarSize={32} />
+                  <Bar dataKey="alpha" name="Alpa" fill="#f43f5e" stackId="att" radius={[4, 4, 0, 0]} maxBarSize={32} />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* Custom Modern Legend */}
+            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-xs bg-blue-500" />
+                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Hadir</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-xs bg-cyan-500" />
+                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Izin</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-xs bg-amber-500" />
+                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Cuti</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-xs bg-rose-500" />
+                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Alpa</span>
+                </div>
+              </div>
+              <span className="text-[11px] text-slate-400 dark:text-zinc-500">
+                Data sinkronisasi presensi harian
+              </span>
             </div>
           </div>
         </div>
@@ -261,15 +371,17 @@ export function AnalyticsCharts({ data }: { data?: any }) {
                       <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
                   <XAxis 
                     dataKey="month" 
-                    tick={{ fontSize: 11, fill: '#64748b' }}
-                    axisLine={{ stroke: '#e2e8f0' }}
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                    tickLine={false}
                   />
                   <YAxis 
-                    tick={{ fontSize: 11, fill: '#64748b' }}
-                    axisLine={{ stroke: '#e2e8f0' }}
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                    tickLine={false}
                     tickFormatter={(value) => `${(value / 1000).toFixed(1)}M`}
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -323,62 +435,82 @@ export function AnalyticsCharts({ data }: { data?: any }) {
       {/* Right Column - 1/3 width */}
       <div className="flex flex-col gap-6">
         {/* Unit Distribution */}
-        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs">
-          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-3">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
-              Sebaran Pegawai per Unit
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">
-              Komposisi per bagian kerja aktif
-            </p>
+        <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs transition-colors">
+          <div className="pb-3 border-b border-slate-100 dark:border-zinc-800/70 mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                Sebaran Pegawai per Unit
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                Komposisi divisi & unit kerja aktif
+              </p>
+            </div>
+            <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
+              {displayUnitDist.length} Unit
+            </span>
           </div>
           <div>
-            <div className="h-[200px]">
+            <div className="relative h-[210px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={displayUnitDist}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
+                    innerRadius={62}
+                    outerRadius={88}
                     paddingAngle={3}
+                    cornerRadius={4}
                     dataKey="value"
+                    stroke="none"
                   >
                     {displayUnitDist.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload
-                        return (
-                          <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2.5 shadow-md">
-                            <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100">{data.name}</p>
-                            <p className="text-xs font-bold font-mono text-blue-600 dark:text-blue-400">{data.value} orang</p>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                  />
+                  <Tooltip content={<UnitTooltip totalStaff={totalStaffDist} />} />
                 </PieChart>
               </ResponsiveContainer>
+
+              {/* Centered Total Headcount Display */}
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-100">
+                  {totalStaffDist.toLocaleString('id-ID')}
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                  Total Staf
+                </span>
+              </div>
             </div>
-            <div className="mt-4 space-y-2">
-              {displayUnitDist.slice(0, 6).map((unit: any) => (
-                <div key={unit.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2.5 w-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: unit.color }}
-                    />
-                    <span className="text-slate-600 dark:text-zinc-400">{unit.name}</span>
+
+            <div className="mt-3 space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+              {displayUnitDist.map((unit: any) => {
+                const pct = totalStaffDist > 0 ? ((unit.value / totalStaffDist) * 100).toFixed(1) : "0"
+                return (
+                  <div
+                    key={unit.name}
+                    className="flex items-center justify-between p-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors text-xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                      <div
+                        className="h-2.5 w-2.5 rounded-xs shrink-0 shadow-2xs"
+                        style={{ backgroundColor: unit.color }}
+                      />
+                      <span className="text-slate-700 dark:text-zinc-300 font-medium truncate">
+                        {unit.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400">
+                        {pct}%
+                      </span>
+                      <span className="font-bold font-mono text-slate-900 dark:text-zinc-100 min-w-[44px] text-right">
+                        {unit.value}
+                      </span>
+                    </div>
                   </div>
-                  <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{unit.value}</span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

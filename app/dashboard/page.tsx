@@ -152,7 +152,7 @@ export default function DashboardPage() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs"
               >
                 <Clock className="w-4 h-4" />
-                <span>Presensi Selfie</span>
+                <span>Presensi</span>
               </Link>
             </div>
           </div>

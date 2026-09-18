@@ -50,6 +50,10 @@ import {
   Plus,
   File,
   Sparkles,
+  ScanFace,
+  Globe,
+  RotateCcw,
+  SlidersHorizontal,
 } from "lucide-react"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -1084,20 +1088,36 @@ export default function EmployeeDetailPage() {
                     ))}
                   </div>
 
-                    {/* ============ REVISI ABSENSI: FITUR 2 & 3 ============ */}
+                    {/* ============ KEBIJAKAN & KEAMANAN PRESENSI (PREMIUM REVISION) ============ */}
                     {(session?.user as any)?.role === "SUPERADMIN" && (
-                      <div className="mt-6 space-y-4 border-t pt-6">
-                        <div className="rounded-lg border border-orange-200 bg-orange-50/50 p-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <div>
-                              <p className="text-sm font-semibold text-orange-800 flex items-center gap-2">
+                      <div className="mt-8 pt-6 border-t border-slate-200 dark:border-zinc-800 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
+                              <SlidersHorizontal className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                              Kebijakan & Keamanan Presensi
+                            </h4>
+                            <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                              Konfigurasi pembatasan wilayah GPS dan otentikasi biometrik pegawai
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Card 1: Absensi Bebas Lokasi */}
+                        <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 p-4.5 shadow-2xs transition-colors">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/50 shrink-0 mt-0.5">
                                 <Shield className="h-4 w-4" />
-                                🔓 Absensi Bebas Lokasi
-                              </p>
-                              <p className="text-[11px] text-orange-700 mt-1 leading-relaxed">
-                                Pegawai ini bisa absen dari lokasi manapun tanpa validasi GPS.
-                                Gunakan hanya untuk pegawai yang sering bertugas di luar area.
-                              </p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                                  Absensi Bebas Lokasi
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                  Pegawai dapat melakukan presensi dari lokasi manapun tanpa validasi koordinat GPS. Gunakan khusus untuk pegawai dinas luar atau penugasan lapangan.
+                                </p>
+                              </div>
                             </div>
                             <Switch
                               checked={employee.bebasAbsensi || false}
@@ -1114,17 +1134,23 @@ export default function EmployeeDetailPage() {
                           </div>
                         </div>
 
+                        {/* Card 2: Binding Lokasi Absensi */}
                         {!employee.bebasAbsensi && (
-                          <div className="rounded-lg border p-4 bg-background">
-                            <div className="mb-3">
-                              <p className="text-sm font-semibold flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-primary" />
-                                📍 Binding Lokasi Absensi
-                              </p>
-                              <p className="text-[11px] text-muted-foreground mt-1">
-                                Batasi pegawai ini agar hanya bisa absen di satu lokasi tertentu.
-                              </p>
+                          <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 p-4.5 shadow-2xs transition-colors">
+                            <div className="flex items-start gap-3 mb-3.5">
+                              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/50 shrink-0 mt-0.5">
+                                <MapPin className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                                  Binding Lokasi Penugasan
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                  Batasi presensi pegawai agar hanya dapat tervalidasi pada satu titik kantor atau cabang resmi yang ditentukan.
+                                </p>
+                              </div>
                             </div>
+
                             <Select
                               value={employee.lokasiAbsensiId || "semua"}
                               onValueChange={async (val) => {
@@ -1138,14 +1164,27 @@ export default function EmployeeDetailPage() {
                                 }
                               }}
                             >
-                              <SelectTrigger className="w-full text-xs h-9">
+                              <SelectTrigger className="w-full text-xs h-9 bg-slate-50/50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100">
                                 <SelectValue placeholder="Pilih Lokasi..." />
                               </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="semua">🌐 Semua Lokasi Aktif (Default)</SelectItem>
+                              <SelectContent className="border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                                <SelectItem value="semua">
+                                  <div className="flex items-center gap-2">
+                                    <Globe className="h-3.5 w-3.5 text-blue-500" />
+                                    <span>Semua Lokasi Aktif (Default)</span>
+                                  </div>
+                                </SelectItem>
                                 {lokasiList.map((l: any) => (
                                   <SelectItem key={l.id} value={l.id}>
-                                    {l.tipe === "kantor_pusat" ? "🏢" : "🏬"} {l.nama}
+                                    <div className="flex items-center gap-2">
+                                      <Building2 className="h-3.5 w-3.5 text-slate-400 dark:text-zinc-500" />
+                                      <span>{l.nama}</span>
+                                      {l.tipe === "kantor_pusat" && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-medium">
+                                          Pusat
+                                        </span>
+                                      )}
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1153,28 +1192,46 @@ export default function EmployeeDetailPage() {
                           </div>
                         )}
 
-                        {/* Reset Verifikasi Wajah */}
-                        <div className="rounded-lg border border-red-200 bg-red-50/50 p-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <div>
-                              <p className="text-sm font-semibold text-red-800 flex items-center gap-2">
-                                <Camera className="h-4 w-4" />
-                                🔄 Reset Verifikasi Wajah
-                              </p>
-                              <p className="text-[11px] text-red-700 mt-1 leading-relaxed">
-                                Status: <span className={`font-bold ${employee.faceRegistered ? 'text-emerald-700' : 'text-red-600'}`}>
-                                  {employee.faceRegistered ? '✅ Wajah Terdaftar' : '❌ Belum Terdaftar'}
-                                </span>
-                                {employee.faceRegistered && ` · Gagal ${employee.faceFailCount || 0}x`}
-                              </p>
-                              <p className="text-[11px] text-red-600 mt-1">
-                                Hapus data biometrik wajah. Pegawai harus daftar ulang di aplikasi mobile.
-                              </p>
+                        {/* Card 3: Reset Verifikasi Wajah */}
+                        <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 p-4.5 shadow-2xs transition-colors">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/50 shrink-0 mt-0.5">
+                                <ScanFace className="h-4 w-4" />
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                                    Verifikasi Biometrik Wajah
+                                  </p>
+                                  {employee.faceRegistered ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                      Wajah Terdaftar
+                                      {employee.faceFailCount > 0 && (
+                                        <span className="text-slate-400 dark:text-zinc-500 font-mono">
+                                          ({employee.faceFailCount}x gagal)
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-zinc-500" />
+                                      Belum Terdaftar
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                  Hapus data biometrik jika pegawai mengalami kendala deteksi. Pegawai akan diminta mendaftarkan ulang wajah pada aplikasi mobile.
+                                </p>
+                              </div>
                             </div>
+
                             <Button
-                              variant="destructive"
+                              variant="outline"
                               size="sm"
                               disabled={!employee.faceRegistered}
+                              className="border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-semibold gap-1.5 shrink-0 self-start sm:self-center transition-colors disabled:opacity-40"
                               onClick={async () => {
                                 if (!confirm(`Reset data wajah ${employee.nama}? Pegawai harus scan wajah ulang.`)) return
                                 const res = await resetFaceData(employee.id)
@@ -1186,7 +1243,8 @@ export default function EmployeeDetailPage() {
                                 }
                               }}
                             >
-                              Reset Wajah
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Reset Data Wajah
                             </Button>
                           </div>
                         </div>

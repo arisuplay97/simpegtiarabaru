@@ -146,12 +146,13 @@ export async function getDashboardStats() {
     }, [])
 
     // Unit Distribution
+    const unitPalette = ['#3b82f6', '#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6']
     const unitDistribution = unitCounts
       .filter(u => u._count.pegawai > 0)
       .map((u, i) => ({
         name: u.nama,
         value: u._count.pegawai,
-        color: ['#1e40af', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe'][i % 6]
+        color: unitPalette[i % unitPalette.length]
       }))
 
     // Employee Status breakdown
