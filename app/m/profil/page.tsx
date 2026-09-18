@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock } from "lucide-react"
+import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft } from "lucide-react"
 import { getEmployeeProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
 import { changePasswordWithVerification } from "@/lib/actions/auth-actions"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 export default function MobileProfil() {
   const { data: session, status, update } = useSession()
@@ -55,21 +57,19 @@ export default function MobileProfil() {
     const file = e.target.files?.[0]
     if (!file || !pegawai) return
     setIsUploading(true)
-    toast.loading("Mengupload foto...")
+    const toastId = toast.loading("Mengunggah foto profil...")
     try {
-      const formData = new FormData()
-      formData.append("pegawaiId", pegawai.id)
-      formData.append("fotoFile", file)
-      const res = await fetch("/api/pegawai/upload-foto", { method: "POST", body: formData })
+      const formPayload = new FormData()
+      formPayload.append("pegawaiId", pegawai.id)
+      formPayload.append("fotoFile", file)
+      const res = await fetch("/api/pegawai/upload-foto", { method: "POST", body: formPayload })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
       setPegawai((p: any) => ({ ...p, fotoUrl: json.url }))
       await update({ picture: json.url })
-      toast.dismiss()
-      toast.success("Foto diperbarui!")
+      toast.success("Foto profil berhasil diperbarui!", { id: toastId })
     } catch (e: any) {
-      toast.dismiss()
-      toast.error(e.message)
+      toast.error(e.message || "Gagal mengunggah foto", { id: toastId })
     } finally {
       setIsUploading(false)
     }
@@ -79,17 +79,15 @@ export default function MobileProfil() {
     e.preventDefault()
     if (!pegawai) return
     setIsSaving(true)
-    toast.loading("Menyimpan data...")
+    const toastId = toast.loading("Menyimpan kontak...")
     try {
       const res = await updateMobileProfile(pegawai.id, formData)
       if (res.error) throw new Error(res.error)
-      toast.dismiss()
-      toast.success("Profil berhasil diperbarui!")
+      toast.success("Kontak berhasil diperbarui!", { id: toastId })
       setShowEditModal(false)
-      fetchData() // reload terbaru
+      fetchData()
     } catch (err: any) {
-      toast.dismiss()
-      toast.error(err.message)
+      toast.error(err.message, { id: toastId })
     } finally {
       setIsSaving(false)
     }
@@ -107,161 +105,177 @@ export default function MobileProfil() {
     }
 
     setIsChangingPassword(true)
-    toast.loading("Mengganti password...")
+    const toastId = toast.loading("Mengubah password...")
     try {
       const res = await changePasswordWithVerification(passForm.current, passForm.newPass)
       if (res.error) throw new Error(res.error)
-      
-      toast.dismiss()
-      toast.success("Password berhasil diubah!")
+      toast.success("Password berhasil diubah!", { id: toastId })
       setShowPasswordModal(false)
       setPassForm({ current: "", newPass: "", confirm: "" })
     } catch (err: any) {
-      toast.dismiss()
-      toast.error(err.message)
+      toast.error(err.message, { id: toastId })
     } finally {
       setIsChangingPassword(false)
     }
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-[#09090b]">
+        <Loader2 className="h-7 w-7 animate-spin text-zinc-400" />
+      </div>
+    )
   }
 
   const infoRows = [
     { icon: User, label: "NIK", value: pegawai?.nik },
     { icon: Briefcase, label: "Jabatan", value: pegawai?.jabatan },
-    { icon: Building2, label: "Bidang", value: pegawai?.subBidang?.nama ? `${pegawai?.bidang?.nama} / ${pegawai?.subBidang?.nama}` : pegawai?.bidang?.nama },
+    { icon: Building2, label: "Bidang", value: pegawai?.subBidang?.nama ? `${pegawai?.bidang?.nama} · ${pegawai?.subBidang?.nama}` : pegawai?.bidang?.nama },
     { icon: MapPin, label: "Tempat, Tanggal Lahir", value: (pegawai?.tempatLahir || pegawai?.tanggalLahir) ? `${pegawai?.tempatLahir || '-'}, ${pegawai?.tanggalLahir ? format(new Date(pegawai.tanggalLahir), "d MMMM yyyy", { locale: idLocale }) : '-'}` : "-" },
     { icon: Mail, label: "Email", value: pegawai?.email },
-    { icon: Phone, label: "Telepon", value: pegawai?.telepon },
-    { icon: Calendar, label: "Tgl Masuk", value: pegawai?.tanggalMasuk ? format(new Date(pegawai.tanggalMasuk), "d MMMM yyyy", { locale: idLocale }) : "-" },
+    { icon: Phone, label: "Telepon / WhatsApp", value: pegawai?.telepon },
+    { icon: Calendar, label: "Tanggal Masuk", value: pegawai?.tanggalMasuk ? format(new Date(pegawai.tanggalMasuk), "d MMMM yyyy", { locale: idLocale }) : "-" },
   ]
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header dengan avatar */}
-      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] px-5 pb-10 text-center" style={{ paddingTop: "max(3rem, env(safe-area-inset-top))" }}>
-        <div className="relative mx-auto mb-4 h-24 w-24">
-          <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-white/30 bg-white/10">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] font-sans pb-28">
+      {/* Header dengan Avatar */}
+      <div 
+        className="bg-zinc-950 px-5 pb-8 text-center relative border-b border-zinc-850"
+        style={{ paddingTop: "max(1.5rem, env(safe-area-inset-top))" }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <Link 
+            href="/m/dashboard"
+            className="p-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4.5 w-4.5" />
+          </Link>
+          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Profil Karyawan</span>
+          <div className="w-8" />
+        </div>
+
+        <div className="relative mx-auto mb-3.5 h-20 w-20">
+          <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-zinc-700 bg-zinc-900 shadow-md">
             {pegawai?.fotoUrl ? (
               <img src={pegawai.fotoUrl} className="h-full w-full object-cover" alt="" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-white">
-                {pegawai?.nama?.charAt(0) ?? "?"}
+              <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-zinc-300">
+                {pegawai?.nama?.charAt(0) ?? "U"}
               </div>
             )}
           </div>
-          <label className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary shadow-lg">
-            <Camera className="h-4 w-4 text-white" />
+          <label className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-white shadow-md active:scale-90 transition-all">
+            {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
             <input type="file" accept="image/*" className="hidden" onChange={handleUploadFoto} disabled={isUploading} />
           </label>
         </div>
-        <h1 className="text-xl font-bold text-white">{pegawai?.nama || session?.user?.name}</h1>
-        {(() => {
-          const j = pegawai?.jabatan || "Pegawai"
-          const sub = pegawai?.subBidang?.nama?.trim()
-          const title = (sub && !j.toLowerCase().includes(sub.toLowerCase())) ? `${j} ${sub}` : j
-          return (
-            <p className="mt-1 text-sm text-blue-200">
-              {title}
-            </p>
-          )
-        })()}
-        <span className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
-          {pegawai?.status || "AKTIF"}
+
+        <h1 className="text-lg font-bold text-white tracking-tight">{pegawai?.nama || session?.user?.name}</h1>
+        <p className="text-xs text-zinc-400 mt-0.5">
+          {pegawai?.jabatan || "Karyawan"}
+        </p>
+        <span className="mt-2 inline-block rounded-full bg-zinc-900 border border-zinc-800 px-3 py-0.5 text-[10px] font-semibold text-emerald-400 tracking-wide uppercase">
+          Status: {pegawai?.status || "AKTIF"}
         </span>
       </div>
 
       {/* Info rows */}
-      <div className="mx-4 -mt-5 rounded-2xl bg-card shadow-lg border border-border overflow-hidden">
+      <div className="mx-4 mt-4 rounded-2xl bg-white dark:bg-zinc-900 shadow-2xs border border-zinc-200/80 dark:border-zinc-800 overflow-hidden max-w-md mx-auto">
+        <div className="p-3.5 pb-2 border-b border-zinc-100 dark:border-zinc-800">
+          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+            Informasi Data Diri
+          </p>
+        </div>
         {infoRows.map((row, i) => (
-          <div key={row.label} className={`flex items-center gap-3 px-4 py-3.5 ${i < infoRows.length - 1 ? "border-b border-border" : ""}`}>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <row.icon className="h-4 w-4 text-primary" />
+          <div key={row.label} className={cn("flex items-center gap-3 px-4 py-3", i < infoRows.length - 1 && "border-b border-zinc-100 dark:border-zinc-800")}>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+              <row.icon className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-muted-foreground">{row.label}</p>
-              <p className="text-sm font-medium truncate">{row.value || "-"}</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">{row.label}</p>
+              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate mt-0.5">{row.value || "-"}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* BPJS & Bank */}
-      <div className="mx-4 mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-card border border-border p-4">
-          <p className="text-[10px] text-muted-foreground mb-1">Bank</p>
-          <p className="text-sm font-semibold">{pegawai?.bank || "-"}</p>
-          <p className="text-xs text-muted-foreground">{pegawai?.noRekening || ""}</p>
+      <div className="mx-4 mt-3 grid grid-cols-2 gap-2.5 max-w-md mx-auto">
+        <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-3.5 shadow-2xs">
+          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Rekening Bank</p>
+          <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{pegawai?.bank || "-"}</p>
+          <p className="text-[11px] text-zinc-500 mt-0.5 tabular-nums">{pegawai?.noRekening || "-"}</p>
         </div>
-        <div className="rounded-2xl bg-card border border-border p-4">
-          <p className="text-[10px] text-muted-foreground mb-1">BPJS Kesehatan</p>
-          <p className="text-sm font-semibold truncate">{pegawai?.bpjsKesehatan || "-"}</p>
+        <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-3.5 shadow-2xs">
+          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">BPJS Kesehatan</p>
+          <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{pegawai?.bpjsKesehatan || "-"}</p>
+          <p className="text-[11px] text-zinc-500 mt-0.5">Terdaftar Aktif</p>
         </div>
       </div>
 
-      <div className="px-4 mt-6 space-y-3">
+      {/* Actions */}
+      <div className="px-4 mt-4 space-y-2.5 max-w-md mx-auto">
         <button
           onClick={() => setShowEditModal(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-white shadow-lg active:scale-95 transition-transform"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 py-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 shadow-2xs active:scale-98 transition-all hover:bg-zinc-50 dark:hover:bg-zinc-850"
         >
-          <Edit3 className="h-4 w-4" />
-          Edit Data Profil
+          <Edit3 className="h-3.5 w-3.5" />
+          Edit Kontak (Email & Telepon)
         </button>
         <button
           onClick={() => setShowPasswordModal(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-800 py-4 text-sm font-semibold text-white shadow-lg active:scale-95 transition-transform"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-white py-3 text-xs font-semibold text-white dark:text-zinc-900 shadow-2xs active:scale-98 transition-all"
         >
-          <Lock className="h-4 w-4" />
-          Ganti Password
+          <Lock className="h-3.5 w-3.5" />
+          Ganti Kata Sandi
         </button>
       </div>
 
       {/* Logout */}
-      <div className="px-4 mt-4 mb-8">
+      <div className="px-4 mt-3 mb-6 max-w-md mx-auto">
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-4 text-sm font-semibold text-red-600 dark:bg-red-950/30 dark:border-red-900"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 dark:border-rose-950/60 bg-rose-50/50 dark:bg-rose-950/20 py-3 text-xs font-semibold text-rose-600 dark:text-rose-400 active:scale-98 transition-all"
         >
-          <LogOut className="h-4 w-4" />
-          Logout
+          <LogOut className="h-3.5 w-3.5" />
+          Keluar dari Aplikasi (Logout)
         </button>
       </div>
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-          <div className="w-full sm:h-auto sm:w-[500px] bg-card rounded-t-3xl sm:rounded-3xl p-6 flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:fade-in">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800 shadow-xl">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold">Edit Kontak</h2>
-              <button disabled={isSaving} onClick={() => setShowEditModal(false)} className="p-2 rounded-full bg-muted text-muted-foreground">
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Ubah Data Kontak</h2>
+              <button disabled={isSaving} onClick={() => setShowEditModal(false)} className="p-1 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mb-5">Perubahan data resmi lainnya dilakukan melalui HRD/Admin.</p>
+            <p className="text-xs text-zinc-500 mb-4">Perubahan data formal lainnya dapat diajukan ke HRD.</p>
 
-            <form onSubmit={handleSaveEdit} className="pb-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Mail className="w-3 h-3" /> Email
+            <form onSubmit={handleSaveEdit} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  Email
                 </label>
                 <input
                   type="email" required
                   placeholder="email@contoh.com"
-                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                   value={formData.email} onChange={e => setFormData(p => ({...p, email: e.target.value}))}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Phone className="w-3 h-3" /> Nomor Telepon / WhatsApp
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                  Nomor Telepon / WhatsApp
                 </label>
                 <input
                   type="tel"
                   placeholder="08xxxxxxxxxx"
-                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                   value={formData.telepon} onChange={e => setFormData(p => ({...p, telepon: e.target.value}))}
                 />
               </div>
@@ -269,9 +283,9 @@ export default function MobileProfil() {
               <div className="pt-2">
                 <button
                   type="submit" disabled={isSaving}
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+                  className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-50 text-xs shadow-xs"
                 >
-                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan Perubahan"}
+                  {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Simpan Perubahan Kontak"}
                 </button>
               </div>
             </form>
@@ -281,52 +295,54 @@ export default function MobileProfil() {
 
       {/* Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-          <div className="w-full h-[75vh] sm:h-auto sm:w-[500px] bg-card rounded-t-3xl sm:rounded-3xl p-6 flex flex-col shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:fade-in">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Lock className="w-5 h-5 text-primary" /> Ganti Password</h2>
-              <button disabled={isChangingPassword} onClick={() => setShowPasswordModal(false)} className="p-2 rounded-full bg-muted text-muted-foreground">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-zinc-700 dark:text-zinc-300" /> Ganti Kata Sandi
+              </h2>
+              <button disabled={isChangingPassword} onClick={() => setShowPasswordModal(false)} className="p-1 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSavePassword} className="flex-1 overflow-y-auto pr-2 pb-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Password Saat Ini</label>
+            <form onSubmit={handleSavePassword} className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Kata Sandi Saat Ini</label>
                 <input 
                   type="password" required
-                  placeholder="Masukkan password yang sekarang"
-                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Masukkan kata sandi lama"
+                  className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                   value={passForm.current} onChange={e => setPassForm(p => ({...p, current: e.target.value}))}
                 />
               </div>
 
-              <div className="space-y-1.5 mt-6 border-t border-border pt-4">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-primary">Password Baru</label>
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Kata Sandi Baru</label>
                 <input 
                   type="password" required minLength={8}
                   placeholder="Minimal 8 karakter"
-                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                   value={passForm.newPass} onChange={e => setPassForm(p => ({...p, newPass: e.target.value}))}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-primary">Konfirmasi Password Baru</label>
+              <div>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Konfirmasi Kata Sandi Baru</label>
                 <input 
                   type="password" required minLength={8}
-                  placeholder="Ketik ulang password baru Anda"
-                  className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Ulangi kata sandi baru"
+                  className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                   value={passForm.confirm} onChange={e => setPassForm(p => ({...p, confirm: e.target.value}))}
                 />
               </div>
 
-              <div className="pt-6">
+              <div className="pt-2">
                 <button 
                   type="submit" disabled={isChangingPassword}
-                  className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+                  className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-50 text-xs shadow-xs"
                 >
-                  {isChangingPassword ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan Password Baru"}
+                  {isChangingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Perbarui Kata Sandi"}
                 </button>
               </div>
             </form>

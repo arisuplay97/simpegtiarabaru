@@ -1,82 +1,70 @@
 "use client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
   Megaphone, AlertCircle, ChevronRight,
   CalendarDays, Clock, BookOpen,
   TrendingUp, Award, Timer, UserCheck, Thermometer,
-  Building2, BadgeCheck, FileText,
-  CreditCard, GraduationCap, Trophy, Medal,
-  Bell, CheckCircle2, XCircle, Pointer, Stamp
+  FileText, Trophy, Medal,
+  Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
-import { getUnreadCount } from "@/lib/actions/notifikasi"
-import { getPengumumanAktif } from "@/lib/actions/notifikasi"
+import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
 import { getLeaderboard } from "@/lib/actions/indeks"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import Link from "next/link"
 import Image from "next/image"
 import { VerifiedBadge } from "@/components/simpeg/verified-badge"
+import { cn } from "@/lib/utils"
 
 // ─── Digital Clock ──────────────────────────────────────────────
 function DigitalClock() {
-  const [time, setTime] = useState(new Date())
+  const [time, setTime] = useState<Date | null>(null)
+  
   useEffect(() => {
+    setTime(new Date())
     const timer = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
+
+  if (!time) {
+    return <div className="h-9 w-20 bg-white/10 animate-pulse rounded-lg" />
+  }
+
   return (
     <div className="flex flex-col items-end">
-      <div className="text-[1.9rem] font-black text-white tracking-tight leading-none tabular-nums"
-        style={{ textShadow: "0 2px 10px rgba(0,0,0,0.25)" }}>
-        {format(time, "HH:mm")}
-        <span className="text-sm opacity-50 font-medium">:{format(time, "ss")}</span>
+      <div className="text-2xl font-bold tracking-tight text-white tabular-nums flex items-baseline">
+        <span>{format(time, "HH:mm")}</span>
+        <span className="text-xs text-zinc-400 font-medium ml-0.5">:{format(time, "ss")}</span>
       </div>
-      <div className="text-[10px] font-medium text-white/60 mt-0.5">
+      <div className="text-[11px] font-medium text-zinc-400 mt-0.5">
         {format(time, "EEE, dd MMM", { locale: idLocale })}
       </div>
     </div>
   )
 }
 
-// ─── Pengumuman Marquee Ticker ──────────────────────────────────
+// ─── Pengumuman Ticker ──────────────────────────────────────────
 function PengumumanTicker({ items }: { items: { title: string; message: string }[] }) {
-  const [visible, setVisible] = useState(true)
-  const [idx, setIdx] = useState(0)
-
-  // Gabungkan semua pesan jadi satu teks panjang dengan pemisah
-  const fullText = items.map(i => `📢 ${i.title}: ${i.message}`).join("   ·   ")
-
   if (!items.length) return null
+  const fullText = items.map(i => `${i.title}: ${i.message}`).join("   —   ")
 
   return (
-    <div
-      className="flex items-center gap-2 rounded-xl px-3 py-2.5 overflow-hidden"
-      style={{
-        background: "rgba(30,58,95,0.06)",
-        border: "1px solid rgba(30,58,95,0.10)",
-      }}
-    >
-      {/* Icon toa/megaphone */}
-      <div className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full"
-        style={{ background: "rgba(30,58,95,0.12)" }}>
-        <Megaphone className="h-3.5 w-3.5" style={{ color: "#1e3a5f" }} />
+    <div className="flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
+      <div className="shrink-0 flex items-center justify-center h-7 w-7 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+        <Megaphone className="h-3.5 w-3.5" />
       </div>
-
-      {/* Marquee wrapper */}
-      <div className="flex-1 overflow-hidden relative" style={{ height: "18px" }}>
+      <div className="flex-1 overflow-hidden relative h-5 flex items-center">
         <div
-          className="absolute whitespace-nowrap text-[11px] font-semibold"
+          className="absolute whitespace-nowrap text-xs font-medium text-zinc-700 dark:text-zinc-300"
           style={{
-            color: "#1e3a5f",
-            animation: "marquee-scroll 18s linear infinite",
-            top: 0,
+            animation: "marquee-scroll 22s linear infinite",
             left: 0,
           }}
         >
-          {fullText}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{fullText}
+          {fullText}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{fullText}
         </div>
       </div>
     </div>
@@ -85,19 +73,41 @@ function PengumumanTicker({ items }: { items: { title: string; message: string }
 
 // ─── Rank Badge ─────────────────────────────────────────────────
 function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) return <div className="flex shrink-0 h-7 w-7 items-center justify-center rounded-full bg-amber-100"><Trophy className="h-3.5 w-3.5 text-amber-600" /></div>
-  if (rank === 2) return <div className="flex shrink-0 h-7 w-7 items-center justify-center rounded-full bg-slate-200"><Medal className="h-3.5 w-3.5 text-slate-500" /></div>
-  if (rank === 3) return <div className="flex shrink-0 h-7 w-7 items-center justify-center rounded-full bg-orange-100"><Award className="h-3.5 w-3.5 text-orange-500" /></div>
-  return <div className="flex shrink-0 h-7 w-7 items-center justify-center text-[10px] font-black text-gray-500 bg-gray-100 rounded-full">#{rank}</div>
+  if (rank === 1) {
+    return (
+      <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-xs">
+        <Trophy className="h-3 w-3" />
+      </div>
+    )
+  }
+  if (rank === 2) {
+    return (
+      <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-zinc-400/10 text-zinc-400 border border-zinc-400/20">
+        <Medal className="h-3 w-3" />
+      </div>
+    )
+  }
+  if (rank === 3) {
+    return (
+      <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-amber-700/10 text-amber-700 border border-amber-700/20">
+        <Award className="h-3 w-3" />
+      </div>
+    )
+  }
+  return (
+    <div className="flex shrink-0 h-6 w-6 items-center justify-center text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+      #{rank}
+    </div>
+  )
 }
 
-// ─── Menu utama (6 menu, masing-masing unik) ────────────────────
+// ─── Menu Utama ─────────────────────────────────────────────────
 const menuItems = [
-  { href: "/m/cuti",      icon: CalendarDays, label: "Cuti &\nIzin"       },
-  { href: "/m/absensi",   icon: FileText,     label: "Riwayat\nAbsensi"   },
-  { href: "/m/kalender",  icon: BookOpen,     label: "Kalender\nKerja"    },
-  { href: "/m/indeks",    icon: TrendingUp,   label: "Indeks\nKinerja"    },
-  { href: "/m/lembur",    icon: Timer,        label: "Lembur\nKerja"      },
+  { href: "/m/cuti",      icon: CalendarDays, label: "Cuti &\nIzin" },
+  { href: "/m/absensi",   icon: FileText,     label: "Riwayat\nAbsen" },
+  { href: "/m/kalender",  icon: BookOpen,     label: "Kalender\nKerja" },
+  { href: "/m/indeks",    icon: TrendingUp,   label: "Indeks\nKinerja" },
+  { href: "/m/lembur",    icon: Timer,        label: "Lembur\nKerja" },
 ]
 
 export default function MobileDashboard() {
@@ -113,7 +123,7 @@ export default function MobileDashboard() {
 
   useEffect(() => {
     const hour = new Date().getHours()
-    if (hour < 10) setGreeting("Selamat Pagi")
+    if (hour < 11) setGreeting("Selamat Pagi")
     else if (hour < 15) setGreeting("Selamat Siang")
     else if (hour < 18) setGreeting("Selamat Sore")
     else setGreeting("Selamat Malam")
@@ -131,7 +141,6 @@ export default function MobileDashboard() {
         const p = await res.json()
         setPegawai(p)
         
-        // Cache face status for offline use
         if (typeof window !== "undefined" && p) {
           localStorage.setItem("offlineFaceStatus", JSON.stringify({
             faceRegistered: p.faceRegistered,
@@ -147,19 +156,17 @@ export default function MobileDashboard() {
         const u = await getUnreadCount(session.user.id)
         setUnread(u)
       }
-      // Load pengumuman ticker & leaderboard disiplin
       const [pgm, lb] = await Promise.all([
         getPengumumanAktif(),
         getLeaderboard()
       ])
       setPengumuman(pgm)
-      setDisiplinTop(lb.slice(0, 10)) // simpan max 10, tampil 5 dulu
+      setDisiplinTop(lb.slice(0, 10))
     } catch {}
   }
 
   const today = new Date()
   const monthName = format(today, "MMMM", { locale: idLocale })
-  const firstName = session?.user?.name?.split(" ")[0] ?? "Kawan"
   const jabatan = (session?.user as any)?.jabatan || "Staff"
   const bidang = pegawai?.bidang?.nama || ""
   const subBidang = pegawai?.subBidang?.nama || ""
@@ -173,241 +180,213 @@ export default function MobileDashboard() {
   const totalWorkdays = hadirCount + sakitCount + izinCount + cutiCount
 
   return (
-    <div className="min-h-screen pb-28 font-sans" style={{ background: "#f0f4f8" }}>
+    <div className="min-h-screen pb-24 font-sans bg-zinc-50 dark:bg-[#09090b]">
 
       {/* ===== HERO HEADER ===== */}
-      <div className="relative overflow-hidden px-5 pb-40"
-        style={{ 
-          background: "linear-gradient(145deg, #1e3a5f 0%, #1a2e4a 50%, #0d1b2e 100%)",
-          paddingTop: "max(3rem, env(safe-area-inset-top))"
-        }}>
-        {/* Decorative */}
-        <div className="absolute -top-12 -right-12 h-52 w-52 rounded-full opacity-[0.07]"
-          style={{ background: "radial-gradient(circle, #60a5fa, transparent)" }} />
-        <div className="absolute bottom-0 -left-8 h-40 w-40 rounded-full opacity-[0.06]"
-          style={{ background: "radial-gradient(circle, #93c5fd, transparent)" }} />
-        <svg className="absolute inset-0 w-full h-full opacity-[0.04]" preserveAspectRatio="none">
-          <defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1.5" fill="white" />
-          </pattern></defs>
-          <rect width="100%" height="100%" fill="url(#dots)" />
-        </svg>
+      <div 
+        className="relative px-5 pb-28 pt-4 bg-zinc-950 text-white overflow-hidden border-b border-zinc-800/80"
+        style={{ paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}
+      >
+        {/* Subtle Ambient Radial Glow */}
+        <div 
+          className="absolute -top-24 -right-24 h-72 w-72 rounded-full pointer-events-none opacity-20"
+          style={{ background: "radial-gradient(circle, #3b82f6, transparent 70%)" }} 
+        />
+        <div 
+          className="absolute bottom-0 -left-20 h-48 w-48 rounded-full pointer-events-none opacity-10"
+          style={{ background: "radial-gradient(circle, #6366f1, transparent 70%)" }} 
+        />
 
         <div className="relative z-10">
           {/* Top Bar */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="h-12 w-12 flex items-center justify-center shrink-0 -ml-1">
-                <img src="/putih.png" alt="Logo" className="w-full h-full object-contain drop-shadow-md" />
+              <div className="h-8 w-8 flex items-center justify-center shrink-0">
+                <img src="/putih.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div>
-                <p className="text-white font-black text-[17px] tracking-tight leading-none">ASIK Mobile</p>
-                <p className="text-white/50 text-[10.5px] font-medium leading-none mt-0.5">Perumdam Tirta Ardhia Rinjani</p>
+                <p className="text-white font-bold text-sm tracking-tight leading-none">ASIK Mobile</p>
+                <p className="text-zinc-400 text-[10px] font-medium leading-none mt-1">Perumdam Tirta Ardhia Rinjani</p>
               </div>
             </div>
-            {/* Notifikasi — 1 tombol */}
-            <Link href="/m/notifikasi" className="relative">
-              <div className="flex items-center justify-center h-9 w-9 rounded-2xl"
-                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <Bell className="h-4.5 w-4.5 text-white" />
-              </div>
+
+            {/* Notifikasi */}
+            <Link 
+              href="/m/notifikasi" 
+              className="relative flex items-center justify-center h-9 w-9 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition-colors"
+            >
+              <Bell className="h-4 w-4" />
               {unread > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border border-[#1a2e4a]">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white ring-2 ring-zinc-950">
                   {unread > 9 ? "9+" : unread}
                 </span>
               )}
             </Link>
           </div>
 
-          {/* Welcome Area Baru */}
+          {/* User Profile Summary */}
           <div className="flex flex-col mt-2">
-            
-            {/* Teks Sambutan Header */}
-            <div className="mb-5">
-              <p className="text-white/50 text-[11px] font-semibold tracking-widest uppercase mb-1">{greeting}</p>
-              <h1 className="text-[1.4rem] font-black text-white leading-tight">
-                Selamat Datang Kembali,
-              </h1>
-              <h2 className="text-[1.65rem] font-black text-blue-300 leading-tight mt-0.5 flex items-center gap-2">
-                <span>{session?.user?.name}</span>
-                {((session?.user as any)?.role?.toString().toUpperCase() === "SUPERADMIN" || (session?.user as any)?.role?.toString().toLowerCase() === "super_admin" || (session?.user?.name || "").toLowerCase().includes("super admin")) && (
-                  <VerifiedBadge className="w-5 h-5 shrink-0 inline-flex" />
-                )}
-              </h2>
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-400 text-[11px] font-medium tracking-wide uppercase">
+                {greeting}
+              </span>
+              <DigitalClock />
             </div>
 
-            {/* Row Foto Profil & Jam */}
-            <div className="flex items-end justify-between">
-              
-              <div className="flex items-start gap-3.5 pt-0.5">
-                <Link href="/m/profil" className="shrink-0">
-                  <div className="h-[4.5rem] w-[4.5rem] rounded-[1.25rem] overflow-hidden border-[2.5px] border-white/30 shadow-lg"
-                    style={{ background: "rgba(255,255,255,0.1)" }}>
-                    {fotoUrl ? (
-                      <img src={fotoUrl} className="h-full w-full object-cover" alt="" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-2xl font-black text-white">
-                        {namaInisial}
-                      </div>
-                    )}
-                  </div>
-                </Link>
+            <div className="flex items-center gap-3.5 mt-2">
+              <Link href="/m/profil" className="shrink-0 relative group">
+                <div className="h-14 w-14 rounded-2xl overflow-hidden bg-zinc-900 border-2 border-zinc-800 shadow-md">
+                  {fotoUrl ? (
+                    <img src={fotoUrl} className="h-full w-full object-cover" alt="Profil" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-lg font-bold text-zinc-200">
+                      {namaInisial}
+                    </div>
+                  )}
+                </div>
+              </Link>
 
-                <div className="flex flex-col gap-1.5">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full w-fit max-w-[200px]"
-                    style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                    <p className="text-white/90 text-[13px] font-bold truncate">
-                      {jabatan}{subBidang ? ` ${subBidang}` : ""}
-                    </p>
-                    <BadgeCheck className="h-4 w-4 text-blue-300 shrink-0" />
-                  </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-bold text-white tracking-tight leading-snug flex items-center gap-1.5 truncate">
+                  <span className="truncate">{session?.user?.name || "Karyawan"}</span>
+                  {((session?.user as any)?.role?.toString().toUpperCase() === "SUPERADMIN" || 
+                    (session?.user as any)?.role?.toString().toLowerCase() === "super_admin" || 
+                    (session?.user?.name || "").toLowerCase().includes("super admin")) && (
+                    <VerifiedBadge className="w-4 h-4 shrink-0 inline-flex" />
+                  )}
+                </h1>
+
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px] font-medium truncate max-w-[200px]">
+                    {jabatan}{subBidang ? ` · ${subBidang}` : ""}
+                  </span>
                   {bidang && (
-                    <p className="text-white/70 text-[13px] font-semibold leading-snug line-clamp-2 max-w-[180px]">
+                    <span className="text-zinc-400 text-[11px] font-normal truncate max-w-[150px]">
                       {bidang}
-                    </p>
+                    </span>
                   )}
                 </div>
               </div>
-
-              <div className="text-right pb-1">
-                <DigitalClock />
-              </div>
-
             </div>
           </div>
         </div>
       </div>
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className="relative z-20 -mt-32 px-4 space-y-4">
+      <div className="relative z-20 -mt-20 px-4 space-y-4 max-w-md mx-auto">
 
         {/* Kontrak Warning */}
         {summary?.sisaKontrak !== undefined && summary.sisaKontrak <= 60 && (
-          <div className="rounded-2xl overflow-hidden"
-            style={{ background: "#fffbeb", border: "1.5px solid #fcd34d", boxShadow: "0 4px 16px rgba(245,158,11,0.2)" }}>
-            <div className="flex items-start gap-3 px-4 py-3">
-              <div className="h-7 w-7 rounded-lg flex items-center justify-center bg-amber-500 shrink-0 mt-0.5">
-                <AlertCircle className="h-3.5 w-3.5 text-white" />
-              </div>
-              <div>
-                <p className="text-[11px] font-black text-amber-900">Masa Kontrak Segera Berakhir</p>
-                <p className="text-[10px] text-amber-700 mt-0.5">Sisa <strong>{summary.sisaKontrak} hari</strong>. Koordinasi dengan HRD segera.</p>
-              </div>
+          <div className="rounded-2xl p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 flex items-start gap-3">
+            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-xs leading-relaxed">
+              <p className="font-semibold">Masa Kontrak Segera Berakhir</p>
+              <p className="text-amber-700 dark:text-amber-300 mt-0.5">Sisa <strong>{summary.sisaKontrak} hari</strong>. Koordinasikan pembaruan dengan HRD.</p>
             </div>
           </div>
         )}
 
-        {/* ===== STATUS HARI INI ===== */}
-        <div className="rounded-3xl overflow-hidden"
-          style={{ background: "#ffffff", boxShadow: "0 8px 30px rgba(30,58,95,0.12)", border: "1px solid #e2eaf4" }}>
-          <div className="px-5 pt-5 pb-5">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Status Hari Ini</p>
-                <p className="text-sm font-bold text-gray-800 mt-0.5">
-                  {format(today, "EEEE, dd MMMM yyyy", { locale: idLocale })}
-                </p>
-              </div>
-              {(() => {
-                if (!summary) return null // Masih loading
-                const currentHour = new Date().getHours()
-                const batasMasukH = parseInt(summary.batasAbsenMasuk?.split(":")[0]) || 14
-                const mulaiPulangH = parseInt(summary.mulaiAbsenPulang?.split(":")[0]) || 15
-                const batasPulangH = parseInt(summary.batasAbsenPulang?.split(":")[0]) || 18
+        {/* ===== STATUS HARI INI CARD ===== */}
+        <div className="rounded-2xl p-5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Presensi Hari Ini</p>
+              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                {format(today, "EEEE, dd MMMM yyyy", { locale: idLocale })}
+              </p>
+            </div>
 
-                if (summary.sudahAbsenPulang) {
+            {(() => {
+              if (!summary) return null
+              const currentHour = new Date().getHours()
+              const batasMasukH = parseInt(summary.batasAbsenMasuk?.split(":")[0]) || 14
+              const mulaiPulangH = parseInt(summary.mulaiAbsenPulang?.split(":")[0]) || 15
+              const batasPulangH = parseInt(summary.batasAbsenPulang?.split(":")[0]) || 18
+
+              if (summary.sudahAbsenPulang) {
+                return (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Selesai
+                  </div>
+                )
+              }
+
+              if (!summary.sudahAbsenMasuk) {
+                if (currentHour >= batasMasukH) {
                   return (
-                    <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-emerald-600 bg-emerald-50 text-[11px] font-black border border-emerald-100">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Selesai
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 text-xs font-medium">
+                      <XCircle className="h-3.5 w-3.5" /> Sesi Tutup
                     </div>
                   )
                 }
-
-                if (!summary.sudahAbsenMasuk) {
-                  if (currentHour >= batasMasukH) {
-                    return (
-                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-red-500 bg-red-50 text-[11px] font-black border border-red-100">
-                        <XCircle className="h-3.5 w-3.5" /> Sesi Ditutup
-                      </div>
-                    )
-                  }
+                return (
+                  <Link href="/m/fingerprint">
+                    <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold shadow-xs active:scale-95 transition-all">
+                      <Pointer className="h-3.5 w-3.5" />
+                      Check-In
+                    </button>
+                  </Link>
+                )
+              } else {
+                if (currentHour < mulaiPulangH) {
                   return (
-                    <Link href="/m/fingerprint">
-                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-black active:scale-95 transition-transform"
-                        style={{ background: "linear-gradient(135deg, #1e3a5f, #2563eb)", boxShadow: "0 4px 14px rgba(37,99,235,0.35)" }}>
-                        <Pointer className="h-3.5 w-3.5" />
-                        Masuk
-                      </div>
-                    </Link>
-                  )
-                } else {
-                  // Sudah masuk, belum pulang
-                  if (currentHour < mulaiPulangH) {
-                    return (
-                      <div className="flex items-center justify-center px-3.5 py-2 rounded-xl text-gray-500 bg-gray-100 text-[10px] font-black border border-gray-200" title="Belum waktunya jam pulang">
-                        <Clock className="h-3.5 w-3.5 mr-1" /> Belum Pulang
-                      </div>
-                    )
-                  }
-                  if (currentHour >= batasPulangH) {
-                    return (
-                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-red-500 bg-red-50 text-[11px] font-black border border-red-100">
-                        <XCircle className="h-3.5 w-3.5" /> Sesi Berakhir
-                      </div>
-                    )
-                  }
-                  return (
-                    <Link href="/m/fingerprint">
-                      <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-black active:scale-95 transition-transform"
-                        style={{ background: "linear-gradient(135deg, #059669, #10b981)", boxShadow: "0 4px 14px rgba(16,185,129,0.35)" }}>
-                        <Pointer className="h-3.5 w-3.5" />
-                        Pulang
-                      </div>
-                    </Link>
+                    <div className="flex items-center gap-1 px-3 py-1.5 rounded-full text-zinc-500 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium">
+                      <Clock className="h-3.5 w-3.5" /> Belum Pulang
+                    </div>
                   )
                 }
-              })()}
+                if (currentHour >= batasPulangH) {
+                  return (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 text-xs font-medium">
+                      <XCircle className="h-3.5 w-3.5" /> Berakhir
+                    </div>
+                  )
+                }
+                return (
+                  <Link href="/m/fingerprint">
+                    <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold shadow-xs active:scale-95 transition-all">
+                      <Pointer className="h-3.5 w-3.5" />
+                      Check-Out
+                    </button>
+                  </Link>
+                )
+              }
+            })()}
+          </div>
+
+          {/* Jam masuk & pulang tiles */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 border border-emerald-500/20">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Jam Masuk</p>
+                <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                  {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
+                </p>
+              </div>
             </div>
 
-            {/* Jam masuk / pulang */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl p-3.5 flex items-center gap-3"
-                style={{ background: "linear-gradient(135deg,#f0fdf4,#dcfce7)", border: "1px solid #bbf7d0" }}>
-                <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: "#16a34a", boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>
-                  <Clock className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-green-700 uppercase tracking-widest">Masuk</p>
-                  <p className="text-base font-black text-gray-800 mt-0.5 tabular-nums">
-                    {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
-                  </p>
-                </div>
+            <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 shrink-0 border border-zinc-300/40 dark:border-zinc-600/40">
+                <Clock className="h-4 w-4" />
               </div>
-              <div className="rounded-2xl p-3.5 flex items-center gap-3"
-                style={{ background: "linear-gradient(135deg,#f8fafc,#f1f5f9)", border: "1px solid #e2e8f0" }}>
-                <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: "#475569", boxShadow: "0 4px 12px rgba(71,85,105,0.3)" }}>
-                  <Clock className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Pulang</p>
-                  <p className="text-base font-black text-gray-800 mt-0.5 tabular-nums">
-                    {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
-                  </p>
-                </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Jam Pulang</p>
+                <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                  {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ===== PENGUMUMAN TICKER (antara jam & banner) ===== */}
+        {/* ===== PENGUMUMAN TICKER ===== */}
         {pengumuman.length > 0 && <PengumumanTicker items={pengumuman} />}
 
-        {/* ===== BANNER OP.PNG ===== */}
-        <div className="rounded-3xl overflow-hidden"
-          style={{ boxShadow: "0 6px 24px rgba(30,58,95,0.15)", border: "1.5px solid #e2eaf4" }}>
+        {/* ===== BANNER OP.PNG (DIPERTAHANKAN SESUAI PERINTAH USER) ===== */}
+        <div className="rounded-2xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-xs bg-white dark:bg-zinc-900">
           <Image
             src={`/op.png?v=${Date.now()}`}
             alt="Jangan lupa absen masuk dan pulang!"
@@ -420,163 +399,166 @@ export default function MobileDashboard() {
         </div>
 
         {/* ===== REKAP PRESENSI ===== */}
-        <div className="rounded-3xl overflow-hidden"
-          style={{ background: "#ffffff", boxShadow: "0 8px 30px rgba(30,58,95,0.10)", border: "1px solid #e2eaf4" }}>
-          <div className="px-5 pt-5 pb-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Rekap Presensi</p>
-                <p className="text-sm font-bold text-gray-800 mt-0.5">Bulan {monthName}</p>
-              </div>
-              <Link href="/m/absensi" className="flex items-center gap-0.5 text-[11px] font-bold text-blue-600">
-                Lihat Semua <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
+        <div className="rounded-2xl p-5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Rekap Bulanan</p>
+              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">Bulan {monthName}</p>
             </div>
-            {totalWorkdays > 0 && (
-              <div className="mb-4">
-                <div className="flex justify-between text-[10px] font-semibold text-gray-400 mb-1.5">
-                  <span>Tingkat Kehadiran</span>
-                  <span className="text-blue-600 font-black">{hadirCount}/{totalWorkdays} hari</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min((hadirCount / totalWorkdays) * 100, 100)}%`,
-                      background: "linear-gradient(90deg, #1e3a5f, #2563eb)",
-                      transition: "width 0.7s ease"
-                    }} />
-                </div>
+            <Link 
+              href="/m/absensi" 
+              className="flex items-center gap-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
+            >
+              Lihat Detail <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          {totalWorkdays > 0 && (
+            <div className="mb-4">
+              <div className="flex justify-between text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
+                <span>Tingkat Kehadiran</span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">{hadirCount}/{totalWorkdays} Hari</span>
               </div>
-            )}
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: "Hadir", value: hadirCount, icon: UserCheck, bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#16a34a", text: "#15803d" },
-                { label: "Sakit", value: sakitCount, icon: Thermometer, bg: "#fffbeb", border: "#fde68a", iconBg: "#d97706", text: "#92400e" },
-                { label: "Izin",  value: izinCount,  icon: FileText,  bg: "#eff6ff", border: "#bfdbfe", iconBg: "#2563eb", text: "#1e40af" },
-                { label: "Sisa Cuti", value: pegawai?.saldoCuti ?? 0, icon: CalendarDays, bg:"#f0f9ff", border:"#bae6fd", iconBg:"#0284c7", text:"#075985" },
-              ].map((item) => {
-                const Icon = item.icon
-                return (
-                  <div key={item.label} className="rounded-2xl py-3.5 flex flex-col items-center gap-1"
-                    style={{ background: item.bg, border: `1.5px solid ${item.border}` }}>
-                    <div className="h-7 w-7 rounded-lg flex items-center justify-center mb-0.5"
-                      style={{ background: item.iconBg }}>
-                      <Icon className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <span className="text-xl font-black leading-none" style={{ color: item.text }}>{item.value}</span>
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{item.label}</span>
+              <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-zinc-900 dark:bg-white transition-all duration-700 ease-out"
+                  style={{ width: `${Math.min((hadirCount / totalWorkdays) * 100, 100)}%` }} 
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Hadir", value: hadirCount, icon: UserCheck, color: "text-emerald-600 dark:text-emerald-400" },
+              { label: "Sakit", value: sakitCount, icon: Thermometer, color: "text-amber-600 dark:text-amber-400" },
+              { label: "Izin",  value: izinCount,  icon: FileText,    color: "text-sky-600 dark:text-sky-400" },
+              { label: "Cuti",  value: pegawai?.saldoCuti ?? 0, icon: CalendarDays, color: "text-indigo-600 dark:text-indigo-400" },
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <div 
+                  key={item.label} 
+                  className="rounded-xl p-3 flex flex-col items-center gap-1 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800"
+                >
+                  <div className={cn("p-1.5 rounded-lg bg-white dark:bg-zinc-800 shadow-2xs", item.color)}>
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
-                )
-              })}
-            </div>
+                  <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tabular-nums leading-tight mt-0.5">
+                    {item.value}
+                  </span>
+                  <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-tight">
+                    {item.label}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
         {/* ===== MENU UTAMA ===== */}
-        <div className="rounded-3xl overflow-hidden"
-          style={{ background: "#ffffff", boxShadow: "0 8px 30px rgba(30,58,95,0.10)", border: "1px solid #e2eaf4" }}>
-          <div className="px-5 pt-5 pb-5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4">Menu Utama</p>
-            <div className="grid grid-cols-3 gap-3">
-              {menuItems.map((item, i) => {
-                const Icon = item.icon
-                return (
-                  <Link key={i} href={item.href}>
-                    <div className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
-                      <div className="h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg"
-                        style={{
-                          background: "linear-gradient(135deg, #1e3a5f, #1d4ed8)",
-                          boxShadow: "0 4px 14px rgba(30,58,95,0.3)"
-                        }}>
-                        <Icon className="h-6 w-6 text-white" strokeWidth={1.8} />
-                      </div>
-                      <span className="text-[10px] font-bold text-gray-700 text-center leading-tight whitespace-pre-line">
-                        {item.label}
-                      </span>
+        <div className="rounded-2xl p-5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3.5">
+            Layanan Pegawai
+          </p>
+          <div className="grid grid-cols-3 gap-2.5">
+            {menuItems.map((item, i) => {
+              const Icon = item.icon
+              return (
+                <Link key={i} href={item.href}>
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-95 group">
+                    <div className="h-11 w-11 rounded-xl flex items-center justify-center bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-2xs border border-zinc-200/70 dark:border-zinc-700/60 group-hover:text-zinc-950 dark:group-hover:text-white">
+                      <Icon className="h-5 w-5 stroke-[1.8]" />
                     </div>
-                  </Link>
-                )
-              })}
-            </div>
+                    <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 text-center leading-tight whitespace-pre-line">
+                      {item.label}
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
 
-        {/* ===== LEADERBOARD HARI INI — Top 10 ===== */}
-        <div className="rounded-3xl overflow-hidden"
-          style={{ background: "#ffffff", boxShadow: "0 8px 30px rgba(30,58,95,0.10)", border: "1px solid #e2eaf4" }}>
-          <div className="px-5 pt-5 pb-2">
-            <div className="flex items-center justify-between mb-1">
+        {/* ===== LEADERBOARD DISIPLIN ===== */}
+        <div className="rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+          <div className="p-5 pb-3">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Leaderboard</p>
-                <p className="text-sm font-bold text-gray-800 mt-0.5">Skor Disiplin Hari Ini</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Peringkat Disiplin</p>
+                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">Top Performa Hari Ini</p>
               </div>
-              <span className="text-[10px] font-bold text-gray-400">
+              <span className="text-[11px] font-medium text-zinc-400">
                 {format(today, "dd MMM yyyy", { locale: idLocale })}
               </span>
             </div>
-            <p className="text-[10px] text-gray-400 mb-4">Diperbarui setiap kali ada absen masuk/pulang</p>
           </div>
 
           {disiplinTop.length === 0 ? (
-            <div className="px-5 pb-5 text-center">
-              <p className="text-[11px] text-gray-400 py-6">Belum ada data indeks hari ini</p>
+            <div className="p-6 text-center text-xs text-zinc-400">
+              Belum ada kalkulasi indeks disiplin untuk hari ini
             </div>
           ) : (
-            <>
-              <div className="divide-y divide-gray-50 pb-3">
-                {(showAllLeaderboard ? disiplinTop : disiplinTop.slice(0, 5)).map((p, idx) => (
-                  <div key={p.pegawaiId} className={`flex items-center gap-3 px-5 py-3 ${idx === 0 ? "border-transparent" : ""}`}
-                    style={
-                      idx === 0 ? { background: "linear-gradient(135deg, #1e3a5f, #1d4ed8)" }
-                      : idx < 3 ? { background: "linear-gradient(90deg,#eff6ff,#ffffff)" } 
-                      : {}
-                    }>
-                    <RankBadge rank={p.rank} />
-                    {/* Avatar */}
-                    <div className={`h-9 w-9 rounded-full overflow-hidden shrink-0 border-2 ${idx === 0 ? "border-white/20" : "border-gray-100"}`}
-                      style={{ background: idx === 0 ? "rgba(255,255,255,0.1)" : "#e0e7ff" }}>
-                      {p.fotoUrl ? (
-                        <img src={p.fotoUrl} className="h-full w-full object-cover" alt="" />
-                      ) : (
-                        <div className={`flex h-full w-full items-center justify-center text-xs font-black ${idx === 0 ? "text-white" : "text-blue-700"}`}>
-                          {p.nama.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[12px] font-bold truncate ${idx === 0 ? "text-white" : "text-gray-800"}`}>{p.nama}</p>
-                      <p className={`text-[10px] truncate ${idx === 0 ? "text-blue-200" : "text-gray-400"}`}>{p.unit || p.jabatan}</p>
-                    </div>
-                    <div className="flex flex-col items-end shrink-0">
-                      <span className={`text-base font-black leading-none ${
-                          idx === 0 ? "text-white" :
-                          p.totalSkor >= 90 ? "text-green-600" :
-                          p.totalSkor >= 80 ? "text-blue-600" : "text-amber-500"
-                      }`}>{p.totalSkor}</span>
-                      <span className={`text-[9px] ${idx === 0 ? "text-blue-200" : "text-gray-400"}`}>/100</span>
-                    </div>
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+              {(showAllLeaderboard ? disiplinTop : disiplinTop.slice(0, 5)).map((p, idx) => (
+                <div 
+                  key={p.pegawaiId} 
+                  className={cn(
+                    "flex items-center gap-3 px-5 py-3 transition-colors",
+                    idx === 0 ? "bg-zinc-50/70 dark:bg-zinc-800/30" : ""
+                  )}
+                >
+                  <RankBadge rank={p.rank} />
+
+                  <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700">
+                    {p.fotoUrl ? (
+                      <img src={p.fotoUrl} className="h-full w-full object-cover" alt="" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-zinc-600 dark:text-zinc-300">
+                        {p.nama?.charAt(0) || "U"}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                      {p.nama}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                      {p.unit || p.jabatan || "-"}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                      {p.totalSkor}
+                    </span>
+                    <span className="text-[9px] text-zinc-400">/100</span>
+                  </div>
+                </div>
+              ))}
+
               {disiplinTop.length > 5 && (
                 <button
                   onClick={() => setShowAllLeaderboard(v => !v)}
-                  className="w-full py-3 text-[11px] font-bold text-blue-600 flex items-center justify-center gap-1 border-t border-gray-50 active:bg-blue-50 transition-colors"
+                  className="w-full py-3 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center gap-1.5 transition-colors bg-zinc-50/50 dark:bg-zinc-800/20"
                 >
                   {showAllLeaderboard ? (
-                    <><ChevronRight className="h-3.5 w-3.5 rotate-270" /> Sembunyikan</>
+                    <>Tampilkan Lebih Sedikit</>
                   ) : (
-                    <><ChevronRight className="h-3.5 w-3.5 rotate-90" /> Lihat {disiplinTop.length - 5} Lainnya (Top 10)</>
+                    <>Lihat Top 10 Selengkapnya <ChevronRight className="h-3.5 w-3.5" /></>
                   )}
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="text-center py-4">
-          <p className="text-[10px] text-gray-400 font-medium">ASIK · Perumdam Tirta Ardhia Rinjani · v2.0</p>
+        {/* Footer info */}
+        <div className="text-center pt-2 pb-6">
+          <p className="text-[11px] text-zinc-400 font-medium">
+            ASIK Mobile · Perumdam Tirta Ardhia Rinjani
+          </p>
         </div>
 
       </div>

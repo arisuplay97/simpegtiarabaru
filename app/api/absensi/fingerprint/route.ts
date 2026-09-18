@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { hitungIndeksPegawai } from "@/lib/actions/indeks"
+import { parseTitikKoordinat, hitungJarak } from "@/lib/data/lokasi-store"
 
 // Anti-fake GPS: batas minimum akurasi yang masih diterima (meter)
 const MAX_ALLOWED_ACCURACY = 300
@@ -19,15 +20,7 @@ function isCoordinateValid(lat: number, lng: number): boolean {
 }
 
 function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371000 // Radius bumi dalam meter
-  const dLat = (lat2 - lat1) * (Math.PI / 180)
-  const dLon = (lon2 - lon1) * (Math.PI / 180)
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
+  return hitungJarak(lat1, lon1, lat2, lon2)
 }
 
 export async function POST(req: Request) {
@@ -59,39 +52,57 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "GPS terlalu akurat, terindikasi menggunakan fake/mock GPS." }, { status: 400 })
       }
       
-      // Radius check logic
+      // Radius check logic (mendukung multi-titik koordinat per lokasi)
       if (!pegawai.bebasAbsensi) {
         if (pegawai.lokasiAbsensi) {
           // Jika pegawai terikat pada satu Lokasi spesifik
-          const distance = getDistanceFromLatLonInM(
-            latitude, 
-            longitude, 
-            pegawai.lokasiAbsensi.latitude, 
-            pegawai.lokasiAbsensi.longitude
-          )
-          
-          if (distance > pegawai.lokasiAbsensi.radius) {
-            return NextResponse.json({ error: `Anda berada di luar jangkauan absen. Jarak: ${Math.round(distance)}m (Maks: ${pegawai.lokasiAbsensi.radius}m dari kantor/lokasi).` }, { status: 400 })
+          const allPoints = parseTitikKoordinat(pegawai.lokasiAbsensi as any)
+          let isWithinRadius = false
+          let closestDistance = Infinity
+          let matchedPointName = ""
+
+          for (const pt of allPoints) {
+            const distance = hitungJarak(latitude, longitude, pt.latitude, pt.longitude)
+            if (distance < closestDistance) closestDistance = distance
+            const effectiveRadius = pt.radius ?? pegawai.lokasiAbsensi.radius
+            if (distance <= effectiveRadius) {
+              isWithinRadius = true
+              matchedPointName = pt.nama
+              break
+            }
+          }
+
+          if (!isWithinRadius) {
+            return NextResponse.json({ 
+              error: `Anda berada di luar jangkauan area absen (${pegawai.lokasiAbsensi.nama}). Jarak terdekat: ${Math.round(closestDistance)}m (Maks: ${pegawai.lokasiAbsensi.radius}m).` 
+            }, { status: 400 })
           }
         } else {
           // Jika pegawai menggunakan opsi "Semua Lokasi Aktif (Default)"
           const allLocations = await prisma.lokasiAbsensi.findMany({ where: { aktif: true } })
-          
+
           if (allLocations.length > 0) {
-            let isValidLocation = false;
-            let closestDistance = Infinity;
+            let isValidLocation = false
+            let closestDistance = Infinity
 
             for (const loc of allLocations) {
-              const distance = getDistanceFromLatLonInM(latitude, longitude, loc.latitude, loc.longitude);
-              if (distance < closestDistance) closestDistance = distance;
-              if (distance <= loc.radius) {
-                isValidLocation = true;
-                break;
+              const allPoints = parseTitikKoordinat(loc as any)
+              for (const pt of allPoints) {
+                const distance = hitungJarak(latitude, longitude, pt.latitude, pt.longitude)
+                if (distance < closestDistance) closestDistance = distance
+                const effectiveRadius = pt.radius ?? loc.radius
+                if (distance <= effectiveRadius) {
+                  isValidLocation = true
+                  break
+                }
               }
+              if (isValidLocation) break
             }
 
             if (!isValidLocation) {
-              return NextResponse.json({ error: `Anda berada di luar jangkauan area absen manapun. Jarak terdekat ke kantor adalah ${Math.round(closestDistance)}m.` }, { status: 400 })
+              return NextResponse.json({ 
+                error: `Anda berada di luar jangkauan area absen manapun. Jarak terdekat ke lokasi kantor/titik absensi: ${Math.round(closestDistance)}m.` 
+              }, { status: 400 })
             }
           }
         }

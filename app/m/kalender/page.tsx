@@ -10,12 +10,12 @@ import { getKalenderPegawai } from "@/lib/actions/indeks"
 import Link from "next/link"
 
 const STATUS_CONFIG_EXT: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  HADIR:        { label: "Hadir",        bg: "bg-emerald-50 dark:bg-emerald-900/20",  text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500" },
-  TERLAMBAT:    { label: "Hadir",        bg: "bg-emerald-50 dark:bg-emerald-900/20",  text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500" },
-  CUTI:         { label: "Cuti",         bg: "bg-purple-50 dark:bg-purple-900/20",    text: "text-purple-700 dark:text-purple-400",   dot: "bg-purple-500" },
-  IZIN:         { label: "Izin",         bg: "bg-blue-50 dark:bg-blue-900/20",        text: "text-blue-700 dark:text-blue-400",       dot: "bg-blue-500" },
-  SAKIT:        { label: "Sakit",        bg: "bg-orange-50 dark:bg-orange-900/20",    text: "text-orange-700 dark:text-orange-400",   dot: "bg-orange-500" },
-  ALPA:         { label: "Alpha",        bg: "bg-rose-100 dark:bg-rose-900/30",       text: "text-rose-800 dark:text-rose-300",       dot: "bg-rose-600" },
+  HADIR:        { label: "Hadir",        bg: "bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500" },
+  TERLAMBAT:    { label: "Terlambat",    bg: "bg-amber-500/10",   text: "text-amber-700 dark:text-amber-400",     dot: "bg-amber-500" },
+  CUTI:         { label: "Cuti",         bg: "bg-purple-500/10",  text: "text-purple-700 dark:text-purple-400",   dot: "bg-purple-500" },
+  IZIN:         { label: "Izin",         bg: "bg-sky-500/10",     text: "text-sky-700 dark:text-sky-400",         dot: "bg-sky-500" },
+  SAKIT:        { label: "Sakit",        bg: "bg-orange-500/10",  text: "text-orange-700 dark:text-orange-400",   dot: "bg-orange-500" },
+  ALPA:         { label: "Alpa",         bg: "bg-rose-500/10",    text: "text-rose-700 dark:text-rose-400",       dot: "bg-rose-500" },
 }
 
 export default function MobileKalender() {
@@ -65,57 +65,74 @@ export default function MobileKalender() {
   })
 
   return (
-    <div className="min-h-screen bg-[#f4f7f6] dark:bg-black font-sans pb-24 flex flex-col">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] font-sans pb-24 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] pb-6 px-5 rounded-b-3xl shadow-sm text-white" style={{ paddingTop: "max(3rem, env(safe-area-inset-top))" }}>
-        <div className="flex items-center gap-3">
-          <Link href="/m/dashboard" className="p-2 rounded-xl bg-white/10 text-white active:scale-95 transition-transform">
+      <div 
+        className="sticky top-0 z-20 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <Link 
+            href="/m/dashboard"
+            className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-xl font-bold tracking-wide">Kalender Kehadiran</h1>
+          <h1 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">Kalender Kehadiran</h1>
         </div>
       </div>
 
-      <div className="flex-1 px-5 mt-4 space-y-4">
+      <div className="flex-1 px-4 mt-4 space-y-3.5 max-w-md mx-auto w-full">
         
         {/* Navigasi Bulan */}
-        <div className="flex items-center justify-between bg-white dark:bg-neutral-900 rounded-2xl p-3 shadow-sm border border-neutral-100 dark:border-neutral-800">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-xl active:scale-95 text-neutral-600 dark:text-neutral-400">
-            <ChevronLeft className="h-5 w-5" />
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-900 rounded-2xl p-2.5 shadow-2xs border border-zinc-200/80 dark:border-zinc-800">
+          <button 
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} 
+            className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl active:scale-95 text-zinc-700 dark:text-zinc-300 transition-transform"
+          >
+            <ChevronLeft className="h-4 w-4" />
           </button>
-          <div className="font-bold text-neutral-800 dark:text-neutral-200">
+          <div className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
             {format(currentMonth, "MMMM yyyy", { locale: id })}
           </div>
-          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-xl active:scale-95 text-neutral-600 dark:text-neutral-400">
-            <ChevronRight className="h-5 w-5" />
+          <button 
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} 
+            className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl active:scale-95 text-zinc-700 dark:text-zinc-300 transition-transform"
+          >
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
 
         {/* Ringkasan */}
         <div className="grid grid-cols-5 gap-2">
           {[
-            { label: "H", v: totalHadir, c: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-            { label: "S", v: totalSakit, c: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
-            { label: "I", v: totalIzin, c: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-            { label: "C", v: totalCuti, c: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20" },
-            { label: "A", v: totalAlpha, c: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-900/20" }
+            { label: "Hadir", v: totalHadir, c: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Sakit", v: totalSakit, c: "text-amber-600 dark:text-amber-400" },
+            { label: "Izin",  v: totalIzin,  c: "text-sky-600 dark:text-sky-400" },
+            { label: "Cuti",  v: totalCuti,  c: "text-purple-600 dark:text-purple-400" },
+            { label: "Alpa",  v: totalAlpha, c: "text-rose-600 dark:text-rose-400" }
           ].map(item => (
-            <div key={item.label} className={cn("rounded-xl py-3 flex flex-col items-center justify-center", item.bg)}>
-              <span className={cn("text-lg font-bold leading-none", item.c)}>{item.v}</span>
-              <span className="text-[10px] uppercase font-bold text-neutral-500 mt-1">{item.label}</span>
+            <div 
+              key={item.label} 
+              className="rounded-xl py-2.5 flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs"
+            >
+              <span className={cn("text-base font-bold leading-none tabular-nums", item.c)}>{item.v}</span>
+              <span className="text-[10px] uppercase font-semibold text-zinc-400 dark:text-zinc-500 mt-1">{item.label}</span>
             </div>
           ))}
         </div>
 
         {/* Kalender */}
-        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-2xs border border-zinc-200/80 dark:border-zinc-800">
           {loading ? (
-            <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-emerald-600 w-8 h-8" /></div>
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="animate-spin text-zinc-400 w-7 h-7" />
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-7 mb-2">
                 {weekDays.map(d => (
-                  <div key={d} className="text-center text-[11px] font-bold text-neutral-400 py-1">{d}</div>
+                  <div key={d} className="text-center text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 py-1">{d}</div>
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-1">
@@ -135,16 +152,22 @@ export default function MobileKalender() {
                       key={dateStr}
                       onClick={() => setSelectedDay(isSel ? null : dateStr)}
                       className={cn(
-                        "relative flex flex-col items-center justify-center min-h-[48px] rounded-2xl border-2 transition-all",
-                        isSel ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "border-transparent",
+                        "relative flex flex-col items-center justify-center min-h-[44px] rounded-xl border transition-all",
+                        isSel ? "border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800" : "border-transparent",
                         !isSel && cfg ? cfg.bg : "",
-                        !isSel && !cfg && isWknd ? "bg-neutral-50 dark:bg-neutral-800/50" : ""
+                        !isSel && !cfg && isWknd ? "bg-zinc-100/50 dark:bg-zinc-800/30" : ""
                       )}
                     >
-                      <span className={cn("text-sm font-bold", isToday ? "text-white bg-emerald-600 rounded-full w-6 h-6 flex items-center justify-center" : (cfg ? cfg.text : "text-neutral-700 dark:text-neutral-300"), isWknd && !cfg && "text-neutral-400")}>
+                      <span className={cn(
+                        "text-xs font-bold leading-none tabular-nums", 
+                        isToday 
+                          ? "text-white bg-zinc-900 dark:bg-white dark:text-zinc-900 rounded-full w-5 h-5 flex items-center justify-center" 
+                          : (cfg ? cfg.text : "text-zinc-700 dark:text-zinc-300"), 
+                        isWknd && !cfg && "text-zinc-400"
+                      )}>
                         {format(date, "d")}
                       </span>
-                      {cfg && <span className={cn("absolute bottom-1 w-1.5 h-1.5 rounded-full", cfg.dot)} />}
+                      {cfg && <span className={cn("absolute bottom-1 w-1 h-1 rounded-full", cfg.dot)} />}
                     </button>
                   )
                 })}
@@ -155,14 +178,16 @@ export default function MobileKalender() {
 
         {/* Detail Hari Terpilih */}
         {selectedDay && dayMap[selectedDay] && (
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800 animate-in slide-in-from-bottom-4">
-            <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 mb-3">Detail {format(new Date(selectedDay), "dd MMM yyyy", { locale: id })}</h3>
-            <div className="flex items-center gap-3 bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-xl">
-              <span className={cn("w-2 h-2 rounded-full", STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.dot || "bg-neutral-400")} />
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-2xs border border-zinc-200/80 dark:border-zinc-800">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-2">
+              Detail {format(new Date(selectedDay), "dd MMMM yyyy", { locale: id })}
+            </h3>
+            <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+              <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.dot || "bg-zinc-400")} />
               <div className="flex-1">
-                <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200">{STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.label || dayMap[selectedDay].status}</p>
-                {dayMap[selectedDay].jamMasuk && <p className="text-xs text-neutral-500 mt-0.5">Masuk: {format(new Date(dayMap[selectedDay].jamMasuk), "HH:mm")}</p>}
-                {dayMap[selectedDay].jamKeluar && <p className="text-xs text-neutral-500">Keluar: {format(new Date(dayMap[selectedDay].jamKeluar), "HH:mm")}</p>}
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.label || dayMap[selectedDay].status}</p>
+                {dayMap[selectedDay].jamMasuk && <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">Masuk: {format(new Date(dayMap[selectedDay].jamMasuk), "HH:mm")}</p>}
+                {dayMap[selectedDay].jamKeluar && <p className="text-xs text-zinc-500 tabular-nums">Keluar: {format(new Date(dayMap[selectedDay].jamKeluar), "HH:mm")}</p>}
               </div>
             </div>
           </div>

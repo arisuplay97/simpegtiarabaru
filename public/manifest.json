@@ -4,8 +4,8 @@
   "description": "Sistem Informasi Manajemen Kepegawaian PDAM Tirta Ardhia Rinjani",
   "start_url": "/m/dashboard",
   "display": "standalone",
-  "background_color": "#0d0d12",
-  "theme_color": "#1e3a5f",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -32,24 +32,24 @@
   "dir": "ltr",
   "shortcuts": [
     {
-      "name": "Absensi Selfie",
-      "short_name": "Selfie",
+      "name": "Presensi Cepat",
+      "short_name": "Absen",
       "description": "Check-in absensi hari ini",
-      "url": "/absensi/selfie",
+      "url": "/m/fingerprint",
       "icons": [{ "src": "/logo-tar.png", "sizes": "192x192" }]
     },
     {
-      "name": "Kalender",
+      "name": "Kalender Kerja",
       "short_name": "Kalender",
       "description": "Kalender kehadiran",
-      "url": "/kalender",
+      "url": "/m/kalender",
       "icons": [{ "src": "/logo-tar.png", "sizes": "192x192" }]
     },
     {
       "name": "Cuti & Izin",
       "short_name": "Cuti",
       "description": "Ajukan cuti atau izin",
-      "url": "/cuti",
+      "url": "/m/cuti",
       "icons": [{ "src": "/logo-tar.png", "sizes": "192x192" }]
     }
   ]

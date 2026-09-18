@@ -16,7 +16,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#3730a3",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -26,18 +29,24 @@ export const viewport: Viewport = {
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased bg-background`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <body className={`${inter.variable} font-sans antialiased bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 selection:bg-zinc-900 selection:text-white dark:selection:bg-white dark:selection:text-zinc-900`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
-            <div className="flex min-h-screen flex-col">
+            <div className="flex min-h-screen flex-col max-w-md mx-auto relative shadow-sm border-x border-zinc-200/50 dark:border-zinc-800/50">
               {/* Content — padded bottom for nav */}
-              <main className="flex-1 overflow-y-auto pb-20">
+              <main className="flex-1 overflow-y-auto">
                 {children}
               </main>
               <MobileBottomNav />
             </div>
           </AuthProvider>
-          <Toaster position="top-center" richColors toastOptions={{ style: { marginTop: 'var(--safe-area-inset-top, 40px)' } }} />
+          <Toaster 
+            position="top-center" 
+            richColors 
+            toastOptions={{ 
+              style: { marginTop: "max(12px, env(safe-area-inset-top))" } 
+            }} 
+          />
         </ThemeProvider>
       </body>
     </html>

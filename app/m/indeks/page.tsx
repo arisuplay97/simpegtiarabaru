@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { format } from "date-fns"
-import { id } from "date-fns/locale"
-import { Trophy, Medal, Award, Loader2, ArrowLeft, RefreshCcw, Building2, AlertTriangle, ChevronDown, ChevronUp, Minus, Target, CheckCircle2, Zap, ArrowUpCircle } from "lucide-react"
+import { Trophy, Medal, Award, Loader2, ArrowLeft, RefreshCcw, Building2, ChevronDown, ChevronUp, Minus, Target, CheckCircle2, Zap, ArrowUpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,26 +12,26 @@ import { toast } from "sonner"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; desc: string }> = {
-  TOP_DISIPLIN:        { label: "Top Disiplin",       color: "bg-blue-100 text-blue-700",           icon: <Target className="h-3 w-3" />,        desc: "Disiplin kehadiran tertinggi di unit" },
-  KEHADIRAN_PENUH:     { label: "Kehadiran Penuh",     color: "bg-emerald-100 text-emerald-700", icon: <CheckCircle2 className="h-3 w-3" />,   desc: "Hadir di semua hari kerja bulan ini" },
-  ZERO_LATE:           { label: "Zero Late",           color: "bg-violet-100 text-violet-700",     icon: <Zap className="h-3 w-3" />,           desc: "Tidak ada keterlambatan sama sekali" },
-  TOP_PERFORMER:       { label: "Top Performer",       color: "bg-amber-100 text-amber-700",         icon: <Trophy className="h-3 w-3" />,        desc: "Skor indeks tertinggi bulan ini" },
-  TERBAIK_UNIT:        { label: "Terbaik Unit",        color: "bg-orange-100 text-orange-700",     icon: <Building2 className="h-3 w-3" />,     desc: "Pegawai terbaik dalam unitnya" },
-  PENINGKATAN_TERBAIK: { label: "Peningkatan Terbaik", color: "bg-teal-100 text-teal-700",             icon: <ArrowUpCircle className="h-3 w-3" />, desc: "Kenaikan skor terbesar dari bulan lalu" },
+const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  TOP_DISIPLIN:        { label: "Top Disiplin",       color: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",     icon: <Target className="h-3 w-3" /> },
+  KEHADIRAN_PENUH:     { label: "Kehadiran Penuh",     color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", icon: <CheckCircle2 className="h-3 w-3" /> },
+  ZERO_LATE:           { label: "Zero Late",           color: "bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/20", icon: <Zap className="h-3 w-3" /> },
+  TOP_PERFORMER:       { label: "Top Performer",       color: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",   icon: <Trophy className="h-3 w-3" /> },
+  TERBAIK_UNIT:        { label: "Terbaik Unit",        color: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20", icon: <Building2 className="h-3 w-3" /> },
+  PENINGKATAN_TERBAIK: { label: "Peningkatan Terbaik", color: "bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20",       icon: <ArrowUpCircle className="h-3 w-3" /> },
 }
 
 function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) return <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-amber-100"><Trophy className="h-3.5 w-3.5 text-amber-600" /></div>
-  if (rank === 2) return <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-slate-200"><Medal className="h-3.5 w-3.5 text-slate-500" /></div>
-  if (rank === 3) return <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-orange-100"><Award className="h-3.5 w-3.5 text-orange-500" /></div>
-  return <div className="flex shrink-0 h-6 w-6 items-center justify-center text-[10px] font-bold text-neutral-500 bg-neutral-200 rounded-full">#{rank}</div>
+  if (rank === 1) return <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20"><Trophy className="h-3 w-3" /></div>
+  if (rank === 2) return <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-zinc-400/10 text-zinc-400 border border-zinc-400/20"><Medal className="h-3 w-3" /></div>
+  if (rank === 3) return <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-amber-700/10 text-amber-700 border border-amber-700/20"><Award className="h-3 w-3" /></div>
+  return <div className="flex shrink-0 h-6 w-6 items-center justify-center text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full">#{rank}</div>
 }
 
 function DeltaBadge({ delta }: { delta: number }) {
-  if (delta > 0) return <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600"><ChevronUp className="h-3 w-3" />+{delta}</span>
-  if (delta < 0) return <span className="flex items-center gap-0.5 text-[10px] font-bold text-rose-500"><ChevronDown className="h-3 w-3" />{delta}</span>
-  return <span className="flex items-center gap-0.5 text-[10px] text-neutral-400"><Minus className="h-3 w-3" />Stabil</span>
+  if (delta > 0) return <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400"><ChevronUp className="h-3 w-3" />+{delta}</span>
+  if (delta < 0) return <span className="flex items-center gap-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400"><ChevronDown className="h-3 w-3" />{delta}</span>
+  return <span className="flex items-center gap-0.5 text-[10px] text-zinc-400"><Minus className="h-3 w-3" />0</span>
 }
 
 export default function MobileIndeks() {
@@ -65,9 +64,9 @@ export default function MobileIndeks() {
         getRankingUnit(bulan, tahun),
         isAdmin ? getPegawaiPerluPerhatian() : []
       ])
-      setLeaderboard(lb)
-      setRankingUnit(ru)
-      setPerhatian(pp)
+      setLeaderboard(lb || [])
+      setRankingUnit(ru || [])
+      setPerhatian(pp || [])
     } catch {} finally {
       setLoading(false)
     }
@@ -78,11 +77,11 @@ export default function MobileIndeks() {
   const handleRecalc = async () => {
     if (!isAdmin) return
     setRecalcLoading(true)
-    toast.info("Menghitung ulang...")
+    toast.info("Menghitung ulang indeks...")
     try {
       await hitungIndeksSemuaPegawai(bulan, tahun)
       await generateBadgesBulanan(bulan, tahun)
-      toast.success("Indeks berhasil dihitung")
+      toast.success("Indeks berhasil dihitung ulang")
       await loadAll()
     } catch {
       toast.error("Gagal menghitung")
@@ -94,66 +93,89 @@ export default function MobileIndeks() {
   const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
   return (
-    <div className="min-h-screen bg-[#f4f7f6] dark:bg-black font-sans pb-24 flex flex-col">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] font-sans pb-24 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0d0d12] pb-6 px-5 rounded-b-3xl shadow-sm text-white sticky top-0 z-10" style={{ paddingTop: "max(3rem, env(safe-area-inset-top))" }}>
+      <div 
+        className="sticky top-0 z-20 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 shadow-2xs"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/m/dashboard" className="p-2 rounded-xl bg-white/10 text-white active:scale-95 transition-transform">
+          <div className="flex items-center gap-2.5">
+            <Link 
+              href="/m/dashboard"
+              className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors"
+            >
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-xl font-bold tracking-wide flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-amber-400" />
-              Indeks Pegawai
-            </h1>
+            <h1 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">Indeks Kinerja</h1>
           </div>
           {isAdmin && (
             <button
               onClick={handleRecalc}
               disabled={recalcLoading}
-              className="p-2 rounded-xl bg-white/10 active:scale-95"
+              className="p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 active:scale-90 transition-transform"
+              title="Hitung Ulang Indeks"
             >
-              <RefreshCcw className={cn("h-5 w-5", recalcLoading && "animate-spin")} />
+              <RefreshCcw className={cn("h-4 w-4", recalcLoading && "animate-spin text-zinc-900 dark:text-white")} />
             </button>
           )}
         </div>
 
         {/* Filter Bulan & Tahun */}
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 mt-3">
           <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
-            <SelectTrigger className="flex-1 bg-white/10 border-0 h-10 text-white rounded-xl focus:ring-0"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="flex-1 bg-zinc-100 dark:bg-zinc-800/80 border-zinc-200/80 dark:border-zinc-700 h-9 text-xs rounded-xl focus:ring-0">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {availableMonths.map((m) => <SelectItem key={m} value={String(m)}>{bulanNames[m - 1]}</SelectItem>)}
+              {availableMonths.map((m) => <SelectItem key={m} value={String(m)} className="text-xs">{bulanNames[m - 1]}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={String(tahun)} onValueChange={v => setTahun(Number(v))}>
-            <SelectTrigger className="w-24 bg-white/10 border-0 h-10 text-white rounded-xl focus:ring-0"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-24 bg-zinc-100 dark:bg-zinc-800/80 border-zinc-200/80 dark:border-zinc-700 h-9 text-xs rounded-xl focus:ring-0">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="px-5 mt-4">
-        <div className="flex items-center bg-neutral-200/50 dark:bg-neutral-800 p-1 rounded-xl">
+      {/* Segmented Tabs */}
+      <div className="px-4 mt-3 max-w-md mx-auto w-full">
+        <div className="flex items-center bg-zinc-200/60 dark:bg-zinc-800/60 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab("leaderboard")}
-            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors text-center", activeTab === "leaderboard" ? "bg-white dark:bg-neutral-700 shadow-sm text-neutral-800 dark:text-white" : "text-neutral-500")}
+            className={cn(
+              "flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all text-center",
+              activeTab === "leaderboard" 
+                ? "bg-white dark:bg-zinc-900 shadow-2xs text-zinc-900 dark:text-white" 
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800"
+            )}
           >
             Leaderboard
           </button>
           <button
             onClick={() => setActiveTab("ranking-unit")}
-            className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors text-center", activeTab === "ranking-unit" ? "bg-white dark:bg-neutral-700 shadow-sm text-neutral-800 dark:text-white" : "text-neutral-500")}
+            className={cn(
+              "flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all text-center",
+              activeTab === "ranking-unit" 
+                ? "bg-white dark:bg-zinc-900 shadow-2xs text-zinc-900 dark:text-white" 
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800"
+            )}
           >
             Ranking Unit
           </button>
           {isAdmin && (
             <button
               onClick={() => setActiveTab("perhatian")}
-              className={cn("flex-1 text-xs font-bold py-2 rounded-lg transition-colors text-center", activeTab === "perhatian" ? "bg-white dark:bg-neutral-700 shadow-sm text-neutral-800 dark:text-white" : "text-neutral-500")}
+              className={cn(
+                "flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all text-center",
+                activeTab === "perhatian" 
+                  ? "bg-white dark:bg-zinc-900 shadow-2xs text-zinc-900 dark:text-white" 
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800"
+              )}
             >
               Perhatian
             </button>
@@ -161,35 +183,46 @@ export default function MobileIndeks() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 px-5 mt-4 space-y-3">
+      {/* Content List */}
+      <div className="flex-1 px-4 mt-3.5 space-y-2.5 max-w-md mx-auto w-full">
         {loading ? (
-          <div className="flex items-center justify-center p-12"><Loader2 className="animate-spin text-[#18553f] h-8 w-8" /></div>
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="animate-spin text-zinc-400 h-7 w-7" />
+          </div>
         ) : (
           <>
             {/* LEADERBOARD TAB */}
             {activeTab === "leaderboard" && (
               <>
                 {leaderboard.length === 0 ? (
-                  <div className="text-center p-8 text-neutral-400 bg-white dark:bg-neutral-900 rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-800 text-sm">Belum ada data</div>
+                  <div className="text-center p-8 text-zinc-400 dark:text-zinc-500 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-xs font-medium">
+                    Belum ada data peringkat untuk periode ini
+                  </div>
                 ) : (
                   leaderboard.map((p, idx) => (
-                    <div key={p.pegawaiId} className={cn(
-                      "bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.03)] border transition-all",
-                      idx < 3 ? "border-amber-100 dark:border-amber-900 bg-gradient-to-r from-amber-50/50 to-white dark:from-amber-900/10 dark:to-neutral-900" : "border-neutral-100 dark:border-neutral-800"
-                    )}>
+                    <div 
+                      key={p.pegawaiId} 
+                      className={cn(
+                        "bg-white dark:bg-zinc-900 rounded-2xl p-3.5 flex items-center gap-3 border transition-colors shadow-2xs",
+                        idx < 3 
+                          ? "border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/30" 
+                          : "border-zinc-200/80 dark:border-zinc-800"
+                      )}
+                    >
                       <RankBadge rank={p.rank} />
-                      <Avatar className="h-10 w-10 shrink-0">
+                      <Avatar className="h-9 w-9 shrink-0 border border-zinc-200/70 dark:border-zinc-700">
                         <AvatarImage src={p.fotoUrl} />
-                        <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700 font-bold">{p.nama.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-xs bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 font-bold">
+                          {p.nama?.charAt(0) || "U"}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate">{p.nama}</p>
-                        <p className="text-[10px] text-neutral-400 truncate">{p.unit}</p>
+                        <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{p.nama}</p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">{p.unit || "-"}</p>
                         {p.badges?.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {p.badges.slice(0, 3).map((b: string) => (
-                              <span key={b} className={cn("flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full font-bold", BADGE_CONFIG[b]?.color)}>
+                            {p.badges.slice(0, 2).map((b: string) => (
+                              <span key={b} className={cn("flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md font-semibold border", BADGE_CONFIG[b]?.color)}>
                                 {BADGE_CONFIG[b]?.icon} {BADGE_CONFIG[b]?.label}
                               </span>
                             ))}
@@ -197,11 +230,12 @@ export default function MobileIndeks() {
                         )}
                       </div>
                       <div className="flex flex-col items-end shrink-0">
-                        <span className={cn(
-                          "text-lg font-black leading-none",
-                          p.totalSkor >= 90 ? "text-emerald-500" : p.totalSkor >= 80 ? "text-blue-500" : "text-amber-500"
-                        )}>{p.totalSkor}</span>
-                        <DeltaBadge delta={p.delta} />
+                        <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 leading-none tabular-nums">
+                          {p.totalSkor}
+                        </span>
+                        <div className="mt-1">
+                          <DeltaBadge delta={p.delta} />
+                        </div>
                       </div>
                     </div>
                   ))
@@ -213,23 +247,25 @@ export default function MobileIndeks() {
             {activeTab === "ranking-unit" && (
               <>
                 {rankingUnit.length === 0 ? (
-                  <div className="text-center p-8 text-neutral-400 bg-white dark:bg-neutral-900 rounded-3xl shadow-sm border border-neutral-100 text-sm">Belum ada data</div>
+                  <div className="text-center p-8 text-zinc-400 dark:text-zinc-500 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-xs font-medium">
+                    Belum ada data ranking unit
+                  </div>
                 ) : (
-                  rankingUnit.map((u, i) => (
-                    <div key={u.id} className="bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-sm border border-neutral-100 dark:border-neutral-800">
+                  rankingUnit.map((u) => (
+                    <div key={u.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-2xs border border-zinc-200/80 dark:border-zinc-800">
                       <div className="flex items-center gap-3 mb-2">
                         <RankBadge rank={u.rank} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate">{u.nama}</p>
+                          <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{u.nama}</p>
                         </div>
-                        <div className={cn("text-xl font-black shrink-0", u.avgSkor >= 90 ? "text-emerald-500" : "text-amber-500")}>
+                        <div className="text-base font-bold text-zinc-900 dark:text-zinc-100 shrink-0 tabular-nums">
                           {u.avgSkor}
                         </div>
                       </div>
-                      <Progress value={u.avgSkor} className="h-1.5 bg-neutral-100 dark:bg-neutral-800 mb-1.5" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold text-neutral-400">{u.jumlahPegawai} pegawai</span>
-                        <span className={cn("text-[8px] font-bold px-2 py-0.5 rounded-full", u.avgSkor >= 90 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>{u.predikatLabel}</span>
+                      <Progress value={u.avgSkor} className="h-1.5 bg-zinc-100 dark:bg-zinc-800 mb-2" />
+                      <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                        <span>{u.jumlahPegawai} Pegawai</span>
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">{u.predikatLabel}</span>
                       </div>
                     </div>
                   ))
@@ -241,26 +277,30 @@ export default function MobileIndeks() {
             {activeTab === "perhatian" && isAdmin && (
               <>
                 {perhatian.length === 0 ? (
-                  <div className="text-center p-8 text-neutral-400 bg-white dark:bg-neutral-900 rounded-3xl shadow-sm border border-neutral-100 text-sm flex flex-col items-center">
-                    <CheckCircle2 className="h-8 w-8 text-emerald-400 opacity-60 mb-2" />
-                    Semua pegawai dalam kondisi baik
+                  <div className="text-center p-8 text-zinc-400 dark:text-zinc-500 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-xs flex flex-col items-center">
+                    <CheckCircle2 className="h-7 w-7 text-emerald-500 opacity-60 mb-2" />
+                    Semua pegawai dalam performa disiplin yang baik
                   </div>
                 ) : (
                   perhatian.map(p => (
-                    <div key={p.pegawaiId} className="bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-rose-100 dark:border-rose-900/30">
-                      <Avatar className="h-10 w-10 shrink-0">
+                    <div key={p.pegawaiId} className="bg-white dark:bg-zinc-900 rounded-2xl p-3.5 flex items-center gap-3 border border-rose-200/80 dark:border-rose-950/60 shadow-2xs">
+                      <Avatar className="h-9 w-9 shrink-0 border border-rose-200 dark:border-rose-900">
                         <AvatarImage src={p.fotoUrl} />
-                        <AvatarFallback className="text-xs bg-rose-100 text-rose-700 font-bold">{p.nama.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-xs bg-rose-500/10 text-rose-600 font-bold">
+                          {p.nama?.charAt(0) || "U"}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate">{p.nama}</p>
+                        <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{p.nama}</p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {(p.flags || []).map((f: string, i: number) => (
-                            <span key={i} className="text-[8px] px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded-full font-bold">{f}</span>
+                            <span key={i} className="text-[9px] px-1.5 py-0.5 bg-rose-500/10 text-rose-700 dark:text-rose-400 rounded-md font-semibold border border-rose-500/20">
+                              {f}
+                            </span>
                           ))}
                         </div>
                       </div>
-                      <div className="text-xl font-black text-rose-500">{p.totalSkor}</div>
+                      <div className="text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums">{p.totalSkor}</div>
                     </div>
                   ))
                 )}
