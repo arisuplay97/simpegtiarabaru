@@ -36,6 +36,7 @@ import {
   Sun,
   Menu,
   CalendarDays,
+  PanelLeft,
 } from "lucide-react"
 import { useSidebar } from "@/components/simpeg/sidebar-nav"
 
@@ -49,7 +50,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const searchRef = useRef<HTMLInputElement>(null)
-  const { setMobileOpen } = useSidebar()
+  const { setMobileOpen, collapsed, setCollapsed } = useSidebar()
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
@@ -97,6 +98,18 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
+
+        {/* Sidebar expand toggle button on desktop when collapsed */}
+        {collapsed && (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="hidden md:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100/90 hover:bg-slate-200/80 dark:bg-zinc-800/90 dark:hover:bg-zinc-700/80 border border-slate-200/70 dark:border-zinc-700/70 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all shadow-2xs"
+            title="Perluas Sidebar"
+            aria-label="Perluas Sidebar"
+          >
+            <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
+          </button>
+        )}
 
         {/* Page Icon Badge (like reference design) */}
         <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs shrink-0">

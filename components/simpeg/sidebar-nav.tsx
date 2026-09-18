@@ -14,8 +14,9 @@ import {
   Medal, CheckCheck, Target, Award,
   Files, FileSignature, ShieldAlert,
   Settings2, Building2, UserCog, KeyRound, History,
-  ChevronDown, ChevronRight, ChevronLeft, LogOut, X, Menu
+  ChevronDown, ChevronRight, ChevronLeft, LogOut, X, Menu, PanelLeft
 } from "lucide-react"
+import { VerifiedBadge } from "@/components/simpeg/verified-badge"
 
 type NavItem = {
   title: string
@@ -114,13 +115,38 @@ const navigation: NavGroup[] = [
 ]
 
 // ---- Context ----
-type SidebarCtx = { mobileOpen: boolean; setMobileOpen: (v: boolean) => void }
-const SidebarContext = createContext<SidebarCtx>({ mobileOpen: false, setMobileOpen: () => {} })
+type SidebarCtx = {
+  mobileOpen: boolean
+  setMobileOpen: (v: boolean) => void
+  collapsed: boolean
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>
+  toggleCollapse: () => void
+}
+
+const SidebarContext = createContext<SidebarCtx>({
+  mobileOpen: false,
+  setMobileOpen: () => {},
+  collapsed: false,
+  setCollapsed: () => {},
+  toggleCollapse: () => {},
+})
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+
+  const toggleCollapse = () => setCollapsed((prev) => !prev)
+
   return (
-    <SidebarContext.Provider value={{ mobileOpen, setMobileOpen }}>
+    <SidebarContext.Provider
+      value={{
+        mobileOpen,
+        setMobileOpen,
+        collapsed,
+        setCollapsed,
+        toggleCollapse,
+      }}
+    >
       {children}
     </SidebarContext.Provider>
   )
@@ -145,8 +171,13 @@ export function SidebarNav() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const userRole = session?.user?.role as string | undefined
-  const [collapsed, setCollapsed] = useState(false)
-  const { mobileOpen, setMobileOpen } = useSidebar()
+  const { mobileOpen, setMobileOpen, collapsed, setCollapsed } = useSidebar()
+
+  const isSuperAdmin = useMemo(() => {
+    const role = (userRole || (session?.user as any)?.role || "").toString().toLowerCase()
+    const name = (session?.user?.name || "").toLowerCase()
+    return role === "superadmin" || role === "super_admin" || name.includes("super admin")
+  }, [userRole, session?.user])
 
   const roleLabels: Record<string, { label: string; color: string }> = {
     SUPERADMIN:    { label: "Super Admin",   color: "bg-blue-600" },
@@ -248,10 +279,11 @@ export function SidebarNav() {
         {!isMobileMode && !collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100/90 hover:bg-slate-200/80 dark:bg-zinc-800/90 dark:hover:bg-zinc-700/80 border border-slate-200/70 dark:border-zinc-700/70 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all shadow-2xs"
             title="Ciutkan Sidebar"
+            aria-label="Ciutkan Sidebar"
           >
-            <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+            <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
           </button>
         )}
       </div>
@@ -261,10 +293,11 @@ export function SidebarNav() {
         <div className="flex justify-center py-2 border-b border-slate-100 dark:border-zinc-800/80">
           <button
             onClick={() => setCollapsed(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100/90 hover:bg-slate-200/80 dark:bg-zinc-800/90 dark:hover:bg-zinc-700/80 border border-slate-200/70 dark:border-zinc-700/70 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all shadow-2xs"
             title="Perluas Sidebar"
+            aria-label="Perluas Sidebar"
           >
-            <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+            <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
           </button>
         </div>
       )}
@@ -285,9 +318,14 @@ export function SidebarNav() {
                 {getInitials(session?.user?.name)}
               </div>
             )}
-            <div className="min-w-0">
-              <div className="text-[13px] font-semibold text-slate-800 dark:text-zinc-100 truncate leading-tight">
-                {session?.user?.name || "User"}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[13px] font-semibold text-slate-800 dark:text-zinc-100 truncate leading-tight">
+                  {session?.user?.name || "User"}
+                </span>
+                {isSuperAdmin && (
+                  <VerifiedBadge className="w-4 h-4 shrink-0" />
+                )}
               </div>
               <div className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 mt-0.5">
                 {roleInfo?.label || userRole || "—"}
