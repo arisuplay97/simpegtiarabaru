@@ -729,14 +729,14 @@ export default function EmployeeDetailPage() {
                 className="h-9 gap-1.5 text-xs border-slate-200 dark:border-zinc-800 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/60 cursor-pointer"
                 onClick={handleDownloadCv}
                 disabled={isGeneratingCv || !employee}
-                title="Unduh Curriculum Vitae format ATS (PDF)"
+                title="Unduh Curriculum Vitae (PDF)"
               >
                 {isGeneratingCv ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                 ) : (
                   <Download className="h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
                 )}
-                <span>{isGeneratingCv ? "Menyiapkan PDF..." : "Unduh CV (ATS)"}</span>
+                <span>{isGeneratingCv ? "Menyiapkan PDF..." : "Unduh CV"}</span>
               </Button>
               <Button
                 size="sm"
