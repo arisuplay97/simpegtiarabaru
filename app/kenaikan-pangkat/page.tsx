@@ -63,7 +63,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
-import { getPangkatData, ajukanPangkat, updateStatusPangkat, daftarPangkat } from "@/lib/actions/pangkat"
+import { getPangkatData, ajukanPangkat, updateStatusPangkat } from "@/lib/actions/pangkat"
+import { daftarPangkat } from "@/lib/constants/pangkat"
 import { CetakSKPangkatModal } from "@/components/simpeg/cetak-sk-pangkat-modal"
 
 export default function KenaikanPangkatPage() {
@@ -117,17 +118,17 @@ export default function KenaikanPangkatPage() {
   // Extract unique units for filter
   const uniqueUnits = useMemo(() => {
     const units = new Set<string>()
-    eligibleList.forEach((e) => e.unit && units.add(e.unit))
-    riwayatList.forEach((r) => r.unit && units.add(r.unit))
+    eligibleList.forEach((e) => e?.unit && units.add(e.unit))
+    riwayatList.forEach((r) => r?.unit && units.add(r.unit))
     return Array.from(units)
   }, [eligibleList, riwayatList])
 
   // Summary Metrics
   const summaryMetrics = useMemo(() => {
     const eligibleCount = eligibleList.length
-    const pendingCount = riwayatList.filter((r) => r.status === "PENDING").length
-    const approvedCount = riwayatList.filter((r) => r.status === "APPROVED").length
-    const soonCount = eligibleList.filter((e) => e.sisaHari > 0 && e.sisaHari <= 90).length
+    const pendingCount = riwayatList.filter((r) => r?.status === "PENDING").length
+    const approvedCount = riwayatList.filter((r) => r?.status === "APPROVED").length
+    const soonCount = eligibleList.filter((e) => (e?.sisaHari ?? 0) > 0 && (e?.sisaHari ?? 0) <= 90).length
 
     return {
       eligibleCount,
@@ -140,16 +141,18 @@ export default function KenaikanPangkatPage() {
   // Filtered Eligible
   const filteredEligible = useMemo(() => {
     return eligibleList.filter((item) => {
-      const matchSearch =
-        item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.nik.includes(searchTerm) ||
-        (item.jabatan && item.jabatan.toLowerCase().includes(searchTerm.toLowerCase()))
+      if (!item) return false
+      const nama = (item.nama || "").toLowerCase()
+      const nik = item.nik || ""
+      const jabatan = (item.jabatan || "").toLowerCase()
+      const q = searchTerm.toLowerCase()
 
+      const matchSearch = !q || nama.includes(q) || nik.includes(q) || jabatan.includes(q)
       const matchUnit = filterUnit === "all" || item.unit === filterUnit
 
       let matchGol = true
       if (filterGolongan !== "all") {
-        matchGol = item.golonganSaatIni.includes(filterGolongan)
+        matchGol = Boolean(item.golonganSaatIni && item.golonganSaatIni.includes(filterGolongan))
       }
 
       return matchSearch && matchUnit && matchGol
@@ -159,11 +162,13 @@ export default function KenaikanPangkatPage() {
   // Filtered Riwayat
   const filteredRiwayat = useMemo(() => {
     return riwayatList.filter((item) => {
-      const matchSearch =
-        item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.nik.includes(searchTerm) ||
-        (item.jabatan && item.jabatan.toLowerCase().includes(searchTerm.toLowerCase()))
+      if (!item) return false
+      const nama = (item.nama || "").toLowerCase()
+      const nik = item.nik || ""
+      const jabatan = (item.jabatan || "").toLowerCase()
+      const q = searchTerm.toLowerCase()
 
+      const matchSearch = !q || nama.includes(q) || nik.includes(q) || jabatan.includes(q)
       const matchUnit = filterUnit === "all" || item.unit === filterUnit
       return matchSearch && matchUnit
     })

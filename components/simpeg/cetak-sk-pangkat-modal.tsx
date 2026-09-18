@@ -52,7 +52,8 @@ export function CetakSKPangkatModal({ open, onOpenChange, data }: CetakSKPangkat
     window.print()
   }
 
-  const nomorSK = `SK.823/${data.nik.slice(-4)}/DIR-TAR/${new Date().getFullYear()}`
+  const nikSafe = data.nik || "0000"
+  const nomorSK = `SK.823/${nikSafe.slice(-4)}/DIR-TAR/${new Date().getFullYear()}`
   const tanggalHariIni = formatTanggalIndo(new Date().toISOString().split("T")[0])
 
   return (
@@ -77,21 +78,21 @@ export function CetakSKPangkatModal({ open, onOpenChange, data }: CetakSKPangkat
 
         {/* Printable Document Area */}
         <div className="p-6 sm:p-10 bg-white text-slate-900 font-serif leading-relaxed text-sm" ref={printAreaRef}>
-          <style jsx global>{`
+          <style>{`
             @media print {
               body * {
-                visibility: hidden;
+                visibility: hidden !important;
               }
               .print-area, .print-area * {
-                visibility: visible;
+                visibility: visible !important;
               }
               .print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 20px;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 20px !important;
                 background: white !important;
                 color: black !important;
               }
