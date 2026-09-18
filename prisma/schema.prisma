@@ -370,6 +370,7 @@ model LokasiAbsensi {
   wajibHadir      Boolean   @default(false)
   targetPegawai   String?   // "pusat" | "cabang" | "semua" — khusus acara wajib hadir
   keterangan      String?
+  titikKoordinat  Json?     // Array multi-titik koordinat: [{ id, nama, latitude, longitude, radius }]
   
   pegawai         Pegawai[] // Relasi balik untuk binding lokasi
   

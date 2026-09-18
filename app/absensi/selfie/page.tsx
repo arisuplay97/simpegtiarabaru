@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { cekDalamRadius, hitungJarak, type LokasiAbsensi } from "@/lib/data/lokasi-store"
+import { cekDalamRadius, hitungJarak, hitungJarakTerdekatKeLokasi, type LokasiAbsensi } from "@/lib/data/lokasi-store"
 import { checkDeviceAndAbsen, getStatusAbsensiHariIni } from "@/lib/actions/absensi"
 import { getLokasiList } from "@/lib/actions/lokasi"
 
@@ -120,6 +120,7 @@ export default function SelfieAttendancePage() {
           longitude: l.longitude,
           radius: l.radius,
           aktif: l.aktif,
+          titikKoordinat: l.titikKoordinat,
           tanggalMulai: l.tanggalMulai ?? undefined,
           tanggalSelesai: l.tanggalSelesai ?? undefined,
           wajibHadir: l.wajibHadir ?? false,
@@ -181,19 +182,25 @@ export default function SelfieAttendancePage() {
               setGpsStatus("valid")
               setLokasiValid(hasil.lokasi ?? null)
               setJarakMeter(hasil.jarak ?? null)
-              toast.success(`Lokasi Terdeteksi: ${hasil.lokasi?.nama} (${hasil.jarak}m)`)
+              const detailTitik = hasil.titikNama && hasil.titikNama !== "Titik Utama" ? ` [${hasil.titikNama}]` : ""
+              toast.success(`Lokasi Terdeteksi: ${hasil.lokasi?.nama}${detailTitik} (${hasil.jarak}m)`)
             } else {
               setGpsStatus("invalid")
               setLokasiValid(null)
               // DEBUG INFO UNTUK USER
               if (lokasiFilter.length > 0) {
-                const distances = lokasiFilter.map(l => ({
-                   nama: l.nama,
-                   jarak: Math.round(hitungJarak(lat, lng, l.latitude, l.longitude))
-                })).sort((a, b) => a.jarak - b.jarak)
+                const distances = lokasiFilter.map(l => {
+                   const r = hitungJarakTerdekatKeLokasi(lat, lng, l)
+                   return {
+                     nama: l.nama,
+                     titikNama: r.titik?.nama,
+                     jarak: r.jarak
+                   }
+                }).sort((a, b) => a.jarak - b.jarak)
                 const terdekat = distances[0]
                 setJarakMeter(terdekat.jarak)
-                toast.error(`Di luar area. Terdekat: ${terdekat.nama} (${terdekat.jarak}m).`, { duration: 10000 })
+                const labelTitik = terdekat.titikNama && terdekat.titikNama !== "Titik Utama" ? ` (${terdekat.titikNama})` : ""
+                toast.error(`Di luar area. Terdekat: ${terdekat.nama}${labelTitik} (${terdekat.jarak}m).`, { duration: 10000 })
               }
             }
           },

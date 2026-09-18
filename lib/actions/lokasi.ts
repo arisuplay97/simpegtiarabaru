@@ -38,6 +38,7 @@ export async function createLokasi(data: {
   wajibHadir?: boolean
   targetPegawai?: string | null
   keterangan?: string | null
+  titikKoordinat?: any
 }) {
   const result = await prisma.lokasiAbsensi.create({
     data: {
@@ -53,9 +54,11 @@ export async function createLokasi(data: {
       wajibHadir: data.wajibHadir ?? false,
       targetPegawai: data.wajibHadir ? (data.targetPegawai || "semua") : null,
       keterangan: data.keterangan || null,
+      titikKoordinat: data.titikKoordinat ?? undefined,
     }
   })
   revalidatePath("/settings/lokasi")
+  revalidatePath("/absensi/selfie")
   return result
 }
 
@@ -73,6 +76,7 @@ export async function updateLokasi(id: string, data: {
   wajibHadir?: boolean
   targetPegawai?: string | null
   keterangan?: string | null
+  titikKoordinat?: any
 }) {
   const result = await prisma.lokasiAbsensi.update({
     where: { id },
@@ -89,9 +93,11 @@ export async function updateLokasi(id: string, data: {
       wajibHadir: data.wajibHadir ?? false,
       targetPegawai: data.wajibHadir ? (data.targetPegawai || "semua") : null,
       keterangan: data.keterangan || null,
+      titikKoordinat: data.titikKoordinat ?? undefined,
     }
   })
   revalidatePath("/settings/lokasi")
+  revalidatePath("/absensi/selfie")
   return result
 }
 

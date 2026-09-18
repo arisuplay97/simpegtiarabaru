@@ -273,7 +273,7 @@ export async function getStatusAbsensiHariIni() {
 
     const pegawai = await prisma.pegawai.findUnique({
       where: { userId: session.user.id },
-      include: { bidang: true }
+      include: { bidang: true, lokasiAbsensi: true }
     })
     if (!pegawai) return null
 
@@ -298,9 +298,12 @@ export async function getStatusAbsensiHariIni() {
         lokasiAbsensi: (pegawai as any).lokasiAbsensi ? {
           id: (pegawai as any).lokasiAbsensi.id,
           nama: (pegawai as any).lokasiAbsensi.nama,
+          tipe: (pegawai as any).lokasiAbsensi.tipe,
+          alamat: (pegawai as any).lokasiAbsensi.alamat,
           latitude: (pegawai as any).lokasiAbsensi.latitude,
           longitude: (pegawai as any).lokasiAbsensi.longitude,
           radius: (pegawai as any).lokasiAbsensi.radius,
+          titikKoordinat: (pegawai as any).lokasiAbsensi.titikKoordinat,
         } : null
       },
       absensi: absensiHariIni ? {
