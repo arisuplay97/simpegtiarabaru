@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useSession, signOut } from "next-auth/react"
 import {
-  LayoutGrid, TrendingUp, BadgeCheck, BellRing, Megaphone,
+  LayoutGrid, TrendingUp, BadgeCheck, BellRing, Megaphone, Sparkles,
   Contact2, IdCard, Network, Briefcase, ArrowLeftRight, ScrollText,
   ScanFace, Camera, CalendarDays, CalendarOff, FilePenLine, MapPin, Hourglass, Fingerprint,
   Banknote, ReceiptText, FileSpreadsheet, ArrowUpRight,
@@ -22,6 +22,7 @@ type NavItem = {
   href: string
   icon: React.ElementType
   badge?: number
+  labelBadge?: string
   allowedRoles?: Array<"super_admin" | "hrd" | "direktur" | "pegawai" | "kepala_bidang" | "kepala_cabang">
 }
 
@@ -41,6 +42,7 @@ const navigation: NavGroup[] = [
       { title: "Approval Center", href: "/approval", icon: BadgeCheck, badge: 12, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Notifikasi", href: "/notifikasi", icon: BellRing },
       { title: "Pengumuman Berjalan", href: "/pengumuman", icon: Megaphone, allowedRoles: ["super_admin", "hrd", "direktur"] },
+      { title: "Tiara Assistant", href: "/assistant", icon: Sparkles, labelBadge: "AI" },
     ],
   },
   {
@@ -357,6 +359,11 @@ export function SidebarNav() {
                           {(isMobileMode || !collapsed) && (
                             <>
                               <span className="flex-1 truncate text-[13px]">{item.title}</span>
+                              {item.labelBadge ? (
+                                <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white tracking-widest uppercase shadow-2xs">
+                                  {item.labelBadge}
+                                </span>
+                              ) : null}
                               {item.badge ? (
                                 <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 dark:bg-blue-500 px-1.5 text-[10px] font-bold text-white">
                                   {item.badge}
@@ -364,6 +371,9 @@ export function SidebarNav() {
                               ) : null}
                             </>
                           )}
+                          {!isMobileMode && collapsed && item.labelBadge ? (
+                            <span className="absolute right-1 top-1 flex h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 ring-2 ring-white dark:ring-[#0f0f11] animate-pulse" />
+                          ) : null}
                           {!isMobileMode && collapsed && item.badge ? (
                             <span className="absolute right-1 top-1 flex h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-500" />
                           ) : null}

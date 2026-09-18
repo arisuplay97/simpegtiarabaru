@@ -10,6 +10,7 @@ import { AnalyticsCharts } from "@/components/simpeg/dashboard/analytics-charts"
 import { ApprovalPanel } from "@/components/simpeg/dashboard/approval-panel"
 import { getDashboardStats, getPegawaiDashboardStats } from "@/lib/actions/dashboard"
 import { getLeaderboard } from "@/lib/actions/indeks"
+import { TiaraAiOrb } from "@/components/simpeg/tiara-ai-orb"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -356,31 +357,47 @@ export default function DashboardPage() {
                   </div>
                 </Card>
 
-                {/* RIGHT (5 cols): HERO INSIGHT BANNER (Matching reference style) */}
+                {/* RIGHT (5 cols): TIARA ASSISTANT AI HERO BANNER */}
                 <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white rounded-xl p-5 shadow-2xs relative overflow-hidden flex-1 flex flex-col justify-between">
-                    <div className="space-y-3 relative z-10">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-white/15 text-white backdrop-blur-xs">
-                        <Sparkles className="w-3 h-3" /> ANALITIK & PENGGAJIAN TERPADU
-                      </span>
-                      <h3 className="text-xl font-bold tracking-tight leading-snug">
-                        Otomasi Kepegawaian & Kepatuhan PDAM Tirta Ardhia Rinjani
-                      </h3>
-                      <p className="text-xs text-blue-100/90 leading-relaxed">
-                        Perhitungan PPh 21 TER, integrasi presensi selfie biometrik, pemantauan masa kontrak kerja, dan pengajuan berkas berjenjang dalam satu kendali terpusat.
-                      </p>
+                  <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-900 text-white rounded-xl p-5 shadow-2xs relative overflow-hidden flex-1 flex flex-col justify-between border border-blue-400/20">
+                    
+                    {/* Top Content with Lottie orb on the right */}
+                    <div className="flex items-start justify-between gap-4 relative z-10">
+                      <div className="space-y-2.5 flex-1 min-w-0">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-white/15 text-white backdrop-blur-xs border border-white/20 shadow-2xs">
+                          <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" /> TIARA ASSISTANT AI
+                        </span>
+                        <h3 className="text-xl font-bold tracking-tight leading-snug">
+                          Butuh Bantuan? Saya Asisten Tiara Siap Membantu Anda
+                        </h3>
+                        <p className="text-xs text-blue-100/90 leading-relaxed pr-2">
+                          Asisten cerdas SIMPEG untuk analisis kehadiran, kalkulasi hak cuti & PPh 21, ringkasan SK, regulasi PDAM Tirta Ardhia Rinjani, hingga pembuatan draf dokumen otomatis.
+                        </p>
+                      </div>
+
+                      {/* Lottie Animation inside the card */}
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 relative flex items-center justify-center -mt-1 -mr-1">
+                        <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl animate-pulse pointer-events-none" />
+                        <TiaraAiOrb className="w-full h-full" />
+                      </div>
                     </div>
 
+                    {/* Bottom action bar */}
                     <div className="mt-5 pt-4 border-t border-white/15 flex items-center justify-between relative z-10">
                       <div className="text-xs">
-                        <p className="text-blue-200">Sistem Berjalan</p>
-                        <p className="font-bold text-white">Versi SIMPEG 2.0</p>
+                        <div className="flex items-center gap-1.5 text-blue-200 text-[11px]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>AI Engine Aktif</span>
+                        </div>
+                        <p className="font-bold text-white text-xs mt-0.5">Tiara Assistant v2.0</p>
                       </div>
                       <Link
-                        href="/payroll"
-                        className="px-4 py-2 rounded-xl bg-white text-blue-700 hover:bg-blue-50 text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+                        href="/assistant"
+                        className="px-4 py-2 rounded-xl bg-white text-blue-700 hover:bg-blue-50 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 hover:gap-2 group"
                       >
-                        Buka Modul Payroll <ArrowRight className="w-3.5 h-3.5" />
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Tanya Tiara Assistant</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
                     </div>
 
