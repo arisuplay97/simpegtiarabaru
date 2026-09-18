@@ -621,8 +621,8 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
     const startDate = new Date(tahun, bulan - 1, 1, 0, 0, 0)
     const endDate = new Date(tahun, bulan, 0, 23, 59, 59)
 
-    // Parallel fetch: absensi + cuti
-    const [absensiList, cutiList] = await Promise.all([
+    // Parallel fetch: absensi + cuti + pegawai
+    const [absensiList, cutiList, pegawaiData] = await Promise.all([
       prisma.absensi.findMany({
         where: { pegawaiId, tanggal: { gte: startDate, lte: endDate } }
       }),
@@ -631,6 +631,18 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
           pegawaiId,
           tanggalMulai: { lte: endDate },
           tanggalSelesai: { gte: startDate }
+        }
+      }),
+      prisma.pegawai.findUnique({
+        where: { id: pegawaiId },
+        select: {
+          id: true,
+          nama: true,
+          nik: true,
+          jabatan: true,
+          fotoUrl: true,
+          bidang: { select: { nama: true } },
+          subBidang: { select: { nama: true } }
         }
       })
     ])
@@ -645,6 +657,11 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
         status: a.status,
         jamMasuk: a.jamMasuk,
         jamKeluar: a.jamKeluar,
+        fotoMasukUrl: a.fotoMasukUrl,
+        fotoKeluarUrl: a.fotoKeluarUrl,
+        lokasiMasuk: a.lokasiMasuk,
+        lokasiKeluar: a.lokasiKeluar,
+        keterangan: a.status === 'TERLAMBAT' ? 'Terlambat Masuk' : a.status === 'HADIR' ? 'Hadir Tepat Waktu' : a.status,
         source: "absensi"
       }
     })
@@ -655,10 +672,16 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
       while (cur <= end) {
         const key = formatLocal(cur)
         if (!dayMap[key]) {
+          const jenisLower = (c.jenisCuti || "").toLowerCase()
+          const rawStatus = c.status === 'APPROVED'
+            ? (jenisLower.includes('sakit') ? 'SAKIT' : jenisLower.includes('izin') ? 'IZIN' : 'CUTI')
+            : 'CUTI_PENDING'
+
           dayMap[key] = {
             tanggal: key,
-            status: c.status === 'APPROVED' ? 'CUTI' : 'CUTI_PENDING',
+            status: rawStatus,
             jenisCuti: c.jenisCuti,
+            keterangan: c.alasan || c.jenisCuti || 'Pengajuan Cuti',
             source: "cuti"
           }
         }
@@ -682,7 +705,7 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
           dayMap[key] = {
             tanggal: key,
             status: 'ALPA',
-            keterangan: 'Alpha (Otomatis)',
+            keterangan: 'Alpha (Tanpa Keterangan)',
             source: 'system'
           }
         }
@@ -692,18 +715,20 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
 
     // Summary
     const values = Object.values(dayMap)
+    const totalHariKerja = hitungHariKerja(startDate, endDate)
     const summary = {
-      hadir: values.filter(v => ['HADIR', 'TERLAMBAT'].includes(v.status)).length,
+      hadir: values.filter(v => v.status === 'HADIR').length,
       terlambat: values.filter(v => v.status === 'TERLAMBAT').length,
-      cuti: values.filter(v => v.status === 'CUTI').length,
+      cuti: values.filter(v => v.status === 'CUTI' || v.status === 'CUTI_PENDING').length,
       izin: values.filter(v => v.status === 'IZIN').length,
       sakit: values.filter(v => v.status === 'SAKIT').length,
       alpha: values.filter(v => v.status === 'ALPA').length,
+      totalHariKerja,
     }
 
-    return { dayMap, summary }
+    return { dayMap, summary, pegawai: pegawaiData }
   } catch (error) {
-    return { dayMap: {}, summary: {} }
+    return { dayMap: {}, summary: {}, pegawai: null }
   }
 }
 

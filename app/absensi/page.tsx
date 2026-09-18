@@ -63,6 +63,8 @@ import {
   CheckCircle,
   Eye,
   ChevronDown,
+  CalendarDays,
+  ExternalLink,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -1193,6 +1195,7 @@ export default function AttendancePage() {
                               <TableHead className="text-center text-cyan-600">Dinas</TableHead>
                               <TableHead className="text-center text-orange-600">Terlambat</TableHead>
                               <TableHead className="text-center">% Hadir</TableHead>
+                              <TableHead className="text-center w-[100px]">Aksi</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1208,10 +1211,17 @@ export default function AttendancePage() {
                                 return (
                                   <TableRow key={r.id} className="hover:bg-muted/30">
                                     <TableCell>
-                                      <div>
-                                        <p className="font-medium text-sm">{r.nama}</p>
+                                      <Link
+                                        href={`/kalender?pegawaiId=${r.id}&bulan=${rekapBulan}&tahun=${rekapTahun}`}
+                                        className="group block"
+                                        title="Buka Kalender Pegawai"
+                                      >
+                                        <p className="font-semibold text-sm text-slate-900 dark:text-zinc-100 group-hover:text-blue-600 transition-colors flex items-center gap-1">
+                                          <span>{r.nama}</span>
+                                          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
+                                        </p>
                                         <p className="text-[11px] text-muted-foreground">{r.jabatan}</p>
-                                      </div>
+                                      </Link>
                                     </TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{r.bidang}</TableCell>
                                     <TableCell className="text-center font-mono text-sm text-muted-foreground">{r.hariKerjaAktif} / {r.hariKerja}</TableCell>
@@ -1230,6 +1240,16 @@ export default function AttendancePage() {
                                     </TableCell>
                                     <TableCell className="text-center">
                                       <Badge variant="outline" className={persenColor}>{persen}%</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <Link
+                                        href={`/kalender?pegawaiId=${r.id}&bulan=${rekapBulan}&tahun=${rekapTahun}`}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50 transition-colors shadow-2xs"
+                                        title="Buka Kalender Pegawai"
+                                      >
+                                        <CalendarDays className="h-3.5 w-3.5" />
+                                        <span>Kalender</span>
+                                      </Link>
                                     </TableCell>
                                   </TableRow>
                                 )
