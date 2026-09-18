@@ -412,7 +412,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
 
                 {/* CARD 1: AKTIVITAS TERAKHIR PEGAWAI */}
-                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px]">
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px] overflow-hidden">
                   <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-zinc-800/70 shrink-0">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
@@ -435,7 +435,7 @@ export default function DashboardPage() {
                     </Link>
                   </div>
 
-                  <ScrollArea className="flex-1 mt-2 -mr-2 pr-2">
+                  <ScrollArea className="flex-1 min-h-0 mt-2 -mr-2 pr-2">
                     <div className="divide-y divide-slate-100 dark:divide-zinc-800/50">
                       {stats?.aktivitasTerakhir && stats.aktivitasTerakhir.length > 0 ? (
                         stats.aktivitasTerakhir.map((act: any) => (
@@ -483,7 +483,7 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* CARD 2: PERINGKAT INDEKS KINERJA PEGAWAI BULAN INI */}
-                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px]">
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px] overflow-hidden">
                   <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-zinc-800/70 shrink-0">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
@@ -506,7 +506,7 @@ export default function DashboardPage() {
                     </Link>
                   </div>
 
-                  <ScrollArea className="flex-1 mt-2 -mr-2 pr-2">
+                  <ScrollArea className="flex-1 min-h-0 mt-2 -mr-2 pr-2">
                     <div className="space-y-2">
                       {leaderboard.length === 0 ? (
                         <div className="py-16 text-center text-xs text-slate-400 italic">
@@ -563,7 +563,7 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* CARD 3: AGENDA & NOTIFIKASI HRD */}
-                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px]">
+                <Card className="bg-white dark:bg-[#111113] border border-slate-200/90 dark:border-zinc-800/90 rounded-xl shadow-2xs p-4 sm:p-5 flex flex-col h-[460px] overflow-hidden">
                   <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-zinc-800/70 shrink-0">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
@@ -629,7 +629,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Tab Contents */}
-                  <ScrollArea className="flex-1 -mr-2 pr-2">
+                  <ScrollArea className="flex-1 min-h-0 -mr-2 pr-2">
                     <div className="space-y-2">
                       {alertTab === "kontrak" && (
                         !stats?.kontrakHampirHabis?.length ? (
