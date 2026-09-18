@@ -158,10 +158,16 @@ export default function MobileProfil() {
           </label>
         </div>
         <h1 className="text-xl font-bold text-white">{pegawai?.nama || session?.user?.name}</h1>
-        <p className="mt-1 text-sm text-blue-200">
-          {pegawai?.jabatan}
-          {pegawai?.subBidang?.nama ? ` - ${pegawai.subBidang.nama}` : ""}
-        </p>
+        {(() => {
+          const j = pegawai?.jabatan || "Pegawai"
+          const sub = pegawai?.subBidang?.nama?.trim()
+          const title = (sub && !j.toLowerCase().includes(sub.toLowerCase())) ? `${j} ${sub}` : j
+          return (
+            <p className="mt-1 text-sm text-blue-200">
+              {title}
+            </p>
+          )
+        })()}
         <span className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
           {pegawai?.status || "AKTIF"}
         </span>

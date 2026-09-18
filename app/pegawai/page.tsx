@@ -129,9 +129,9 @@ const statusConfig: Record<string, { label: string; dot: string; badgeClass: str
 }
 
 const spConfig: Record<string, { label: string; className: string }> = {
-  SP1: { label: "SP-1", className: "border-slate-300 text-slate-600 dark:text-zinc-300 dark:border-zinc-700" },
-  SP2: { label: "SP-2", className: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10" },
-  SP3: { label: "SP-3", className: "border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10" },
+  SP1: { label: "SP-1", className: "border-amber-400/80 bg-amber-50 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-600/80 font-bold shadow-xs" },
+  SP2: { label: "SP-2", className: "border-orange-400/80 bg-orange-50 text-orange-950 dark:bg-orange-950/70 dark:text-orange-300 dark:border-orange-600/80 font-bold shadow-xs" },
+  SP3: { label: "SP-3", className: "border-rose-400/80 bg-rose-50 text-rose-950 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-600/80 font-bold shadow-xs" },
 }
 
 const ITEMS_PER_PAGE = 10
@@ -1293,7 +1293,7 @@ export default function EmployeeListPage() {
                                   {emp.sp && spConfig[emp.sp] && (
                                     <Badge
                                       variant="outline"
-                                      className={`text-[9px] px-1.5 py-0 h-4 font-mono ${spConfig[emp.sp].className}`}
+                                      className={`text-[10px] px-2 py-0.5 font-mono ${spConfig[emp.sp].className}`}
                                     >
                                       {spConfig[emp.sp].label}
                                     </Badge>

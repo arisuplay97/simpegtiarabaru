@@ -85,16 +85,41 @@ import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bida
 import { Camera } from "lucide-react"
 
 const statusConfig: Record<string, { label: string; dot: string; className: string }> = {
-  AKTIF: { label: "Aktif", dot: "bg-emerald-500", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
-  CUTI: { label: "Cuti", dot: "bg-amber-500", className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400" },
-  NON_AKTIF: { label: "Non-Aktif", dot: "bg-slate-400", className: "border-slate-300 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300" },
-  PENSIUN: { label: "Pensiun", dot: "bg-rose-500", className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400" },
+  AKTIF: { 
+    label: "Aktif", 
+    dot: "bg-emerald-500 ring-2 ring-emerald-500/20", 
+    className: "border-emerald-500/40 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-600/50 font-semibold shadow-xs" 
+  },
+  CUTI: { 
+    label: "Cuti", 
+    dot: "bg-amber-500 ring-2 ring-amber-500/20", 
+    className: "border-amber-500/40 bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-600/50 font-semibold shadow-xs" 
+  },
+  NON_AKTIF: { 
+    label: "Non-Aktif", 
+    dot: "bg-slate-400 ring-2 ring-slate-400/20", 
+    className: "border-slate-300 bg-slate-100 text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-semibold shadow-xs" 
+  },
+  PENSIUN: { 
+    label: "Pensiun", 
+    dot: "bg-rose-500 ring-2 ring-rose-500/20", 
+    className: "border-rose-500/40 bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-600/50 font-semibold shadow-xs" 
+  },
 }
 
 const spConfig: Record<string, { label: string; className: string }> = {
-  SP1: { label: "SP-1", className: "border-slate-300 text-slate-600 dark:text-zinc-300 dark:border-zinc-700" },
-  SP2: { label: "SP-2", className: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10" },
-  SP3: { label: "SP-3", className: "border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-500/10" },
+  SP1: { 
+    label: "SP-1", 
+    className: "border-amber-400/80 bg-amber-50 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-600/80 font-bold shadow-xs" 
+  },
+  SP2: { 
+    label: "SP-2", 
+    className: "border-orange-400/80 bg-orange-50 text-orange-950 dark:bg-orange-950/70 dark:text-orange-300 dark:border-orange-600/80 font-bold shadow-xs" 
+  },
+  SP3: { 
+    label: "SP-3", 
+    className: "border-rose-400/80 bg-rose-50 text-rose-950 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-600/80 font-bold shadow-xs" 
+  },
 }
 
 // ... (other histories stay the same or could be made dynamic if needed)
@@ -536,39 +561,75 @@ export default function EmployeeDetailPage() {
     }
 
     // Pegawai tetap — pensiun 56 tahun
-    if (!employee.tanggalLahir || !employee.tanggalMasuk) return null
+    if (!employee.tanggalLahir) {
+      return {
+        label: "Masa Pensiun",
+        targetYear: null,
+        sisaText: "Perlu Tgl Lahir",
+        tanggal: "—",
+        percentage: 0,
+        yearsLeft: 0,
+        daysLeft: 0,
+        totalDays: 0,
+      }
+    }
     const birthDate = new Date(employee.tanggalLahir)
+    if (isNaN(birthDate.getTime())) {
+      return {
+        label: "Masa Pensiun",
+        targetYear: null,
+        sisaText: "Tgl Lahir Tidak Valid",
+        tanggal: "—",
+        percentage: 0,
+        yearsLeft: 0,
+        daysLeft: 0,
+        totalDays: 0,
+      }
+    }
     const pensiunDate = new Date(birthDate.getFullYear() + 56, birthDate.getMonth(), birthDate.getDate())
-    const joinDate = new Date(employee.tanggalMasuk)
     const today = new Date()
     
     const diffTime = pensiunDate.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    const totalDuration = pensiunDate.getTime() - joinDate.getTime()
-    const elapsedDuration = today.getTime() - joinDate.getTime()
-    const percentage = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100))
+
+    let percentage = 0
+    if (employee.tanggalMasuk) {
+      const joinDate = new Date(employee.tanggalMasuk)
+      if (!isNaN(joinDate.getTime())) {
+        const totalDuration = pensiunDate.getTime() - joinDate.getTime()
+        const elapsedDuration = today.getTime() - joinDate.getTime()
+        if (totalDuration > 0) {
+          percentage = Math.max(0, Math.min(100, Math.round((elapsedDuration / totalDuration) * 100)))
+        }
+      }
+    }
 
     if (diffDays <= 0) {
-      return { status: "Sudah Pensiun", color: "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400", percentage: 100, label: "Masa Pensiun", targetYear: pensiunDate.getFullYear(), yearsLeft: 0, daysLeft: 0, totalDays: 0 }
+      return {
+        status: "Purna Tugas",
+        percentage: 100,
+        label: "Masa Pensiun",
+        targetYear: pensiunDate.getFullYear(),
+        sisaText: "Purna Tugas",
+        tanggal: format(pensiunDate, "dd MMM yyyy", { locale: idLocale }),
+        yearsLeft: 0,
+        daysLeft: 0,
+        totalDays: 0,
+      }
     }
     
     const years = Math.floor(diffDays / 365)
-    let sisaText = years > 0 ? `${years} Tahun ${diffDays % 365} Hari` : `${diffDays} Hari`
-    
-    let color = "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-    if (years <= 1) color = "border border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400"
-    else if (years <= 5) color = "border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+    const days = diffDays % 365
+    let sisaText = years > 0 ? `${years} Tahun ${days} Hari` : `${diffDays} Hari`
 
     return { 
-      tanggal: format(pensiunDate, "dd MMMM yyyy", { locale: idLocale }),
+      tanggal: format(pensiunDate, "dd MMM yyyy", { locale: idLocale }),
       sisaText,
-      color,
       percentage,
       label: "Masa Pensiun",
       targetYear: pensiunDate.getFullYear(),
       yearsLeft: years,
-      daysLeft: diffDays % 365,
+      daysLeft: days,
       totalDays: diffDays
     }
   }
@@ -673,8 +734,7 @@ export default function EmployeeDetailPage() {
                       </AvatarFallback>
                     </Avatar>
                     <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-[#111113]" />
+                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-[#111113] shadow-xs" />
                     </span>
                     <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 text-white rounded-2xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-medium">
                       <Camera className="h-4 w-4 mb-0.5" />
@@ -697,19 +757,33 @@ export default function EmployeeDetailPage() {
                       <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-zinc-50">
                         {employee.nama}
                       </h1>
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[employee.status || "AKTIF"]?.className || ""}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[employee.status || "AKTIF"]?.dot || "bg-emerald-500"}`} />
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border ${statusConfig[employee.status || "AKTIF"]?.className || ""}`}>
+                        <span className={`h-2 w-2 rounded-full ${statusConfig[employee.status || "AKTIF"]?.dot || "bg-emerald-500"}`} />
                         {statusConfig[employee.status || "AKTIF"]?.label || employee.status || "AKTIF"}
                       </span>
                       {employee.sp && spConfig[employee.sp as keyof typeof spConfig] && (
-                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 font-mono ${spConfig[employee.sp as keyof typeof spConfig].className}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono border ${spConfig[employee.sp as keyof typeof spConfig].className}`}>
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                           {spConfig[employee.sp as keyof typeof spConfig].label}
-                        </Badge>
+                        </span>
                       )}
                     </div>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-zinc-300 mt-1">
-                      {employee.jabatan} <span className="text-slate-400 font-normal">di</span> {employee.bidang?.nama || "Kantor Pusat"}{employee.subBidang ? ` — ${employee.subBidang.nama}` : ""}
-                    </p>
+                    {(() => {
+                      const jabatan = employee.jabatan || "Pegawai"
+                      const subBidang = employee.subBidang?.nama?.trim()
+                      const bidang = employee.bidang?.nama?.trim() || "Kantor Pusat"
+
+                      let displayJabatan = jabatan
+                      if (subBidang && !jabatan.toLowerCase().includes(subBidang.toLowerCase())) {
+                        displayJabatan = `${jabatan} ${subBidang}`
+                      }
+
+                      return (
+                        <p className="text-sm font-semibold text-slate-700 dark:text-zinc-300 mt-1">
+                          {displayJabatan} <span className="text-slate-400 dark:text-zinc-500 font-normal">di</span> {bidang}
+                        </p>
+                      )
+                    })()}
                   </div>
 
                   {/* Badges / Pill row */}
@@ -783,82 +857,72 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            {/* Right: The Showstopper Animated Masa Pensiun Card (4 cols) */}
-            <div className="lg:col-span-4 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#0A0D14] border border-slate-800 text-white p-6 shadow-xl flex flex-col justify-between">
-              {/* Ambient Glows */}
-              <div className="absolute -top-12 -right-12 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
-
+            {/* Right: Modern Minimalist Masa Pensiun Card (4 cols) */}
+            <div className="lg:col-span-4 rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-5 shadow-xs flex flex-col justify-between">
               {/* Header */}
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800/80">
                   <div className="flex items-center gap-2">
-                    <div className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                    </div>
-                    <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-400">
+                    <Clock className="h-4 w-4 text-slate-500 dark:text-zinc-400" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-zinc-300">
                       {pensiunInfo?.label || "Masa Pensiun"}
                     </span>
                   </div>
-                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md border border-slate-700 bg-slate-800/80 text-slate-300">
-                    Target {pensiunInfo?.targetYear || "2055"}
-                  </span>
+                  {pensiunInfo?.targetYear ? (
+                    <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-700/60">
+                      Target {pensiunInfo.targetYear}
+                    </span>
+                  ) : null}
                 </div>
 
-                {/* Sisa Pengabdian Big Numbers */}
-                <div className="mt-5">
-                  <p className="text-[11px] font-medium text-slate-400">Sisa Waktu Pengabdian</p>
-                  <div className="mt-1">
-                    <span className="text-3xl font-extrabold tracking-tight font-mono text-white drop-shadow-md">
-                      {pensiunInfo?.sisaText || "—"}
-                    </span>
-                  </div>
+                {/* Sisa Pengabdian */}
+                <div className="mt-4">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Sisa Waktu Pengabdian</p>
+                  <p className="mt-1 text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-zinc-100">
+                    {pensiunInfo?.sisaText || "—"}
+                  </p>
                 </div>
 
-                {/* Animated Shimmer Bar */}
-                <div className="mt-5 space-y-1.5">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-slate-400">Perjalanan Karir</span>
-                    <span className="font-mono font-semibold text-emerald-400">
-                      {Math.round(pensiunInfo?.percentage || 0)}% Terlampaui
+                {/* Progress Bar */}
+                <div className="mt-3.5 space-y-1.5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-500 dark:text-zinc-400">Perjalanan Karir</span>
+                    <span className="font-mono font-semibold text-slate-700 dark:text-zinc-300">
+                      {Math.round(pensiunInfo?.percentage || 0)}%
                     </span>
                   </div>
-                  <div className="relative h-3 w-full rounded-full bg-slate-800/90 border border-slate-700/80 overflow-hidden p-0.5">
+                  <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 relative transition-all duration-1000"
-                      style={{ width: `${Math.max(6, Math.min(100, pensiunInfo?.percentage || 0))}%` }}
-                    >
-                      {/* Shimmer light sweep */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
-                    </div>
+                      className="h-full rounded-full bg-slate-900 dark:bg-zinc-200 transition-all duration-500"
+                      style={{ width: `${Math.max(0, Math.min(100, pensiunInfo?.percentage || 0))}%` }}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Footer Milestones & Status */}
-              <div className="mt-5 space-y-3">
-                <div className="pt-3 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+              {/* Milestones Footer */}
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80 space-y-2.5">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">TMT Mulai</span>
-                    <span className="font-mono text-[11px] text-slate-200 font-medium">
+                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">TMT Mulai</span>
+                    <span className="font-mono text-[11px] text-slate-700 dark:text-zinc-300 font-medium">
                       {employee.tanggalMasuk ? format(new Date(employee.tanggalMasuk), "dd MMM yyyy", { locale: idLocale }) : "—"}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Purna Tugas</span>
-                    <span className="font-mono text-[11px] text-emerald-300 font-medium">
+                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">Purna Tugas</span>
+                    <span className="font-mono text-[11px] text-slate-700 dark:text-zinc-300 font-medium">
                       {pensiunInfo?.tanggal || "—"}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-[11px]">
-                  <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                    <Sparkles className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: "8s" }} />
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80 text-[11px]">
+                  <span className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     Fase Pengabdian Aktif
                   </span>
-                  <span className="text-slate-400 font-mono text-[10px]">
+                  <span className="text-slate-400 dark:text-zinc-500 font-mono text-[10px]">
                     Batas Usia: 56 Th
                   </span>
                 </div>
