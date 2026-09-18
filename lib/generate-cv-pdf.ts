@@ -84,6 +84,22 @@ function clean(val?: string | null): string {
 }
 
 export async function generateCvPdf(data: CvEmployeeData) {
+  // Load logo slip.png if available
+  let logoDataUrl: string | null = null
+  try {
+    const res = await fetch("/slip.png")
+    if (res.ok) {
+      const blob = await res.blob()
+      logoDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(blob)
+      })
+    }
+  } catch (e) {
+    // Ignore fetch error in test/non-browser environment
+  }
+
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
 
   const mx = 15
@@ -215,16 +231,28 @@ export async function generateCvPdf(data: CvEmployeeData) {
 
   setBlack()
 
-  // ── HEADER ──
+  // ── HEADER WITH LOGO ──
+  const hasLogo = !!logoDataUrl
+  const textX = hasLogo ? mx + 16 : mx
+
+  if (hasLogo && logoDataUrl) {
+    // 925x1302 aspect ratio: 12.5mm width x 17.6mm height
+    doc.addImage(logoDataUrl, "PNG", mx, y, 12.5, 17.6)
+  }
+
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(10)
-  doc.text("CURRICULUM VITAE", mx, y)
-  y += 5
+  doc.setFontSize(10.5)
+  doc.text("PERUMDA AIR MINUM TIRTA ARDHIA RINJANI", textX, y + 4)
 
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8)
-  doc.text("PERUMDA Air Minum Tirta Ardhia Rinjani — Kabupaten Lombok Tengah", mx, y)
-  y += 3
+  doc.text("Kabupaten Lombok Tengah — Provinsi Nusa Tenggara Barat", textX, y + 8.5)
+
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(9)
+  doc.text("DAFTAR RIWAYAT HIDUP / CURRICULUM VITAE", textX, y + 14)
+
+  y += hasLogo ? 20 : 17
 
   doc.setLineWidth(0.5)
   doc.line(mx, y, mx + cw, y)
@@ -232,13 +260,13 @@ export async function generateCvPdf(data: CvEmployeeData) {
 
   // Name
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(14)
+  doc.setFontSize(13)
   doc.text(data.nama.toUpperCase(), mx, y)
   y += 5
 
   // Position & unit
   doc.setFont("helvetica", "normal")
-  doc.setFontSize(9)
+  doc.setFontSize(8.5)
   const unitLabel = data.bidang?.nama ? ` — ${data.bidang.nama}` : ""
   doc.text(`${data.jabatan}${unitLabel}`, mx, y)
   y += 4
@@ -246,21 +274,21 @@ export async function generateCvPdf(data: CvEmployeeData) {
   // Contact line
   doc.setFontSize(8)
   const contacts = [
-    `NIK: ${data.nik}`,
+    `Nomer Induk Karyawan: ${data.nik}`,
     `Email: ${clean(data.email)}`,
     `Telp: ${clean(data.telepon)}`,
     `Gol: ${data.golongan || "-"}`,
   ]
-  doc.text(contacts.join("  |  "), mx, y)
+  doc.text(contacts.join("   |   "), mx, y)
   y += 3
 
-  doc.setLineWidth(0.3)
+  doc.setLineWidth(0.25)
   doc.line(mx, y, mx + cw, y)
   y += 5
 
   // ── 1. DATA PRIBADI & KEPEGAWAIAN ──
   const personalRows: Array<[string, string]> = [
-    ["Nomor Induk Kependudukan", clean(data.nik)],
+    ["Nomer Induk Karyawan (NIK)", clean(data.nik)],
     ["Tempat, Tanggal Lahir", `${clean(data.tempatLahir)}, ${formatDateIndo(data.tanggalLahir)}`],
     ["Jenis Kelamin",
       data.jenisKelamin === "L" || data.jenisKelamin === "LAKI_LAKI" ? "Laki-laki"
@@ -433,7 +461,7 @@ export async function generateCvPdf(data: CvEmployeeData) {
   doc.text(data.nama.toUpperCase(), signX, y)
   doc.setFont("helvetica", "normal")
   doc.setFontSize(7.5)
-  doc.text(`NIK: ${data.nik}`, signX, y + 3.5)
+  doc.text(`Nomer Induk Karyawan: ${data.nik}`, signX, y + 3.5)
 
   // ── FOOTER ──
   const totalPages = doc.getNumberOfPages()
