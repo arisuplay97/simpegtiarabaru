@@ -182,12 +182,23 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
             catatan: updated.keterangan || "Disetujui oleh Direksi"
           }
         })
+
+        // 3. Catat otomatis ke Riwayat Pangkat Pegawai
+        await tx.pegawaiPangkat.create({
+          data: {
+            pegawaiId: updated.pegawaiId,
+            pangkat: updated.pangkatBaru,
+            golongan: updated.golonganBaru,
+            tanggalBerlaku: updated.tanggalBerlaku,
+            nomorSK: updated.keterangan || "SK Kenaikan Pangkat"
+          }
+        })
       }
 
       return updated
     })
 
-    // 3. Kirim notifikasi ke semua User ber-role HRD dan ke pegawai yg bersangkutan
+    // 4. Kirim notifikasi ke semua User ber-role HRD dan ke pegawai yg bersangkutan
     //    (Di luar transaction agar tidak blocking)
     try {
       const aksiLabel = isApprove ? "disetujui" : "ditolak"
@@ -228,6 +239,7 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
     revalidatePath("/mutasi")
     revalidatePath("/approval")
     revalidatePath("/notifikasi")
+    revalidatePath(`/pegawai/${result.pegawaiId}`)
     return { success: true }
   } catch (error: any) {
     return { error: error.message || "Gagal memproses aksi Pangkat" }

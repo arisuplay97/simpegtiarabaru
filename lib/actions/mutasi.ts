@@ -105,7 +105,7 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
       }
     }
 
-    await prisma.$transaction(async (tx) => {
+    const updatedRecord = await prisma.$transaction(async (tx) => {
       const updated = await tx.mutasi.update({
         where: { id },
         data: {
@@ -144,7 +144,30 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
             ...(newTipeJabatan ? { tipeJabatan: newTipeJabatan } : {})
           }
         })
+
+        // Otomatis catat ke Riwayat Jabatan
+        await tx.pegawaiJabatan.updateMany({
+          where: {
+            pegawaiId: updated.pegawaiId,
+            tanggalSelesai: null
+          },
+          data: {
+            tanggalSelesai: updated.tanggalEfektif
+          }
+        })
+
+        await tx.pegawaiJabatan.create({
+          data: {
+            pegawaiId: updated.pegawaiId,
+            jabatan: updated.jabatanTujuan,
+            unitDefinitif: updated.unitTujuan,
+            tanggalMulai: updated.tanggalEfektif,
+            tanggalSelesai: null
+          }
+        })
       }
+
+      return updated
     })
 
     await logAudit({
@@ -155,6 +178,7 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
     })
 
     revalidatePath("/mutasi")
+    revalidatePath(`/pegawai/${updatedRecord.pegawaiId}`)
     return { success: true }
   } catch (error: any) {
     return { error: error.message || "Gagal memproses Mutasi" }

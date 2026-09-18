@@ -79,7 +79,19 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { useParams } from "next/navigation"
 import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai, updateBebasAbsensi, updateLokasiPegawai } from "@/lib/actions/pegawai"
-import { getEmployeeProfile } from "@/lib/actions/pegawai-detail"
+import {
+  getEmployeeProfile,
+  addRiwayatJabatan,
+  deleteRiwayatJabatan,
+  addRiwayatPangkat,
+  deleteRiwayatPangkat,
+  addKeluarga,
+  deleteKeluarga,
+  addPendidikan,
+  deletePendidikan,
+  addPelatihan,
+  deletePelatihan,
+} from "@/lib/actions/pegawai-detail"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getDokumenPegawai, uploadDokumen, deleteDokumen } from "@/lib/actions/dokumen"
 import { getPegawaiActivityLogs } from "@/lib/actions/audit-log"
@@ -229,6 +241,201 @@ export default function EmployeeDetailPage() {
   const [docPayload, setDocPayload] = useState({ namaDokumen: "", jenisDokumen: "KTP", file: null as File | null })
 
   const [activityLogs, setActivityLogs] = useState<any[]>([])
+
+  // State & Handlers: Input Manual Riwayat Jabatan
+  const [showAddJabatan, setShowAddJabatan] = useState(false)
+  const [jabatanForm, setJabatanForm] = useState({ jabatan: "", unitDefinitif: "", tanggalMulai: "", tanggalSelesai: "" })
+  const [isSubmittingJabatan, setIsSubmittingJabatan] = useState(false)
+
+  const handleAddJabatan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!employee?.id || !jabatanForm.jabatan || !jabatanForm.unitDefinitif || !jabatanForm.tanggalMulai) {
+      toast.error("Mohon isi jabatan, unit kerja, dan tanggal mulai")
+      return
+    }
+    setIsSubmittingJabatan(true)
+    try {
+      const res = await addRiwayatJabatan(employee.id, jabatanForm)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat jabatan berhasil ditambahkan")
+      setShowAddJabatan(false)
+      setJabatanForm({ jabatan: "", unitDefinitif: "", tanggalMulai: "", tanggalSelesai: "" })
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menambahkan riwayat jabatan")
+    } finally {
+      setIsSubmittingJabatan(false)
+    }
+  }
+
+  const handleDeleteJabatan = async (itemJabatanId: string) => {
+    if (!employee?.id) return
+    if (!confirm("Hapus riwayat jabatan ini?")) return
+    try {
+      const res = await deleteRiwayatJabatan(itemJabatanId, employee.id)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat jabatan berhasil dihapus")
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus riwayat jabatan")
+    }
+  }
+
+  // State & Handlers: Input Manual Riwayat Pangkat
+  const [showAddPangkat, setShowAddPangkat] = useState(false)
+  const [pangkatForm, setPangkatForm] = useState({ pangkat: "", golongan: "III/a", tanggalBerlaku: "", nomorSK: "" })
+  const [isSubmittingPangkat, setIsSubmittingPangkat] = useState(false)
+
+  const handleAddPangkat = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!employee?.id || !pangkatForm.pangkat || !pangkatForm.golongan || !pangkatForm.tanggalBerlaku) {
+      toast.error("Mohon isi pangkat, golongan, dan tanggal berlaku")
+      return
+    }
+    setIsSubmittingPangkat(true)
+    try {
+      const res = await addRiwayatPangkat(employee.id, pangkatForm)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat pangkat berhasil ditambahkan")
+      setShowAddPangkat(false)
+      setPangkatForm({ pangkat: "", golongan: "III/a", tanggalBerlaku: "", nomorSK: "" })
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menambahkan riwayat pangkat")
+    } finally {
+      setIsSubmittingPangkat(false)
+    }
+  }
+
+  const handleDeletePangkat = async (itemPangkatId: string) => {
+    if (!employee?.id) return
+    if (!confirm("Hapus riwayat pangkat ini?")) return
+    try {
+      const res = await deleteRiwayatPangkat(itemPangkatId, employee.id)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat pangkat berhasil dihapus")
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus riwayat pangkat")
+    }
+  }
+
+  // State & Handlers: Input Manual Data Keluarga
+  const [showAddKeluarga, setShowAddKeluarga] = useState(false)
+  const [keluargaForm, setKeluargaForm] = useState({ nama: "", hubungan: "Suami", pekerjaan: "", telepon: "" })
+  const [isSubmittingKeluarga, setIsSubmittingKeluarga] = useState(false)
+
+  const handleAddKeluarga = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!employee?.id || !keluargaForm.nama || !keluargaForm.hubungan) {
+      toast.error("Mohon isi nama dan hubungan keluarga")
+      return
+    }
+    setIsSubmittingKeluarga(true)
+    try {
+      const res = await addKeluarga(employee.id, keluargaForm)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Data keluarga berhasil ditambahkan")
+      setShowAddKeluarga(false)
+      setKeluargaForm({ nama: "", hubungan: "Suami", pekerjaan: "", telepon: "" })
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menambahkan data keluarga")
+    } finally {
+      setIsSubmittingKeluarga(false)
+    }
+  }
+
+  const handleDeleteKeluarga = async (itemKeluargaId: string) => {
+    if (!employee?.id) return
+    if (!confirm("Hapus data anggota keluarga ini?")) return
+    try {
+      const res = await deleteKeluarga(itemKeluargaId, employee.id)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Data keluarga berhasil dihapus")
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus data keluarga")
+    }
+  }
+
+  // State & Handlers: Input Manual Riwayat Pendidikan
+  const [showAddPendidikan, setShowAddPendidikan] = useState(false)
+  const [pendidikanForm, setPendidikanForm] = useState({ tingkat: "S1", institusi: "", jurusan: "", tahunLulus: "" })
+  const [isSubmittingPendidikan, setIsSubmittingPendidikan] = useState(false)
+
+  const handleAddPendidikan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!employee?.id || !pendidikanForm.institusi || !pendidikanForm.tahunLulus) {
+      toast.error("Mohon isi institusi dan tahun kelulusan")
+      return
+    }
+    setIsSubmittingPendidikan(true)
+    try {
+      const res = await addPendidikan(employee.id, pendidikanForm)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat pendidikan berhasil ditambahkan")
+      setShowAddPendidikan(false)
+      setPendidikanForm({ tingkat: "S1", institusi: "", jurusan: "", tahunLulus: "" })
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menambahkan riwayat pendidikan")
+    } finally {
+      setIsSubmittingPendidikan(false)
+    }
+  }
+
+  const handleDeletePendidikan = async (itemPendidikanId: string) => {
+    if (!employee?.id) return
+    if (!confirm("Hapus riwayat pendidikan ini?")) return
+    try {
+      const res = await deletePendidikan(itemPendidikanId, employee.id)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat pendidikan berhasil dihapus")
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus riwayat pendidikan")
+    }
+  }
+
+  // State & Handlers: Input Manual Riwayat Pelatihan
+  const [showAddPelatihan, setShowAddPelatihan] = useState(false)
+  const [pelatihanForm, setPelatihanForm] = useState({ namaPelatihan: "", penyelenggara: "", tahun: "" })
+  const [isSubmittingPelatihan, setIsSubmittingPelatihan] = useState(false)
+
+  const handleAddPelatihan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!employee?.id || !pelatihanForm.namaPelatihan || !pelatihanForm.penyelenggara) {
+      toast.error("Mohon isi nama pelatihan dan penyelenggara")
+      return
+    }
+    setIsSubmittingPelatihan(true)
+    try {
+      const res = await addPelatihan(employee.id, pelatihanForm)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat pelatihan berhasil ditambahkan")
+      setShowAddPelatihan(false)
+      setPelatihanForm({ namaPelatihan: "", penyelenggara: "", tahun: "" })
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menambahkan riwayat pelatihan")
+    } finally {
+      setIsSubmittingPelatihan(false)
+    }
+  }
+
+  const handleDeletePelatihan = async (itemPelatihanId: string) => {
+    if (!employee?.id) return
+    if (!confirm("Hapus riwayat pelatihan ini?")) return
+    try {
+      const res = await deletePelatihan(itemPelatihanId, employee.id)
+      if (res?.error) throw new Error(res.error)
+      toast.success("Riwayat pelatihan berhasil dihapus")
+      await fetchEmployee()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus riwayat pelatihan")
+    }
+  }
 
   useEffect(() => {
     if (id) {
@@ -1285,8 +1492,14 @@ export default function EmployeeDetailPage() {
             {/* Keluarga Tab */}
             <TabsContent value="keluarga">
               <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                <CardHeader>
-                  <CardTitle className="text-base">Data Keluarga</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div>
+                    <CardTitle className="text-base">Data Keluarga</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Susunan anggota keluarga dan tanggungan pegawai</p>
+                  </div>
+                  <Button size="sm" onClick={() => setShowAddKeluarga(true)} className="h-8 gap-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" /> Tambah Anggota
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1294,9 +1507,9 @@ export default function EmployeeDetailPage() {
                       <TableRow>
                         <TableHead>Nama</TableHead>
                         <TableHead>Hubungan</TableHead>
-                        <TableHead>Tanggal Lahir</TableHead>
                         <TableHead>Pekerjaan</TableHead>
                         <TableHead>Telepon</TableHead>
+                        <TableHead className="w-[60px] text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1306,9 +1519,19 @@ export default function EmployeeDetailPage() {
                         <TableRow key={member.id || index}>
                           <TableCell className="font-medium">{member.nama}</TableCell>
                           <TableCell>{member.hubungan}</TableCell>
-                          <TableCell>-</TableCell>
                           <TableCell>{member.pekerjaan || "-"}</TableCell>
                           <TableCell>{member.telepon || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              onClick={() => handleDeleteKeluarga(member.id)}
+                              title="Hapus data keluarga"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1320,8 +1543,14 @@ export default function EmployeeDetailPage() {
             {/* Pendidikan Tab */}
             <TabsContent value="pendidikan">
               <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                <CardHeader>
-                  <CardTitle className="text-base">Riwayat Pendidikan</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div>
+                    <CardTitle className="text-base">Riwayat Pendidikan Formal</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Jenjang pendidikan, institusi, dan tahun kelulusan</p>
+                  </div>
+                  <Button size="sm" onClick={() => setShowAddPendidikan(true)} className="h-8 gap-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" /> Tambah Pendidikan
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1331,6 +1560,7 @@ export default function EmployeeDetailPage() {
                         <TableHead>Institusi</TableHead>
                         <TableHead>Jurusan</TableHead>
                         <TableHead>Tahun Lulus</TableHead>
+                        <TableHead className="w-[60px] text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1344,6 +1574,17 @@ export default function EmployeeDetailPage() {
                           <TableCell className="font-medium">{edu.institusi}</TableCell>
                           <TableCell>{edu.jurusan || "-"}</TableCell>
                           <TableCell>{edu.tahunLulus}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              onClick={() => handleDeletePendidikan(edu.id)}
+                              title="Hapus riwayat pendidikan"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1355,18 +1596,24 @@ export default function EmployeeDetailPage() {
             {/* Jabatan Tab */}
             <TabsContent value="jabatan">
               <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                <CardHeader>
-                  <CardTitle className="text-base">Riwayat Jabatan</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div>
+                    <CardTitle className="text-base">Riwayat Jabatan</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Rekam jejak posisi struktural/fungsional, penempatan unit, dan mutasi</p>
+                  </div>
+                  <Button size="sm" onClick={() => setShowAddJabatan(true)} className="h-8 gap-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" /> Tambah Riwayat Jabatan
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Jabatan</TableHead>
-                        <TableHead>Unit Kerja</TableHead>
+                        <TableHead>Unit Kerja / Penempatan</TableHead>
                         <TableHead>TMT Mulai</TableHead>
                         <TableHead>TMT Selesai</TableHead>
-                        <TableHead>Nomor SK</TableHead>
+                        <TableHead className="w-[60px] text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1382,7 +1629,17 @@ export default function EmployeeDetailPage() {
                               <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border font-medium">Aktif</Badge>
                             ) : new Date(pos.tanggalSelesai).toLocaleDateString("id-ID")}
                           </TableCell>
-                          <TableCell className="font-mono text-xs">-</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              onClick={() => handleDeleteJabatan(pos.id)}
+                              title="Hapus riwayat jabatan"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1394,8 +1651,14 @@ export default function EmployeeDetailPage() {
             {/* Pangkat Tab */}
             <TabsContent value="pangkat">
               <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                <CardHeader>
-                  <CardTitle className="text-base">Riwayat Pangkat / Golongan</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div>
+                    <CardTitle className="text-base">Riwayat Pangkat & Golongan</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Histori kepangkatan, golongan ruang, dan penetapan SK</p>
+                  </div>
+                  <Button size="sm" onClick={() => setShowAddPangkat(true)} className="h-8 gap-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" /> Tambah Riwayat Pangkat
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1403,13 +1666,14 @@ export default function EmployeeDetailPage() {
                       <TableRow>
                         <TableHead>Pangkat</TableHead>
                         <TableHead>Golongan</TableHead>
-                        <TableHead>TMT Pangkat</TableHead>
+                        <TableHead>TMT Berlaku</TableHead>
                         <TableHead>Nomor SK</TableHead>
+                        <TableHead className="w-[60px] text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(employee?.riwayatPangkatDetail || []).length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-slate-500 py-6">Belum ada data riwayat pangkat</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center text-slate-500 py-6">Belum ada data riwayat pangkat</TableCell></TableRow>
                       ) : (employee?.riwayatPangkatDetail || []).map((rank: any, index: number) => (
                         <TableRow key={rank.id || index}>
                           <TableCell className="font-medium">{rank.pangkat}</TableCell>
@@ -1418,6 +1682,17 @@ export default function EmployeeDetailPage() {
                           </TableCell>
                           <TableCell>{rank.tanggalBerlaku ? new Date(rank.tanggalBerlaku).toLocaleDateString("id-ID") : "-"}</TableCell>
                           <TableCell className="font-mono text-xs">{rank.nomorSK || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              onClick={() => handleDeletePangkat(rank.id)}
+                              title="Hapus riwayat pangkat"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1714,8 +1989,14 @@ export default function EmployeeDetailPage() {
             {/* Pelatihan Tab */}
             <TabsContent value="pelatihan">
               <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                <CardHeader>
-                  <CardTitle className="text-base">Riwayat Pelatihan</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div>
+                    <CardTitle className="text-base">Riwayat Pelatihan & Sertifikasi</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Diklat teknis, kursus, dan sertifikasi profesi yang pernah diikuti</p>
+                  </div>
+                  <Button size="sm" onClick={() => setShowAddPelatihan(true)} className="h-8 gap-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" /> Tambah Pelatihan
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1723,24 +2004,28 @@ export default function EmployeeDetailPage() {
                       <TableRow>
                         <TableHead>Nama Pelatihan</TableHead>
                         <TableHead>Penyelenggara</TableHead>
-                        <TableHead>Tanggal</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Sertifikat</TableHead>
+                        <TableHead>Tahun</TableHead>
+                        <TableHead className="w-[60px] text-right">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(employee?.pelatihan || []).length === 0 ? (
-                        <TableRow><TableCell colSpan={5} className="text-center text-slate-500 py-6">Belum ada riwayat pelatihan</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center text-slate-500 py-6">Belum ada riwayat pelatihan</TableCell></TableRow>
                       ) : (employee?.pelatihan || []).map((training: any, index: number) => (
                         <TableRow key={training.id || index}>
                           <TableCell className="font-medium">{training.namaPelatihan}</TableCell>
                           <TableCell>{training.penyelenggara}</TableCell>
                           <TableCell>{training.tahun}</TableCell>
-                          <TableCell>
-                            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border font-medium">Selesai</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-muted-foreground">-</span>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              onClick={() => handleDeletePelatihan(training.id)}
+                              title="Hapus riwayat pelatihan"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -2158,6 +2443,292 @@ export default function EmployeeDetailPage() {
               {isUploadingDoc ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengupload...</> : "Upload & Simpan"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Tambah Riwayat Jabatan */}
+      <Dialog open={showAddJabatan} onOpenChange={setShowAddJabatan}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              Tambah Riwayat Jabatan
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddJabatan}>
+            <div className="p-6 space-y-4">
+              <F label="Nama Jabatan / Posisi">
+                <Input
+                  required
+                  placeholder="e.g. Kepala Sub Bidang Distribusi"
+                  value={jabatanForm.jabatan}
+                  onChange={e => setJabatanForm(f => ({ ...f, jabatan: e.target.value }))}
+                />
+              </F>
+              <F label="Unit Kerja / Bidang / Cabang">
+                <Input
+                  required
+                  placeholder="e.g. Bidang Distribusi & Transmisi"
+                  value={jabatanForm.unitDefinitif}
+                  onChange={e => setJabatanForm(f => ({ ...f, unitDefinitif: e.target.value }))}
+                />
+              </F>
+              <div className="grid grid-cols-2 gap-3">
+                <F label="TMT Mulai (Tanggal Mulai)">
+                  <Input
+                    required
+                    type="date"
+                    value={jabatanForm.tanggalMulai}
+                    onChange={e => setJabatanForm(f => ({ ...f, tanggalMulai: e.target.value }))}
+                  />
+                </F>
+                <F label="TMT Selesai (Opsional)">
+                  <Input
+                    type="date"
+                    value={jabatanForm.tanggalSelesai}
+                    onChange={e => setJabatanForm(f => ({ ...f, tanggalSelesai: e.target.value }))}
+                  />
+                </F>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                * Catatan: Kosongkan TMT Selesai jika jabatan ini merupakan posisi yang saat itu masih berjalan / aktif.
+              </p>
+            </div>
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+              <Button type="button" variant="outline" onClick={() => setShowAddJabatan(false)}>Batal</Button>
+              <Button type="submit" disabled={isSubmittingJabatan}>
+                {isSubmittingJabatan ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Riwayat"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Tambah Riwayat Pangkat */}
+      <Dialog open={showAddPangkat} onOpenChange={setShowAddPangkat}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
+              Tambah Riwayat Pangkat & Golongan
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddPangkat}>
+            <div className="p-6 space-y-4">
+              <F label="Nama Pangkat">
+                <Input
+                  required
+                  placeholder="e.g. Penata Muda Tk. I"
+                  value={pangkatForm.pangkat}
+                  onChange={e => setPangkatForm(f => ({ ...f, pangkat: e.target.value }))}
+                />
+              </F>
+              <div className="grid grid-cols-2 gap-3">
+                <F label="Golongan / Ruang">
+                  <Select
+                    value={pangkatForm.golongan}
+                    onValueChange={v => setPangkatForm(f => ({ ...f, golongan: v }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                    <SelectContent>
+                      {["I/a","I/b","I/c","I/d","II/a","II/b","II/c","II/d","III/a","III/b","III/c","III/d","IV/a","IV/b","IV/c","IV/d","IV/e"].map(g => (
+                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </F>
+                <F label="TMT Berlaku">
+                  <Input
+                    required
+                    type="date"
+                    value={pangkatForm.tanggalBerlaku}
+                    onChange={e => setPangkatForm(f => ({ ...f, tanggalBerlaku: e.target.value }))}
+                  />
+                </F>
+              </div>
+              <F label="Nomor SK (Pengesahan)">
+                <Input
+                  placeholder="e.g. SK/DIR/KP/2023/045"
+                  value={pangkatForm.nomorSK}
+                  onChange={e => setPangkatForm(f => ({ ...f, nomorSK: e.target.value }))}
+                />
+              </F>
+            </div>
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+              <Button type="button" variant="outline" onClick={() => setShowAddPangkat(false)}>Batal</Button>
+              <Button type="submit" disabled={isSubmittingPangkat}>
+                {isSubmittingPangkat ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Pangkat"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Tambah Anggota Keluarga */}
+      <Dialog open={showAddKeluarga} onOpenChange={setShowAddKeluarga}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Tambah Data Anggota Keluarga
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddKeluarga}>
+            <div className="p-6 space-y-4">
+              <F label="Nama Lengkap Anggota">
+                <Input
+                  required
+                  placeholder="e.g. Siti Nurhaliza"
+                  value={keluargaForm.nama}
+                  onChange={e => setKeluargaForm(f => ({ ...f, nama: e.target.value }))}
+                />
+              </F>
+              <F label="Hubungan Keluarga">
+                <Select
+                  value={keluargaForm.hubungan}
+                  onValueChange={v => setKeluargaForm(f => ({ ...f, hubungan: v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Pilih Hubungan" /></SelectTrigger>
+                  <SelectContent>
+                    {["Suami", "Istri", "Anak", "Orang Tua", "Mertua", "Saudara Kandung", "Lainnya"].map(h => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </F>
+              <F label="Pekerjaan">
+                <Input
+                  placeholder="e.g. Karyawan Swasta / Pelajar"
+                  value={keluargaForm.pekerjaan}
+                  onChange={e => setKeluargaForm(f => ({ ...f, pekerjaan: e.target.value }))}
+                />
+              </F>
+              <F label="Nomor Telepon / Kontak">
+                <Input
+                  placeholder="e.g. 081234567890"
+                  value={keluargaForm.telepon}
+                  onChange={e => setKeluargaForm(f => ({ ...f, telepon: e.target.value }))}
+                />
+              </F>
+            </div>
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+              <Button type="button" variant="outline" onClick={() => setShowAddKeluarga(false)}>Batal</Button>
+              <Button type="submit" disabled={isSubmittingKeluarga}>
+                {isSubmittingKeluarga ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Data"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Tambah Pendidikan */}
+      <Dialog open={showAddPendidikan} onOpenChange={setShowAddPendidikan}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Tambah Riwayat Pendidikan Formal
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddPendidikan}>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <F label="Jenjang">
+                  <Select
+                    value={pendidikanForm.tingkat}
+                    onValueChange={v => setPendidikanForm(f => ({ ...f, tingkat: v }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Jenjang" /></SelectTrigger>
+                    <SelectContent>
+                      {["SD","SMP","SMA","D1","D2","D3","D4","S1","S2","S3"].map(t => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </F>
+                <F label="Tahun Kelulusan">
+                  <Input
+                    required
+                    placeholder="e.g. 2018"
+                    value={pendidikanForm.tahunLulus}
+                    onChange={e => setPendidikanForm(f => ({ ...f, tahunLulus: e.target.value }))}
+                  />
+                </F>
+              </div>
+              <F label="Nama Institusi / Universitas / Sekolah">
+                <Input
+                  required
+                  placeholder="e.g. Universitas Mataram"
+                  value={pendidikanForm.institusi}
+                  onChange={e => setPendidikanForm(f => ({ ...f, institusi: e.target.value }))}
+                />
+              </F>
+              <F label="Jurusan / Program Studi">
+                <Input
+                  placeholder="e.g. Teknik Sipil / Akuntansi"
+                  value={pendidikanForm.jurusan}
+                  onChange={e => setPendidikanForm(f => ({ ...f, jurusan: e.target.value }))}
+                />
+              </F>
+            </div>
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+              <Button type="button" variant="outline" onClick={() => setShowAddPendidikan(false)}>Batal</Button>
+              <Button type="submit" disabled={isSubmittingPendidikan}>
+                {isSubmittingPendidikan ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Pendidikan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Tambah Pelatihan */}
+      <Dialog open={showAddPelatihan} onOpenChange={setShowAddPelatihan}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Tambah Riwayat Pelatihan & Sertifikasi
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddPelatihan}>
+            <div className="p-6 space-y-4">
+              <F label="Nama Pelatihan / Diklat / Workshop">
+                <Input
+                  required
+                  placeholder="e.g. Pelatihan Manajemen Sistem Distribusi Air"
+                  value={pelatihanForm.namaPelatihan}
+                  onChange={e => setPelatihanForm(f => ({ ...f, namaPelatihan: e.target.value }))}
+                />
+              </F>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <F label="Lembaga Penyelenggara">
+                    <Input
+                      required
+                      placeholder="e.g. Perpamsi / Kementerian PUPR"
+                      value={pelatihanForm.penyelenggara}
+                      onChange={e => setPelatihanForm(f => ({ ...f, penyelenggara: e.target.value }))}
+                    />
+                  </F>
+                </div>
+                <div>
+                  <F label="Tahun">
+                    <Input
+                      placeholder="e.g. 2024"
+                      value={pelatihanForm.tahun}
+                      onChange={e => setPelatihanForm(f => ({ ...f, tahun: e.target.value }))}
+                    />
+                  </F>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+              <Button type="button" variant="outline" onClick={() => setShowAddPelatihan(false)}>Batal</Button>
+              <Button type="submit" disabled={isSubmittingPelatihan}>
+                {isSubmittingPelatihan ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Pelatihan"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
