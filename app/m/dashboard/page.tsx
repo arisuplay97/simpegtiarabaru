@@ -7,7 +7,8 @@ import {
   CalendarDays, Clock, BookOpen,
   TrendingUp, Award, Timer, UserCheck, Thermometer,
   FileText, Trophy, Medal,
-  Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight
+  Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight,
+  Radio, CloudUpload, BellRing, BellOff
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
@@ -18,6 +19,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { VerifiedBadge } from "@/components/simpeg/verified-badge"
 import { cn } from "@/lib/utils"
+import { getMobileQueue, syncMobileOfflineQueue } from "@/lib/offline/absensi-queue"
+import { 
+  requestPushPermission, isReminderEnabled, 
+  toggleReminder, checkAndSendSmartReminder 
+} from "@/lib/pwa/notification-reminder"
+import { toast } from "sonner"
 
 // ─── Digital Clock ──────────────────────────────────────────────
 function DigitalClock() {
@@ -120,6 +127,8 @@ export default function MobileDashboard() {
   const [pengumuman, setPengumuman] = useState<any[]>([])
   const [disiplinTop, setDisiplinTop] = useState<any[]>([])
   const [showAllLeaderboard, setShowAllLeaderboard] = useState(false)
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0)
+  const [isReminderActive, setIsReminderActive] = useState(false)
 
   useEffect(() => {
     const hour = new Date().getHours()
@@ -129,10 +138,26 @@ export default function MobileDashboard() {
     else setGreeting("Selamat Malam")
   }, [])
 
+  const checkOfflineQueue = async () => {
+    try {
+      const q = await getMobileQueue()
+      setOfflineQueueCount(q.length)
+    } catch {}
+  }
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
-    if (status === "authenticated") fetchData()
+    if (status === "authenticated") {
+      fetchData()
+      checkOfflineQueue()
+      setIsReminderActive(isReminderEnabled())
+    }
   }, [status])
+
+  useEffect(() => {
+    window.addEventListener("offline-queue-updated", checkOfflineQueue)
+    return () => window.removeEventListener("offline-queue-updated", checkOfflineQueue)
+  }, [])
 
   const fetchData = async () => {
     try {
@@ -151,6 +176,14 @@ export default function MobileDashboard() {
 
         const s = await getEmployeeAttendanceSummary(p.id)
         setSummary(s)
+
+        // Run smart attendance reminder check
+        checkAndSendSmartReminder({
+          batasMasuk: s?.batasAbsenMasuk,
+          mulaiPulang: s?.mulaiAbsenPulang,
+          sudahMasuk: s?.sudahAbsenMasuk,
+          sudahPulang: s?.sudahAbsenPulang
+        })
       }
       if (session?.user?.id) {
         const u = await getUnreadCount(session.user.id)
@@ -165,8 +198,43 @@ export default function MobileDashboard() {
     } catch {}
   }
 
+  const handleToggleReminder = async () => {
+    if (!isReminderActive) {
+      const granted = await requestPushPermission()
+      if (granted) {
+        setIsReminderActive(true)
+        toast.success("Pengingat presensi (Web Push) berhasil diaktifkan!")
+      } else {
+        toast.error("Izin notifikasi tidak diizinkan di peramban.")
+      }
+    } else {
+      toggleReminder(false)
+      setIsReminderActive(false)
+      toast.info("Pengingat presensi dinonaktifkan.")
+    }
+  }
+
+  const handleSyncOffline = async () => {
+    const toastId = toast.loading("Menyinkronkan antrian offline...")
+    try {
+      const { synced } = await syncMobileOfflineQueue()
+      if (synced > 0) {
+        toast.success(`${synced} presensi offline berhasil terkirim ke server!`, { id: toastId })
+      } else {
+        toast.info("Tidak ada presensi yang perlu disinkronkan.", { id: toastId })
+      }
+      await checkOfflineQueue()
+      await fetchData()
+    } catch {
+      toast.error("Gagal menyinkronkan data offline.", { id: toastId })
+    }
+  }
+
   const today = new Date()
   const monthName = format(today, "MMMM", { locale: idLocale })
+  const userRole = ((session?.user as any)?.role || "").toUpperCase()
+  const isHrdOrAdmin = ["SUPERADMIN", "ADMIN", "HRD", "DIREKSI"].includes(userRole) || 
+                       (session?.user?.name || "").toLowerCase().includes("admin")
   const jabatan = (session?.user as any)?.jabatan || "Staff"
   const bidang = pegawai?.bidang?.nama || ""
   const subBidang = pegawai?.subBidang?.nama || ""
@@ -210,18 +278,33 @@ export default function MobileDashboard() {
               </div>
             </div>
 
-            {/* Notifikasi */}
-            <Link 
-              href="/m/notifikasi" 
-              className="relative flex items-center justify-center h-9 w-9 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition-colors"
-            >
-              <Bell className="h-4 w-4" />
-              {unread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white ring-2 ring-zinc-950">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
-            </Link>
+            {/* Notification & Reminder Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleToggleReminder}
+                className={cn(
+                  "flex items-center justify-center h-9 w-9 rounded-full border transition-colors",
+                  isReminderActive 
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                )}
+                title={isReminderActive ? "Pengingat Absen Aktif" : "Aktifkan Pengingat Absen"}
+              >
+                {isReminderActive ? <BellRing className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              </button>
+
+              <Link 
+                href="/m/notifikasi" 
+                className="relative flex items-center justify-center h-9 w-9 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition-colors"
+              >
+                <Bell className="h-4 w-4" />
+                {unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white ring-2 ring-zinc-950">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
 
           {/* User Profile Summary */}
@@ -274,6 +357,53 @@ export default function MobileDashboard() {
 
       {/* ===== MAIN CONTENT ===== */}
       <div className="relative z-20 -mt-20 px-4 space-y-4 max-w-md mx-auto">
+
+        {/* Offline Queue Sync Banner */}
+        {offlineQueueCount > 0 && (
+          <div className="rounded-2xl p-3.5 bg-zinc-900 text-white border border-zinc-800 shadow-sm flex items-center justify-between gap-3 animate-in fade-in-50">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <CloudUpload className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold truncate">Antrian Offline ({offlineQueueCount})</p>
+                <p className="text-[11px] text-zinc-400 truncate">Siap dikirim ke server</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSyncOffline}
+              className="px-3 py-1.5 rounded-xl bg-white text-zinc-900 text-xs font-bold active:scale-95 transition-transform shadow-xs shrink-0"
+            >
+              Sync Sekarang
+            </button>
+          </div>
+        )}
+
+        {/* ===== FITUR KHUSUS HRD: LIVE RADAR KEHADIRAN ===== */}
+        {isHrdOrAdmin && (
+          <Link href="/m/radar" className="block active:scale-98 transition-all">
+            <div className="rounded-2xl p-4 bg-zinc-900 text-white border border-zinc-800 shadow-sm relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center relative">
+                    <Radio className="h-4.5 w-4.5" />
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold tracking-tight">Live Radar Kehadiran</p>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-white/10 text-zinc-300 font-bold uppercase">HRD</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Monitoring realtime & nudge WhatsApp</p>
+                  </div>
+                </div>
+                <div className="h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-700 transition-colors">
+                  <ChevronRight className="h-4 w-4 text-zinc-300" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
 
         {/* Kontrak Warning */}
         {summary?.sisaKontrak !== undefined && summary.sisaKontrak <= 60 && (

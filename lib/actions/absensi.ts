@@ -991,5 +991,129 @@ export async function createAbsensiManual(data: { pegawaiId: string, tanggal: st
   }
 }
 
+// ─── LIVE RADAR KEHADIRAN HARI INI (HRD / ADMIN MOBILE PWA) ────
+export async function getLiveRadarKehadiran(filterBidangId?: string, search?: string) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
+    const { startOfDay, endOfDay } = getTodayRange()
 
+    // 1. Ambil seluruh pegawai aktif
+    const pegawaiList = await prisma.pegawai.findMany({
+      where: {
+        status: "AKTIF",
+        ...(filterBidangId && filterBidangId !== "all" ? { bidangId: filterBidangId } : {}),
+        ...(search ? {
+          OR: [
+            { nama: { contains: search, mode: "insensitive" } },
+            { nik: { contains: search, mode: "insensitive" } },
+            { jabatan: { contains: search, mode: "insensitive" } },
+          ]
+        } : {})
+      },
+      include: {
+        bidang: true,
+        subBidang: true,
+      },
+      orderBy: { nama: "asc" }
+    })
+
+    // 2. Ambil absensi hari ini
+    const absensiHariIni = await prisma.absensi.findMany({
+      where: {
+        tanggal: { gte: startOfDay, lte: endOfDay }
+      }
+    })
+
+    // 3. Ambil cuti/izin aktif hari ini
+    const cutiHariIni = await prisma.cuti.findMany({
+      where: {
+        status: "APPROVED",
+        tanggalMulai: { lte: endOfDay },
+        tanggalSelesai: { gte: startOfDay }
+      }
+    })
+
+    const absensiMap = new Map<string, any>()
+    absensiHariIni.forEach(a => absensiMap.set(a.pegawaiId, a))
+
+    const cutiMap = new Map<string, any>()
+    cutiHariIni.forEach(c => cutiMap.set(c.pegawaiId, c))
+
+    let countHadirTepat = 0
+    let countHadirTerlambat = 0
+    let countBelumAbsen = 0
+    let countCutiIzin = 0
+
+    const items = pegawaiList.map(p => {
+      const abs = absensiMap.get(p.id)
+      const cuti = cutiMap.get(p.id)
+
+      let radarStatus: "TEPAT_WAKTU" | "TERLAMBAT" | "CUTI_IZIN" | "BELUM_ABSEN" = "BELUM_ABSEN"
+      let statusLabel = "Belum Presensi"
+      let jamMasukStr: string | null = null
+      let jamKeluarStr: string | null = null
+
+      if (abs && abs.jamMasuk) {
+        jamMasukStr = new Date(abs.jamMasuk).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+        if (abs.jamKeluar) {
+          jamKeluarStr = new Date(abs.jamKeluar).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+        }
+
+        if (abs.status === "TERLAMBAT") {
+          radarStatus = "TERLAMBAT"
+          statusLabel = "Terlambat"
+          countHadirTerlambat++
+        } else {
+          radarStatus = "TEPAT_WAKTU"
+          statusLabel = "Tepat Waktu"
+          countHadirTepat++
+        }
+      } else if (cuti) {
+        radarStatus = "CUTI_IZIN"
+        statusLabel = cuti.jenisCuti?.replace("_", " ") || "Cuti / Izin"
+        countCutiIzin++
+      } else {
+        countBelumAbsen++
+      }
+
+      return {
+        id: p.id,
+        nama: p.nama,
+        nik: p.nik,
+        jabatan: p.jabatan,
+        bidang: p.bidang?.nama || null,
+        subBidang: p.subBidang?.nama || null,
+        telepon: p.telepon || null,
+        fotoUrl: p.fotoUrl || null,
+        radarStatus,
+        statusLabel,
+        jamMasuk: jamMasukStr,
+        jamKeluar: jamKeluarStr,
+        metode: abs?.metode || null,
+      }
+    })
+
+    const totalPegawai = pegawaiList.length
+    const totalHadir = countHadirTepat + countHadirTerlambat
+    const persentaseKehadiran = totalPegawai > 0 ? Math.round((totalHadir / totalPegawai) * 100) : 0
+
+    return {
+      success: true,
+      summary: {
+        totalPegawai,
+        totalHadir,
+        countHadirTepat,
+        countHadirTerlambat,
+        countBelumAbsen,
+        countCutiIzin,
+        persentaseKehadiran,
+      },
+      items,
+    }
+  } catch (error: any) {
+    console.error("getLiveRadarKehadiran error:", error)
+    return { error: error.message || "Gagal memuat radar kehadiran" }
+  }
+}

@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, MapPin, X, Clock, WifiOff, RefreshCw, CheckCircle2 } from "lucide-react"
+import { Loader2, MapPin, X, Clock, WifiOff, RefreshCw, CheckCircle2, CloudUpload, ShieldAlert } from "lucide-react"
 import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
@@ -11,6 +11,9 @@ import Lottie from "lottie-react"
 import fingerprintAnimation from "@/public/animations/fingerprint.json"
 import successAnimation from "@/public/animations/success.json"
 import { cn } from "@/lib/utils"
+import { detectFakeGps } from "@/lib/pwa/anti-fake-gps"
+import { FakeGpsModal } from "@/components/mobile/fake-gps-modal"
+import { queueMobileAbsensi, syncMobileOfflineQueue, getMobileQueue } from "@/lib/offline/absensi-queue"
 
 function WatermarkClock() {
   const [time, setTime] = useState<Date | null>(null)
@@ -48,9 +51,15 @@ export default function MobileFingerprint() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+  const [isOfflineQueued, setIsOfflineQueued] = useState(false)
+  const [pendingQueueCount, setPendingQueueCount] = useState(0)
   const [resultData, setResultData] = useState<{ status: string; tipe: string; waktu?: string } | null>(null)
   const [isCheckout, setIsCheckout] = useState(false)
   const [isLoadingStatus, setIsLoadingStatus] = useState(true)
+
+  // Anti-Fake GPS State
+  const [showFakeGpsModal, setShowFakeGpsModal] = useState(false)
+  const [fakeGpsReason, setFakeGpsReason] = useState("")
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fingerprintLottieRef = useRef<any>(null)
@@ -60,8 +69,16 @@ export default function MobileFingerprint() {
     if (status === "authenticated") {
       getLocation()
       checkStatus()
+      updateQueueCount()
     }
   }, [status])
+
+  const updateQueueCount = async () => {
+    try {
+      const q = await getMobileQueue()
+      setPendingQueueCount(q.length)
+    } catch {}
+  }
 
   const checkStatus = async () => {
     try {
@@ -80,14 +97,33 @@ export default function MobileFingerprint() {
     }
   }
 
+  // Automatic Background Sync on Reconnect
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
+    const handleOnline = async () => {
+      setIsOnline(true)
+      toast.info("Koneksi kembali online. Menyinkronkan data offline...")
+      try {
+        const { synced } = await syncMobileOfflineQueue()
+        if (synced > 0) {
+          toast.success(`${synced} presensi offline berhasil disinkronkan ke server!`)
+        }
+      } catch {}
+      updateQueueCount()
+    }
+
+    const handleOffline = () => {
+      setIsOnline(false)
+      toast.warning("Koneksi terputus. Mode offline diaktifkan (presensi akan disimpan di antrian).")
+    }
+
     window.addEventListener("online", handleOnline)
     window.addEventListener("offline", handleOffline)
+    window.addEventListener("offline-queue-updated", updateQueueCount)
+
     return () => {
       window.removeEventListener("online", handleOnline)
       window.removeEventListener("offline", handleOffline)
+      window.removeEventListener("offline-queue-updated", updateQueueCount)
     }
   }, [])
 
@@ -101,6 +137,16 @@ export default function MobileFingerprint() {
 
     navigator.geolocation.getCurrentPosition(
       pos => {
+        // Run Anti-Fake GPS Detection
+        const fakeCheck = detectFakeGps(pos)
+        if (fakeCheck.isFake) {
+          setFakeGpsReason(fakeCheck.reason)
+          setShowFakeGpsModal(true)
+          setLocation(null)
+          setIsLocating(false)
+          return
+        }
+
         setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy })
         setIsLocating(false)
       },
@@ -115,6 +161,13 @@ export default function MobileFingerprint() {
     setTimeout(() => {
       navigator.geolocation?.getCurrentPosition(
         pos => {
+          const fakeCheck = detectFakeGps(pos)
+          if (fakeCheck.isFake) {
+            setFakeGpsReason(fakeCheck.reason)
+            setShowFakeGpsModal(true)
+            setLocation(null)
+            return
+          }
           toast.dismiss("gps-error")
           setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy })
         },
@@ -125,19 +178,48 @@ export default function MobileFingerprint() {
   }, [])
 
   const submit = useCallback(async () => {
+    // 1. Pastikan GPS tersedia jika online
     if (!location && isOnline) {
       toast.error("Menunggu koordinat GPS... Pastikan GPS aktif.", { id: "absen-error", duration: 4000 })
       return
     }
 
     setIsSubmitting(true)
+
+    // 2. JIKA OFFLINE: Simpan langsung ke Offline Queue (IndexedDB)
+    if (!isOnline) {
+      try {
+        await queueMobileAbsensi({
+          latitude: location?.lat || 0,
+          longitude: location?.lng || 0,
+          accuracy: location?.accuracy || 999,
+          tipe: isCheckout ? "CHECK_OUT" : "CHECK_IN"
+        })
+        setIsOfflineQueued(true)
+        setResultData({
+          status: "OFFLINE_QUEUED",
+          tipe: isCheckout ? "CHECK_OUT" : "CHECK_IN",
+          waktu: format(new Date(), "HH:mm")
+        })
+        setDone(true)
+        updateQueueCount()
+        toast.success("Presensi tersimpan di antrian offline! Akan disinkronkan otomatis saat ada sinyal.")
+        return
+      } catch (err: any) {
+        toast.error(err.message || "Gagal menyimpan presensi offline.")
+        return
+      } finally {
+        setIsSubmitting(false)
+      }
+    }
+
+    // 3. JIKA ONLINE: Kirim langsung ke Server
     try {
       const payload = {
         latitude: location?.lat || 0,
         longitude: location?.lng || 0,
         accuracy: location?.accuracy || 999,
-        offlineSync: !isOnline,
-        offlineTimestamp: !isOnline ? Date.now() : undefined
+        offlineSync: false,
       }
 
       const response = await fetch("/api/absensi/fingerprint", {
@@ -147,7 +229,16 @@ export default function MobileFingerprint() {
       })
 
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || "Gagal mencatat presensi")
+
+      // Deteksi Rejection Fake GPS dari Server
+      if (!response.ok) {
+        if (data.error && (data.error.toLowerCase().includes("fake") || data.error.toLowerCase().includes("mock"))) {
+          setFakeGpsReason(data.error)
+          setShowFakeGpsModal(true)
+          return
+        }
+        throw new Error(data.error || "Gagal mencatat presensi")
+      }
 
       toast.dismiss("absen-error")
       setResultData({ 
@@ -157,13 +248,34 @@ export default function MobileFingerprint() {
       })
       setDone(true)
     } catch (err: any) {
+      // Jika fetch gagal karena koneksi tiba-tiba putus di lapangan, fallback simpan offline queue!
+      if (!navigator.onLine || err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
+        try {
+          await queueMobileAbsensi({
+            latitude: location?.lat || 0,
+            longitude: location?.lng || 0,
+            accuracy: location?.accuracy || 999,
+            tipe: isCheckout ? "CHECK_OUT" : "CHECK_IN"
+          })
+          setIsOfflineQueued(true)
+          setResultData({
+            status: "OFFLINE_QUEUED",
+            tipe: isCheckout ? "CHECK_OUT" : "CHECK_IN",
+            waktu: format(new Date(), "HH:mm")
+          })
+          setDone(true)
+          updateQueueCount()
+          toast.info("Koneksi terputus saat mengirim. Presensi telah diamankan ke antrian offline.")
+          return
+        } catch {}
+      }
       toast.error(err.message || "Terjadi kesalahan koneksi.", { id: "absen-error" })
     } finally {
       setIsSubmitting(false)
     }
   }, [location, isOnline, isCheckout])
 
-  // ===== SUCCESS SCREEN =====
+  // ===== SUCCESS / RECEIPT SCREEN =====
   if (done) {
     const isCheckIn = resultData?.tipe === "CHECK_IN"
     return (
@@ -171,7 +283,7 @@ export default function MobileFingerprint() {
         <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-7 flex flex-col items-center border border-zinc-200/80 dark:border-zinc-800 shadow-sm relative overflow-hidden">
           
           {/* Accent top indicator */}
-          <div className={cn("absolute top-0 left-0 right-0 h-1.5", isCheckIn ? "bg-emerald-600" : "bg-zinc-900 dark:bg-white")} />
+          <div className={cn("absolute top-0 left-0 right-0 h-1.5", isOfflineQueued ? "bg-amber-500" : isCheckIn ? "bg-emerald-600" : "bg-zinc-900 dark:bg-white")} />
 
           {/* Preserved Lottie Success Animation */}
           <div className="w-48 h-48 flex items-center justify-center my-1">
@@ -179,8 +291,12 @@ export default function MobileFingerprint() {
           </div>
 
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center">
-            {isCheckIn ? "Presensi Masuk Berhasil" : "Presensi Pulang Berhasil"}
+            {isOfflineQueued 
+              ? (isCheckIn ? "Presensi Masuk Tersimpan (Offline)" : "Presensi Pulang Tersimpan (Offline)")
+              : (isCheckIn ? "Presensi Masuk Berhasil" : "Presensi Pulang Berhasil")
+            }
           </h2>
+
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center mt-1 mb-5">
             Pukul {resultData?.waktu || format(new Date(), "HH:mm")} WITA · {format(new Date(), "EEEE, dd MMMM yyyy", { locale: idLocale })}
           </p>
@@ -192,12 +308,19 @@ export default function MobileFingerprint() {
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Biometrik Mobile
               </span>
             </div>
+
             <div className="flex justify-between items-center">
               <span className="text-zinc-500 dark:text-zinc-400">Status</span>
-              <span className="font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px]">
-                {resultData?.status || "HADIR"}
+              <span className={cn(
+                "font-semibold px-2 py-0.5 rounded-md text-[11px]",
+                isOfflineQueued 
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+              )}>
+                {isOfflineQueued ? "Antrian Offline (Pending Sync)" : (resultData?.status || "HADIR")}
               </span>
             </div>
+
             {location && (
               <div className="flex justify-between items-center">
                 <span className="text-zinc-500 dark:text-zinc-400">Akurasi GPS</span>
@@ -205,6 +328,12 @@ export default function MobileFingerprint() {
                   ±{Math.round(location.accuracy)} meter
                 </span>
               </div>
+            )}
+
+            {isOfflineQueued && (
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 pt-1 leading-relaxed border-t border-zinc-200/60 dark:border-zinc-700/60">
+                Data tersimpan aman di memori perangkat HP. Sistem akan mengirim otomatis saat koneksi internet aktif kembali.
+              </p>
             )}
           </div>
 
@@ -239,11 +368,24 @@ export default function MobileFingerprint() {
         </button>
 
         <div className="flex items-center gap-2">
-          {!isOnline && (
-            <div className="flex items-center gap-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[11px] font-semibold px-2.5 py-1 rounded-full">
-              <WifiOff className="h-3 w-3" /> Offline Sync
+          {!isOnline ? (
+            <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+              <WifiOff className="h-3 w-3" /> Mode Offline
             </div>
-          )}
+          ) : pendingQueueCount > 0 ? (
+            <button
+              onClick={async () => {
+                toast.info("Menyinkronkan antrian offline...")
+                const { synced } = await syncMobileOfflineQueue()
+                if (synced > 0) toast.success(`${synced} presensi tersinkron!`)
+                updateQueueCount()
+              }}
+              className="flex items-center gap-1 bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 text-[11px] font-semibold px-2.5 py-1 rounded-full active:scale-95"
+            >
+              <CloudUpload className="h-3 w-3" /> Sync ({pendingQueueCount})
+            </button>
+          ) : null}
+
           <button
             onClick={getLocation}
             className="p-2 rounded-full bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs active:scale-90 transition-transform"
@@ -260,7 +402,7 @@ export default function MobileFingerprint() {
 
         <button 
           onClick={submit}
-          disabled={isSubmitting || isLoadingStatus || (!isOnline && !location)}
+          disabled={isSubmitting || isLoadingStatus || (isOnline && !location)}
           className="relative group active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex flex-col items-center justify-center focus:outline-none"
         >
           {isSubmitting || isLoadingStatus ? (
@@ -269,7 +411,7 @@ export default function MobileFingerprint() {
             </div>
           ) : (
             <div className="w-72 h-72 relative flex items-center justify-center">
-              {/* Refined subtle outer halo */}
+              {/* Subtle outer halo */}
               <div className="absolute inset-4 rounded-full bg-zinc-200/30 dark:bg-zinc-800/30 blur-xl pointer-events-none" />
               
               {/* Preserved Lottie Fingerprint Animation */}
@@ -303,6 +445,8 @@ export default function MobileFingerprint() {
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   Memproses Presensi...
                 </>
+              ) : !isOnline ? (
+                "Tap untuk Simpan Offline"
               ) : isCheckout ? (
                 "Tap Layar untuk Pulang"
               ) : (
@@ -314,9 +458,13 @@ export default function MobileFingerprint() {
 
         {/* GPS Status Indicator */}
         <div className="mt-12">
-          {!location ? (
+          {!isOnline ? (
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 bg-amber-500/10 px-4 py-2 rounded-full text-xs font-medium border border-amber-500/20">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menghubungkan GPS...
+              <WifiOff className="h-3.5 w-3.5" /> Presensi Tanpa Sinyal (Queue Mode)
+            </div>
+          ) : !location ? (
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 bg-amber-500/10 px-4 py-2 rounded-full text-xs font-medium border border-amber-500/20">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menghubungkan GPS Satelit...
             </div>
           ) : (
             <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-4 py-2 rounded-full text-xs font-medium border border-emerald-500/20 shadow-2xs">
@@ -325,6 +473,17 @@ export default function MobileFingerprint() {
           )}
         </div>
       </div>
+
+      {/* POP-UP ANTI FAKE GPS */}
+      <FakeGpsModal
+        isOpen={showFakeGpsModal}
+        reason={fakeGpsReason}
+        onCloseAndRetry={() => {
+          setShowFakeGpsModal(false)
+          setFakeGpsReason("")
+          getLocation()
+        }}
+      />
     </div>
   )
 }
