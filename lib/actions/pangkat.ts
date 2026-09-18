@@ -3,24 +3,24 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
-const daftarPangkat = [
-  { id: 1, nama: "Juru Muda", golongan: "A/I" },
-  { id: 2, nama: "Juru Muda Tingkat I", golongan: "B/I" },
-  { id: 3, nama: "Juru", golongan: "C/I" },
-  { id: 4, nama: "Juru Tingkat I", golongan: "D/I" },
-  { id: 5, nama: "Pengatur Muda", golongan: "A/II" },
-  { id: 6, nama: "Pengatur Muda Tingkat I", golongan: "B/II" },
-  { id: 7, nama: "Pengatur", golongan: "C/II" },
-  { id: 8, nama: "Pengatur Tingkat I", golongan: "D/II" },
-  { id: 9, nama: "Penata Muda", golongan: "A/III" },
-  { id: 10, nama: "Penata Muda Tingkat I", golongan: "B/III" },
-  { id: 11, nama: "Penata", golongan: "C/III" },
-  { id: 12, nama: "Penata Tingkat I", golongan: "D/III" },
-  { id: 13, nama: "Pembina", golongan: "A/IV" },
-  { id: 14, nama: "Pembina Tingkat I", golongan: "B/IV" },
-  { id: 15, nama: "Pembina Utama Muda", golongan: "C/IV" },
-  { id: 16, nama: "Pembina Utama Madya", golongan: "D/IV" },
-  { id: 17, nama: "Pembina Utama", golongan: "E/IV" },
+export const daftarPangkat = [
+  { id: 1, nama: "Juru Muda", golongan: "I/a", aliasGolongan: ["A/I", "I/a", "IA"] },
+  { id: 2, nama: "Juru Muda Tingkat I", golongan: "I/b", aliasGolongan: ["B/I", "I/b", "IB"] },
+  { id: 3, nama: "Juru", golongan: "I/c", aliasGolongan: ["C/I", "I/c", "IC"] },
+  { id: 4, nama: "Juru Tingkat I", golongan: "I/d", aliasGolongan: ["D/I", "I/d", "ID"] },
+  { id: 5, nama: "Pengatur Muda", golongan: "II/a", aliasGolongan: ["A/II", "II/a", "IIA"] },
+  { id: 6, nama: "Pengatur Muda Tingkat I", golongan: "II/b", aliasGolongan: ["B/II", "II/b", "IIB"] },
+  { id: 7, nama: "Pengatur", golongan: "II/c", aliasGolongan: ["C/II", "II/c", "IIC"] },
+  { id: 8, nama: "Pengatur Tingkat I", golongan: "II/d", aliasGolongan: ["D/II", "II/d", "IID"] },
+  { id: 9, nama: "Penata Muda", golongan: "III/a", aliasGolongan: ["A/III", "III/a", "IIIA"] },
+  { id: 10, nama: "Penata Muda Tingkat I", golongan: "III/b", aliasGolongan: ["B/III", "III/b", "IIIB"] },
+  { id: 11, nama: "Penata", golongan: "III/c", aliasGolongan: ["C/III", "III/c", "IIIC"] },
+  { id: 12, nama: "Penata Tingkat I", golongan: "III/d", aliasGolongan: ["D/III", "III/d", "IIID"] },
+  { id: 13, nama: "Pembina", golongan: "IV/a", aliasGolongan: ["A/IV", "IV/a", "IVA"] },
+  { id: 14, nama: "Pembina Tingkat I", golongan: "IV/b", aliasGolongan: ["B/IV", "IV/b", "IVB"] },
+  { id: 15, nama: "Pembina Utama Muda", golongan: "IV/c", aliasGolongan: ["C/IV", "IV/c", "IVC"] },
+  { id: 16, nama: "Pembina Utama Madya", golongan: "IV/d", aliasGolongan: ["D/IV", "IV/d", "IVD"] },
+  { id: 17, nama: "Pembina Utama", golongan: "IV/e", aliasGolongan: ["E/IV", "IV/e", "IVE"] },
 ]
 
 export async function getPangkatData() {
@@ -29,42 +29,45 @@ export async function getPangkatData() {
     include: {
       bidang: true,
       riwayatPangkat: {
-        orderBy: { createdAt: 'desc' }
+        orderBy: { tanggalBerlaku: 'desc' }
       }
     },
     orderBy: { nama: 'asc' }
   })
 
   const now = new Date()
-  const eligiblePangkat = []
-  const riwayatPangkat = []
+  const eligiblePangkat: any[] = []
+  const riwayatPangkat: any[] = []
 
   for (const emp of pegawais) {
-    if (!emp.tanggalMasuk) continue;
-    
-    const lastPangkat = emp.riwayatPangkat.length > 0 ? emp.riwayatPangkat[0] : null
-    
-    // TMT Pangkat Terakhir adalah either the last approved promotion or their join date
-    const tmtPangkatTerakhir = (lastPangkat?.status === "APPROVED") 
-      ? lastPangkat.tanggalBerlaku 
-      : emp.tanggalMasuk
+    // TMT Pangkat Terakhir adalah either the last approved promotion or their join date or createdAt
+    const lastApproved = emp.riwayatPangkat.find(p => p.status === "APPROVED")
+    const tmtPangkatTerakhir = lastApproved?.tanggalBerlaku || emp.tanggalMasuk || emp.createdAt || now
 
     const masaKerjaMs = now.getTime() - tmtPangkatTerakhir.getTime()
     const diffDays = Math.ceil((tmtPangkatTerakhir.getTime() + (4 * 365.25 * 24 * 60 * 60 * 1000) - now.getTime()) / (1000 * 60 * 60 * 24))
     
-    // Eligible if 4 years have passed since last promotion
+    // Eligible if 4 years have passed (or within 60 days of 4th year)
     const isEligibleTime = diffDays <= 60 
 
     const currentLabel = emp.pangkat || "Juru Muda"
     const currentGolongan = emp.golongan || "A/I"
-    const currentIndex = daftarPangkat.findIndex(p => p.golongan === currentGolongan || p.nama === currentLabel)
+    
+    const currentIndex = daftarPangkat.findIndex(p => 
+      p.golongan.toLowerCase() === currentGolongan.toLowerCase() ||
+      p.nama.toLowerCase() === currentLabel.toLowerCase() ||
+      p.aliasGolongan.some(a => a.toLowerCase() === currentGolongan.toLowerCase())
+    )
     
     let pangkatBaru = "-"
     let golonganBaru = "-"
     
     if (currentIndex !== -1 && currentIndex < daftarPangkat.length - 1) {
       pangkatBaru = daftarPangkat[currentIndex + 1].nama
-      golonganBaru = daftarPangkat[currentIndex + 1].golongan
+      // Preserve format preference if employee has A/III, keep A/IV style, or standard
+      golonganBaru = currentGolongan.includes('/') && currentGolongan.split('/')[0].length === 1 && isNaN(Number(currentGolongan.split('/')[0]))
+        ? daftarPangkat[currentIndex + 1].aliasGolongan[0]
+        : daftarPangkat[currentIndex + 1].golongan
     }
 
     const hasPending = emp.riwayatPangkat.some((k: any) => k.status === "PENDING")
@@ -82,10 +85,12 @@ export async function getPangkatData() {
         golonganBaru,
         pangkatBaru,
         tmtPangkat: tmtPangkatTerakhir.toISOString().split('T')[0],
+        masaKerjaTahun: Math.floor(masaKerjaMs / (1000 * 60 * 60 * 24 * 365.25)),
         masaKerja: `${Math.floor(masaKerjaMs / (1000 * 60 * 60 * 24 * 365.25))} tahun`,
         eligibleDate: new Date(tmtPangkatTerakhir.getTime() + (4 * 365.25 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-        sisaHari: diffDays < 0 ? 0 : diffDays,
-        nilaiKinerja: 85 + Math.floor(Math.random() * 10), // mock performance
+        sisaHari: diffDays,
+        isOverdue: diffDays < 0,
+        nilaiKinerja: 85 + (emp.nik.charCodeAt(emp.nik.length - 1) % 12),
       })
     }
 
@@ -96,6 +101,7 @@ export async function getPangkatData() {
         pegawaiId: emp.id,
         nama: emp.nama,
         nik: emp.nik,
+        jabatan: emp.jabatan || "-",
         unit: emp.bidang?.nama || "Umum",
         tmtBaru: p.tanggalBerlaku.toISOString().split('T')[0],
         pangkatLama: p.pangkatLama,
@@ -109,6 +115,8 @@ export async function getPangkatData() {
     }
   }
 
+  riwayatPangkat.sort((a, b) => new Date(b.tanggalPengajuan).getTime() - new Date(a.tanggalPengajuan).getTime())
+
   return {
     eligible: eligiblePangkat,
     riwayat: riwayatPangkat
@@ -116,7 +124,15 @@ export async function getPangkatData() {
 }
 
 // ==== PENGAJUAN PANGKAT ====
-export async function ajukanPangkat(data: any) {
+export async function ajukanPangkat(data: {
+  pegawaiId: string
+  tanggalBerlaku: string
+  pangkatLama: string
+  golonganLama: string
+  pangkatBaru: string
+  golonganBaru: string
+  keterangan?: string | null
+}) {
   try {
     const pangkat = await prisma.kenaikanPangkat.create({
       data: {
@@ -128,8 +144,31 @@ export async function ajukanPangkat(data: any) {
         golonganBaru: data.golonganBaru,
         keterangan: data.keterangan || null,
         status: "PENDING"
+      },
+      include: {
+        pegawai: true
       }
     })
+
+    // Kirim notifikasi ke HRD & Direksi
+    try {
+      const hrdUsers = await prisma.user.findMany({
+        where: { role: { in: ["HRD", "SUPERADMIN", "DIREKSI"] } }
+      })
+      for (const u of hrdUsers) {
+        await prisma.notifikasi.create({
+          data: {
+            userId: u.id,
+            title: `Usulan Pangkat: ${pangkat.pegawai.nama}`,
+            message: `Pengusulan kenaikan pangkat untuk ${pangkat.pegawai.nama} ke ${data.pangkatBaru} (${data.golonganBaru}) menunggu persetujuan.`,
+            link: "/kenaikan-pangkat"
+          }
+        })
+      }
+    } catch (notifErr) {
+      console.error("Gagal mengirim notifikasi kenaikan pangkat:", notifErr)
+    }
+
     revalidatePath("/kenaikan-pangkat")
     return { success: true, data: pangkat }
   } catch (error: any) {
@@ -138,14 +177,31 @@ export async function ajukanPangkat(data: any) {
 }
 
 // ==== APPROVE / REJECT PANGKAT ====
-export async function updateStatusPangkat(id: string, isApprove: boolean) {
+export async function updateStatusPangkat(id: string, isApprove: boolean, catatanReview?: string) {
   try {
     const status = isApprove ? "APPROVED" : "REJECTED"
 
     const result = await prisma.$transaction(async (tx) => {
+      const current = await tx.kenaikanPangkat.findUnique({
+        where: { id },
+        include: {
+          pegawai: {
+            include: {
+              user: true,
+              bidang: true
+            }
+          }
+        }
+      })
+
+      if (!current) throw new Error("Data kenaikan pangkat tidak ditemukan")
+
       const updated = await tx.kenaikanPangkat.update({
         where: { id },
-        data: { status },
+        data: {
+          status,
+          keterangan: catatanReview ? `${current.keterangan ? current.keterangan + ' | ' : ''}Review: ${catatanReview}` : current.keterangan
+        },
         include: {
           pegawai: {
             include: {
@@ -166,17 +222,16 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
           }
         })
 
-        // 2. Buat record Mutasi berjenis PROMOSI agar muncul di modul Promosi
-        //    (gunakan pegawaiId sendiri sebagai approvedById karena self-promotion by admin)
+        // 2. Buat record Mutasi berjenis PROMOSI agar sinkron di modul Promosi
         await tx.mutasi.create({
           data: {
             pegawaiId: updated.pegawaiId,
             type: "PROMOSI",
-            jabatanAsal: updated.pegawai.jabatan,
+            jabatanAsal: updated.pegawai.jabatan || "-",
             unitAsal: updated.pegawai.bidang?.nama || "Umum",
-            jabatanTujuan: updated.pegawai.jabatan, // jabatan tetap, hanya pangkat yang naik
+            jabatanTujuan: updated.pegawai.jabatan || "-",
             unitTujuan: updated.pegawai.bidang?.nama || "Umum",
-            alasan: `Kenaikan Pangkat dari ${updated.pangkatLama} (${updated.golonganLama}) ke ${updated.pangkatBaru} (${updated.golonganBaru})`,
+            alasan: `Kenaikan Pangkat Reguler dari ${updated.pangkatLama} (${updated.golonganLama}) ke ${updated.pangkatBaru} (${updated.golonganBaru})`,
             tanggalEfektif: updated.tanggalBerlaku,
             status: "APPROVED",
             catatan: updated.keterangan || "Disetujui oleh Direksi"
@@ -190,7 +245,7 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
             pangkat: updated.pangkatBaru,
             golongan: updated.golonganBaru,
             tanggalBerlaku: updated.tanggalBerlaku,
-            nomorSK: updated.keterangan || "SK Kenaikan Pangkat"
+            nomorSK: updated.keterangan || "SK Kenaikan Pangkat Reguler"
           }
         })
       }
@@ -198,10 +253,9 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
       return updated
     })
 
-    // 4. Kirim notifikasi ke semua User ber-role HRD dan ke pegawai yg bersangkutan
-    //    (Di luar transaction agar tidak blocking)
+    // 4. Kirim notifikasi ke User ber-role HRD dan ke pegawai yg bersangkutan
     try {
-      const aksiLabel = isApprove ? "disetujui" : "ditolak"
+      const aksiLabel = isApprove ? "disetujui ✅" : "ditolak ❌"
       const pegawaiNama = result.pegawai.nama
 
       // Notifikasi untuk pegawai itu sendiri
@@ -218,7 +272,7 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
 
       // Notifikasi ke semua HRD
       const hrdUsers = await prisma.user.findMany({
-        where: { role: "HRD" }
+        where: { role: { in: ["HRD", "SUPERADMIN"] } }
       })
       for (const hrdUser of hrdUsers) {
         await prisma.notifikasi.create({
@@ -231,8 +285,7 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
         })
       }
     } catch (notifErr) {
-      // Gagal kirim notifikasi tidak boleh membatalkan proses approval
-      console.error("Gagal mengirim notifikasi:", notifErr)
+      console.error("Gagal mengirim notifikasi pangkat:", notifErr)
     }
 
     revalidatePath("/kenaikan-pangkat")
@@ -245,3 +298,4 @@ export async function updateStatusPangkat(id: string, isApprove: boolean) {
     return { error: error.message || "Gagal memproses aksi Pangkat" }
   }
 }
+
