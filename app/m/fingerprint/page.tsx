@@ -33,7 +33,6 @@ function WatermarkClock() {
       <div className="text-3xl font-bold tracking-tight flex items-center gap-2 text-zinc-900 dark:text-zinc-100 tabular-nums">
         <Clock className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
         {format(time, "HH:mm")}
-        <span className="text-base font-medium text-zinc-400 dark:text-zinc-500">:{format(time, "ss")}</span>
       </div>
       <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5 tracking-wide">
         {format(time, "EEEE, dd MMMM yyyy", { locale: idLocale })}

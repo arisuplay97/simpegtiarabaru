@@ -8,7 +8,7 @@ import {
   TrendingUp, Award, Timer, UserCheck, Thermometer,
   FileText, Trophy, Medal,
   Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight,
-  Radio, CloudUpload, BellRing, BellOff, MapPin, Trash2
+  Radio, CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, MapPin, Trash2
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
@@ -42,9 +42,8 @@ function DigitalClock() {
 
   return (
     <div className="flex flex-col items-end">
-      <div className="text-2xl font-bold tracking-tight text-white tabular-nums flex items-baseline">
-        <span>{format(time, "HH:mm")}</span>
-        <span className="text-xs text-zinc-400 font-medium ml-0.5">:{format(time, "ss")}</span>
+      <div className="text-2xl font-bold tracking-tight text-white tabular-nums">
+        {format(time, "HH:mm")}
       </div>
       <div className="text-[11px] font-medium text-zinc-400 mt-0.5">
         {format(time, "EEE, dd MMM", { locale: idLocale })}
@@ -317,29 +316,36 @@ export default function MobileDashboard() {
               </div>
             </div>
 
-            {/* Notification & Reminder Actions */}
+            {/* Notification & Reminder Actions - Differentiated */}
             <div className="flex items-center gap-2">
+              {/* Tombol Pengingat Jam Absen (Alarm Mode) */}
               <button
                 onClick={handleToggleReminder}
                 className={cn(
-                  "flex items-center justify-center h-9 w-9 rounded-full border transition-colors",
+                  "flex items-center justify-center h-9 w-9 rounded-full border transition-all active:scale-95 shadow-xs",
                   isReminderActive 
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
-                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 ring-2 ring-emerald-500/20" 
+                    : "bg-zinc-900/90 text-zinc-400 border-zinc-800 hover:text-zinc-200"
                 )}
-                title={isReminderActive ? "Pengingat Absen Aktif" : "Aktifkan Pengingat Absen"}
+                title={isReminderActive ? "Pengingat Absen Aktif (Alarm)" : "Aktifkan Pengingat Absen (Alarm)"}
               >
-                {isReminderActive ? <BellRing className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                {isReminderActive ? (
+                  <AlarmClockCheck className="h-4.5 w-4.5 text-emerald-400" />
+                ) : (
+                  <AlarmClockOff className="h-4.5 w-4.5 text-zinc-400" />
+                )}
               </button>
 
+              {/* Tombol Kotak Masuk Notifikasi SIMPEG */}
               <Link 
                 href="/m/notifikasi" 
-                className="relative flex items-center justify-center h-9 w-9 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition-colors"
+                className="relative flex items-center justify-center h-9 w-9 rounded-xl bg-zinc-900/90 border border-zinc-800 text-zinc-300 hover:text-white transition-all active:scale-95 shadow-xs"
+                title="Kotak Masuk Notifikasi"
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4.5 w-4.5" />
                 {unread > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white ring-2 ring-zinc-950">
-                    {unread > 9 ? "9+" : unread}
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-xs ring-2 ring-zinc-950">
+                    {unread > 99 ? "99+" : unread}
                   </span>
                 )}
               </Link>
@@ -753,11 +759,24 @@ export default function MobileDashboard() {
                     </p>
                   </div>
 
-                  <div className="flex flex-col items-end shrink-0">
-                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
-                      {p.totalSkor}
-                    </span>
-                    <span className="text-[9px] text-zinc-400">/100</span>
+                  <div className="flex items-center shrink-0">
+                    {p.rank === 1 ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        Top 1
+                      </span>
+                    ) : p.rank === 2 ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300/40 dark:border-zinc-700">
+                        Top 2
+                      </span>
+                    ) : p.rank === 3 ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-700/10 text-amber-700 dark:text-amber-500 border border-amber-700/20">
+                        Top 3
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        Disiplin
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
