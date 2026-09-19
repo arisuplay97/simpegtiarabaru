@@ -35,8 +35,11 @@ import {
   FileSpreadsheet,
   Download,
   BadgePercent,
-  Loader2
+  Loader2,
+  Sliders,
+  Settings
 } from "lucide-react"
+import { AiSettingsModal } from "@/components/simpeg/ai-settings-modal"
 
 export interface ChatFile {
   name: string
@@ -118,6 +121,10 @@ export default function AssistantPage() {
   const [openThinkingMap, setOpenThinkingMap] = useState<Record<string, boolean>>({})
   const [copiedMap, setCopiedMap] = useState<Record<string, boolean>>({})
   const [feedbackMap, setFeedbackMap] = useState<Record<string, "up" | "down">>({})
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  const userRole = (session?.user as any)?.role?.toString().toUpperCase()
+  const canManageAi = userRole === "SUPERADMIN" || userRole === "SUPER_ADMIN" || userRole === "HRD"
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -126,6 +133,12 @@ export default function AssistantPage() {
   // Initialize from LocalStorage
   useEffect(() => {
     setMounted(true)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get("settings") === "true") {
+        setIsSettingsOpen(true)
+      }
+    }
     const saved = localStorage.getItem("tiara_assistant_conversations")
     if (saved) {
       try {
@@ -521,14 +534,17 @@ export default function AssistantPage() {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
-                <Link
-                  href="/settings/ai"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-zinc-300 bg-white dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-2xs"
-                  title="Konfigurasi API AI & Model"
-                >
-                  <Bot className="w-3.5 h-3.5 text-slate-600 dark:text-zinc-300" />
-                  <span>Pengaturan API</span>
-                </Link>
+                {canManageAi && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-2xs cursor-pointer"
+                    title="Konfigurasi API AI & Model"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-slate-600 dark:text-zinc-300" />
+                    <span>Pengaturan API</span>
+                  </button>
+                )}
                 <button
                   onClick={handleNewChat}
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-zinc-300 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors"
@@ -552,7 +568,7 @@ export default function AssistantPage() {
 
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-zinc-800/80 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 mb-3">
                     <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                    <span>Asisten Kepegawaian PDAM TAR</span>
+                    <span>Asisten Kepegawaian PDAM TIARA</span>
                   </div>
 
                   <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight">
@@ -919,6 +935,12 @@ export default function AssistantPage() {
           </main>
         </div>
       </div>
+
+      {/* Modern Premium AI Settings Modal */}
+      <AiSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   )
 }

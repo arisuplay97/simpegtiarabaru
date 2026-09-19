@@ -92,10 +92,10 @@ export default function AiSettingsPage() {
         router.push("/dashboard")
         toast.error("Akses ditolak. Menu ini khusus Administrator & HRD.")
       } else {
-        loadData()
+        router.replace("/assistant?settings=true")
       }
     }
-  }, [status, session])
+  }, [status, session, router])
 
   const loadData = async () => {
     setIsLoading(true)

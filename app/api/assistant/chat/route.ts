@@ -431,7 +431,7 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
         // Excel Pegawai Berstatus SP
         const excelFile = await generateAssistantExcel({
           title: "DAFTAR PEGAWAI BERSTATUS SURAT PERINGATAN (SP)",
-          subtitle: `Kedisiplinan Kepegawaian PDAM TAR | Status Aktif | SIMPEG TIARA`,
+          subtitle: `Kedisiplinan Kepegawaian PDAM TIARA | Status Aktif | SIMPEG TIARA`,
           sheetName: "Data SP Pegawai",
           filename: `Data_SP_Pegawai_${Date.now()}.xlsx`,
           columns: [
@@ -783,7 +783,7 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
         ).join("\n")
       : "Seluruh pegawai bersih dari sanksi Surat Peringatan (SP)."
 
-    const systemPrompt = `Anda adalah Tiara Assistant, AI Cerdas resmi sistem kepegawaian (SIMPEG) Perumda Air Minum Tirta Ardhia Rinjani (PDAM TAR).
+    const systemPrompt = `Anda adalah Tiara Assistant, AI Cerdas resmi sistem kepegawaian (SIMPEG) Perumda Air Minum Tirta Ardhia Rinjani (PDAM TIARA).
 
 ATURAN KEAMANAN & INTEGRITAS DATA MUTLAK:
 - ANDA ADALAH SISTEM READ-ONLY (HANYA BACA). 
@@ -807,7 +807,7 @@ ${fullPegawaiDirectory}` : `DAFTAR SELURUH PEGAWAI AKTIF TERDAFTAR (${allPegawai
 ${fullPegawaiDirectory}`}
 
 DATA RIWAYAT LENGKAP ABSENSI PEGAWAI (REAL-TIME & HISTORIS):
-- Anda memiliki akses PENUH ke database absensi real-time DAN seluruh log historis presensi pegawai SIMPEG PDAM TAR.
+- Anda memiliki akses PENUH ke database absensi real-time DAN seluruh log historis presensi pegawai SIMPEG PDAM TIARA.
 - DILARANG KERAS mengatakan bahwa data historis absensi tidak ada atau tidak disimpan di database! Seluruh data rekam log presensi ada di bawah ini.
 - Total Log Catatan Presensi Tersimpan: ${allAbsensiHistory.length} catatan.
 - Log Presensi Historis Terbaru (Sampel):
@@ -950,7 +950,7 @@ ${filesToAttach.map(f => `- ${f.name} (${f.size}) -> File ini SUDAH difilter pre
                 thinking: {
                   steps: [
                     `Terhubung ke model ${aiConfig.model}...`,
-                    `Menganalisis database SIMPEG TAR (Pegawai, Presensi, Cuti, KGB, Pensiun BUP)...`,
+                    `Menganalisis database SIMPEG TIARA (Pegawai, Presensi, Cuti, KGB, Pensiun BUP)...`,
                     filesToAttach.length > 0 ? `Menghasilkan berkas ${filesToAttach.map(f => f.name).join(", ")}...` : "Memproses konteks...",
                     `Menyusun respon faktual...`
                   ],
@@ -977,7 +977,7 @@ ${filesToAttach.map(f => `- ${f.name} (${f.size}) -> File ini SUDAH difilter pre
 
     // 8. Fallback Internal Engine Cerdas SIMPEG TIARA
     const thinkingSteps = [
-      "Mengidentifikasi konteks data kepegawaian SIMPEG PDAM TAR...",
+      "Mengidentifikasi konteks data kepegawaian SIMPEG PDAM TIARA...",
       "Membaca database terintegrasi (Pegawai, Absensi, Cuti, KGB, Pensiun BUP)...",
       filesToAttach.length > 0 ? `Menyusun dan mengekspor berkas ${filesToAttach.map(f => f.name).join(", ")}...` : "Menyusun analisis...",
       "Memvalidasi kelengkapan data..."

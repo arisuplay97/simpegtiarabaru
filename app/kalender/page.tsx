@@ -406,7 +406,7 @@ function KalenderContent() {
                       <span className="text-slate-300 dark:text-zinc-700">·</span>
                       <span>{pegawaiDetail.jabatan || "Pegawai"}</span>
                       <span className="text-slate-300 dark:text-zinc-700">·</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">{pegawaiDetail.bidang?.nama || "PDAM TAR"}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">{pegawaiDetail.bidang?.nama || "PDAM TIARA"}</span>
                     </>
                   ) : (
                     <span>Pantau visualisasi absensi harian dan rincian kehadiran, alpha, sakit, izin, serta cuti per tanggal.</span>

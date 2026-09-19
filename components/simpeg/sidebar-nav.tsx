@@ -106,7 +106,6 @@ const navigation: NavGroup[] = [
     icon: Settings2,
     items: [
       { title: "Pengaturan Sistem", href: "/settings/sistem", icon: Settings2, allowedRoles: ["super_admin", "hrd"] },
-      { title: "AI Assistant & API", href: "/settings/ai", icon: Bot, labelBadge: "AI", allowedRoles: ["super_admin", "hrd"] },
       { title: "Kelola Bidang", href: "/settings/bidang", icon: Building2, allowedRoles: ["super_admin"] },
       { title: "User Management", href: "/settings/users", icon: UserCog, allowedRoles: ["super_admin", "hrd"] },
       { title: "Role & Permission", href: "/settings/role", icon: KeyRound, allowedRoles: ["super_admin", "hrd"] },

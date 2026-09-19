@@ -141,11 +141,11 @@ export default function PengaturanSistemPage() {
               <Button
                 variant="outline"
                 type="button"
-                onClick={() => router.push("/settings/ai")}
-                className="gap-2 border-blue-200 dark:border-blue-900/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                onClick={() => router.push("/assistant?settings=true")}
+                className="gap-2 border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
               >
-                <Bot className="h-4 w-4 text-blue-500" />
-                AI Assistant & API
+                <Bot className="h-4 w-4 text-slate-500" />
+                Pengaturan API AI
               </Button>
               <Button onClick={handleSave} disabled={isSaving} className="gap-2">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
