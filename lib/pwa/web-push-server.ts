@@ -2,8 +2,8 @@ import webpush from "web-push"
 import { prisma } from "@/lib/prisma"
 
 // Inisialisasi VAPID Details
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ""
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ""
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BK9Cp74x349_hBDOyKO0saAuWznl42MPWD9yJcSZiNnGZ7YHCPvOBOGCdd3ciWxsl6NKFDcsbaWlIGOugHhVAbU"
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "ilpdCW3RfESmKpZ-zYGSPzg3ylab_8r9LbB_FgyCDlw"
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:admin@pdamtiara.co.id"
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {

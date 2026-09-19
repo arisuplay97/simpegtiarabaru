@@ -23,6 +23,7 @@ const demoPasswords: Record<string, string> = {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET || "any_long_random_string_for_demo_purposes_simpeg_2026",
   providers: [
     Credentials({
       credentials: {

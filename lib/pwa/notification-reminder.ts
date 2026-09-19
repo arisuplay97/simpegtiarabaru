@@ -31,7 +31,7 @@ function urlBase64ToUint8Array(base64String: string) {
  */
 export async function subscribeToWebPush(): Promise<boolean> {
   if (!isPushSupported()) return false
-  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BK9Cp74x349_hBDOyKO0saAuWznl42MPWD9yJcSZiNnGZ7YHCPvOBOGCdd3ciWxsl6NKFDcsbaWlIGOugHhVAbU"
   if (!vapidKey) {
     console.warn("NEXT_PUBLIC_VAPID_PUBLIC_KEY is not defined")
     return false
