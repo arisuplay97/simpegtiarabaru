@@ -263,8 +263,8 @@ export default function MobileDashboard() {
 
       {/* ===== HERO HEADER ===== */}
       <div 
-        className="relative px-5 pb-28 pt-4 bg-zinc-950 text-white overflow-hidden border-b border-zinc-800/80"
-        style={{ paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}
+        className="relative px-5 pb-28 bg-zinc-950 text-white overflow-hidden border-b border-zinc-800/80"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.25rem)" }}
       >
         {/* Subtle Ambient Radial Glow */}
         <div 

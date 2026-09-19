@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "ASIK Mobile",
   description: "ASIK Perumdam Tirta Ardhia Rinjani",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ASIK" },
+  appleWebApp: { capable: true, statusBarStyle: "black", title: "ASIK" },
   icons: {
     icon: "/slip.png",
     shortcut: "/slip.png",
