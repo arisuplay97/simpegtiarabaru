@@ -22,6 +22,46 @@ export async function POST(req: NextRequest) {
     const userPromptRaw = (lastMessage.content || "").trim()
     const userPrompt = userPromptRaw.toLowerCase()
 
+    // ── PROTOKOL KEAMANAN MUTLAK: AI DILARANG KERAS MENGHAPUS DATA PEGAWAI ──
+    const isDestructiveRequest = 
+      userPrompt.includes("hapus pegawai") ||
+      userPrompt.includes("delete pegawai") ||
+      userPrompt.includes("hapus data pegawai") ||
+      userPrompt.includes("hilangkan data pegawai") ||
+      userPrompt.includes("hapus daftar pegawai") ||
+      userPrompt.includes("drop table") ||
+      userPrompt.includes("truncate")
+
+    if (isDestructiveRequest) {
+      return NextResponse.json({
+        id: "msg-" + Date.now(),
+        role: "assistant",
+        thinking: {
+          steps: [
+            "Memeriksa protokol keamanan integritas data SIMPEG...",
+            "Perintah penghapusan data pegawai terdeteksi.",
+            "Akses ditolak secara permanen sesuai SOP Keamanan."
+          ],
+          durationSeconds: "0.4"
+        },
+        content: `### 🛡️ Peringatan Keamanan: Operasi Dilarang (Akses Ditolak)
+
+**Tiara Assistant beroperasi dalam mode *Read-Only* (Hanya Baca) dan DILARANG KERAS menghapus, mengubah, atau memanipulasi data pegawai di database SIMPEG.**
+
+Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
+1. **Perlindungan Data**: Tidak ada modul atau agen AI yang memiliki izin atau hak akses untuk menghapus (*DELETE*) rekaman pegawai dari database.
+2. **Prosedur Resmi**: Segala bentuk penonaktifan atau pengelolaan pegawai hanya dapat dilakukan secara manual oleh **Administrator / HRD** yang terautentikasi melalui menu resmi [Data Pegawai](/pegawai).`,
+        files: [],
+        suggestions: [
+          "Tampilkan daftar pegawai aktif",
+          "Kirimkan excel daftar pegawai",
+          "Buka menu Data Pegawai"
+        ],
+        relatedLink: { text: "Kelola Data Pegawai (HRD)", href: "/pegawai" },
+        timestamp: new Date().toISOString()
+      })
+    }
+
     // 1. Ambil Data Real-Time SIMPEG dari Database
     const todayStr = new Date().toLocaleDateString("en-CA")
     const checkInDateStart = new Date(`${todayStr}T00:00:00.000Z`)
@@ -268,6 +308,11 @@ export async function POST(req: NextRequest) {
     ).join("\n")
 
     const systemPrompt = `Anda adalah Tiara Assistant, AI Cerdas resmi sistem kepegawaian (SIMPEG) Perumda Air Minum Tirta Ardhia Rinjani (PDAM TAR).
+
+ATURAN KEAMANAN & INTEGRITAS DATA MUTLAK:
+- ANDA ADALAH SISTEM READ-ONLY (HANYA BACA). 
+- DILARANG KERAS MENGHAPUS, MENGUBAH, ATAU MEMANIPULASI DATA/DAFTAR PEGAWAI DARI DATABASE.
+- Anda TIDAK MEMILIKI fungsi, modul, izin, ataupun kemampuan untuk menghapus data pegawai. Jika ada pengguna yang meminta Anda menghapus pegawai, tolak dengan tegas bahwa penghapusan data pegawai hanya dapat dilakukan secara manual oleh HRD/Superadmin melalui menu resmi Kepegawaian.
 
 PANDUAN UTAMA KETEPATAN JAWABAN:
 1. Jawab pertanyaan pengguna secara LANGSUNG, SPESIFIK, FAKTUAL, dan AKURAT sesuai data database SIMPEG di bawah ini.
