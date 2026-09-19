@@ -868,6 +868,10 @@ export default function PayrollPage() {
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 Aturan & Denda Payroll
               </TabsTrigger>
+              <TabsTrigger value="standar" className="text-xs font-medium gap-1.5 px-3 py-1.5">
+                <Award className="h-3.5 w-3.5" />
+                Standar Besaran Gaji
+              </TabsTrigger>
             </TabsList>
 
             {/* TAB 1: DAFTAR GAJI PEGAWAI */}
@@ -1438,8 +1442,10 @@ export default function PayrollPage() {
                   </Card>
                 </div>
               </form>
+            </TabsContent>
 
-              {/* Card 3: Standar Besaran Gaji Pokok & Tunjangan per Golongan/Pangkat */}
+            {/* TAB 5: STANDAR BESARAN GAJI POKOK & TUNJANGAN */}
+            <TabsContent value="standar" className="space-y-4">
               <Card className="border border-border/70 rounded-xl bg-card shadow-xs">
                 <CardHeader className="p-4 pb-3 border-b border-border/70">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
