@@ -261,34 +261,33 @@ function KalenderContent() {
     toast.success("Matriks kehadiran berhasil diunduh dalam format CSV")
   }
 
-  // Function to render circular pill indicator
-  const renderCircleBadge = (st: MatrixDayStatus, row: PegawaiMatrixRow) => {
+  // Function to render clean modern grid cell
+  const renderCellBadge = (st: MatrixDayStatus, row: PegawaiMatrixRow) => {
     const code = st.code
 
-    // Distinct styles matching the reference image mockup
-    let style = "bg-slate-100/70 text-slate-400 border border-slate-200/60 dark:bg-zinc-800/50 dark:text-zinc-500 dark:border-zinc-800"
+    let style = "text-slate-300 dark:text-zinc-600 hover:bg-slate-100 dark:hover:bg-zinc-800"
 
     if (code === "H") {
-      // Green circle (Hadir)
-      style = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 hover:bg-emerald-100 font-bold"
+      // Green (Hadir)
+      style = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 hover:bg-emerald-100/80 font-semibold"
     } else if (code === "T") {
-      // Amber/orange circle (Terlambat)
-      style = "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 hover:bg-amber-100 font-bold"
+      // Amber (Terlambat)
+      style = "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 hover:bg-amber-100/80 font-semibold"
     } else if (code === "C") {
-      // Blue circle (Cuti)
-      style = "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700/60 hover:bg-blue-100 font-bold"
+      // Blue (Cuti)
+      style = "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 hover:bg-blue-100/80 font-semibold"
     } else if (code === "I") {
-      // Orange-amber circle (Izin)
-      style = "bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-300 dark:border-orange-700/60 hover:bg-orange-100 font-bold"
+      // Orange (Izin)
+      style = "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 hover:bg-orange-100/80 font-semibold"
     } else if (code === "S") {
-      // Purple circle (Sakit)
-      style = "bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-700/60 hover:bg-purple-100 font-bold"
+      // Purple (Sakit)
+      style = "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 hover:bg-purple-100/80 font-semibold"
     } else if (code === "L") {
-      // Slate/Gray circle (Libur)
-      style = "bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700 font-medium"
+      // Slate (Libur)
+      style = "text-slate-400 dark:text-zinc-500 hover:bg-slate-100 dark:hover:bg-zinc-800 font-medium"
     } else if (code === "A") {
-      // Rose circle (Alpha)
-      style = "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-700/60 hover:bg-rose-100 font-bold"
+      // Rose (Alpha)
+      style = "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100/80 font-semibold"
     }
 
     return (
@@ -297,7 +296,7 @@ function KalenderContent() {
         onClick={() => setSelectedCell({ pegawai: row, dayStatus: st })}
         title={`${row.nama} · Tgl ${st.day}: ${st.statusLabel}${st.jamMasuk ? ` (${st.jamMasuk})` : ""}`}
         className={cn(
-          "w-6 h-6 sm:w-7 sm:h-7 rounded-full text-[11px] sm:text-xs flex items-center justify-center transition-all duration-150 cursor-pointer select-none shrink-0 shadow-2xs hover:scale-110",
+          "w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-[4px] font-mono text-[11px] flex items-center justify-center transition-all cursor-pointer select-none shrink-0 hover:scale-105 active:scale-95",
           style
         )}
       >
@@ -442,156 +441,150 @@ function KalenderContent() {
             ))}
           </div>
 
-          {/* ── 3. LEGENDA & AUTO-FILL BAR ── */}
-          <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 p-3.5 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap text-xs text-slate-700 dark:text-zinc-300">
-              <span className="text-xs font-semibold text-slate-900 dark:text-zinc-100 mr-1">Legenda:</span>
-
-              {/* Green: H */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[11px] font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                <span className="font-semibold">H:</span>
-                <span>Hadir</span>
-              </div>
-
-              {/* Amber: T */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-[11px] font-medium">
-                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                <span className="font-semibold">T:</span>
-                <span>Terlambat</span>
-              </div>
-
-              {/* Blue: C */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[11px] font-medium">
-                <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                <span className="font-semibold">C:</span>
-                <span>Cuti</span>
-              </div>
-
-              {/* Orange: I */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-500/20 text-[11px] font-medium">
-                <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
-                <span className="font-semibold">I:</span>
-                <span>Izin</span>
-              </div>
-
-              {/* Purple: S */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-medium">
-                <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
-                <span className="font-semibold">S:</span>
-                <span>Sakit</span>
-              </div>
-
-              {/* Slate: L */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 text-[11px] font-medium">
-                <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-zinc-500 inline-block" />
-                <span className="font-semibold">L:</span>
-                <span>Libur</span>
-              </div>
-
-              {/* Rose: A */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-[11px] font-medium">
-                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
-                <span className="font-semibold">A:</span>
-                <span>Alpha</span>
-              </div>
-            </div>
-
-            {/* Quick Action Button: + Isi Otomatis Sisa Hari (H) */}
-            {canManage && (
-              <Button
-                size="sm"
-                onClick={() => setShowAutoFillDialog(true)}
-                className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 text-xs font-semibold rounded-lg h-9 px-3.5 shadow-xs shrink-0"
-              >
-                + Isi Otomatis Sisa Hari (H)
-              </Button>
-            )}
-          </div>
-
-          {/* ── 4. FILTER & SORT CONTROLS BAR ── */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 p-3.5 rounded-xl shadow-xs">
-            <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari nama karyawan / NIK..."
-                  className="pl-9 h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium"
-                />
-              </div>
-
-              {/* Filter Departemen / Bidang */}
-              <div className="w-full sm:w-[200px]">
-                <Select value={selectedBidang} onValueChange={setSelectedBidang}>
-                  <SelectTrigger className="h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium">
-                    <Building2 className="h-3.5 w-3.5 mr-2 text-slate-400" />
-                    <SelectValue placeholder="Semua Departemen" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="ALL" className="text-xs">Semua Departemen</SelectItem>
-                    {matrixData?.departemenList?.map((d: any) => (
-                      <SelectItem key={d.id} value={d.id} className="text-xs">
-                        {d.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filter Cabang */}
-              <div className="w-full sm:w-[200px]">
-                <Select value={selectedCabang} onValueChange={setSelectedCabang}>
-                  <SelectTrigger className="h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium">
-                    <MapPin className="h-3.5 w-3.5 mr-2 text-slate-400" />
-                    <SelectValue placeholder="Semua Cabang" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="ALL" className="text-xs">Semua Cabang</SelectItem>
-                    {matrixData?.cabangList?.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs">
-                        {c.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Sort Control */}
-            <div className="flex items-center gap-2 self-end lg:self-center">
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 whitespace-nowrap">
-                Urutkan:
-              </span>
-              <div className="w-[180px]">
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium">
-                    <ArrowUpDown className="h-3 w-3 mr-1.5 text-slate-400" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nama_asc" className="text-xs">Nama (A - Z)</SelectItem>
-                    <SelectItem value="nama_desc" className="text-xs">Nama (Z - A)</SelectItem>
-                    <SelectItem value="nik_asc" className="text-xs">NIK (Terkecil)</SelectItem>
-                    <SelectItem value="nik_desc" className="text-xs">NIK (Terbesar)</SelectItem>
-                    <SelectItem value="dept_asc" className="text-xs">Departemen</SelectItem>
-                    <SelectItem value="cabang_asc" className="text-xs">Cabang</SelectItem>
-                    <SelectItem value="hadir_desc" className="text-xs">Kehadiran Tertinggi</SelectItem>
-                    <SelectItem value="hadir_asc" className="text-xs">Kehadiran Terendah</SelectItem>
-                    <SelectItem value="alpha_desc" className="text-xs">Alpha Terbanyak</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* ── 5. EMPLOYEE ATTENDANCE MATRIX TABLE (DEFAULT VIEW) ── */}
+          {/* ── 3. UNIFIED ATTENDANCE MATRIX PANEL ── */}
           <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-xl shadow-xs overflow-hidden">
+            
+            {/* Top Toolbar: Filters & Actions */}
+            <div className="p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+              <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                {/* Search */}
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari nama karyawan / NIK..."
+                    className="pl-9 h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium"
+                  />
+                </div>
+
+                {/* Filter Departemen */}
+                <div className="w-full sm:w-[190px]">
+                  <Select value={selectedBidang} onValueChange={setSelectedBidang}>
+                    <SelectTrigger className="h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium">
+                      <Building2 className="h-3.5 w-3.5 mr-2 text-slate-400" />
+                      <SelectValue placeholder="Semua Departemen" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="ALL" className="text-xs">Semua Departemen</SelectItem>
+                      {matrixData?.departemenList?.map((d: any) => (
+                        <SelectItem key={d.id} value={d.id} className="text-xs">
+                          {d.nama}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filter Cabang */}
+                <div className="w-full sm:w-[180px]">
+                  <Select value={selectedCabang} onValueChange={setSelectedCabang}>
+                    <SelectTrigger className="h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium">
+                      <MapPin className="h-3.5 w-3.5 mr-2 text-slate-400" />
+                      <SelectValue placeholder="Semua Cabang" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="ALL" className="text-xs">Semua Cabang</SelectItem>
+                      {matrixData?.cabangList?.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs">
+                          {c.nama}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort Control */}
+                <div className="w-full sm:w-[170px]">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="h-9 text-xs rounded-lg bg-slate-50/80 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium">
+                      <ArrowUpDown className="h-3 w-3 mr-1.5 text-slate-400" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nama_asc" className="text-xs">Nama (A - Z)</SelectItem>
+                      <SelectItem value="nama_desc" className="text-xs">Nama (Z - A)</SelectItem>
+                      <SelectItem value="nik_asc" className="text-xs">NIK (Terkecil)</SelectItem>
+                      <SelectItem value="nik_desc" className="text-xs">NIK (Terbesar)</SelectItem>
+                      <SelectItem value="dept_asc" className="text-xs">Departemen</SelectItem>
+                      <SelectItem value="cabang_asc" className="text-xs">Cabang</SelectItem>
+                      <SelectItem value="hadir_desc" className="text-xs">Kehadiran Tertinggi</SelectItem>
+                      <SelectItem value="hadir_asc" className="text-xs">Kehadiran Terendah</SelectItem>
+                      <SelectItem value="alpha_desc" className="text-xs">Alpha Terbanyak</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Quick Action Button: + Isi Otomatis Sisa Hari (H) */}
+              {canManage && (
+                <Button
+                  size="sm"
+                  onClick={() => setShowAutoFillDialog(true)}
+                  className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 text-xs font-semibold rounded-lg h-9 px-3.5 shadow-xs shrink-0 self-end lg:self-center"
+                >
+                  + Isi Otomatis Sisa Hari (H)
+                </Button>
+              )}
+            </div>
+
+            {/* Sub-toolbar: Minimalist Clean Legenda Strip */}
+            <div className="px-4 py-2 bg-slate-50/70 dark:bg-zinc-900/50 border-t border-b border-slate-200/80 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-3 text-xs">
+              <div className="flex items-center gap-4 flex-wrap text-xs text-slate-500 dark:text-zinc-400">
+                <span className="font-semibold text-slate-700 dark:text-zinc-300 text-xs">Legenda:</span>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-emerald-500 shrink-0" />
+                  <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">H</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Hadir</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-amber-500 shrink-0" />
+                  <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">T</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Terlambat</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-blue-500 shrink-0" />
+                  <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">C</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Cuti</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-orange-500 shrink-0" />
+                  <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">I</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Izin</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-purple-500 shrink-0" />
+                  <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">S</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Sakit</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-slate-300 dark:bg-zinc-600 shrink-0" />
+                  <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">L</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Libur</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-[2px] bg-rose-500 shrink-0" />
+                  <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">A</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Alpha</span>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
+                {filteredRows.length} dari {matrixData?.summary?.totalPegawai || 0} Pegawai
+              </div>
+            </div>
+
+            {/* Matrix Table */}
             {loading ? (
               <div className="p-16 text-center space-y-3">
-                <RefreshCw className="h-7 w-7 text-blue-600 animate-spin mx-auto" />
+                <RefreshCw className="h-6 w-6 text-slate-400 animate-spin mx-auto" />
                 <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300">
                   Menyiapkan matriks kehadiran seluruh pegawai...
                 </p>
@@ -616,22 +609,22 @@ function KalenderContent() {
                   <thead>
                     <tr className="bg-slate-50/90 dark:bg-zinc-900/90 border-b border-slate-200/80 dark:border-zinc-800 text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">
                       {/* Sticky NIK */}
-                      <th className="py-3 px-3.5 sticky left-0 z-20 bg-slate-50 dark:bg-zinc-900 min-w-[95px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                      <th className="py-2.5 px-3.5 sticky left-0 z-20 bg-slate-50 dark:bg-zinc-900 min-w-[95px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)] font-semibold">
                         NIK
                       </th>
 
                       {/* Sticky Nama */}
-                      <th className="py-3 px-3.5 sticky left-[95px] z-20 bg-slate-50 dark:bg-zinc-900 min-w-[180px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                      <th className="py-2.5 px-3.5 sticky left-[95px] z-20 bg-slate-50 dark:bg-zinc-900 min-w-[180px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)] font-semibold">
                         NAMA KARYAWAN
                       </th>
 
                       {/* Departemen */}
-                      <th className="py-3 px-3.5 min-w-[150px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60">
+                      <th className="py-2.5 px-3.5 min-w-[150px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60 font-semibold">
                         DEPARTEMEN
                       </th>
 
                       {/* Cabang */}
-                      <th className="py-3 px-3.5 min-w-[130px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60">
+                      <th className="py-2.5 px-3.5 min-w-[130px] whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60 font-semibold">
                         CABANG
                       </th>
 
@@ -640,33 +633,33 @@ function KalenderContent() {
                         <th
                           key={d.day}
                           className={cn(
-                            "py-2 px-1 min-w-[34px] sm:min-w-[38px] text-center border-r border-slate-200/40 dark:border-zinc-800/40 font-bold",
+                            "py-2 px-1 min-w-[32px] sm:min-w-[36px] text-center border-r border-slate-200/40 dark:border-zinc-800/40 font-medium",
                             d.isWeekend
-                              ? "bg-slate-100/70 dark:bg-zinc-800/40 text-rose-500 dark:text-rose-400"
+                              ? "bg-slate-100/50 dark:bg-zinc-800/30 text-rose-500 dark:text-rose-400 font-semibold"
                               : "text-slate-700 dark:text-zinc-300"
                           )}
                         >
                           <div className="text-[11px] leading-none">{d.day}</div>
-                          <div className="text-[9px] font-normal text-slate-400 dark:text-zinc-500 mt-0.5">
+                          <div className="text-[9px] font-normal opacity-70 mt-0.5 uppercase">
                             {d.dayName}
                           </div>
                         </th>
                       ))}
 
                       {/* Summary Columns */}
-                      <th className="py-3 px-2 text-center min-w-[45px] text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 border-l border-slate-200/80 dark:border-zinc-800">
+                      <th className="py-2.5 px-2 text-center min-w-[42px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 border-l border-slate-200/80 dark:border-zinc-800 font-bold">
                         H
                       </th>
-                      <th className="py-3 px-2 text-center min-w-[45px] text-amber-600 bg-amber-50/50 dark:bg-amber-950/20">
+                      <th className="py-2.5 px-2 text-center min-w-[42px] font-mono text-amber-700 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/20 font-bold">
                         T
                       </th>
-                      <th className="py-3 px-2 text-center min-w-[45px] text-blue-600 bg-blue-50/50 dark:bg-blue-950/20">
+                      <th className="py-2.5 px-2 text-center min-w-[42px] font-mono text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20 font-bold">
                         C
                       </th>
-                      <th className="py-3 px-2 text-center min-w-[45px] text-purple-600 bg-purple-50/50 dark:bg-purple-950/20">
+                      <th className="py-2.5 px-2 text-center min-w-[42px] font-mono text-purple-700 dark:text-purple-400 bg-purple-50/40 dark:bg-purple-950/20 font-bold">
                         I/S
                       </th>
-                      <th className="py-3 px-2 text-center min-w-[45px] text-rose-600 bg-rose-50/50 dark:bg-rose-950/20">
+                      <th className="py-2.5 px-2 text-center min-w-[42px] font-mono text-rose-700 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 font-bold">
                         A
                       </th>
                     </tr>
@@ -683,12 +676,12 @@ function KalenderContent() {
                         )}
                       >
                         {/* Sticky NIK */}
-                        <td className="py-2.5 px-3.5 sticky left-0 z-10 font-mono text-[11px] font-semibold text-slate-800 dark:text-zinc-200 bg-inherit border-r border-slate-200/60 dark:border-zinc-800/60 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                        <td className="py-2 px-3.5 sticky left-0 z-10 font-mono text-[11px] font-medium text-slate-700 dark:text-zinc-300 bg-inherit border-r border-slate-200/60 dark:border-zinc-800/60 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
                           {row.nik}
                         </td>
 
                         {/* Sticky Nama */}
-                        <td className="py-2.5 px-3.5 sticky left-[95px] z-10 font-bold text-slate-900 dark:text-zinc-100 bg-inherit border-r border-slate-200/60 dark:border-zinc-800/60 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                        <td className="py-2 px-3.5 sticky left-[95px] z-10 font-semibold text-slate-900 dark:text-zinc-100 bg-inherit border-r border-slate-200/60 dark:border-zinc-800/60 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
                           <div className="flex items-center gap-2">
                             <span className="truncate max-w-[160px]" title={row.nama}>
                               {row.nama}
@@ -697,20 +690,20 @@ function KalenderContent() {
                         </td>
 
                         {/* Departemen */}
-                        <td className="py-2.5 px-3.5 text-slate-600 dark:text-zinc-400 whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60">
+                        <td className="py-2 px-3.5 text-slate-600 dark:text-zinc-400 whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60">
                           <span className="truncate block max-w-[150px]" title={row.departemen}>
                             {row.departemen}
                           </span>
                         </td>
 
                         {/* Cabang */}
-                        <td className="py-2.5 px-3.5 text-slate-500 dark:text-zinc-400 whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60">
+                        <td className="py-2 px-3.5 text-slate-500 dark:text-zinc-400 whitespace-nowrap border-r border-slate-200/60 dark:border-zinc-800/60">
                           <span className="truncate block max-w-[130px]" title={row.cabang}>
                             {row.cabang}
                           </span>
                         </td>
 
-                        {/* Day Circles (1 to N) */}
+                        {/* Day Badges (1 to N) */}
                         {matrixData?.daysInfo?.map((d: any) => {
                           const st = row.days[d.day] || {
                             day: d.day,
@@ -723,31 +716,31 @@ function KalenderContent() {
                             <td
                               key={d.day}
                               className={cn(
-                                "py-1.5 px-1 text-center border-r border-slate-200/40 dark:border-zinc-800/40 align-middle",
-                                d.isWeekend && "bg-slate-100/30 dark:bg-zinc-900/30"
+                                "py-1.5 px-0.5 text-center border-r border-slate-200/40 dark:border-zinc-800/40 align-middle",
+                                d.isWeekend && "bg-slate-50/40 dark:bg-zinc-900/30"
                               )}
                             >
                               <div className="flex items-center justify-center">
-                                {renderCircleBadge(st, row)}
+                                {renderCellBadge(st, row)}
                               </div>
                             </td>
                           )
                         })}
 
                         {/* Summary Badges */}
-                        <td className="py-2.5 px-2 text-center font-bold text-emerald-600 dark:text-emerald-400 border-l border-slate-200/60 dark:border-zinc-800/60 bg-emerald-50/30 dark:bg-emerald-950/10">
+                        <td className="py-2 px-2 text-center font-mono font-semibold text-emerald-700 dark:text-emerald-400 border-l border-slate-200/60 dark:border-zinc-800/60 bg-emerald-50/20 dark:bg-emerald-950/10">
                           {row.totalHadir}
                         </td>
-                        <td className="py-2.5 px-2 text-center font-bold text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-950/10">
+                        <td className="py-2 px-2 text-center font-mono font-semibold text-amber-700 dark:text-amber-400 bg-amber-50/20 dark:bg-amber-950/10">
                           {row.totalTerlambat}
                         </td>
-                        <td className="py-2.5 px-2 text-center font-bold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-950/10">
+                        <td className="py-2 px-2 text-center font-mono font-semibold text-blue-700 dark:text-blue-400 bg-blue-50/20 dark:bg-blue-950/10">
                           {row.totalCuti}
                         </td>
-                        <td className="py-2.5 px-2 text-center font-bold text-purple-600 dark:text-purple-400 bg-purple-50/30 dark:bg-purple-950/10">
+                        <td className="py-2 px-2 text-center font-mono font-semibold text-purple-700 dark:text-purple-400 bg-purple-50/20 dark:bg-purple-950/10">
                           {row.totalIzin + row.totalSakit}
                         </td>
-                        <td className="py-2.5 px-2 text-center font-bold text-rose-600 dark:text-rose-400 bg-rose-50/30 dark:bg-rose-950/10">
+                        <td className="py-2 px-2 text-center font-mono font-semibold text-rose-700 dark:text-rose-400 bg-rose-50/20 dark:bg-rose-950/10">
                           {row.totalAlpha}
                         </td>
                       </tr>
@@ -758,7 +751,7 @@ function KalenderContent() {
             )}
 
             {/* Table Footer Summary */}
-            <div className="p-3.5 bg-slate-50/90 dark:bg-zinc-900/90 border-t border-slate-200/80 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-500 dark:text-zinc-400">
+            <div className="p-3 bg-slate-50/70 dark:bg-zinc-900/50 border-t border-slate-200/80 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-500 dark:text-zinc-400">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-700 dark:text-zinc-300">
                   Menampilkan {filteredRows.length} dari {matrixData?.rows?.length || 0} karyawan
@@ -768,13 +761,9 @@ function KalenderContent() {
               </div>
 
               <div className="flex items-center gap-3 text-[11px]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Target Disiplin: 100%
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-blue-500" />
-                  Klik salah satu bulatan presensi untuk melihat rincian jam & lokasi
+                <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
+                  <Info className="w-3.5 h-3.5 text-slate-400" />
+                  Klik sel tanggal untuk melihat rincian presensi & jam kerja
                 </span>
               </div>
             </div>
@@ -824,14 +813,14 @@ function KalenderContent() {
                       <div className="mt-1 flex items-center gap-2">
                         <span
                           className={cn(
-                            "w-6 h-6 rounded-full text-xs font-semibold flex items-center justify-center shrink-0",
-                            selectedCell.dayStatus.code === "H" && "bg-emerald-100 text-emerald-700 border border-emerald-300",
-                            selectedCell.dayStatus.code === "T" && "bg-amber-100 text-amber-700 border border-amber-300",
-                            selectedCell.dayStatus.code === "C" && "bg-blue-100 text-blue-700 border border-blue-300",
-                            selectedCell.dayStatus.code === "I" && "bg-orange-100 text-orange-700 border border-orange-300",
-                            selectedCell.dayStatus.code === "S" && "bg-purple-100 text-purple-700 border border-purple-300",
-                            selectedCell.dayStatus.code === "L" && "bg-slate-200 text-slate-700 border border-slate-300",
-                            selectedCell.dayStatus.code === "A" && "bg-rose-100 text-rose-700 border border-rose-300"
+                            "w-6 h-6 rounded-[4px] text-xs font-mono font-semibold flex items-center justify-center shrink-0",
+                            selectedCell.dayStatus.code === "H" && "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+                            selectedCell.dayStatus.code === "T" && "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
+                            selectedCell.dayStatus.code === "C" && "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+                            selectedCell.dayStatus.code === "I" && "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300",
+                            selectedCell.dayStatus.code === "S" && "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300",
+                            selectedCell.dayStatus.code === "L" && "bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400",
+                            selectedCell.dayStatus.code === "A" && "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
                           )}
                         >
                           {selectedCell.dayStatus.code}
