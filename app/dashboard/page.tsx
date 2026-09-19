@@ -10,7 +10,6 @@ import { AnalyticsCharts } from "@/components/simpeg/dashboard/analytics-charts"
 import { ApprovalPanel } from "@/components/simpeg/dashboard/approval-panel"
 import { getDashboardStats, getPegawaiDashboardStats } from "@/lib/actions/dashboard"
 import { getLeaderboard } from "@/lib/actions/indeks"
-import { TiaraAiOrb } from "@/components/simpeg/tiara-ai-orb"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { VerifiedBadge } from "@/components/simpeg/verified-badge"
@@ -44,6 +43,7 @@ import {
   TrendingUp,
   Trophy,
   Medal,
+  Bot,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -370,50 +370,85 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* RIGHT (5 cols): TIARA ASSISTANT AI HERO BANNER */}
-                <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-900 text-white rounded-xl p-5 shadow-2xs relative overflow-hidden flex-1 flex flex-col justify-between border border-blue-400/20">
-                    
-                    {/* Top Content with Lottie orb on the right */}
-                    <div className="flex items-start justify-between gap-4 relative z-10">
-                      <div className="space-y-2.5 flex-1 min-w-0">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-white/15 text-white backdrop-blur-xs border border-white/20 shadow-2xs">
-                          <Sparkles className="w-3 h-3 text-amber-300" /> TIARA ASSISTANT AI
-                        </span>
-                        <h3 className="text-xl font-bold tracking-tight leading-snug">
-                          Butuh Bantuan? Saya Asisten Tiara Siap Membantu Anda
+                <div className="lg:col-span-5 flex flex-col">
+                  <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-700 via-blue-800 to-slate-950 p-5 sm:p-6 text-white shadow-2xs border border-blue-400/30 dark:border-blue-500/25 flex-1 flex flex-col justify-between">
+                    {/* Ambient subtle background glow */}
+                    <div 
+                      className="absolute -top-16 -right-16 h-56 w-56 rounded-full pointer-events-none opacity-30 blur-3xl transition-opacity group-hover:opacity-45"
+                      style={{ background: "radial-gradient(circle, #60a5fa, transparent 70%)" }}
+                    />
+                    <div 
+                      className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full pointer-events-none opacity-20 blur-2xl"
+                      style={{ background: "radial-gradient(circle, #3b82f6, transparent 70%)" }}
+                    />
+                    {/* Subtle micro grid / lines */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
+                    <div className="relative z-10">
+                      {/* Top Badges & Status */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 backdrop-blur-xs shadow-2xs">
+                            <Bot className="w-3.5 h-3.5 text-blue-300" />
+                            Tiara Assistant
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Siap Membantu
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono text-blue-200/70 font-semibold">v2.0</span>
+                      </div>
+
+                      {/* Main Title & Description */}
+                      <div className="mt-3.5">
+                        <h3 className="text-lg sm:text-xl font-bold tracking-tight text-white leading-snug">
+                          Asisten Kepegawaian & Analisis Cerdas
                         </h3>
-                        <p className="text-xs text-blue-100/90 leading-relaxed pr-2">
-                          Asisten cerdas SIMPEG untuk analisis kehadiran, kalkulasi hak cuti & PPh 21, ringkasan SK, regulasi PDAM Tirta Ardhia Rinjani, hingga pembuatan draf dokumen otomatis.
+                        <p className="text-xs text-blue-100/80 leading-relaxed mt-1.5 line-clamp-2">
+                          Konsultasi regulasi PDAM TIARA, rekapitulasi presensi, perhitungan PPh 21 TER, hingga ringkasan SK secara instan.
                         </p>
                       </div>
 
-                      {/* Lottie Animation inside the card */}
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 relative flex items-center justify-center -mt-1 -mr-1">
-                        <TiaraAiOrb className="w-full h-full" />
+                      {/* Quick Interactive Prompt Pills */}
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        <Link
+                          href="/assistant"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] text-blue-100 hover:text-white transition-all backdrop-blur-2xs"
+                        >
+                          <span>Analisis Presensi</span>
+                        </Link>
+                        <Link
+                          href="/assistant"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] text-blue-100 hover:text-white transition-all backdrop-blur-2xs"
+                        >
+                          <span>Simulasi PPh 21</span>
+                        </Link>
+                        <Link
+                          href="/assistant"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] text-blue-100 hover:text-white transition-all backdrop-blur-2xs"
+                        >
+                          <span>Jatuh Tempo KGB</span>
+                        </Link>
                       </div>
                     </div>
 
-                    {/* Bottom action bar */}
-                    <div className="mt-5 pt-4 border-t border-white/15 flex items-center justify-between relative z-10">
-                      <div className="text-xs">
-                        <div className="flex items-center gap-1.5 text-blue-200 text-[11px]">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>AI Engine Aktif</span>
-                        </div>
-                        <p className="font-bold text-white text-xs mt-0.5">Tiara Assistant v2.0</p>
+                    {/* Bottom Action & Security Status */}
+                    <div className="mt-5 pt-3.5 border-t border-white/15 flex items-center justify-between relative z-10">
+                      <div className="flex items-center gap-1.5 text-blue-200/80 text-[11px]">
+                        <ShieldCheck className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                        <span className="truncate">RAG & AES-256 Enkripsi</span>
                       </div>
+
                       <Link
                         href="/assistant"
-                        className="px-4 py-2 rounded-xl bg-white text-blue-700 hover:bg-blue-50 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 hover:gap-2 group"
+                        className="px-4 py-2 rounded-xl bg-white text-blue-950 hover:bg-blue-50 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 group active:scale-95 shrink-0"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Tanya Tiara Assistant</span>
-                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        <Bot className="w-3.5 h-3.5 text-blue-700" />
+                        <span>Buka Chat</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-blue-900 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
                     </div>
-
-                    {/* Decorative subtle background circle */}
-                    <div className="absolute -right-12 -bottom-12 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
                   </div>
                 </div>
 
