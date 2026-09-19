@@ -5,6 +5,16 @@ import { revalidatePath } from "next/cache"
 import { startOfMonth, endOfMonth, parse } from "date-fns"
 import { logAudit } from "./audit-log"
 import { prosesPPh21Batch } from "./pph21"
+import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
+
+// Helper to format date into YYYY-MM-DD in WITA (UTC+8)
+function formatLocal(d: Date) {
+  const dWita = new Date(d.getTime() + 8 * 60 * 60 * 1000)
+  const y = dWita.getUTCFullYear()
+  const m = String(dWita.getUTCMonth() + 1).padStart(2, "0")
+  const dd = String(dWita.getUTCDate()).padStart(2, "0")
+  return `${y}-${m}-${dd}`
+}
 
 // Helper to get month boundaries from a string like "2026-03" or "mar-2026"
 function getMonthBounds(periodStr: string) {
@@ -31,11 +41,132 @@ function getMonthBounds(periodStr: string) {
   }
 }
 
+// ============ REUSABLE ATTENDANCE PENALTY CALCULATION ============
+function calculateAttendancePenalty({
+  pegawai,
+  start,
+  end,
+  pengaturan,
+  absensiList,
+  cutiList,
+}: {
+  pegawai: any
+  start: Date
+  end: Date
+  pengaturan: any
+  absensiList: any[]
+  cutiList: any[]
+}) {
+  const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
+  const [targetH, targetM] = jamMasukSetting.split(":").map(Number)
+
+  const dendaTerlambatPerKejadian = Number(pengaturan?.dendaTerlambat ?? 5000)
+  const batasTerlambatDenda = Number(pengaturan?.batasTerlambatDenda ?? 5)
+  const dendaAlpaPerHari = Number(pengaturan?.dendaAlpa ?? 7500)
+  const tunjanganTransportLocked = Number(pengaturan?.tunjanganTransport ?? 120000)
+  const batasAlpaLenyapTransport = Number(pengaturan?.batasAlpaDendaTransport ?? 3)
+
+  // 1. Kumpulkan tanggal yang tercatat presensi dan alpa eksplisit
+  const recordedDates = new Set<string>()
+  const explicitAlpaDates = new Set<string>()
+  let countTerlambatDenda = 0
+
+  for (const abs of absensiList) {
+    const dateKey = formatLocal(new Date(abs.tanggal))
+    if (abs.status === "ALPA") {
+      explicitAlpaDates.add(dateKey)
+    } else {
+      recordedDates.add(dateKey)
+    }
+
+    if (abs.status === "TERLAMBAT" && abs.jamMasuk) {
+      const checkIn = new Date(abs.jamMasuk)
+      const scheduled = new Date(checkIn)
+      scheduled.setHours(targetH, targetM, 0, 0)
+
+      const diffMins = Math.floor((checkIn.getTime() - scheduled.getTime()) / 60000)
+      if (diffMins > batasTerlambatDenda) {
+        countTerlambatDenda++
+      }
+    }
+  }
+
+  // 2. Kumpulkan tanggal permohonan cuti/izin/sakit yang sudah di-APPROVED
+  for (const c of cutiList) {
+    let cur = new Date(Math.max(new Date(c.tanggalMulai).getTime(), start.getTime()))
+    const endC = new Date(Math.min(new Date(c.tanggalSelesai).getTime(), end.getTime()))
+    while (cur <= endC) {
+      recordedDates.add(formatLocal(cur))
+      cur.setDate(cur.getDate() + 1)
+    }
+  }
+
+  // 3. Evaluasi hari kerja yang belum ada presensinya (Auto-Alpha / Mangkir)
+  const now = new Date()
+  const nowWita = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+  const todayStr = formatLocal(now)
+
+  const isCabang = isCabangEmployee(pegawai)
+  let unrecordedAlpaCount = 0
+
+  const totalDaysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()
+  for (let day = 1; day <= totalDaysInMonth; day++) {
+    const curDate = new Date(start.getFullYear(), start.getMonth(), day)
+    const dateStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+
+    // Hari di masa depan tidak boleh dihitung alpa
+    if (dateStr > todayStr) {
+      continue
+    }
+
+    const dayOfWeek = curDate.getDay() // 0 = Minggu, 6 = Sabtu
+    const isWeekend = isCabang ? (dayOfWeek === 0) : (dayOfWeek === 0 || dayOfWeek === 6)
+
+    if (!isWeekend) {
+      // Jika hari ini, beri toleransi sebelum jam pulang kerja usai
+      if (dateStr === todayStr) {
+        const jamPulangSetting = isCabang && dayOfWeek === 6
+          ? (pengaturan?.jamPulangSabtuCabang || "13:00")
+          : (pengaturan?.jamPulang || "17:00")
+        const [pjH, pjM] = jamPulangSetting.split(":").map(Number)
+        const currentHourWita = nowWita.getUTCHours()
+        const currentMinWita = nowWita.getUTCMinutes()
+        const isAfterWorkingHours = currentHourWita > pjH || (currentHourWita === pjH && currentMinWita >= pjM)
+
+        if (!isAfterWorkingHours) {
+          continue
+        }
+      }
+
+      // Jika tidak ada presensi/cuti sah dan belum tercatat alpa eksplisit
+      if (!recordedDates.has(dateStr) && !explicitAlpaDates.has(dateStr)) {
+        unrecordedAlpaCount++
+      }
+    }
+  }
+
+  const countAlpa = explicitAlpaDates.size + unrecordedAlpaCount
+  const totalDendaTerlambat = countTerlambatDenda * dendaTerlambatPerKejadian
+  const totalDendaAlpa = countAlpa * dendaAlpaPerHari
+  const penaltiTransport = countAlpa >= batasAlpaLenyapTransport ? tunjanganTransportLocked : 0
+
+  const totalPotongan = totalDendaTerlambat + totalDendaAlpa + penaltiTransport
+
+  return {
+    countAlpa,
+    countTerlambatDenda,
+    totalDendaTerlambat,
+    totalDendaAlpa,
+    penaltiTransport,
+    totalPotongan
+  }
+}
+
 // ============ GET PAYROLL PEGAWAI FOR A SPECIFIC MONTH ============
 export async function getPayrollList(periodStr: string) {
   const { start, end } = getMonthBounds(periodStr)
 
-  // Fetch all active employees (and maybe those who have payroll this month even if inactive)
+  // Fetch all active employees (and those who have payroll this month even if inactive)
   const pegawai = await prisma.pegawai.findMany({
     where: {
       OR: [
@@ -45,6 +176,7 @@ export async function getPayrollList(periodStr: string) {
     },
     include: {
       bidang: true,
+      lokasiAbsensi: true,
       payroll: {
         where: {
           bulan: {
@@ -57,68 +189,80 @@ export async function getPayrollList(periodStr: string) {
     orderBy: { nama: 'asc' }
   })
 
-  // Pre-fetch settings for draft calculations
+  // Pre-fetch settings for calculations
   const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
-  const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
-  const [targetH, targetM] = jamMasukSetting.split(":").map(Number)
-  
-  const dendaTerlambatPerKejadian = pengaturan?.dendaTerlambat || 5000
-  const batasTerlambatDenda = pengaturan?.batasTerlambatDenda || 5
-  const dendaAlpaPerHari = pengaturan?.dendaAlpa || 7500
-  const tunjanganTransportLocked = pengaturan?.tunjanganTransport || 120000
-  const batasAlpaLenyapTransport = pengaturan?.batasAlpaDendaTransport || 3
 
-  // Format the response and include approved overtime (Lembur)
-  const results = await Promise.all(pegawai.map(async (emp) => {
+  // Batch query absensi, approved cuti, and approved lembur for this period to eliminate N+1 latency
+  const [allAbsensi, allApprovedCuti, allApprovedLembur] = await Promise.all([
+    prisma.absensi.findMany({
+      where: { tanggal: { gte: start, lte: end } }
+    }),
+    prisma.cuti.findMany({
+      where: {
+        status: "APPROVED",
+        tanggalMulai: { lte: end },
+        tanggalSelesai: { gte: start }
+      }
+    }),
+    (prisma as any).lembur.findMany({
+      where: {
+        status: "APPROVED",
+        tanggal: { gte: start, lte: end }
+      }
+    })
+  ])
+
+  // Group by pegawaiId
+  const absensiByPegawai: Record<string, any[]> = {}
+  for (const a of allAbsensi) {
+    if (!absensiByPegawai[a.pegawaiId]) absensiByPegawai[a.pegawaiId] = []
+    absensiByPegawai[a.pegawaiId].push(a)
+  }
+
+  const cutiByPegawai: Record<string, any[]> = {}
+  for (const c of allApprovedCuti) {
+    if (!cutiByPegawai[c.pegawaiId]) cutiByPegawai[c.pegawaiId] = []
+    cutiByPegawai[c.pegawaiId].push(c)
+  }
+
+  const lemburByPegawai: Record<string, any[]> = {}
+  for (const l of allApprovedLembur) {
+    if (!lemburByPegawai[l.pegawaiId]) lemburByPegawai[l.pegawaiId] = []
+    lemburByPegawai[l.pegawaiId].push(l)
+  }
+
+  // Format the response and calculate dynamic draft penalties
+  const results = pegawai.map((emp) => {
     const pr = emp.payroll.length > 0 ? emp.payroll[0] : null
     const baseGaji = Number(emp.gajiPokok || 0)
     const baseTunjangan = Number(emp.tunjangan || 0)
-    
+
+    let penaltyInfo: ReturnType<typeof calculateAttendancePenalty> | null = null
     let calculatedPotongan = 0
 
     if (!pr) {
-      // Calculate draft penalties
-      const absensiBulanIni = await prisma.absensi.findMany({
-        where: {
-          pegawaiId: emp.id,
-          tanggal: { gte: start, lte: end }
-        }
+      penaltyInfo = calculateAttendancePenalty({
+        pegawai: emp,
+        start,
+        end,
+        pengaturan,
+        absensiList: absensiByPegawai[emp.id] || [],
+        cutiList: cutiByPegawai[emp.id] || []
       })
-
-      let countTerlambatDenda = 0
-      let countAlpa = 0
-
-      absensiBulanIni.forEach(abs => {
-        if (abs.status === "ALPA") {
-          countAlpa++
-        } else if (abs.status === "TERLAMBAT" && abs.jamMasuk) {
-          const checkIn = new Date(abs.jamMasuk)
-          const scheduled = new Date(checkIn)
-          scheduled.setHours(targetH, targetM, 0, 0)
-          
-          const diffMins = Math.floor((checkIn.getTime() - scheduled.getTime()) / 60000)
-          if (diffMins > batasTerlambatDenda) {
-            countTerlambatDenda++
-          }
-        }
-      })
-
-      const totalDendaTerlambat = countTerlambatDenda * dendaTerlambatPerKejadian
-      const totalDendaAlpa = countAlpa * dendaAlpaPerHari
-      const penaltiTransport = countAlpa >= batasAlpaLenyapTransport ? tunjanganTransportLocked : 0
-      
-      calculatedPotongan = totalDendaTerlambat + totalDendaAlpa + penaltiTransport
+      calculatedPotongan = penaltyInfo.totalPotongan
     }
 
     const gajiPokok = pr ? Number(pr.gajiPokok) : baseGaji
     const tunjangan = pr ? Number(pr.tunjangan) : baseTunjangan
     const potongan = pr ? Number(pr.potongan) : calculatedPotongan
 
-    // Fetch approved overtime pay for this employee in this month
-    const lemburApproved = await (prisma as any).lembur.findMany({
-      where: { pegawaiId: emp.id, status: "APPROVED", tanggal: { gte: start, lte: end } }
-    })
-    const lemburBayar = lemburApproved.reduce((s: number, l: any) => s + Number(l.totalBayar), 0)
+    const empLembur = lemburByPegawai[emp.id] || []
+    const lemburBayar = empLembur.reduce((s: number, l: any) => s + Number(l.totalBayar || 0), 0)
+
+    const bpjsKesPct = pengaturan?.bpjsKesehatanPcs ? Number(pengaturan.bpjsKesehatanPcs) / 100 : 0.01
+    const bpjsTkPct = pengaturan?.bpjsTkPcs ? Number(pengaturan.bpjsTkPcs) / 100 : 0.02
+    const bpjsKes = Math.round(gajiPokok * bpjsKesPct)
+    const bpjsTk = Math.round(gajiPokok * bpjsTkPct)
 
     return {
       pegawaiId: emp.id,
@@ -127,18 +271,26 @@ export async function getPayrollList(periodStr: string) {
       fotoUrl: emp.fotoUrl,
       unit: emp.bidang?.nama || "Umum",
       golongan: emp.golongan,
-      
+      jabatan: emp.jabatan || "-",
+
       gajiPokok,
       tunjangan,
       potongan,
       lembur: lemburBayar,
-      
+
       gajiBersih: (pr ? Number(pr.total) : (gajiPokok + tunjangan - potongan)) + lemburBayar,
       status: pr ? "approved" : "draft",
-      
-      payrollId: pr?.id
+
+      payrollId: pr?.id,
+      countAlpa: penaltyInfo?.countAlpa,
+      dendaAlpa: penaltyInfo?.totalDendaAlpa,
+      countTerlambatDenda: penaltyInfo?.countTerlambatDenda,
+      dendaTerlambat: penaltyInfo?.totalDendaTerlambat,
+      penaltiTransport: penaltyInfo?.penaltiTransport,
+      bpjsKes,
+      bpjsTk,
     }
-  }))
+  })
 
   return results
 }
@@ -187,7 +339,6 @@ export async function savePayroll(data: {
     }
 
     // ALSO update the Employee's base profile so it sticks for future months
-    // Only if it's considered a base salary update, which is usually the case when HR edits it here
     await prisma.pegawai.update({
       where: { id: data.pegawaiId },
       data: {
@@ -212,6 +363,73 @@ export async function savePayroll(data: {
   }
 }
 
+// ============ GET PAYROLL SETTINGS ============
+export async function getPayrollSettings() {
+  const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
+  return {
+    dendaAlpa: Number(pengaturan?.dendaAlpa ?? 7500),
+    batasAlpaDendaTransport: Number(pengaturan?.batasAlpaDendaTransport ?? 3),
+    tunjanganTransport: Number(pengaturan?.tunjanganTransport ?? 120000),
+    dendaTerlambat: Number(pengaturan?.dendaTerlambat ?? 5000),
+    batasTerlambatDenda: Number(pengaturan?.batasTerlambatDenda ?? 5),
+    bpjsKesehatanPcs: Number(pengaturan?.bpjsKesehatanPcs ?? 1.0),
+    bpjsTkPcs: Number(pengaturan?.bpjsTkPcs ?? 2.0),
+    tanggalGajian: Number(pengaturan?.tanggalGajian ?? 25),
+  }
+}
+
+// ============ UPDATE PAYROLL SETTINGS ============
+export async function updatePayrollSettings(data: {
+  dendaAlpa: number
+  batasAlpaDendaTransport: number
+  tunjanganTransport: number
+  dendaTerlambat: number
+  batasTerlambatDenda: number
+  bpjsKesehatanPcs: number
+  bpjsTkPcs: number
+  tanggalGajian: number
+}) {
+  try {
+    await (prisma as any).pengaturan.upsert({
+      where: { id: "1" },
+      update: {
+        dendaAlpa: Number(data.dendaAlpa),
+        batasAlpaDendaTransport: Number(data.batasAlpaDendaTransport),
+        tunjanganTransport: Number(data.tunjanganTransport),
+        dendaTerlambat: Number(data.dendaTerlambat),
+        batasTerlambatDenda: Number(data.batasTerlambatDenda),
+        bpjsKesehatanPcs: Number(data.bpjsKesehatanPcs),
+        bpjsTkPcs: Number(data.bpjsTkPcs),
+        tanggalGajian: Number(data.tanggalGajian),
+      },
+      create: {
+        id: "1",
+        dendaAlpa: Number(data.dendaAlpa),
+        batasAlpaDendaTransport: Number(data.batasAlpaDendaTransport),
+        tunjanganTransport: Number(data.tunjanganTransport),
+        dendaTerlambat: Number(data.dendaTerlambat),
+        batasTerlambatDenda: Number(data.batasTerlambatDenda),
+        bpjsKesehatanPcs: Number(data.bpjsKesehatanPcs),
+        bpjsTkPcs: Number(data.bpjsTkPcs),
+        tanggalGajian: Number(data.tanggalGajian),
+      }
+    })
+
+    await logAudit({
+      action: "UPDATE",
+      module: "payroll",
+      targetName: "Pengaturan Denda & Potongan Payroll",
+      newData: data as any,
+    })
+
+    revalidatePath("/payroll")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error updatePayrollSettings:", error)
+    return { error: error.message || "Gagal memperbarui pengaturan payroll" }
+  }
+}
+
 // ============ PROCESS ALL PAYROLL ============
 export async function processAllPayroll(periodStr: string) {
   try {
@@ -226,55 +444,56 @@ export async function processAllPayroll(periodStr: string) {
             bulan: { gte: start, lte: end }
           }
         }
+      },
+      include: {
+        bidang: true,
+        lokasiAbsensi: true
       }
     })
 
     // Batch create their default payroll
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
-    const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
-    const [targetH, targetM] = jamMasukSetting.split(":").map(Number)
-    
-    const dendaTerlambatPerKejadian = pengaturan?.dendaTerlambat || 5000
-    const batasTerlambatDenda = pengaturan?.batasTerlambatDenda || 5
-    const dendaAlpaPerHari = pengaturan?.dendaAlpa || 7500
-    const tunjanganTransportLocked = pengaturan?.tunjanganTransport || 120000
-    const batasAlpaLenyapTransport = pengaturan?.batasAlpaDendaTransport || 3
 
-    const batch = await Promise.all(employees.map(async (emp) => {
-      // Hitung keterlambatan dan alpa bulan ini
-      const absensiBulanIni = await prisma.absensi.findMany({
+    // Batch query absensi and approved cuti for all employees to eliminate N+1 latency
+    const [allAbsensi, allApprovedCuti] = await Promise.all([
+      prisma.absensi.findMany({
+        where: { tanggal: { gte: start, lte: end } }
+      }),
+      prisma.cuti.findMany({
         where: {
-          pegawaiId: emp.id,
-          tanggal: { gte: start, lte: end }
+          status: "APPROVED",
+          tanggalMulai: { lte: end },
+          tanggalSelesai: { gte: start }
         }
       })
+    ])
 
-      let countTerlambatDenda = 0
-      let countAlpa = 0
+    const absensiByPegawai: Record<string, any[]> = {}
+    for (const a of allAbsensi) {
+      if (!absensiByPegawai[a.pegawaiId]) absensiByPegawai[a.pegawaiId] = []
+      absensiByPegawai[a.pegawaiId].push(a)
+    }
 
-      absensiBulanIni.forEach(abs => {
-        if (abs.status === "ALPA") {
-          countAlpa++
-        } else if (abs.status === "TERLAMBAT" && abs.jamMasuk) {
-          const checkIn = new Date(abs.jamMasuk)
-          const scheduled = new Date(checkIn)
-          scheduled.setHours(targetH, targetM, 0, 0)
-          
-          const diffMins = Math.floor((checkIn.getTime() - scheduled.getTime()) / 60000)
-          if (diffMins > batasTerlambatDenda) {
-            countTerlambatDenda++
-          }
-        }
+    const cutiByPegawai: Record<string, any[]> = {}
+    for (const c of allApprovedCuti) {
+      if (!cutiByPegawai[c.pegawaiId]) cutiByPegawai[c.pegawaiId] = []
+      cutiByPegawai[c.pegawaiId].push(c)
+    }
+
+    const batch = employees.map((emp) => {
+      const penalty = calculateAttendancePenalty({
+        pegawai: emp,
+        start,
+        end,
+        pengaturan,
+        absensiList: absensiByPegawai[emp.id] || [],
+        cutiList: cutiByPegawai[emp.id] || []
       })
-
-      const totalDendaTerlambat = countTerlambatDenda * dendaTerlambatPerKejadian
-      const totalDendaAlpa = countAlpa * dendaAlpaPerHari
-      const penaltiTransport = countAlpa >= batasAlpaLenyapTransport ? tunjanganTransportLocked : 0
 
       const gPokok = Number(emp.gajiPokok || 0)
       const tunj = Number(emp.tunjangan || 0)
-      const pot = totalDendaTerlambat + totalDendaAlpa + penaltiTransport
-      
+      const pot = penalty.totalPotongan
+
       return {
         pegawaiId: emp.id,
         bulan: date,
@@ -283,7 +502,7 @@ export async function processAllPayroll(periodStr: string) {
         potongan: pot,
         total: gPokok + tunj - pot
       }
-    }))
+    })
 
     if (batch.length > 0) {
       await prisma.payroll.createMany({
@@ -321,6 +540,7 @@ export async function getMyPayroll(periodStr: string) {
     where: { userId: session.user.id },
     include: {
       bidang: true,
+      lokasiAbsensi: true,
       payroll: {
         where: {
           bulan: { gte: start, lte: end }
@@ -335,6 +555,7 @@ export async function getMyPayroll(periodStr: string) {
       where: { email: session.user.email },
       include: {
         bidang: true,
+        lokasiAbsensi: true,
         payroll: { where: { bulan: { gte: start, lte: end } } }
       }
     })
@@ -352,6 +573,37 @@ export async function getMyPayroll(periodStr: string) {
   const baseGaji = Number(pegawai.gajiPokok || 0)
   const baseTunjangan = Number(pegawai.tunjangan || 0)
 
+  let calculatedPotongan = 0
+  if (!pr) {
+    const [absList, cutiList, pengaturan] = await Promise.all([
+      prisma.absensi.findMany({
+        where: { pegawaiId: pegawai.id, tanggal: { gte: start, lte: end } }
+      }),
+      prisma.cuti.findMany({
+        where: {
+          pegawaiId: pegawai.id,
+          status: "APPROVED",
+          tanggalMulai: { lte: end },
+          tanggalSelesai: { gte: start }
+        }
+      }),
+      (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
+    ])
+
+    const penalty = calculateAttendancePenalty({
+      pegawai,
+      start,
+      end,
+      pengaturan,
+      absensiList: absList,
+      cutiList
+    })
+    calculatedPotongan = penalty.totalPotongan
+  }
+
+  const potongan = pr ? Number(pr.potongan) : calculatedPotongan
+  const gajiBersih = (pr ? Number(pr.total) : (baseGaji + baseTunjangan - potongan)) + lemburBayar
+
   return {
     pegawaiId: pegawai.id,
     nik: pegawai.nik,
@@ -363,9 +615,9 @@ export async function getMyPayroll(periodStr: string) {
     noRekening: pegawai.noRekening || "-",
     gajiPokok: pr ? Number(pr.gajiPokok) : baseGaji,
     tunjangan: pr ? Number(pr.tunjangan) : baseTunjangan,
-    potongan: pr ? Number(pr.potongan) : 0,
+    potongan,
     lembur: lemburBayar,
-    gajiBersih: (pr ? Number(pr.total) : (baseGaji + baseTunjangan)) + lemburBayar,
+    gajiBersih,
     status: pr ? "approved" : "draft",
     payrollId: pr?.id
   }
