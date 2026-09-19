@@ -116,7 +116,7 @@ export default function DashboardPage() {
               <p className="text-xs sm:text-[13px] text-slate-500 dark:text-zinc-400 mt-1 flex items-center gap-2">
                 <span>{format(new Date(), "EEEE, dd MMMM yyyy", { locale: id })}</span>
                 <span className="text-slate-300 dark:text-zinc-700">·</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium">PDAM Tirta Ardhia Rinjani</span>
+                <span className="text-blue-600 dark:text-blue-400 font-medium">PDAM Tirta Ardhia Rinjani</span>
               </p>
             </div>
 

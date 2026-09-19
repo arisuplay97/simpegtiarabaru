@@ -19,29 +19,30 @@ export const metadata: Metadata = {
     shortcut: "/slip.png",
     apple: "/slip.png",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
-  ],
+  themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 }
 
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 selection:bg-zinc-900 selection:text-white dark:selection:bg-white dark:selection:text-zinc-900`}>
+    <html lang="id" suppressHydrationWarning className="dark:bg-[#09090b]">
+      <body className={`${inter.variable} font-sans antialiased bg-[#09090b] text-zinc-900 dark:text-zinc-100 selection:bg-zinc-900 selection:text-white dark:selection:bg-white dark:selection:text-zinc-900`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <MobileOfflineSyncWatcher />
-            <div className="flex min-h-screen flex-col max-w-md mx-auto relative shadow-sm border-x border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="flex min-h-screen flex-col max-w-md mx-auto relative shadow-sm border-x border-zinc-200/50 dark:border-zinc-800/50 bg-[#09090b]">
               {/* Content — padded bottom for nav */}
-              <main className="flex-1 overflow-y-auto">
+              <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#09090b]">
                 {children}
               </main>
               <MobileBottomNav />
