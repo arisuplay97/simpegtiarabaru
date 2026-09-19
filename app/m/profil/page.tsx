@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft } from "lucide-react"
+import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft, ChevronRight, Clock, Radio } from "lucide-react"
 import { getEmployeeProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
 import { changePasswordWithVerification } from "@/lib/actions/auth-actions"
 import { format } from "date-fns"
@@ -213,6 +213,71 @@ export default function MobileProfil() {
           <p className="text-[11px] text-zinc-500 mt-0.5">Terdaftar Aktif</p>
         </div>
       </div>
+
+      {/* Pengaturan Khusus Admin / HRD */}
+      {(() => {
+        const userRole = ((session?.user as any)?.role || "").toUpperCase()
+        const isHrdOrAdmin = ["SUPERADMIN", "ADMIN", "HRD", "DIREKSI"].includes(userRole) || 
+                             (session?.user?.name || "").toLowerCase().includes("admin")
+        if (!isHrdOrAdmin) return null
+
+        return (
+          <div className="px-4 mt-4 space-y-2 max-w-md mx-auto">
+            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-1">
+              Menu Administrator & HRD
+            </p>
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-1.5 shadow-2xs divide-y divide-zinc-100 dark:divide-zinc-800/80">
+              <Link
+                href="/m/settings/absensi"
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-850 active:scale-98 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Pengaturan Jam Absensi</p>
+                    <p className="text-[10px] text-zinc-500">Pusat, Cabang, & Khusus Sabtu</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+              </Link>
+
+              <Link
+                href="/m/settings/lokasi"
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-850 active:scale-98 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Pengaturan Lokasi Absensi</p>
+                    <p className="text-[10px] text-zinc-500">Geofencing radius & koordinat GPS</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+              </Link>
+
+              <Link
+                href="/m/radar"
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-850 active:scale-98 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <Radio className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Live Radar Kehadiran</p>
+                    <p className="text-[10px] text-zinc-500">Monitoring absensi realtime seluruh pegawai</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+              </Link>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Actions */}
       <div className="px-4 mt-4 space-y-2.5 max-w-md mx-auto">

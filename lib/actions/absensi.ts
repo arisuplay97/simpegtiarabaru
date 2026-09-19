@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/audit-log"
+import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
 
 // Format YYYY-MM-DD to get start and end of day
 function getTodayRange(date?: Date) {
@@ -37,10 +38,23 @@ export async function checkDeviceAndAbsen(
 
     const pegawai = await prisma.pegawai.findUnique({
       where: { userId: session.user.id },
-      include: { lokasiAbsensi: true } as any
+      include: { lokasiAbsensi: true, bidang: true } as any
     })
 
     if (!pegawai) return { error: "Profil Pegawai tidak ditemukan. Hubungi HRD." }
+
+    const isCabang = isCabangEmployee(pegawai)
+    const { startOfDay, endOfDay, now } = getTodayRange()
+    const dayOfWeek = now.getDay() // 0 = Minggu, 6 = Sabtu
+
+    // Validasi hari libur operasional
+    if (dayOfWeek === 0) {
+      return { error: "Hari Minggu adalah hari libur operasional. Presensi ditutup." }
+    }
+
+    if (dayOfWeek === 6 && !isCabang) {
+      return { error: "Hari Sabtu adalah hari libur untuk kantor pusat. Presensi hari Sabtu khusus pekerja kantor cabang." }
+    }
 
     // =============================================
     // FITUR 2: BEBAS ABSENSI & DEVICE BINDING
@@ -80,12 +94,24 @@ export async function checkDeviceAndAbsen(
     // =============================================
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
     
-    const jamMasukSetting  = pengaturan?.jamMasuk    || "08:00"
-    const jamPulangSetting = pengaturan?.jamPulang   || "17:00"
-    const batasCheckin     = (pengaturan as any)?.batasCheckin || "16:00"
-    const batasTerlambat   = pengaturan?.batasTerlambat || 15
+    let jamMasukSetting = pengaturan?.jamMasuk || "08:00"
+    let jamPulangSetting = pengaturan?.jamPulang || "17:00"
+    let batasCheckin = (pengaturan as any)?.batasAbsenMasuk || "14:00"
+    const batasTerlambat = pengaturan?.batasTerlambat || 15
 
-    const { startOfDay, endOfDay, now } = getTodayRange()
+    if (isCabang) {
+      if (dayOfWeek === 6) {
+        // Pengaturan Khusus Hari Sabtu Cabang
+        jamMasukSetting = pengaturan?.jamMasukSabtuCabang || "08:00"
+        jamPulangSetting = pengaturan?.jamPulangSabtuCabang || "13:00"
+        batasCheckin = pengaturan?.batasMasukSabtuCabang || "11:00"
+      } else {
+        // Pengaturan Hari Kerja Cabang (Senin - Jumat)
+        jamMasukSetting = pengaturan?.jamMasukCabang || pengaturan?.jamMasuk || "08:00"
+        jamPulangSetting = pengaturan?.jamPulangCabang || pengaturan?.jamPulang || "16:30"
+        batasCheckin = pengaturan?.batasAbsenMasukCabang || pengaturan?.batasAbsenMasuk || "14:00"
+      }
+    }
 
     // =============================================
     // CEK ABSENSI HARI INI
@@ -287,6 +313,26 @@ export async function getStatusAbsensiHariIni() {
 
     // Ambil jam kerja dari pengaturan
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
+    const isCabang = isCabangEmployee(pegawai)
+    const { now } = getTodayRange()
+    const dayOfWeek = now.getDay()
+    const isSaturday = dayOfWeek === 6
+
+    let jamMasukShift = pengaturan?.jamMasuk || "08:00"
+    let jamKeluarShift = pengaturan?.jamPulang || "17:00"
+    let batasCheckinShift = pengaturan?.batasAbsenMasuk || "14:00"
+
+    if (isCabang) {
+      if (isSaturday) {
+        jamMasukShift = pengaturan?.jamMasukSabtuCabang || "08:00"
+        jamKeluarShift = pengaturan?.jamPulangSabtuCabang || "13:00"
+        batasCheckinShift = pengaturan?.batasMasukSabtuCabang || "11:00"
+      } else {
+        jamMasukShift = pengaturan?.jamMasukCabang || pengaturan?.jamMasuk || "08:00"
+        jamKeluarShift = pengaturan?.jamPulangCabang || pengaturan?.jamPulang || "16:30"
+        batasCheckinShift = pengaturan?.batasAbsenMasukCabang || pengaturan?.batasAbsenMasuk || "14:00"
+      }
+    }
 
     return {
       pegawai: {
@@ -294,6 +340,7 @@ export async function getStatusAbsensiHariIni() {
         nama: pegawai.nama,
         jabatan: pegawai.jabatan,
         unit: pegawai.bidang?.nama || "Umum",
+        isCabang,
         bebasAbsensi: (pegawai as any).bebasAbsensi,
         lokasiAbsensi: (pegawai as any).lokasiAbsensi ? {
           id: (pegawai as any).lokasiAbsensi.id,
@@ -313,9 +360,9 @@ export async function getStatusAbsensiHariIni() {
         jamKeluar: absensiHariIni.jamKeluar?.toISOString() || null,
       } : null,
       shift: {
-        jamMasuk: pengaturan?.jamMasuk || "08:00",
-        jamKeluar: pengaturan?.jamPulang || "17:00",
-        batasCheckin: pengaturan?.batasCheckin || "16:00",
+        jamMasuk: jamMasukShift,
+        jamKeluar: jamKeluarShift,
+        batasCheckin: batasCheckinShift,
       }
     }
   } catch (e) {
@@ -445,12 +492,21 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     
     const isCurrentMonth = (m === now.getMonth() + 1 && y === now.getFullYear())
     const limitDate = isCurrentMonth ? now : endDate
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { id: pegawaiId },
+      include: { bidang: true, lokasiAbsensi: true }
+    })
+    const isCabang = isCabangEmployee(pegawai)
 
     let hariKerjaAktif = 0
     for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
       const day = d.getDay()
-      if (day !== 0 && day !== 6) { // 0 = Minggu, 6 = Sabtu
-        hariKerjaAktif++
+      if (isCabang) {
+        // Cabang kerja Senin - Sabtu (Minggu libur)
+        if (day !== 0) hariKerjaAktif++
+      } else {
+        // Kantor Pusat kerja Senin - Jumat (Sabtu & Minggu libur)
+        if (day !== 0 && day !== 6) hariKerjaAktif++
       }
     }
 
@@ -462,7 +518,33 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     })
 
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
-    const jamPulangSetting = pengaturan?.jamPulang || "17:00"
+    const dayOfWeekToday = now.getDay()
+    const isTodaySaturday = dayOfWeekToday === 6
+
+    let jamMasukSetting = pengaturan?.jamMasuk || "08:00"
+    let jamPulangSetting = pengaturan?.jamPulang || "17:00"
+    let batasAbsenMasuk = pengaturan?.batasAbsenMasuk || "14:00"
+    let mulaiAbsenPulang = pengaturan?.mulaiAbsenPulang || "15:00"
+    let batasAbsenPulang = pengaturan?.batasAbsenPulang || "18:00"
+
+    if (isCabang) {
+      if (isTodaySaturday) {
+        // Khusus Hari Sabtu Kantor Cabang
+        jamMasukSetting = pengaturan?.jamMasukSabtuCabang || "08:00"
+        jamPulangSetting = pengaturan?.jamPulangSabtuCabang || "13:00"
+        batasAbsenMasuk = pengaturan?.batasMasukSabtuCabang || "11:00"
+        mulaiAbsenPulang = pengaturan?.mulaiPulangSabtuCabang || "12:00"
+        batasAbsenPulang = pengaturan?.batasPulangSabtuCabang || "15:00"
+      } else {
+        // Hari Kerja Biasa Kantor Cabang (Senin - Jumat)
+        jamMasukSetting = pengaturan?.jamMasukCabang || pengaturan?.jamMasuk || "08:00"
+        jamPulangSetting = pengaturan?.jamPulangCabang || pengaturan?.jamPulang || "16:30"
+        batasAbsenMasuk = pengaturan?.batasAbsenMasukCabang || pengaturan?.batasAbsenMasuk || "14:00"
+        mulaiAbsenPulang = pengaturan?.mulaiAbsenPulangCabang || pengaturan?.mulaiAbsenPulang || "15:00"
+        batasAbsenPulang = pengaturan?.batasAbsenPulangCabang || pengaturan?.batasAbsenPulang || "18:00"
+      }
+    }
+
     const [pjh, pjm] = jamPulangSetting.split(":").map(Number)
 
     const _todayStart = new Date(now)
@@ -493,6 +575,8 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     }
 
     const summary = {
+      isCabang,
+      isSabtuCabang: isCabang && isTodaySaturday,
       hariKerjaAktif,
       hadir: 0,
       izin: 0,
@@ -505,9 +589,11 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       waktuAbsen,
       sudahAbsenMasuk: !!absensiHariIni?.jamMasuk,
       sudahAbsenPulang: !!absensiHariIni?.jamKeluar,
-      batasAbsenMasuk: pengaturan?.batasAbsenMasuk || "14:00",
-      mulaiAbsenPulang: pengaturan?.mulaiAbsenPulang || "15:00",
-      batasAbsenPulang: pengaturan?.batasAbsenPulang || "18:00",
+      jamMasuk: jamMasukSetting,
+      jamPulang: jamPulangSetting,
+      batasAbsenMasuk,
+      mulaiAbsenPulang,
+      batasAbsenPulang,
     }
 
     const recordedDays = new Set<string>()
@@ -531,28 +617,26 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
 
       // Record present day for auto-alpha calculation
       if (a.tanggal <= limitDate) {
-        const isWeekend = a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6
-        if (!isWeekend) {
+        const isOffDay = isCabang ? (a.tanggal.getDay() === 0) : (a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6)
+        if (!isOffDay) {
           recordedDays.add(formatLocal(a.tanggal))
         }
       }
 
       // Hitung pulang cepat
       if (a.jamKeluar) {
-        // Asumsikan jamKeluar tersimpan dalam format String, cth: "16:45"
         let jh = 0, jm = 0
-        
-        // Bedakan jika jamKeluar berisi Date object (meski di prisma tipe nya date/string, parse dgn aman)
         if (typeof a.jamKeluar === 'string' && (a.jamKeluar as string).includes(':')) {
           const parts = (a.jamKeluar as string).split(':')
           jh = Number(parts[0])
           jm = Number(parts[1])
         } else if (a.jamKeluar instanceof Date) {
-          jh = a.jamKeluar.getHours()
-          jm = a.jamKeluar.getMinutes()
+          const witaString = (a.jamKeluar as Date).toLocaleString("en-US", { timeZone: "Asia/Makassar" })
+          const witaDate = new Date(witaString)
+          jh = witaDate.getHours()
+          jm = witaDate.getMinutes()
         }
 
-        // Bandingkan jam & menit dengan setting jam pulang
         if (jh < pjh || (jh === pjh && jm < pjm)) {
           summary.pulangCepat++
         }
@@ -563,7 +647,8 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     let autoAlpha = 0
     for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
       const day = d.getDay()
-      if (day !== 0 && day !== 6) {
+      const isWorkday = isCabang ? (day !== 0) : (day !== 0 && day !== 6)
+      if (isWorkday) {
         if (!recordedDays.has(formatLocal(d))) {
            autoAlpha++
         }
@@ -576,8 +661,11 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
   } catch (error) {
     console.error("Error getEmployeeAttendanceSummary:", error)
     return {
+      isCabang: false,
+      isSabtuCabang: false,
       hariKerjaAktif: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0,
       waktuAbsen: "--:-- - --:--", sudahAbsenMasuk: false, sudahAbsenPulang: false,
+      jamMasuk: "08:00", jamPulang: "17:00",
       batasAbsenMasuk: "14:00", mulaiAbsenPulang: "15:00", batasAbsenPulang: "18:00"
     }
   }
@@ -811,7 +899,7 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     // Ambil SEMUA pegawai aktif
     const pegawais = await prisma.pegawai.findMany({
       where: { status: "AKTIF" },
-      include: { bidang: true }
+      include: { bidang: true, lokasiAbsensi: true }
     })
 
     // Ambil semua absensi dalam bulan ini
@@ -824,11 +912,25 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     
     // Inisialisasi dictionary Pegawai
     for (const p of pegawais) {
+      const isCabang = isCabangEmployee(p)
+      let employeeWorkdays = 0
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const day = d.getDay()
+        if (isCabang ? (day !== 0) : (day !== 0 && day !== 6)) employeeWorkdays++
+      }
+
+      let employeeActiveWorkdays = 0
+      for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
+        const day = d.getDay()
+        if (isCabang ? (day !== 0) : (day !== 0 && day !== 6)) employeeActiveWorkdays++
+      }
+
       pegawaiMap[p.id] = {
         id: p.id,
         nama: p.nama,
         bidang: p.bidang?.nama || "-",
         jabatan: p.jabatan,
+        isCabang,
         hadir: 0,
         alpha: 0,
         izin: 0,
@@ -837,8 +939,8 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
         dinas: 0,
         terlambat: 0,
         totalJamMenit: 0,
-        hariKerja: totalHariKerja,
-        hariKerjaAktif: hariKerjaAktif,
+        hariKerja: employeeWorkdays,
+        hariKerjaAktif: employeeActiveWorkdays,
       }
       recordedDates[p.id] = new Set()
     }
@@ -847,12 +949,12 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     for (const a of absensiList) {
       const pid = a.pegawaiId
       if (!pegawaiMap[pid]) {
-        // Jika pegawai tidak aktif lagi tapi ada recordnya, set saja basic-nya
         pegawaiMap[pid] = {
           id: pid,
           nama: "Pegawai Non-Aktif",
           bidang: "-",
           jabatan: "-",
+          isCabang: false,
           hadir: 0, alpha: 0, izin: 0, sakit: 0, cuti: 0, dinas: 0, terlambat: 0, totalJamMenit: 0,
           hariKerja: totalHariKerja,
           hariKerjaAktif: hariKerjaAktif
@@ -862,9 +964,9 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
 
       const r = pegawaiMap[pid]
       const status = a.status as any
-      const isWeekend = a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6
+      const isOffDay = r.isCabang ? (a.tanggal.getDay() === 0) : (a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6)
       
-      if (a.tanggal <= limitDate && !isWeekend) {
+      if (a.tanggal <= limitDate && !isOffDay) {
         recordedDates[pid].add(formatLocal(a.tanggal))
       }
 
@@ -884,24 +986,22 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
       }
     }
 
-    // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja
-    const activeWorkdays: string[] = []
-    for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
-      const day = d.getDay()
-      if (day !== 0 && day !== 6) {
-        activeWorkdays.push(formatLocal(d))
-      }
-    }
-
+    // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja masing-masing
     for (const pid in pegawaiMap) {
       const r = pegawaiMap[pid]
       const rec = recordedDates[pid] || new Set()
       let missingCount = 0
-      for (const d of activeWorkdays) {
-        if (!rec.has(d)) missingCount++
+
+      for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
+        const day = d.getDay()
+        const isWorkday = r.isCabang ? (day !== 0) : (day !== 0 && day !== 6)
+        if (isWorkday && !rec.has(formatLocal(d))) {
+          missingCount++
+        }
       }
       r.alpha += missingCount
     }
+
 
     return Object.values(pegawaiMap).sort((a: any, b: any) =>
       a.nama.localeCompare(b.nama)

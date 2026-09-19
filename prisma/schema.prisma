@@ -383,7 +383,7 @@ model Pengaturan {
     id                String   @id @default("1")
     // Konfigurasi Gaji & Penalti
     
-    // Absensi
+    // Absensi Kantor Pusat (Senin - Jumat)
     jamMasuk          String   @default("08:00")
     jamPulang         String   @default("17:00")
     mulaiAbsenMasuk   String   @default("06:30")
@@ -392,6 +392,23 @@ model Pengaturan {
     batasAbsenPulang  String   @default("18:00")
     batasTerlambat    Int      @default(15)
     lokasiPusat       String?
+
+    // Absensi Kantor Cabang (Senin - Jumat)
+    jamMasukCabang         String   @default("08:00")
+    jamPulangCabang        String   @default("16:30")
+    mulaiAbsenMasukCabang  String   @default("06:30")
+    batasAbsenMasukCabang  String   @default("14:00")
+    mulaiAbsenPulangCabang String   @default("15:00")
+    batasAbsenPulangCabang String   @default("18:00")
+
+    // Pengaturan Khusus Hari Sabtu (Kantor Cabang)
+    aktifSabtuCabang       Boolean  @default(true)
+    jamMasukSabtuCabang    String   @default("08:00")
+    jamPulangSabtuCabang   String   @default("13:00")
+    mulaiMasukSabtuCabang  String   @default("06:30")
+    batasMasukSabtuCabang  String   @default("11:00")
+    mulaiPulangSabtuCabang String   @default("12:00")
+    batasPulangSabtuCabang String   @default("15:00")
   
   // Cuti
   jatahCutiTahunan  Int      @default(12)

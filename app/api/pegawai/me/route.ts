@@ -14,7 +14,8 @@ export async function GET() {
       where: { userId: session.user.id },
       include: {
         bidang: true,
-        subBidang: true
+        subBidang: true,
+        lokasiAbsensi: true
       }
     })
 

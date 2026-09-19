@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { hitungIndeksPegawai } from "@/lib/actions/indeks"
 import { parseTitikKoordinat, hitungJarak } from "@/lib/data/lokasi-store"
+import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
 
 // Anti-fake GPS: batas minimum akurasi yang masih diterima (meter)
 const MAX_ALLOWED_ACCURACY = 300
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
 
     const pegawai = await prisma.pegawai.findUnique({ 
       where: { userId },
-      include: { lokasiAbsensi: true }
+      include: { lokasiAbsensi: true, bidang: true }
     })
     if (!pegawai) return NextResponse.json({ error: "Profil pegawai tidak ditemukan. Hubungi HRD." }, { status: 400 })
 
@@ -122,35 +123,75 @@ export async function POST(req: Request) {
     }
 
     const pengaturan: any = await prisma.pengaturan.findFirst()
+    const isCabang = isCabangEmployee(pegawai)
     
     // Konversi waktu sekarang (Vercel UTC) ke WITA agar pengecekan jam valid
-    const witaString = now.toLocaleString("en-US", { timeZone: "Asia/Makassar" });
-    const witaNow = new Date(witaString);
-    const currentHour = witaNow.getHours();
-    const currentMinute = witaNow.getMinutes();
+    const witaString = now.toLocaleString("en-US", { timeZone: "Asia/Makassar" })
+    const witaNow = new Date(witaString)
+    const dayOfWeek = witaNow.getDay() // 0 = Minggu, 6 = Sabtu
+    const currentHour = witaNow.getHours()
+    const currentMinute = witaNow.getMinutes()
+    const currentTotalM = currentHour * 60 + currentMinute
 
-    const mulaiMasukH = parseInt(pengaturan?.mulaiAbsenMasuk?.split(":")[0] || "6")
-    const mulaiMasukM = parseInt(pengaturan?.mulaiAbsenMasuk?.split(":")[1] || "30")
-    const batasMasukH = parseInt(pengaturan?.batasAbsenMasuk?.split(":")[0] || "14")
-    const mulaiPulangH = parseInt(pengaturan?.mulaiAbsenPulang?.split(":")[0] || "15")
-    const batasPulangH = parseInt(pengaturan?.batasAbsenPulang?.split(":")[0] || "18")
+    // Validasi Hari Libur
+    if (dayOfWeek === 0) {
+      return NextResponse.json({ error: "Hari Minggu adalah hari libur operasional. Presensi ditutup." }, { status: 400 })
+    }
+
+    if (dayOfWeek === 6 && !isCabang) {
+      return NextResponse.json({ error: "Hari Sabtu adalah hari libur untuk kantor pusat. Presensi hari Sabtu khusus pegawai kantor cabang." }, { status: 400 })
+    }
+
+    let mulaiMasukStr = pengaturan?.mulaiAbsenMasuk || "06:30"
+    let batasMasukStr = pengaturan?.batasAbsenMasuk || "14:00"
+    let mulaiPulangStr = pengaturan?.mulaiAbsenPulang || "15:00"
+    let batasPulangStr = pengaturan?.batasAbsenPulang || "18:00"
+    let jamMasukSetting = pengaturan?.jamMasuk || "08:00"
+
+    if (isCabang) {
+      if (dayOfWeek === 6) {
+        // Khusus Hari Sabtu Kantor Cabang
+        mulaiMasukStr = pengaturan?.mulaiMasukSabtuCabang || "06:30"
+        batasMasukStr = pengaturan?.batasMasukSabtuCabang || "11:00"
+        mulaiPulangStr = pengaturan?.mulaiPulangSabtuCabang || "12:00"
+        batasPulangStr = pengaturan?.batasPulangSabtuCabang || "15:00"
+        jamMasukSetting = pengaturan?.jamMasukSabtuCabang || "08:00"
+      } else {
+        // Hari Biasa Kantor Cabang (Senin - Jumat)
+        mulaiMasukStr = pengaturan?.mulaiAbsenMasukCabang || pengaturan?.mulaiAbsenMasuk || "06:30"
+        batasMasukStr = pengaturan?.batasAbsenMasukCabang || pengaturan?.batasAbsenMasuk || "14:00"
+        mulaiPulangStr = pengaturan?.mulaiAbsenPulangCabang || pengaturan?.mulaiAbsenPulang || "15:00"
+        batasPulangStr = pengaturan?.batasAbsenPulangCabang || pengaturan?.batasAbsenPulang || "18:00"
+        jamMasukSetting = pengaturan?.jamMasukCabang || pengaturan?.jamMasuk || "08:00"
+      }
+    }
+
+    const [mulaiMasukH, mulaiMasukM = 0] = mulaiMasukStr.split(":").map(Number)
+    const [batasMasukH, batasMasukM = 0] = batasMasukStr.split(":").map(Number)
+    const [mulaiPulangH, mulaiPulangM = 0] = mulaiPulangStr.split(":").map(Number)
+    const [batasPulangH, batasPulangM = 0] = batasPulangStr.split(":").map(Number)
+
+    const mulaiMasukTotalM = mulaiMasukH * 60 + mulaiMasukM
+    const batasMasukTotalM = batasMasukH * 60 + batasMasukM
+    const mulaiPulangTotalM = mulaiPulangH * 60 + mulaiPulangM
+    const batasPulangTotalM = batasPulangH * 60 + batasPulangM
 
     const isCheckOut = existing && existing.jamMasuk && !existing.jamKeluar
 
     if (!isCheckOut) {
-      // Validasi jam paling pagi (tidak boleh absen tengah malam)
-      if (currentHour < mulaiMasukH || (currentHour === mulaiMasukH && currentMinute < mulaiMasukM)) {
-        return NextResponse.json({ error: `Sesi check-in belum dibuka. Absensi baru bisa dilakukan mulai pukul ${pengaturan?.mulaiAbsenMasuk || "06:30"}.` }, { status: 400 })
+      // Validasi jam buka & batas check-in
+      if (currentTotalM < mulaiMasukTotalM) {
+        return NextResponse.json({ error: `Sesi check-in belum dibuka. Absensi baru bisa dilakukan mulai pukul ${mulaiMasukStr}.` }, { status: 400 })
       }
-      if (currentHour >= batasMasukH) {
-        return NextResponse.json({ error: `Sesi check-in hari ini sudah ditutup sejak pukul ${pengaturan?.batasAbsenMasuk || "14:00"}.` }, { status: 400 })
+      if (currentTotalM > batasMasukTotalM) {
+        return NextResponse.json({ error: `Sesi check-in hari ini sudah ditutup sejak pukul ${batasMasukStr}.` }, { status: 400 })
       }
     } else {
-      if (currentHour < mulaiPulangH) {
-        return NextResponse.json({ error: `Maaf, belum waktunya pulang. Sesi check-out baru akan dibuka pukul ${pengaturan?.mulaiAbsenPulang || "15:00"}.` }, { status: 400 })
+      if (currentTotalM < mulaiPulangTotalM) {
+        return NextResponse.json({ error: `Maaf, belum waktunya pulang. Sesi check-out baru akan dibuka pukul ${mulaiPulangStr}.` }, { status: 400 })
       }
-      if (currentHour >= batasPulangH) {
-        return NextResponse.json({ error: `Sesi check-out sudah berakhir pada pukul ${pengaturan?.batasAbsenPulang || "18:00"}.` }, { status: 400 })
+      if (currentTotalM > batasPulangTotalM) {
+        return NextResponse.json({ error: `Sesi check-out sudah berakhir pada pukul ${batasPulangStr}.` }, { status: 400 })
       }
     }
 
@@ -166,7 +207,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_OUT" })
     }
 
-    const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
     const batasTerlambat = pengaturan?.batasTerlambat || 0
     const [jh, jm] = jamMasukSetting.split(":").map(Number)
     const limitMasuk = new Date(now)

@@ -74,16 +74,20 @@ export function checkAndSendSmartReminder(settings?: {
   sudahMasuk?: boolean
   sudahPulang?: boolean
   isShift?: boolean
+  isCabang?: boolean
 }) {
   if (!isReminderEnabled()) return
 
   const now = new Date()
   const dayOfWeek = now.getDay() // 0 = Minggu, 6 = Sabtu
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
 
-  // PENGINGAT HANYA AKTIF SAAT HARI KERJA (Senin - Jumat)
-  // Tidak mengirim notifikasi pada hari Sabtu & Minggu (kecuali pegawai memiliki jadwal shift khusus)
-  if (isWeekend && !settings?.isShift) {
+  // HARI MINGGU: Selalu libur kecuali shift khusus
+  if (dayOfWeek === 0 && !settings?.isShift) {
+    return
+  }
+
+  // HARI SABTU: Kantor Pusat libur, Kantor Cabang aktif bekerja
+  if (dayOfWeek === 6 && !settings?.isCabang && !settings?.isShift) {
     return
   }
 
