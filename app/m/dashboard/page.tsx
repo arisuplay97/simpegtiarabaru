@@ -656,9 +656,9 @@ export default function MobileDashboard() {
               const Icon = item.icon
               return (
                 <Link key={i} href={item.href}>
-                  <div className="flex flex-col items-center gap-2 p-2.5 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-all active:scale-95 group">
-                    <div className="h-12 w-12 rounded-2xl flex items-center justify-center bg-white dark:bg-zinc-850 shadow-2xs border border-zinc-200/60 dark:border-zinc-750 group-hover:scale-105 group-hover:shadow-sm transition-all duration-200">
-                      <Icon className="h-8 w-8 transition-transform duration-200 group-hover:scale-110" />
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-all active:scale-95 group shadow-2xs">
+                    <div className="flex items-center justify-center py-1">
+                      <Icon className="h-12 w-12 transition-transform duration-200 group-hover:scale-110 drop-shadow-sm" size={48} />
                     </div>
                     <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 text-center leading-tight whitespace-pre-line">
                       {item.label}

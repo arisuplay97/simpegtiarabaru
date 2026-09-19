@@ -517,8 +517,8 @@ export function IconSlipGaji3D({ className = "w-8 h-8", size }: Icon3DProps) {
         <rect x="7" y="17" width="30" height="20" rx="4" stroke="#ffffff" strokeWidth="0.8" opacity="0.4" />
 
         {/* Center Emblem on Banknote */}
-        <circle cx="22" cy="27" r="5" stroke="#ffffff" strokeWidth="1.2" opacity="0.6" />
-        <circle cx="22" cy="27" r="3" fill="#ffffff" opacity="0.25" />
+        <circle cx="22" cy="27" r="5" stroke="#047857" strokeWidth="1" opacity="0.4" />
+        <circle cx="22" cy="27" r="3" fill="#047857" opacity="0.2" />
         
         {/* Decorative corner lines */}
         <circle cx="10" cy="20" r="1.5" fill="#ffffff" opacity="0.5" />
