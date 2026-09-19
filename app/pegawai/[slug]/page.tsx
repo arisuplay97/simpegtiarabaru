@@ -98,6 +98,7 @@ import { getPegawaiActivityLogs } from "@/lib/actions/audit-log"
 import { resetFaceData } from "@/lib/actions/face"
 import { getLokasiList } from "@/lib/actions/lokasi"
 import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
+import { daftarPangkat } from "@/lib/constants/pangkat"
 import { generateCvPdf } from "@/lib/generate-cv-pdf"
 import { Camera } from "lucide-react"
 
@@ -281,10 +282,42 @@ export default function EmployeeDetailPage() {
     }
   }
 
-  // State & Handlers: Input Manual Riwayat Pangkat
+  // State & Handlers: Input Riwayat Pangkat
   const [showAddPangkat, setShowAddPangkat] = useState(false)
-  const [pangkatForm, setPangkatForm] = useState({ pangkat: "", golongan: "III/a", tanggalBerlaku: "", nomorSK: "" })
+  const [isCustomPangkat, setIsCustomPangkat] = useState(false)
+  const [pangkatForm, setPangkatForm] = useState({ pangkat: "Juru Muda", golongan: "A/I", tanggalBerlaku: "", nomorSK: "" })
   const [isSubmittingPangkat, setIsSubmittingPangkat] = useState(false)
+
+  const handleOpenAddPangkat = () => {
+    const curGol = employee?.golongan || "A/I"
+    const found = daftarPangkat.find(p => p.golongan === curGol || p.aliasGolongan.includes(curGol))
+    setPangkatForm({
+      golongan: found ? found.golongan : curGol,
+      pangkat: found ? found.nama : (employee?.pangkat || "Juru Muda"),
+      tanggalBerlaku: "",
+      nomorSK: ""
+    })
+    setIsCustomPangkat(false)
+    setShowAddPangkat(true)
+  }
+
+  const handleGolonganChange = (selectedGol: string) => {
+    const found = daftarPangkat.find(p => p.golongan === selectedGol || p.aliasGolongan.includes(selectedGol))
+    setPangkatForm(f => ({
+      ...f,
+      golongan: selectedGol,
+      pangkat: found ? found.nama : f.pangkat
+    }))
+  }
+
+  const handlePangkatChange = (selectedNama: string) => {
+    const found = daftarPangkat.find(p => p.nama === selectedNama)
+    setPangkatForm(f => ({
+      ...f,
+      pangkat: selectedNama,
+      golongan: found ? found.golongan : f.golongan
+    }))
+  }
 
   const handleAddPangkat = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -298,7 +331,7 @@ export default function EmployeeDetailPage() {
       if (res?.error) throw new Error(res.error)
       toast.success("Riwayat pangkat berhasil ditambahkan")
       setShowAddPangkat(false)
-      setPangkatForm({ pangkat: "", golongan: "III/a", tanggalBerlaku: "", nomorSK: "" })
+      setPangkatForm({ pangkat: "Juru Muda", golongan: "A/I", tanggalBerlaku: "", nomorSK: "" })
       await fetchEmployee()
     } catch (err: any) {
       toast.error(err.message || "Gagal menambahkan riwayat pangkat")
@@ -1656,7 +1689,7 @@ export default function EmployeeDetailPage() {
                     <CardTitle className="text-base">Riwayat Pangkat & Golongan</CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">Histori kepangkatan, golongan ruang, dan penetapan SK</p>
                   </div>
-                  <Button size="sm" onClick={() => setShowAddPangkat(true)} className="h-8 gap-1.5 text-xs">
+                  <Button size="sm" onClick={handleOpenAddPangkat} className="h-8 gap-1.5 text-xs">
                     <Plus className="h-3.5 w-3.5" /> Tambah Riwayat Pangkat
                   </Button>
                 </CardHeader>
@@ -2512,51 +2545,105 @@ export default function EmployeeDetailPage() {
               <Award className="h-5 w-5 text-primary" />
               Tambah Riwayat Pangkat & Golongan
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Pilih golongan atau pangkat resmi. Nilai pasangannya akan otomatis terisi tanpa perlu mengetik manual.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddPangkat}>
             <div className="p-6 space-y-4">
-              <F label="Nama Pangkat">
-                <Input
-                  required
-                  placeholder="e.g. Penata Muda Tk. I"
-                  value={pangkatForm.pangkat}
-                  onChange={e => setPangkatForm(f => ({ ...f, pangkat: e.target.value }))}
-                />
+              {/* Golongan / Ruang */}
+              <F label="Golongan / Ruang">
+                <Select
+                  value={pangkatForm.golongan}
+                  onValueChange={handleGolonganChange}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Pilih Golongan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {daftarPangkat.map(p => (
+                      <SelectItem key={p.golongan} value={p.golongan} className="text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">{p.golongan}</span>
+                          <span className="text-muted-foreground">• {p.nama}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </F>
-              <div className="grid grid-cols-2 gap-3">
-                <F label="Golongan / Ruang">
-                  <Select
-                    value={pangkatForm.golongan}
-                    onValueChange={v => setPangkatForm(f => ({ ...f, golongan: v }))}
+
+              {/* Nama Pangkat (Otomatis / Sinkron) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Nama Pangkat</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomPangkat(!isCustomPangkat)}
+                    className="text-[11px] text-primary hover:underline"
                   >
-                    <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                    {isCustomPangkat ? "Pilih dari Daftar Baku" : "Tulis Manual / Kustom"}
+                  </button>
+                </div>
+                {isCustomPangkat ? (
+                  <Input
+                    required
+                    placeholder="Contoh: Penata Muda Tk. I"
+                    value={pangkatForm.pangkat}
+                    onChange={e => setPangkatForm(f => ({ ...f, pangkat: e.target.value }))}
+                    className="h-9 text-xs"
+                  />
+                ) : (
+                  <Select
+                    value={pangkatForm.pangkat}
+                    onValueChange={handlePangkatChange}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Pilih Pangkat" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {["I/a","I/b","I/c","I/d","II/a","II/b","II/c","II/d","III/a","III/b","III/c","III/d","IV/a","IV/b","IV/c","IV/d","IV/e"].map(g => (
-                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                      {daftarPangkat.map(p => (
+                        <SelectItem key={p.nama} value={p.nama} className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <span>{p.nama}</span>
+                            <span className="font-mono text-muted-foreground text-[11px]">({p.golongan})</span>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </F>
-                <F label="TMT Berlaku">
-                  <Input
-                    required
-                    type="date"
-                    value={pangkatForm.tanggalBerlaku}
-                    onChange={e => setPangkatForm(f => ({ ...f, tanggalBerlaku: e.target.value }))}
-                  />
-                </F>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  {isCustomPangkat 
+                    ? "Mode manual aktif untuk jabatan/pangkat khusus." 
+                    : "Otomatis tersinkronisasi saat Anda memilih Golongan."}
+                </p>
               </div>
+
+              {/* TMT Berlaku */}
+              <F label="TMT Berlaku">
+                <Input
+                  required
+                  type="date"
+                  value={pangkatForm.tanggalBerlaku}
+                  onChange={e => setPangkatForm(f => ({ ...f, tanggalBerlaku: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </F>
+
+              {/* Nomor SK */}
               <F label="Nomor SK (Pengesahan)">
                 <Input
-                  placeholder="e.g. SK/DIR/KP/2023/045"
+                  placeholder="Contoh: SK/DIR/KP/2023/045"
                   value={pangkatForm.nomorSK}
                   onChange={e => setPangkatForm(f => ({ ...f, nomorSK: e.target.value }))}
+                  className="h-9 text-xs"
                 />
               </F>
             </div>
             <DialogFooter className="px-6 py-4 border-t bg-muted/30">
-              <Button type="button" variant="outline" onClick={() => setShowAddPangkat(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmittingPangkat}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowAddPangkat(false)}>Batal</Button>
+              <Button type="submit" size="sm" disabled={isSubmittingPangkat}>
                 {isSubmittingPangkat ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Pangkat"}
               </Button>
             </DialogFooter>
