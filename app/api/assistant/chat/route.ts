@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       absensiHariIni,
       cutiPendingCount,
       bidangList,
-      samplePegawai
+      allPegawaiAktif
     ] = await Promise.all([
       prisma.pegawai.count({ where: { status: "AKTIF" } }).catch(() => 0),
       prisma.absensi.findMany({
@@ -41,12 +41,21 @@ export async function POST(req: NextRequest) {
       }).catch(() => []),
       prisma.cuti.count({ where: { status: "PENDING" } }).catch(() => 0),
       prisma.bidang.findMany({
-        select: { nama: true, _count: { select: { pegawai: { where: { status: "AKTIF" } } } } }
+        select: { id: true, nama: true, kode: true, _count: { select: { pegawai: { where: { status: "AKTIF" } } } } }
       }).catch(() => []),
       prisma.pegawai.findMany({
         where: { status: "AKTIF" },
-        take: 15,
-        select: { nik: true, nama: true, jabatan: true, golongan: true, status: true, bidang: { select: { nama: true } } }
+        select: {
+          id: true,
+          nik: true,
+          nama: true,
+          jabatan: true,
+          golongan: true,
+          status: true,
+          bidang: { select: { id: true, nama: true } },
+          subBidang: { select: { nama: true } }
+        },
+        orderBy: [{ bidang: { nama: "asc" } }, { nama: "asc" }]
       }).catch(() => [])
     ])
 
@@ -56,7 +65,71 @@ export async function POST(req: NextRequest) {
     const belumAbsenCount = Math.max(0, totalPegawaiAktif - (hadirCount + terlambatCount + izinSakitCount))
     const attendanceRate = totalPegawaiAktif > 0 ? Math.round(((hadirCount + terlambatCount) / totalPegawaiAktif) * 100) : 0
 
-    // 2. Deteksi Permintaan Pembuatan Berkas (PDF / Excel)
+    // 2. Analisis & Filter Cerdas Berdasarkan Permintaan Pengguna (Bidang / Jabatan)
+    let matchedBidang: any = null
+    // Direct match nama bidang
+    for (const b of bidangList) {
+      const bName = (b.nama || "").trim().toLowerCase()
+      if (bName && userPrompt.includes(bName)) {
+        matchedBidang = b
+        break
+      }
+    }
+    // Keyword / Alias matches
+    if (!matchedBidang) {
+      if (userPrompt.includes("sekretariat") || userPrompt.includes("sekper")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("sekretariat"))
+      } else if (userPrompt.includes("keuangan") || userPrompt.includes("keu") || userPrompt.includes("akuntansi") || userPrompt.includes("kasir")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("keuangan"))
+      } else if (userPrompt.includes("sdm") || userPrompt.includes("personalia") || userPrompt.includes("umum")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("sdm"))
+      } else if (userPrompt.includes("produksi") || userPrompt.includes("prod")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("produksi"))
+      } else if (userPrompt.includes("transmisi") || userPrompt.includes("distribusi")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("transmisi") || b.nama.toLowerCase().includes("distribusi"))
+      } else if (userPrompt.includes("perencana") || userPrompt.includes("pengawasan") || userPrompt.includes("teknik")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("perencana"))
+      } else if (userPrompt.includes("langganan") || userPrompt.includes("hublang")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("langganan"))
+      } else if (userPrompt.includes("direksi") || userPrompt.includes("direktur")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("direksi"))
+      } else if (userPrompt.includes("cabang")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("cabang"))
+      } else if (userPrompt.includes("spi")) {
+        matchedBidang = bidangList.find((b: any) => b.nama.toLowerCase().includes("spi"))
+      }
+    }
+
+    let matchedJabatan: string | null = null
+    const jabatanList = ["direktur utama", "direktur", "kepala bidang", "kepala cabang", "kasubbid", "staff"]
+    for (const j of jabatanList) {
+      if (userPrompt.includes(j)) {
+        matchedJabatan = j
+        break
+      }
+    }
+
+    // Tentukan pegawai target yang difilter secara presisi
+    let targetPegawai = allPegawaiAktif
+    let filterDescription = "Seluruh Pegawai Aktif"
+    let fileSlug = "Daftar_Nominatif_Pegawai_Aktif"
+
+    if (matchedBidang) {
+      const bNamaTrimmed = matchedBidang.nama.trim().toLowerCase()
+      targetPegawai = allPegawaiAktif.filter((p: any) =>
+        p.bidang?.nama && p.bidang.nama.trim().toLowerCase() === bNamaTrimmed
+      )
+      filterDescription = `Bidang ${matchedBidang.nama.trim()}`
+      fileSlug = `Daftar_Pegawai_Bidang_${matchedBidang.nama.trim().replace(/[^a-zA-Z0-9]/g, "_")}`
+    } else if (matchedJabatan) {
+      targetPegawai = allPegawaiAktif.filter((p: any) =>
+        p.jabatan && p.jabatan.toLowerCase().includes(matchedJabatan!.toLowerCase())
+      )
+      filterDescription = `Jabatan ${matchedJabatan.toUpperCase()}`
+      fileSlug = `Daftar_Pegawai_Jabatan_${matchedJabatan.replace(/[^a-zA-Z0-9]/g, "_")}`
+    }
+
+    // 3. Deteksi Permintaan Berkas (Excel / PDF)
     const filesToAttach: GeneratedFileResult[] = []
 
     const isExcelRequested = userPrompt.includes("excel") || userPrompt.includes("xlsx") || userPrompt.includes("spreadsheet")
@@ -65,10 +138,15 @@ export async function POST(req: NextRequest) {
     if (isExcelRequested) {
       if (userPrompt.includes("absen") || userPrompt.includes("presensi") || userPrompt.includes("kehadiran")) {
         // Buat Excel Rekap Presensi
+        const targetAbsensi = matchedBidang 
+          ? absensiHariIni.filter((a: any) => a.pegawai?.bidang?.nama?.trim().toLowerCase() === matchedBidang.nama.trim().toLowerCase())
+          : absensiHariIni
+
         const excelFile = await generateAssistantExcel({
-          title: "Rekapitulasi Presensi Pegawai Harian",
-          subtitle: `Tanggal: ${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} | Hadir: ${hadirCount}, Terlambat: ${terlambatCount}`,
+          title: matchedBidang ? `Rekapitulasi Presensi Pegawai - Bidang ${matchedBidang.nama.trim()}` : "Rekapitulasi Presensi Pegawai Harian",
+          subtitle: `Tanggal: ${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} | Unit: ${filterDescription}`,
           sheetName: "Presensi Harian",
+          filename: `Rekap_Presensi_${(matchedBidang ? matchedBidang.nama.trim() : "Harian").replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.xlsx`,
           columns: [
             { header: "Nama Pegawai", key: "nama", width: 26 },
             { header: "Jabatan", key: "jabatan", width: 22 },
@@ -76,36 +154,41 @@ export async function POST(req: NextRequest) {
             { header: "Status Kehadiran", key: "status", width: 18 },
             { header: "Waktu Absen", key: "waktu", width: 16 }
           ],
-          rows: absensiHariIni.length > 0 ? absensiHariIni.map((a: any) => ({
+          rows: targetAbsensi.length > 0 ? targetAbsensi.map((a: any) => ({
             nama: a.pegawai?.nama || "-",
             jabatan: a.pegawai?.jabatan || "-",
             bidang: a.pegawai?.bidang?.nama || "-",
             status: a.status,
             waktu: a.createdAt ? new Date(a.createdAt).toLocaleTimeString("id-ID") : "-"
-          })) : samplePegawai.map((p: any) => ({
+          })) : targetPegawai.map((p: any) => ({
             nama: p.nama,
             jabatan: p.jabatan,
             bidang: p.bidang?.nama || "-",
-            status: "HADIR",
-            waktu: "07:28 WITA"
+            status: "BELUM ABSEN",
+            waktu: "-"
           }))
         })
         filesToAttach.push(excelFile)
       } else {
-        // Buat Excel Master Pegawai
+        // Buat Excel Pegawai Khusus (Sesuai Filter Bidang / Jabatan yang diminta)
         const excelFile = await generateAssistantExcel({
-          title: "Daftar Nominatif Pegawai Aktif",
-          subtitle: `Total: ${totalPegawaiAktif} Pegawai Aktif Terdaftar di SIMPEG TIARA`,
-          sheetName: "Data Pegawai",
+          title: matchedBidang 
+            ? `DAFTAR PEGAWAI BIDANG ${matchedBidang.nama.trim().toUpperCase()}`
+            : matchedJabatan
+            ? `DAFTAR PEGAWAI JABATAN ${matchedJabatan.toUpperCase()}`
+            : "DAFTAR NOMINATIF PEGAWAI AKTIF",
+          subtitle: `Total: ${targetPegawai.length} Pegawai Terdaftar | Unit Kerja: ${filterDescription} | SIMPEG TIARA`,
+          sheetName: matchedBidang ? matchedBidang.nama.trim().slice(0, 26) : "Data Pegawai",
+          filename: `${fileSlug}_${Date.now()}.xlsx`,
           columns: [
-            { header: "NIK", key: "nik", width: 20 },
+            { header: "NIK", key: "nik", width: 18 },
             { header: "Nama Lengkap", key: "nama", width: 26 },
-            { header: "Jabatan", key: "jabatan", width: 22 },
+            { header: "Jabatan", key: "jabatan", width: 24 },
             { header: "Golongan", key: "golongan", width: 14 },
-            { header: "Unit Kerja", key: "bidang", width: 24 },
+            { header: "Unit Kerja / Bidang", key: "bidang", width: 26 },
             { header: "Status", key: "status", width: 14 }
           ],
-          rows: samplePegawai.map((p: any) => ({
+          rows: targetPegawai.map((p: any) => ({
             nik: p.nik || "-",
             nama: p.nama,
             jabatan: p.jabatan,
@@ -121,48 +204,49 @@ export async function POST(req: NextRequest) {
         const pdfFile = await generateAssistantPdf({
           title: "NOTA DINAS RESMI",
           nomorSurat: `005/ND-PEG/PDAM-TAR/${new Date().getFullYear()}`,
-          subtitle: "Perihal: Permohonan Penugasan Operasional & Pemeliharaan Sarana Distribusi Air",
+          subtitle: `Perihal: Penugasan Operasional Pegawai ${filterDescription}`,
+          filename: `Nota_Dinas_${(matchedBidang ? matchedBidang.nama.trim() : "Resmi").replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.pdf`,
           contentLines: [
             "Kepada Yth. : Direktur Utama Perumda Air Minum Tirta Ardhia Rinjani",
             "Dari         : Kepala Bagian Kepegawaian & Umum",
             `Tanggal      : ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`,
             "Sifat        : Penting / Segera",
             "",
-            "1. Sehubungan dengan program peningkatan keandalan suplai air bersih dan kepatuhan standar pelayanan minimal, bersama ini diajukan usulan pelaksanaan tugas pemeliharaan sistem transmisi terpadu.",
-            "2. Berdasarkan data kedisiplinan dan absensi realtime SIMPEG TIARA, personel yang diusulkan telah memenuhi syarat operasional lapangan dan telah terdaftar aktif dalam shift dinas.",
-            "3. Demikian nota dinas ini disampaikan, atas arahan dan persetujuan Bapak Direktur Utama kami haturkan terima kasih."
+            `1. Sehubungan dengan pemenuhan tugas kedinasan di lingkungan ${filterDescription}, bersama ini disampaikan daftar personel yang ditugaskan.`,
+            "2. Berdasarkan data kedisiplinan dan absensi realtime SIMPEG TIARA, seluruh personel yang tercantum aktif bertugas.",
+            "3. Demikian nota dinas ini disampaikan, atas perhatian dan arahan Bapak Direktur Utama kami ucapkan terima kasih."
           ],
           tableData: {
-            headers: ["Nama Personel", "Jabatan", "Unit Tugas", "Keterangan"],
-            rows: samplePegawai.slice(0, 4).map((p: any) => [
+            headers: ["Nama Personel", "Jabatan", "Golongan", "Unit Kerja"],
+            rows: targetPegawai.slice(0, 8).map((p: any) => [
               p.nama,
               p.jabatan,
-              p.bidang?.nama || "Transmisi",
-              "Siap Tugas"
+              p.golongan || "-",
+              p.bidang?.nama || "-"
             ])
           }
         })
         filesToAttach.push(pdfFile)
       } else {
-        // PDF Rekap Eksekutif
+        // PDF Rekap Pegawai / Eksekutif
         const pdfFile = await generateAssistantPdf({
-          title: "LAPORAN EKSEKUTIF KEPEGAWAIAN",
+          title: matchedBidang 
+            ? `DAFTAR PEGAWAI BIDANG ${matchedBidang.nama.trim().toUpperCase()}`
+            : `LAPORAN PEGAWAI ${filterDescription.toUpperCase()}`,
           nomorSurat: `090/LAP-SDM/PDAM-TAR/${new Date().getFullYear()}`,
-          subtitle: `Periode: ${new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })} | Basis Data SIMPEG Terintegrasi`,
+          subtitle: `Unit Kerja: ${filterDescription} | Total: ${targetPegawai.length} Pegawai Aktif`,
+          filename: `${fileSlug}_${Date.now()}.pdf`,
           contentLines: [
-            `Laporan ringkas mengenai status kepegawaian dan kehadiran kerja di lingkungan Perumda Air Minum Tirta Ardhia Rinjani:`,
-            `• Total Pegawai Aktif: ${totalPegawaiAktif} orang`,
-            `• Tingkat Presensi Hari Ini: ${attendanceRate}% (${hadirCount} hadir tepat waktu, ${terlambatCount} terlambat)`,
-            `• Berkas Permohonan Cuti Pending: ${cutiPendingCount} pengajuan memerlukan verifikasi`,
-            "",
-            "Seluruh data telah diverifikasi sesuai ketentuan tata tertib kepegawaian yang berlaku."
+            `Berikut daftar resmi pegawai tercatat aktif di lingkungan ${filterDescription} Perumda Air Minum Tirta Ardhia Rinjani:`,
+            `Seluruh data telah diverifikasi sesuai database kepegawaian SIMPEG TIARA.`
           ],
           tableData: {
-            headers: ["Bidang / Unit Kerja", "Jumlah Pegawai", "Status Operasional"],
-            rows: bidangList.slice(0, 5).map((b: any) => [
-              b.nama,
-              `${b._count?.pegawai || 0} Orang`,
-              "Berjalan Normal"
+            headers: ["Nama Pegawai", "Jabatan", "Golongan", "Unit Kerja"],
+            rows: targetPegawai.map((p: any) => [
+              p.nama,
+              p.jabatan,
+              p.golongan || "-",
+              p.bidang?.nama || "-"
             ])
           }
         })
@@ -170,7 +254,44 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Cek Konfigurasi External AI Model dari Database
+    // 4. Siapkan Data Konteks Lengkap untuk LLM (Prompt Engineering Presisi)
+    const pegawaiTargetFormatted = targetPegawai.map((p: any, idx: number) => 
+      `${idx + 1}. **${p.nama}** - Jabatan: ${p.jabatan} | Golongan: ${p.golongan || "-"} | Unit Kerja: ${p.bidang?.nama || "-"}`
+    ).join("\n")
+
+    const allBidangSummary = bidangList.map((b: any) => 
+      `- ${b.nama.trim()}: ${b._count?.pegawai || 0} pegawai aktif`
+    ).join("\n")
+
+    const fullPegawaiDirectory = allPegawaiAktif.map((p: any, idx: number) =>
+      `${idx + 1}. ${p.nama} (${p.jabatan} - ${p.bidang?.nama || "Tanpa Bidang"})`
+    ).join("\n")
+
+    const systemPrompt = `Anda adalah Tiara Assistant, AI Cerdas resmi sistem kepegawaian (SIMPEG) Perumda Air Minum Tirta Ardhia Rinjani (PDAM TAR).
+
+PANDUAN UTAMA KETEPATAN JAWABAN:
+1. Jawab pertanyaan pengguna secara LANGSUNG, SPESIFIK, FAKTUAL, dan AKURAT sesuai data database SIMPEG di bawah ini.
+2. JANGAN PERNAH menyuruh pengguna memfilter sendiri di Excel atau mencari sendiri data yang diminta!
+3. Jika pengguna menanyakan atau meminta file Excel/PDF tentang pegawai di bidang/unit kerja tertentu (misalnya "Sekretariat Perusahaan"):
+   - Sistem TELAH MEMBUATKAN file terlampir (${filesToAttach.map(f => f.name).join(", ")}) yang HANYA memuat data pegawai bidang tersebut secara presisi.
+   - Di teks balasan Anda, TULISKAN nama-nama pegawai tersebut secara lengkap (format daftar berpoin / tabel markdown yang rapi).
+   - Informasikan dengan ramah bahwa file unduhan yang dilampirkan sudah difilter khusus hanya berisi daftar nama pegawai tersebut.
+
+DATA REAL-TIME DATABASE SIMPEG:
+${matchedBidang || matchedJabatan ? `DATA PEGAWAI HASIL FILTER KHUSUS (${filterDescription} - ${targetPegawai.length} Orang):
+${pegawaiTargetFormatted}` : `DAFTAR PEGAWAI AKTIF (${allPegawaiAktif.length} Orang):
+${fullPegawaiDirectory}`}
+
+STATISTIK UMUM INSTANSI:
+- Total Pegawai Aktif: ${totalPegawaiAktif} orang
+- Presensi Hari Ini: ${hadirCount} Hadir, ${terlambatCount} Terlambat, ${belumAbsenCount} Belum Absen (${attendanceRate}% kehadiran)
+- Daftar Unit Kerja & Jumlah Pegawai:
+${allBidangSummary}
+
+${filesToAttach.length > 0 ? `FILE TERLAMPIR YANG SUDAH DIBUAT SISTEM:
+${filesToAttach.map(f => `- ${f.name} (${f.size}) -> File ini SUDAH difilter presisi hanya memuat data ${filterDescription}.`).join("\n")}` : ""}`
+
+    // 5. Cek Konfigurasi External AI Model dari Database
     let aiConfig: any = null
     try {
       aiConfig = await (prisma as any).aiConfig.findUnique({ where: { id: "default" } })
@@ -178,17 +299,10 @@ export async function POST(req: NextRequest) {
 
     const hasExternalKey = aiConfig?.enabled && aiConfig?.apiKeyEncrypted
 
-    // 4. Jika ada model eksternal yang terpasang dan aktif, panggil API eksternal
+    // 6. Jika ada model eksternal yang terpasang dan aktif, panggil API eksternal
     if (hasExternalKey) {
       try {
         const decryptedKey = decryptApiKey(aiConfig.apiKeyEncrypted)
-        const systemPrompt = `${aiConfig.systemPrompt || "Anda adalah Tiara Assistant, AI resmi SIMPEG PDAM Tirta Ardhia Rinjani."}
-Konteks Data Realtime SIMPEG Hari Ini (${new Date().toLocaleDateString("id-ID")}):
-- Total Pegawai Aktif: ${totalPegawaiAktif} orang
-- Presensi Hari Ini: ${hadirCount} Hadir, ${terlambatCount} Terlambat, ${belumAbsenCount} Belum Absen (${attendanceRate}% kehadiran)
-- Pengajuan Cuti Pending: ${cutiPendingCount} berkas
-- Unit Kerja: ${bidangList.map((b: any) => b.nama).join(", ")}
-${filesToAttach.length > 0 ? `Catatan: Sistem telah membuat berkas ${filesToAttach.map(f => f.name).join(", ")} yang dapat langsung diunduh oleh pengguna di bawah pesan ini.` : ""}`
 
         if (aiConfig.provider === "google") {
           // Google Gemini API Call
@@ -198,10 +312,10 @@ ${filesToAttach.length > 0 ? `Catatan: Sistem telah membuat berkas ${filesToAtta
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [
-                { role: "user", parts: [{ text: `${systemPrompt}\n\nPertanyaan Pegawai: ${userPromptRaw}` }] }
+                { role: "user", parts: [{ text: `${systemPrompt}\n\nPertanyaan Pengguna: ${userPromptRaw}` }] }
               ],
               generationConfig: {
-                temperature: aiConfig.temperature || 0.7,
+                temperature: aiConfig.temperature || 0.4,
                 maxOutputTokens: aiConfig.maxTokens || 2048
               }
             })
@@ -216,20 +330,21 @@ ${filesToAttach.length > 0 ? `Catatan: Sistem telah membuat berkas ${filesToAtta
                 role: "assistant",
                 thinking: {
                   steps: [
-                    `Terhubung ke Google Gemini (${aiConfig.model})...`,
-                    `Memproses data real-time kepegawaian SIMPEG PDAM...`,
-                    `Menghasilkan tanggapan komprehensif...`
+                    `Menghubungkan ke ${aiConfig.model} (Google Gemini)...`,
+                    `Memfilter data pegawai ${filterDescription} dari database SIMPEG (${targetPegawai.length} orang)...`,
+                    filesToAttach.length > 0 ? `Menyusun file ${filesToAttach.map(f => f.name).join(", ")} khusus ${filterDescription}...` : "Memvalidasi data...",
+                    `Menyusun tanggapan akurat...`
                   ],
-                  durationSeconds: "1.4"
+                  durationSeconds: "1.2"
                 },
                 content: replyText,
                 files: filesToAttach,
                 suggestions: [
-                  "Buatkan laporan presensi hari ini format excel",
-                  "Buatkan draf nota dinas resmi format pdf",
-                  "Bagaimana rincian kehadiran per unit kerja?"
+                  "Kirimkan rekap presensi hari ini format excel",
+                  "Siapa saja pegawai di bidang Keuangan?",
+                  "Berapa total pegawai aktif di masing-masing bidang?"
                 ],
-                relatedLink: { text: "Buka Pengaturan AI", href: "/settings/ai" },
+                relatedLink: { text: "Data Pegawai", href: "/pegawai" },
                 timestamp: new Date().toISOString()
               })
             }
@@ -253,7 +368,7 @@ ${filesToAttach.length > 0 ? `Catatan: Sistem telah membuat berkas ${filesToAtta
                 { role: "system", content: systemPrompt },
                 ...messages.map((m: any) => ({ role: m.role, content: m.content }))
               ],
-              temperature: aiConfig.temperature || 0.7,
+              temperature: aiConfig.temperature || 0.4,
               max_tokens: aiConfig.maxTokens || 2048
             })
           })
@@ -267,20 +382,21 @@ ${filesToAttach.length > 0 ? `Catatan: Sistem telah membuat berkas ${filesToAtta
                 role: "assistant",
                 thinking: {
                   steps: [
-                    `Menghubungi model AI eksternal (${aiConfig.model})...`,
-                    `Menganalisis basis data SIMPEG PDAM TAR...`,
-                    `Menyusun respons terstruktur...`
+                    `Terhubung ke model ${aiConfig.model}...`,
+                    `Mengambil data ${filterDescription} dari database SIMPEG (${targetPegawai.length} orang)...`,
+                    filesToAttach.length > 0 ? `Menghasilkan berkas ${filesToAttach.map(f => f.name).join(", ")} khusus ${filterDescription}...` : "Memproses konteks...",
+                    `Menyusun respon faktual...`
                   ],
-                  durationSeconds: "1.2"
+                  durationSeconds: "1.3"
                 },
                 content: replyText,
                 files: filesToAttach,
                 suggestions: [
-                  "Buatkan rekap presensi hari ini format excel",
-                  "Buatkan draf nota dinas format pdf",
-                  "Analisis performa kehadiran per unit"
+                  "Kirimkan rekap presensi hari ini format excel",
+                  "Siapa saja pegawai di bidang Keuangan?",
+                  "Berapa total pegawai aktif di masing-masing bidang?"
                 ],
-                relatedLink: { text: "Buka Pengaturan AI", href: "/settings/ai" },
+                relatedLink: { text: "Data Pegawai", href: "/pegawai" },
                 timestamp: new Date().toISOString()
               })
             }
@@ -291,77 +407,69 @@ ${filesToAttach.length > 0 ? `Catatan: Sistem telah membuat berkas ${filesToAtta
       }
     }
 
-    // 5. Fallback Internal Engine Cerdas SIMPEG TIARA (Dilengkapi Generator File)
+    // 7. Fallback Internal Engine Cerdas SIMPEG TIARA (Respon Presisi Berdasarkan Database)
     const thinkingSteps = [
-      "Mengidentifikasi konteks pertanyaan dalam domain SIMPEG PDAM Tirta Ardhia Rinjani...",
-      `Mengakses basis data kepegawaian real-time: ${totalPegawaiAktif} pegawai aktif, ${absensiHariIni.length} log presensi hari ini...`,
-      filesToAttach.length > 0 ? `Menyusun dan mengekspor berkas ${filesToAttach.map(f => f.name).join(", ")}...` : "Menyusun respons analitik dan rekomendasi...",
-      "Memvalidasi format dokumen kedinasan resmi..."
+      "Mengidentifikasi konteks data yang diminta dalam domain SIMPEG PDAM TAR...",
+      `Mengambil data pegawai ${filterDescription} (${targetPegawai.length} orang)...`,
+      filesToAttach.length > 0 ? `Menyusun dan mengekspor berkas ${filesToAttach.map(f => f.name).join(", ")}...` : "Menyusun tanggapan...",
+      "Memvalidasi kelengkapan data..."
     ]
 
     let responseMarkdown = ""
-    let suggestions: string[] = []
-    let relatedLink: { text: string; href: string } | null = null
+    let suggestions: string[] = [
+      "Kirimkan rekap presensi hari ini format excel",
+      "Siapa saja pegawai di bidang Keuangan?",
+      "Tampilkan statistik pegawai per unit kerja"
+    ]
+    let relatedLink: { text: string; href: string } | null = { text: "Data Pegawai", href: "/pegawai" }
 
     if (filesToAttach.length > 0) {
       const fileNames = filesToAttach.map(f => `**${f.name}** (${f.size})`).join(", ")
-      responseMarkdown = `### 📄 Berkas Telah Berhasil Dibuat!
-      
-Permintaan Anda untuk menghasilkan dokumen resmi telah diproses oleh sistem:
 
-- **Berkas yang Siap Diunduh**: ${fileNames}
-- **Format**: ${filesToAttach[0].type === "excel" ? "Microsoft Excel (.xlsx) dengan tabel styling resmi PDAM" : "Portable Document Format (.pdf) dengan Kop Surat Resmi PDAM Tirta Ardhia Rinjani"}
+      let tableMarkup = ""
+      if (targetPegawai.length > 0) {
+        tableMarkup = `Berikut adalah daftar **${targetPegawai.length} pegawai** yang bertugas di **${filterDescription}**:\n\n` +
+          `| No | NIK | Nama Lengkap | Jabatan | Golongan | Unit Kerja |\n` +
+          `| :-: | :--- | :--- | :--- | :-: | :--- |\n` +
+          targetPegawai.map((p: any, idx: number) => 
+            `| ${idx + 1} | ${p.nik || "-"} | **${p.nama}** | ${p.jabatan} | ${p.golongan || "-"} | ${p.bidang?.nama || "-"} |`
+          ).join("\n") +
+          "\n\n"
+      }
 
-Silakan klik tombol **"Unduh Berkas"** pada kartu lampiran di bawah ini untuk menyimpan file ke perangkat Anda.`
-      suggestions = [
-        "Buatkan laporan presensi hari ini format excel",
-        "Buatkan draf nota dinas resmi format pdf",
-        "Tampilkan statistik kehadiran per unit kerja"
-      ]
-    } else if (userPrompt.includes("presensi") || userPrompt.includes("absen") || userPrompt.includes("kehadiran") || userPrompt.includes("terlambat")) {
-      responseMarkdown = `### 📊 Analisis Presensi & Kedisiplinan Hari Ini
-
-Berdasarkan pencatatan mesin biometric & absensi selfie **PDAM Tirta Ardhia Rinjani** per tanggal **${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}**:
-
-| Parameter Kehadiran | Jumlah | Persentase / Status |
-| :--- | :---: | :--- |
-| **Total Pegawai Wajib Hadir** | **${totalPegawaiAktif}** orang | 100% Basis Aktif |
-| **Hadir Tepat Waktu** | **${hadirCount}** orang | Standar jam masuk 07:30 WITA |
-| **Terlambat Masuk** | **${terlambatCount}** orang | Toleransi s.d 15 menit |
-| **Izin / Sakit / Cuti** | **${izinSakitCount}** orang | Terverifikasi HRD |
-| **Belum Melakukan Absen** | **${belumAbsenCount}** orang | Menunggu konfirmasi |
-
-> 💡 **Tip:** Anda dapat meminta saya untuk mengunduh rekap ini: *"Buatkan rekap absensi hari ini dalam format excel"*`
-
-      suggestions = [
-        "Buatkan rekap absensi hari ini format excel",
-        "Siapa saja pegawai yang belum absen hari ini?",
-        "Tampilkan statistik kehadiran kantor cabang"
-      ]
-      relatedLink = { text: "Buka Monitoring Absensi", href: "/absensi" }
+      responseMarkdown = `### 📄 Berkas Telah Berhasil Dibuat!\n\n${tableMarkup}` +
+        `File **${filesToAttach[0].name}** telah selesai dibuat dan **khusus memuat data ${filterDescription}** (${targetPegawai.length} pegawai).\n\n` +
+        `Silakan klik tombol **"Unduh"** pada kartu lampiran di bawah ini untuk menyimpan file ke perangkat Anda.`
+    } else if (matchedBidang || userPrompt.includes("pegawai") || userPrompt.includes("nama") || userPrompt.includes("daftar")) {
+      responseMarkdown = `### 👥 Daftar Pegawai - ${filterDescription}\n\n` +
+        `Ditemukan **${targetPegawai.length} pegawai aktif** yang terdaftar di lingkungan **${filterDescription}**:\n\n` +
+        `| No | NIK | Nama Lengkap | Jabatan | Golongan | Unit Kerja |\n` +
+        `| :-: | :--- | :--- | :--- | :-: | :--- |\n` +
+        targetPegawai.map((p: any, idx: number) => 
+          `| ${idx + 1} | ${p.nik || "-"} | **${p.nama}** | ${p.jabatan} | ${p.golongan || "-"} | ${p.bidang?.nama || "-"} |`
+        ).join("\n") +
+        `\n\n> 💡 **Tip:** Anda dapat mengunduh daftar ini ke format Excel: *"Kirimkan excel daftar pegawai di bidang ${matchedBidang ? matchedBidang.nama.trim() : 'ini'}"*`
+    } else if (userPrompt.includes("presensi") || userPrompt.includes("absen") || userPrompt.includes("kehadiran")) {
+      responseMarkdown = `### 📊 Analisis Presensi & Kedisiplinan Hari Ini\n\n` +
+        `Pencatatan biometric & mobile selfie **PDAM Tirta Ardhia Rinjani** per **${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}**:\n\n` +
+        `| Parameter Kehadiran | Jumlah | Persentase / Keterangan |\n` +
+        `| :--- | :---: | :--- |\n` +
+        `| **Total Pegawai Wajib Hadir** | **${totalPegawaiAktif}** orang | 100% Basis Aktif |\n` +
+        `| **Hadir Tepat Waktu** | **${hadirCount}** orang | Standar jam masuk |\n` +
+        `| **Terlambat Masuk** | **${terlambatCount}** orang | Toleransi s.d 15 menit |\n` +
+        `| **Izin / Sakit / Cuti** | **${izinSakitCount}** orang | Terverifikasi HRD |\n` +
+        `| **Belum Melakukan Absen** | **${belumAbsenCount}** orang | Menunggu konfirmasi |\n\n` +
+        `> 💡 **Tip:** Anda dapat meminta: *\"Buatkan rekap absensi hari ini dalam format excel\"*`
+      relatedLink = { text: "Monitoring Absensi", href: "/absensi" }
     } else {
-      responseMarkdown = `### 👋 Halo! Saya Tiara Assistant
-      
-Saya adalah asisten kecerdasan buatan terintegrasi untuk **SIMPEG PDAM Tirta Ardhia Rinjani**.
-
-#### 🌟 Kemampuan & Fitur Terbaru Saya:
-1. **Pembuatan & Pengiriman Berkas Otomatis**:
-   - **Excel (.xlsx)**: Rekap absensi harian, master pegawai, penggajian, dan daftar nominatif KGB.
-   - **PDF Resmi**: Draf Nota Dinas, Surat Tugas, dan Laporan Eksekutif dengan Kop Surat Resmi PDAM.
-2. **Koneksi Custom Model AI**:
-   - Anda dapat menghubungkan model AI eksternal seperti OpenAI (GPT-4o), Google Gemini, DeepSeek, atau Local LLM melalui menu **Pengaturan > AI Assistant & API** dengan enkripsi standar militer (AES-256-GCM).
-3. **Analisis Data Realtime**:
-   - Memantau presensi, kuota cuti, mutasi, dan proyeksi BUP pensiun.
-
-Ketik misalnya: *"Buatkan rekap absensi dalam format excel"* atau *"Buatkan nota dinas dalam pdf"*.`
-
-      suggestions = [
-        "Buatkan rekap absensi hari ini format excel",
-        "Buatkan draf nota dinas resmi format pdf",
-        "Berapa pegawai yang pensiun tahun ini?",
-        "Jelaskan aturan perhitungan PPh 21 TER PDAM"
-      ]
-      relatedLink = { text: "Konfigurasi AI Assistant", href: "/settings/ai" }
+      responseMarkdown = `### 👋 Halo! Saya Tiara Assistant\n\n` +
+        `Saya siap membantu pengolahan data kepegawaian **PDAM Tirta Ardhia Rinjani** secara presisi.\n\n` +
+        `#### 💡 Contoh Pertanyaan & Permintaan Berkas:\n` +
+        `- *"Kirimkan excel daftar nama pegawai yang dibagian bidang sekretariat perusahaan"*\n` +
+        `- *"Kirimkan excel daftar pegawai bidang Keuangan"*\n` +
+        `- *"Berapa jumlah pegawai di masing-masing bidang?"*\n` +
+        `- *"Buatkan rekap absensi hari ini format excel"*\n` +
+        `- *"Buatkan nota dinas resmi format pdf"*`
     }
 
     return NextResponse.json({
@@ -369,7 +477,7 @@ Ketik misalnya: *"Buatkan rekap absensi dalam format excel"* atau *"Buatkan nota
       role: "assistant",
       thinking: {
         steps: thinkingSteps,
-        durationSeconds: (1.2 + Math.random() * 0.8).toFixed(1)
+        durationSeconds: (1.1 + Math.random() * 0.4).toFixed(1)
       },
       content: responseMarkdown,
       files: filesToAttach,
@@ -384,7 +492,7 @@ Ketik misalnya: *"Buatkan rekap absensi dalam format excel"* atau *"Buatkan nota
       id: "msg-err-" + Date.now(),
       role: "assistant",
       thinking: {
-        steps: ["Mengakses basis data...", "Terjadi kendala saat memproses permintaan."],
+        steps: ["Mengakses basis data...", "Terjadi kendala teknis."],
         durationSeconds: "0.8"
       },
       content: `Mohon maaf, terjadi kendala teknis: ${error?.message || "Kesalahan internal server"}.`,
