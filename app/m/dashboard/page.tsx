@@ -25,6 +25,10 @@ import {
   toggleReminder, checkAndSendSmartReminder 
 } from "@/lib/pwa/notification-reminder"
 import { toast } from "sonner"
+import { 
+  IconCuti3D, IconAbsensi3D, IconKalender3D, 
+  IconKinerja3D, IconLembur3D, IconSlipGaji3D 
+} from "@/components/mobile/icons-3d"
 
 // ─── Digital Clock ──────────────────────────────────────────────
 function DigitalClock() {
@@ -107,13 +111,14 @@ function RankBadge({ rank }: { rank: number }) {
   )
 }
 
-// ─── Menu Utama ─────────────────────────────────────────────────
+// ─── Menu Utama Layanan Pegawai (3D Icons) ───────────────────────
 const menuItems = [
-  { href: "/m/cuti",      icon: CalendarDays, label: "Cuti &\nIzin" },
-  { href: "/m/absensi",   icon: FileText,     label: "Riwayat\nAbsen" },
-  { href: "/m/kalender",  icon: BookOpen,     label: "Kalender\nKerja" },
-  { href: "/m/indeks",    icon: TrendingUp,   label: "Indeks\nKinerja" },
-  { href: "/m/lembur",    icon: Timer,        label: "Lembur\nKerja" },
+  { href: "/m/cuti",      icon: IconCuti3D,      label: "Cuti &\nIzin" },
+  { href: "/m/absensi",   icon: IconAbsensi3D,   label: "Riwayat\nAbsen" },
+  { href: "/m/kalender",  icon: IconKalender3D,  label: "Kalender\nKerja" },
+  { href: "/m/indeks",    icon: IconKinerja3D,   label: "Indeks\nKinerja" },
+  { href: "/m/lembur",    icon: IconLembur3D,    label: "Lembur\nKerja" },
+  { href: "/m/slip-gaji", icon: IconSlipGaji3D,  label: "Slip\nGaji" },
 ]
 
 export default function MobileDashboard() {
@@ -632,19 +637,24 @@ export default function MobileDashboard() {
 
         {/* ===== MENU UTAMA ===== */}
         <div className="rounded-2xl p-5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3.5">
-            Layanan Pegawai
-          </p>
+          <div className="flex items-center justify-between mb-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              Layanan Pegawai
+            </p>
+            <span className="text-[10px] font-medium text-zinc-400">
+              Pintasan Cepat
+            </span>
+          </div>
           <div className="grid grid-cols-3 gap-2.5">
             {menuItems.map((item, i) => {
               const Icon = item.icon
               return (
                 <Link key={i} href={item.href}>
-                  <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-95 group">
-                    <div className="h-11 w-11 rounded-xl flex items-center justify-center bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-2xs border border-zinc-200/70 dark:border-zinc-700/60 group-hover:text-zinc-950 dark:group-hover:text-white">
-                      <Icon className="h-5 w-5 stroke-[1.8]" />
+                  <div className="flex flex-col items-center gap-2 p-2.5 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-all active:scale-95 group">
+                    <div className="h-12 w-12 rounded-2xl flex items-center justify-center bg-white dark:bg-zinc-850 shadow-2xs border border-zinc-200/60 dark:border-zinc-750 group-hover:scale-105 group-hover:shadow-sm transition-all duration-200">
+                      <Icon className="h-8 w-8 transition-transform duration-200 group-hover:scale-110" />
                     </div>
-                    <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 text-center leading-tight whitespace-pre-line">
+                    <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 text-center leading-tight whitespace-pre-line">
                       {item.label}
                     </span>
                   </div>
