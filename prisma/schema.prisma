@@ -207,6 +207,11 @@ model Absensi {
   pegawai   Pegawai         @relation(fields: [pegawaiId], references: [id])
   import    ImportFingerprint? @relation(fields: [importId], references: [id], onDelete: SetNull)
   createdAt DateTime        @default(now())
+
+  @@index([pegawaiId, tanggal])
+  @@index([tanggal])
+  @@index([pegawaiId])
+  @@index([status])
 }
 
 // ============ CUTI ============
@@ -220,6 +225,10 @@ model Cuti {
   alasan         String
   pegawai        Pegawai    @relation(fields: [pegawaiId], references: [id])
   createdAt      DateTime   @default(now())
+
+  @@index([pegawaiId, status])
+  @@index([status])
+  @@index([tanggalMulai, tanggalSelesai])
 }
 
 // ============ PAYROLL ============
@@ -377,6 +386,8 @@ model LokasiAbsensi {
   
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  @@index([aktif])
 }
 
 // ============ PENGATURAN UMUM ============

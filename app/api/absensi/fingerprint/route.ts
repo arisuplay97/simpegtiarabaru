@@ -24,6 +24,36 @@ function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2
   return hitungJarak(lat1, lon1, lat2, lon2)
 }
 
+// In-flight concurrency lock untuk mencegah double-tap / duplicate requests
+const inFlightPegawai = new Set<string>()
+
+// Short TTL In-Memory Cache (60s) agar tidak query ulang pengaturan & lokasi statis saat ratusan pegawai absen bersamaan
+let cachedPengaturan: any = null
+let cachedPengaturanExpires = 0
+
+async function getCachedPengaturan() {
+  const now = Date.now()
+  if (cachedPengaturan && now < cachedPengaturanExpires) {
+    return cachedPengaturan
+  }
+  cachedPengaturan = await prisma.pengaturan.findFirst()
+  cachedPengaturanExpires = now + 60_000
+  return cachedPengaturan
+}
+
+let cachedActiveLocations: any[] | null = null
+let cachedLocationsExpires = 0
+
+async function getCachedActiveLocations() {
+  const now = Date.now()
+  if (cachedActiveLocations && now < cachedLocationsExpires) {
+    return cachedActiveLocations
+  }
+  cachedActiveLocations = await prisma.lokasiAbsensi.findMany({ where: { aktif: true } })
+  cachedLocationsExpires = now + 60_000
+  return cachedActiveLocations
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth()
@@ -39,8 +69,16 @@ export async function POST(req: Request) {
     if (!pegawai) return NextResponse.json({ error: "Profil pegawai tidak ditemukan. Hubungi HRD." }, { status: 400 })
 
     const pegawaiId = pegawai.id
-    const body = await req.json()
-    const { latitude = 0, longitude = 0, accuracy = 999, offlineSync = false, offlineTimestamp } = body
+
+    // Proteksi Concurrency: Cegah duplikasi jika user menekan tombol berulang kali dalam milidetik
+    if (inFlightPegawai.has(pegawaiId)) {
+      return NextResponse.json({ error: "Presensi Anda sedang diproses. Mohon tunggu sebentar." }, { status: 429 })
+    }
+    inFlightPegawai.add(pegawaiId)
+
+    try {
+      const body = await req.json()
+      const { latitude = 0, longitude = 0, accuracy = 999, offlineSync = false, offlineTimestamp } = body
 
     if (!offlineSync) {
       if (accuracy > MAX_ALLOWED_ACCURACY) {
@@ -80,9 +118,9 @@ export async function POST(req: Request) {
           }
         } else {
           // Jika pegawai menggunakan opsi "Semua Lokasi Aktif (Default)"
-          const allLocations = await prisma.lokasiAbsensi.findMany({ where: { aktif: true } })
+          const allLocations = await getCachedActiveLocations()
 
-          if (allLocations.length > 0) {
+          if (allLocations && allLocations.length > 0) {
             let isValidLocation = false
             let closestDistance = Infinity
 
@@ -122,7 +160,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Anda sudah check-in dan check-out hari ini" }, { status: 400 })
     }
 
-    const pengaturan: any = await prisma.pengaturan.findFirst()
+    const pengaturan: any = await getCachedPengaturan()
     const isCabang = isCabangEmployee(pegawai)
     
     // Konversi waktu sekarang (Vercel UTC) ke WITA agar pengecekan jam valid
@@ -203,7 +241,10 @@ export async function POST(req: Request) {
           lokasiKeluar: `${latitude},${longitude}`,
         } as any
       })
-      await hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear())
+      // Asynchronous non-blocking: jalankan kalkulasi indeks di background agar respon ke HP instan (< 100ms)
+      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(err => {
+        console.error("[BG_INDEX] Error hitungIndeksPegawai checkout:", err)
+      })
       return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_OUT" })
     }
 
@@ -227,7 +268,10 @@ export async function POST(req: Request) {
           lokasiMasuk: `${latitude},${longitude}`,
         } as any
       })
-      await hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear())
+      // Asynchronous non-blocking
+      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(err => {
+        console.error("[BG_INDEX] Error hitungIndeksPegawai checkin update:", err)
+      })
       return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_IN" })
     } else {
       const created = await prisma.absensi.create({
@@ -242,8 +286,15 @@ export async function POST(req: Request) {
           lokasiMasuk: `${latitude},${longitude}`,
         } as any
       })
-      await hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear())
+      // Asynchronous non-blocking
+      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(err => {
+        console.error("[BG_INDEX] Error hitungIndeksPegawai checkin create:", err)
+      })
       return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_IN" })
+    }
+
+    } finally {
+      inFlightPegawai.delete(pegawaiId)
     }
 
   } catch (err: any) {
