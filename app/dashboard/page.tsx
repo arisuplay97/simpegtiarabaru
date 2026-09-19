@@ -91,7 +91,7 @@ export default function DashboardPage() {
       <SidebarNav />
       
       <div className="flex flex-1 flex-col sidebar-offset min-w-0">
-        <TopBar breadcrumb={["Dashboard & Analitik"]} />
+        <TopBar breadcrumb={["Dashboard & Analitik TIARA"]} />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1520px] mx-auto w-full">
 

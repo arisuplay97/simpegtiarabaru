@@ -28,7 +28,6 @@ import {
   MessageSquare,
   Settings,
   ChevronDown,
-  Building2,
   User,
   LogOut,
   HelpCircle,
@@ -111,10 +110,6 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
           </button>
         )}
 
-        {/* Page Icon Badge (like reference design) */}
-        <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs shrink-0">
-          <Building2 className="h-4 w-4" />
-        </div>
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-[13px] min-w-0">
