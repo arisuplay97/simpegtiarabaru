@@ -18,6 +18,7 @@ model User {
   mustChangePassword Boolean  @default(true)
   pegawai            Pegawai?
   notifikasi         Notifikasi[]
+  pushSubscriptions  PushSubscription[]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -567,6 +568,20 @@ model Notifikasi {
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// ============ PUSH NOTIFICATION SUBSCRIPTION ============
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model AuditLog {
   id          String   @id @default(cuid())
   userId      String

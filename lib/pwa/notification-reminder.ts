@@ -1,6 +1,6 @@
 /**
  * Web Push & Attendance Reminder Helper for ASIK PWA
- * Mendukung pengingat otomatis sebelum jam presensi masuk dan pulang.
+ * Mendukung remote Web Push (VAPID) untuk pengumuman instan dan pengingat presensi.
  */
 
 const REMINDER_KEY = "asik_push_reminder_enabled"
@@ -15,13 +15,91 @@ export function getPushPermissionStatus(): NotificationPermission | "unsupported
   return Notification.permission
 }
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  return outputArray
+}
+
+/**
+ * Daftarkan token Web Push HP ke server backend SIMPEG
+ */
+export async function subscribeToWebPush(): Promise<boolean> {
+  if (!isPushSupported()) return false
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  if (!vapidKey) {
+    console.warn("NEXT_PUBLIC_VAPID_PUBLIC_KEY is not defined")
+    return false
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready
+    if (!reg.pushManager) {
+      console.warn("PushManager is not supported by this browser/OS")
+      return false
+    }
+
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      })
+    }
+
+    // Kirim token subscription HP ke server
+    const res = await fetch("/api/pwa/push-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    })
+
+    if (res.ok) {
+      localStorage.setItem(REMINDER_KEY, "true")
+      return true
+    }
+    return false
+  } catch (e) {
+    console.warn("Failed to subscribe to Web Push:", e)
+    return false
+  }
+}
+
+/**
+ * Hapus token Web Push HP dari server backend SIMPEG
+ */
+export async function unsubscribeFromWebPush(): Promise<void> {
+  if (!isPushSupported()) return
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager?.getSubscription()
+    if (sub) {
+      await fetch("/api/pwa/push-subscription", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      }).catch(() => {})
+      await sub.unsubscribe()
+    }
+    localStorage.setItem(REMINDER_KEY, "false")
+  } catch (e) {
+    console.warn("Failed to unsubscribe from Web Push:", e)
+  }
+}
+
 export async function requestPushPermission(): Promise<boolean> {
   if (!isPushSupported()) return false
   try {
     const permission = await Notification.requestPermission()
     if (permission === "granted") {
+      const subscribed = await subscribeToWebPush()
       localStorage.setItem(REMINDER_KEY, "true")
-      return true
+      return subscribed || true
     }
     return false
   } catch {
@@ -34,9 +112,14 @@ export function isReminderEnabled(): boolean {
   return localStorage.getItem(REMINDER_KEY) === "true" && Notification.permission === "granted"
 }
 
-export function toggleReminder(enabled: boolean) {
+export async function toggleReminder(enabled: boolean): Promise<void> {
   if (typeof window === "undefined") return
   localStorage.setItem(REMINDER_KEY, enabled ? "true" : "false")
+  if (enabled) {
+    await subscribeToWebPush()
+  } else {
+    await unsubscribeFromWebPush()
+  }
 }
 
 export async function triggerNotification(title: string, body: string, url: string = "/m/fingerprint") {

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
+import { sendPushToUser, broadcastPushToAll } from "@/lib/pwa/web-push-server"
 
 // ─── existing functions ────────────────────────────────────────────────
 
@@ -63,6 +64,14 @@ export async function createNotification(userId: string, title: string, message:
     const notif = await prisma.notifikasi.create({
       data: { userId, title, message, link }
     })
+    // Push ke perangkat HP pengguna jika terdaftar
+    sendPushToUser(userId, {
+      title,
+      body: message,
+      url: link || "/m/notifikasi",
+      tag: "simpeg-alert",
+    }).catch(() => {})
+
     revalidatePath("/")
     return notif
   } catch (e) {
@@ -138,6 +147,14 @@ export async function broadcastPengumuman(title: string, message: string) {
         isRead: false,
       }))
     })
+
+    // Remote Web Push ke seluruh HP pegawai terdaftar
+    broadcastPushToAll({
+      title: `📢 ${title}`,
+      body: message,
+      url: "/m/notifikasi",
+      tag: "pengumuman-broadcast",
+    }).catch(err => console.error("WebPush broadcast error:", err))
 
     revalidatePath("/notifikasi")
     revalidatePath("/m/dashboard")

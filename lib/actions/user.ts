@@ -107,7 +107,7 @@ export async function resetUserPassword(id: string) {
       return { error: "Akses ditolak" }
     }
 
-    const defaultPass = "123456"
+    const defaultPass = "Tiara123"
     const hashedPassword = await bcrypt.hash(defaultPass, 10)
 
     const updatedUser = await prisma.user.update({

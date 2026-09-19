@@ -22,7 +22,8 @@ import { cn } from "@/lib/utils"
 import { getMobileQueue, syncMobileOfflineQueue, clearMobileQueue } from "@/lib/offline/absensi-queue"
 import { 
   requestPushPermission, isReminderEnabled, 
-  toggleReminder, checkAndSendSmartReminder 
+  toggleReminder, checkAndSendSmartReminder,
+  subscribeToWebPush
 } from "@/lib/pwa/notification-reminder"
 import { toast } from "sonner"
 import { 
@@ -160,7 +161,11 @@ export default function MobileDashboard() {
     if (status === "authenticated") {
       fetchData()
       checkOfflineQueue()
-      setIsReminderActive(isReminderEnabled())
+      const enabled = isReminderEnabled()
+      setIsReminderActive(enabled)
+      if (enabled) {
+        subscribeToWebPush().catch(() => {})
+      }
     }
   }, [status])
 
@@ -228,14 +233,14 @@ export default function MobileDashboard() {
       const granted = await requestPushPermission()
       if (granted) {
         setIsReminderActive(true)
-        toast.success("Pengingat presensi (Web Push) berhasil diaktifkan!")
+        toast.success("Notifikasi Push HP & Pengingat berhasil diaktifkan!")
       } else {
         toast.error("Izin notifikasi tidak diizinkan di peramban.")
       }
     } else {
-      toggleReminder(false)
+      await toggleReminder(false)
       setIsReminderActive(false)
-      toast.info("Pengingat presensi dinonaktifkan.")
+      toast.info("Notifikasi push dinonaktifkan.")
     }
   }
 
