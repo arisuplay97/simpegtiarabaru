@@ -77,7 +77,7 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
       prisma.pegawai.count({ where: { status: "AKTIF" } }).catch(() => 0),
       prisma.absensi.findMany({
         where: { tanggal: { gte: checkInDateStart, lte: checkInDateEnd } },
-        include: { pegawai: { select: { nama: true, jabatan: true, bidang: { select: { nama: true } } } } }
+        include: { pegawai: { select: { id: true, nama: true, jabatan: true, bidang: { select: { nama: true } } } } }
       }).catch(() => []),
       prisma.cuti.count({ where: { status: "PENDING" } }).catch(() => 0),
       prisma.bidang.findMany({
@@ -304,8 +304,23 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
     ).join("\n")
 
     const fullPegawaiDirectory = allPegawaiAktif.map((p: any, idx: number) =>
-      `${idx + 1}. ${p.nama} (${p.jabatan} - ${p.bidang?.nama || "Tanpa Bidang"})`
+      `${idx + 1}. ${p.nama} (${p.jabatan} - Gol. ${p.golongan || "-"} - Unit Kerja: ${p.bidang?.nama || "Umum"})`
     ).join("\n")
+
+    // Rincian presensi pegawai hari ini
+    const absensiDetailSummary = absensiHariIni.length > 0
+      ? absensiHariIni.map((a: any, idx: number) => {
+          const jam = a.jamMasuk ? new Date(a.jamMasuk).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : (a.createdAt ? new Date(a.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "-")
+          return `${idx + 1}. ${a.pegawai?.nama || "Pegawai"} - Status: ${a.status} (Jam: ${jam}) [Bidang: ${a.pegawai?.bidang?.nama || "-"}]`
+        }).join("\n")
+      : "Belum ada pegawai yang mencatatkan absensi untuk hari ini."
+
+    // Pegawai yang belum absen hari ini
+    const sudahAbsenNamaSet = new Set(absensiHariIni.map((a: any) => a.pegawai?.nama).filter(Boolean))
+    const belumAbsenList = allPegawaiAktif.filter((p: any) => !sudahAbsenNamaSet.has(p.nama))
+    const belumAbsenSummary = belumAbsenList.length > 0
+      ? belumAbsenList.map((p: any, idx: number) => `${idx + 1}. ${p.nama} (${p.jabatan} - ${p.bidang?.nama || "-"})`).join("\n")
+      : "Seluruh pegawai aktif sudah melakukan presensi hari ini."
 
     const systemPrompt = `Anda adalah Tiara Assistant, AI Cerdas resmi sistem kepegawaian (SIMPEG) Perumda Air Minum Tirta Ardhia Rinjani (PDAM TAR).
 
@@ -322,15 +337,22 @@ PANDUAN UTAMA KETEPATAN JAWABAN:
    - Di teks balasan Anda, TULISKAN nama-nama pegawai tersebut secara lengkap (format daftar berpoin / tabel markdown yang rapi).
    - Informasikan dengan ramah bahwa file unduhan yang dilampirkan sudah difilter khusus hanya berisi daftar nama pegawai tersebut.
 
-DATA REAL-TIME DATABASE SIMPEG:
+DATA PEGAWAI SIMPEG REAL-TIME:
 ${matchedBidang || matchedJabatan ? `DATA PEGAWAI HASIL FILTER KHUSUS (${filterDescription} - ${targetPegawai.length} Orang):
-${pegawaiTargetFormatted}` : `DAFTAR PEGAWAI AKTIF (${allPegawaiAktif.length} Orang):
+${pegawaiTargetFormatted}
+
+DAFTAR MASTER SELURUH PEGAWAI AKTIF (${allPegawaiAktif.length} Orang):
+${fullPegawaiDirectory}` : `DAFTAR SELURUH PEGAWAI AKTIF TERDAFTAR (${allPegawaiAktif.length} Orang):
 ${fullPegawaiDirectory}`}
 
-STATISTIK UMUM INSTANSI:
-- Total Pegawai Aktif: ${totalPegawaiAktif} orang
-- Presensi Hari Ini: ${hadirCount} Hadir, ${terlambatCount} Terlambat, ${belumAbsenCount} Belum Absen (${attendanceRate}% kehadiran)
-- Daftar Unit Kerja & Jumlah Pegawai:
+DATA PRESENSI HARI INI (${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}):
+- Statistik: Total ${totalPegawaiAktif} Pegawai | ${hadirCount} Hadir Tepat Waktu | ${terlambatCount} Terlambat | ${izinSakitCount} Izin/Sakit/Cuti | ${belumAbsenCount} Belum Absen (${attendanceRate}% Kehadiran)
+- Pegawai yang Sudah Absen Hari Ini:
+${absensiDetailSummary}
+- Pegawai yang Belum Absen Hari Ini:
+${belumAbsenSummary}
+
+DATA BIDANG / UNIT KERJA:
 ${allBidangSummary}
 
 ${filesToAttach.length > 0 ? `FILE TERLAMPIR YANG SUDAH DIBUAT SISTEM:
