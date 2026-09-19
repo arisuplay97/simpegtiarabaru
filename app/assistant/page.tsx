@@ -36,8 +36,17 @@ import {
   BarChart3,
   CalendarDays,
   FileText,
+  FileSpreadsheet,
+  Download,
   BadgePercent
 } from "lucide-react"
+
+export interface ChatFile {
+  name: string
+  type: "pdf" | "excel"
+  dataUrl: string
+  size: string
+}
 
 interface ThinkingData {
   steps: string[]
@@ -51,6 +60,7 @@ interface ChatMessage {
   thinking?: ThinkingData
   suggestions?: string[]
   relatedLink?: { text: string; href: string } | null
+  files?: ChatFile[]
   timestamp: string
   isStreaming?: boolean
   displayedContent?: string
@@ -87,6 +97,12 @@ const DEFAULT_SUGGESTIONS = [
     title: "Draf Dokumen Kedinasan Resmi",
     desc: "Buat draf Nota Dinas, Surat Tugas, atau SK Direksi secara otomatis",
     prompt: "Buatkan draf format Nota Dinas pengajuan Kenaikan Gaji Berkala (KGB)"
+  },
+  {
+    icon: FileSpreadsheet,
+    title: "Ekspor Rekap Laporan (Excel / PDF)",
+    desc: "Buat rekap ringkasan pegawai & presensi dan unduh file Excel atau PDF",
+    prompt: "Buatkan ringkasan pegawai dan absensi hari ini lalu ekspor ke file Excel dan PDF"
   }
 ]
 
@@ -260,6 +276,7 @@ export default function AssistantPage() {
       const thinking = data.thinking
       const suggestions = data.suggestions
       const relatedLink = data.relatedLink
+      const files = data.files
 
       // Start Typewriter Stream
       let currentIndex = 0
@@ -284,7 +301,8 @@ export default function AssistantPage() {
                             isStreaming: false,
                             thinking,
                             suggestions,
-                            relatedLink
+                            relatedLink,
+                            files
                           }
                         : m
                     )
@@ -314,7 +332,8 @@ export default function AssistantPage() {
                             isStreaming: false,
                             thinking,
                             suggestions,
-                            relatedLink
+                            relatedLink,
+                            files
                           }
                         : m
                     )
@@ -386,6 +405,21 @@ export default function AssistantPage() {
     setTimeout(() => {
       setCopiedMap(prev => ({ ...prev, [id]: false }))
     }, 2000)
+  }
+
+  // Handle File Download (PDF / Excel)
+  const handleDownloadFile = (file: ChatFile) => {
+    try {
+      const link = document.createElement("a")
+      link.href = file.dataUrl
+      link.download = file.name
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success(`Mengunduh file ${file.name}`)
+    } catch (err) {
+      toast.error("Gagal mengunduh file")
+    }
   }
 
   // Toggle Thinking Block
@@ -535,6 +569,14 @@ export default function AssistantPage() {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
+                <Link
+                  href="/settings/ai"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-zinc-300 bg-white dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-2xs"
+                  title="Konfigurasi API AI & Model"
+                >
+                  <Bot className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Pengaturan API</span>
+                </Link>
                 <button
                   onClick={handleNewChat}
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-zinc-300 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors"
@@ -715,6 +757,77 @@ export default function AssistantPage() {
                               <span className="inline-block w-1.5 h-3.5 bg-blue-600 dark:bg-blue-400 ml-1 animate-pulse" />
                             )}
                           </div>
+
+                          {/* ── GENERATED FILES (PDF / EXCEL ATTACHMENTS) ── */}
+                          {msg.files && msg.files.length > 0 && !msg.isStreaming && (
+                            <div className="pt-2.5 space-y-2 border-t border-slate-100 dark:border-zinc-800/80">
+                              <div className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                <span>File Dokumen Siap Unduh ({msg.files.length})</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {msg.files.map((file, fIdx) => {
+                                  const isPdf = file.type === "pdf"
+                                  return (
+                                    <div
+                                      key={fIdx}
+                                      className={cn(
+                                        "flex items-center justify-between p-3 rounded-xl border transition-all duration-200 shadow-2xs group",
+                                        isPdf
+                                          ? "bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40 hover:border-rose-400 dark:hover:border-rose-800"
+                                          : "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/40 hover:border-emerald-400 dark:hover:border-emerald-800"
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                                        <div
+                                          className={cn(
+                                            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs text-white",
+                                            isPdf
+                                              ? "bg-gradient-to-br from-rose-500 to-red-600"
+                                              : "bg-gradient-to-br from-emerald-500 to-teal-600"
+                                          )}
+                                        >
+                                          {isPdf ? (
+                                            <FileText className="w-4 h-4 text-white" />
+                                          ) : (
+                                            <FileSpreadsheet className="w-4 h-4 text-white" />
+                                          )}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-bold text-slate-800 dark:text-zinc-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                            {file.name}
+                                          </p>
+                                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 dark:text-zinc-400">
+                                            <span className={cn(
+                                              "uppercase font-semibold px-1 py-0.2 rounded text-[9px]",
+                                              isPdf ? "bg-rose-100/80 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300" : "bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300"
+                                            )}>
+                                              {file.type}
+                                            </span>
+                                            <span>&bull;</span>
+                                            <span>{file.size}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <button
+                                        onClick={() => handleDownloadFile(file)}
+                                        className={cn(
+                                          "px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs cursor-pointer",
+                                          isPdf
+                                            ? "bg-rose-600 hover:bg-rose-700 text-white"
+                                            : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        )}
+                                      >
+                                        <Download className="w-3.5 h-3.5" />
+                                        <span>Unduh</span>
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
 
                           {/* ── CONTEXTUAL LINK BUTTON ── */}
                           {msg.relatedLink && !msg.isStreaming && (

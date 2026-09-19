@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Loader2, Save, Clock, CalendarDays, Wallet, Building2, FileSignature } from "lucide-react"
+import { Loader2, Save, Clock, CalendarDays, Wallet, Building2, FileSignature, Bot } from "lucide-react"
 import { getPengaturan, updatePengaturan } from "@/lib/actions/pengaturan"
 
 export default function PengaturanSistemPage() {
@@ -137,10 +137,21 @@ export default function PengaturanSistemPage() {
                 Konfigurasi Parameter Utama Sistem HRIS
               </p>
             </div>
-            <Button onClick={handleSave} disabled={isSaving} className="gap-2">
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Simpan Perubahan
-            </Button>
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => router.push("/settings/ai")}
+                className="gap-2 border-blue-200 dark:border-blue-900/60 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+              >
+                <Bot className="h-4 w-4 text-blue-500" />
+                AI Assistant & API
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Simpan Perubahan
+              </Button>
+            </div>
           </div>
 
           <Tabs defaultValue="absensi" className="w-full">
