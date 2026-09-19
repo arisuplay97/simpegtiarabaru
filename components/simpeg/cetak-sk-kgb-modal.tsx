@@ -259,8 +259,8 @@ export function CetakSKKGBModal({ open, onOpenChange, data }: CetakSKKGBModalPro
                   <p className="text-slate-600">PERUMDA AIR MINUM TIRTA ARDHIA RINJANI</p>
                 </div>
                 <div>
-                  <p className="font-bold underline text-slate-900">Ir. Bambang Trihatmojo, M.M.</p>
-                  <p className="text-slate-500 text-[11px]">NIK. 19750812 200101 1 002</p>
+                  <p className="font-bold underline text-slate-900">Bambang Supratomo</p>
+                  <p className="text-slate-500 text-[11px]">NIK. 232432</p>
                 </div>
               </div>
             </div>

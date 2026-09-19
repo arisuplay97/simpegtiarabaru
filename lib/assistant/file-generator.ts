@@ -238,7 +238,8 @@ export async function generateAssistantPdf(options: PdfGeneratorOptions): Promis
 
   // 4. Tabel Data (Jika ada)
   if (options.tableData && options.tableData.headers.length > 0) {
-    const headers = ["No", ...options.tableData.headers]
+    const firstHeaderIsNo = options.tableData.headers[0]?.toLowerCase().startsWith("no")
+    const headers = firstHeaderIsNo ? options.tableData.headers : ["No", ...options.tableData.headers]
     const numCols = headers.length
     const colWidth = (pageWidth - 32) / numCols
     const startX = 16
@@ -274,7 +275,9 @@ export async function generateAssistantPdf(options: PdfGeneratorOptions): Promis
       doc.setDrawColor(226, 232, 240)
       doc.rect(startX, y, pageWidth - 32, 6, "S")
 
-      const rowValues = [(rowIdx + 1).toString(), ...row.map(v => v?.toString() ?? "-")]
+      const rowValues = firstHeaderIsNo 
+        ? row.map(v => v?.toString() ?? "-")
+        : [(rowIdx + 1).toString(), ...row.map(v => v?.toString() ?? "-")]
       rowValues.forEach((val, cIdx) => {
         const x = startX + cIdx * colWidth + (cIdx === 0 ? colWidth / 2 : 2)
         const align = cIdx === 0 ? "center" : "left"
@@ -293,9 +296,9 @@ export async function generateAssistantPdf(options: PdfGeneratorOptions): Promis
   }
 
   const signee = options.penandatangan || {
-    jabatan: "Direktur Umum & Keuangan",
-    nama: "H. LALU AZHAR, S.E., M.M.",
-    nik: "197508122005011002"
+    jabatan: "Direktur Utama",
+    nama: "Bambang Supratomo",
+    nik: "232432"
   }
 
   const signX = pageWidth - 65
@@ -311,8 +314,8 @@ export async function generateAssistantPdf(options: PdfGeneratorOptions): Promis
   y += 3.5
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8)
-  if (signee.nik) {
-    doc.text(`NIP/NIK. ${signee.nik}`, signX, y)
+  if (signee.nik && signee.nik.trim()) {
+    doc.text(`NIK. ${signee.nik}`, signX, y)
   }
 
   // 6. Watermark Footer

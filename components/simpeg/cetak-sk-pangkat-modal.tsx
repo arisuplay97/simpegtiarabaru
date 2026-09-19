@@ -227,8 +227,8 @@ export function CetakSKPangkatModal({ open, onOpenChange, data }: CetakSKPangkat
                   <p className="font-bold text-slate-800 mt-2">DIREKTUR UTAMA</p>
                 </div>
                 <div>
-                  <p className="font-bold underline text-slate-900">Ir. Bambang Trihatmojo, M.M.</p>
-                  <p className="text-slate-500 text-[11px]">NIK. 19750812 200101 1 002</p>
+                  <p className="font-bold underline text-slate-900">Bambang Supratomo</p>
+                  <p className="text-slate-500 text-[11px]">NIK. 232432</p>
                 </div>
               </div>
             </div>

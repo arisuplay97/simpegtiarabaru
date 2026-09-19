@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { decryptApiKey } from "@/lib/security/encryption"
 import { generateAssistantExcel, generateAssistantPdf, GeneratedFileResult } from "@/lib/assistant/file-generator"
+import { generateNomorSurat, saveArsipSurat } from "@/lib/actions/surat"
 
 interface Message {
   role: "user" | "assistant" | "system"
@@ -538,21 +539,55 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
         filesToAttach.push(excelFile)
       }
     } else if (isPdfRequested && (userPrompt.includes("buatkan") || userPrompt.includes("kirimkan") || userPrompt.includes("unduh") || userPrompt.includes("cetak") || userPrompt.includes("draf"))) {
+      // 1. Identifikasi Pejabat Penandatangan Resmi (Direktur Utama / Direktur Umum)
+      const dirUtama = allPegawaiAktif.find((p: any) =>
+        p.jabatan?.toLowerCase().includes("direktur utama")
+      ) || {
+        nama: "Bambang Supratomo",
+        jabatan: "Direktur Utama",
+        nik: "232432"
+      }
+
+      const dirUmum = allPegawaiAktif.find((p: any) =>
+        p.jabatan?.toLowerCase().includes("direktur umum")
+      ) || {
+        nama: "Lalu Muh Lutfi",
+        jabatan: "Direktur Umum & Keuangan",
+        nik: "12312"
+      }
+
+      const activeSignee = (userPrompt.includes("direktur umum") || userPrompt.includes("keuangan"))
+        ? { jabatan: dirUmum.jabatan, nama: dirUmum.nama, nik: dirUmum.nik }
+        : { jabatan: dirUtama.jabatan, nama: dirUtama.nama, nik: dirUtama.nik }
+
+      // 2. Generate Nomor Surat Resmi Sequential sesuai Format Arsip Surat SIMPEG
+      const romanMonths = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+      const currMonthRomawi = romanMonths[new Date().getMonth() + 1] || "IX"
+      const currYear = new Date().getFullYear()
+
+      const officialNomorSurat = await generateNomorSurat("PERUMDAM-TIARA").catch(() => 
+        `001/PERUMDAM-TIARA/${currMonthRomawi}/${currYear}`
+      )
+      const officialNomorNd = await generateNomorSurat("ND/PERUMDAM-TIARA").catch(() => 
+        `001/ND/PERUMDAM-TIARA/${currMonthRomawi}/${currYear}`
+      )
+
       if (userPrompt.includes("nota dinas") || userPrompt.includes("tugas")) {
         const pdfFile = await generateAssistantPdf({
           title: "NOTA DINAS RESMI",
-          nomorSurat: `005/ND-PEG/PDAM-TAR/${new Date().getFullYear()}`,
+          nomorSurat: officialNomorNd,
           subtitle: `Perihal: Penugasan Operasional Pegawai ${filterDescription}`,
           filename: `Nota_Dinas_${(matchedBidang ? matchedBidang.nama.trim() : "Resmi").replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.pdf`,
+          penandatangan: activeSignee,
           contentLines: [
-            "Kepada Yth. : Direktur Utama Perumda Air Minum Tirta Ardhia Rinjani",
+            `Kepada Yth. : ${dirUtama.jabatan} Perumda Air Minum Tirta Ardhia Rinjani`,
             "Dari         : Kepala Bagian Kepegawaian & Umum",
             `Tanggal      : ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`,
             "Sifat        : Penting / Segera",
             "",
             `1. Sehubungan dengan pemenuhan tugas kedinasan di lingkungan ${filterDescription}, bersama ini disampaikan daftar personel yang ditugaskan.`,
             "2. Berdasarkan data kedisiplinan dan absensi realtime SIMPEG TIARA, seluruh personel yang tercantum aktif bertugas.",
-            "3. Demikian nota dinas ini disampaikan, atas perhatian dan arahan Bapak Direktur Utama kami ucapkan terima kasih."
+            `3. Demikian nota dinas ini disampaikan, atas perhatian dan arahan Bapak ${dirUtama.nama} kami ucapkan terima kasih.`
           ],
           tableData: {
             headers: ["Nama Personel", "Jabatan", "Golongan", "Unit Kerja"],
@@ -565,16 +600,28 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
           }
         })
         filesToAttach.push(pdfFile)
+
+        saveArsipSurat({
+          nomorSurat: officialNomorNd,
+          jenisSurat: "NOTA_DINAS",
+          perihal: `Penugasan Operasional Pegawai ${filterDescription}`,
+          tanggalSurat: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+          kepada: `${dirUtama.jabatan} Perumda Air Minum Tirta Ardhia Rinjani`,
+          namaPenandatangan: activeSignee.nama,
+          nikPenandatangan: activeSignee.nik,
+          jabatanPenandatangan: activeSignee.jabatan
+        }).catch(() => {})
       } else if (isAbsenOrAbsenceRequested) {
         // PDF Resmi Pegawai Tidak Absen / Mangkir
         const pdfFile = await generateAssistantPdf({
           title: `DAFTAR PEGAWAI TIDAK ABSEN (${daysCount} HARI BERTURUT-TURUT)`,
-          nomorSurat: `098/LAP-DIS/PDAM-TAR/${parsedDateRange?.year || new Date().getFullYear()}`,
+          nomorSurat: officialNomorSurat,
           subtitle: `Periode: ${rangeLabel} | Total: ${pegawaiTidakAbsenBerturut.length} Pegawai Mangkir | SIMPEG TIARA`,
           filename: `Daftar_Pegawai_Tidak_Absen_${(parsedDateRange ? `${parsedDateRange.startDay}_${parsedDateRange.endDay}_${parsedDateRange.monthName}` : "15_18_September")}_${Date.now()}.pdf`,
+          penandatangan: activeSignee,
           contentLines: [
-            "Kepada Yth. : Direktur Utama Perumda Air Minum Tirta Ardhia Rinjani",
-            "Dari         : Kepala Bagian Kepegawaian & Umum (SIMPEG TIARA)",
+            `Kepada Yth. : ${dirUtama.jabatan} Perumda Air Minum Tirta Ardhia Rinjani`,
+            "Dari         : Bagian Kepegawaian & Umum (SIMPEG TIARA)",
             `Tanggal      : ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`,
             "Sifat        : Penting / Laporan Kedisiplinan",
             "",
@@ -583,9 +630,8 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
             "3. Demikian laporan ini disampaikan sebagai bahan tindak lanjut evaluasi dan pembinaan kedisiplinan pegawai."
           ],
           tableData: {
-            headers: ["No", "Nama Pegawai", "Jabatan", "Unit Kerja / Bidang", "Status Kehadiran"],
-            rows: pegawaiTidakAbsenBerturut.map((p: any, idx: number) => [
-              idx + 1,
+            headers: ["Nama Pegawai", "Jabatan", "Unit Kerja / Bidang", "Status Kehadiran"],
+            rows: pegawaiTidakAbsenBerturut.map((p: any) => [
               p.nama,
               p.jabatan,
               p.bidang?.nama || "-",
@@ -594,27 +640,37 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
           }
         })
         filesToAttach.push(pdfFile)
+
+        saveArsipSurat({
+          nomorSurat: officialNomorSurat,
+          jenisSurat: "SURAT_PERINGATAN",
+          perihal: `Laporan Pegawai Tidak Absen Periode ${rangeLabel}`,
+          tanggalSurat: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+          kepada: `${dirUtama.jabatan} Perumda Air Minum Tirta Ardhia Rinjani`,
+          namaPenandatangan: activeSignee.nama,
+          nikPenandatangan: activeSignee.nik,
+          jabatanPenandatangan: activeSignee.jabatan
+        }).catch(() => {})
       } else if (userPrompt.includes("absen") || userPrompt.includes("presensi") || userPrompt.includes("kehadiran")) {
         // PDF Rekap Presensi Harian
         const pdfFile = await generateAssistantPdf({
           title: "REKAPITULASI PRESENSI HARIAN PEGAWAI",
-          nomorSurat: `092/LAP-PRES/PDAM-TAR/${new Date().getFullYear()}`,
+          nomorSurat: officialNomorSurat,
           subtitle: `Tanggal: ${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} | SIMPEG TIARA`,
           filename: `Rekap_Presensi_Harian_${Date.now()}.pdf`,
+          penandatangan: activeSignee,
           contentLines: [
             `Rekapitulasi resmi presensi pegawai PDAM Tirta Ardhia Rinjani per tanggal ${new Date().toLocaleDateString("id-ID")}:`,
             `Total Pegawai: ${totalPegawaiAktif} | Hadir: ${hadirCount} | Terlambat: ${terlambatCount} | Izin/Cuti: ${izinSakitCount} | Belum Absen: ${belumAbsenCount}`
           ],
           tableData: {
-            headers: ["No", "Nama Pegawai", "Jabatan", "Unit Kerja", "Status Presensi"],
-            rows: absensiHariIni.length > 0 ? absensiHariIni.map((a: any, idx: number) => [
-              idx + 1,
+            headers: ["Nama Pegawai", "Jabatan", "Unit Kerja", "Status Presensi"],
+            rows: absensiHariIni.length > 0 ? absensiHariIni.map((a: any) => [
               a.pegawai?.nama || "-",
               a.pegawai?.jabatan || "-",
               a.pegawai?.bidang?.nama || "-",
               a.status
-            ]) : allPegawaiAktif.map((p: any, idx: number) => [
-              idx + 1,
+            ]) : allPegawaiAktif.map((p: any) => [
               p.nama,
               p.jabatan,
               p.bidang?.nama || "-",
@@ -623,15 +679,26 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
           }
         })
         filesToAttach.push(pdfFile)
+
+        saveArsipSurat({
+          nomorSurat: officialNomorSurat,
+          jenisSurat: "UNDANGAN",
+          perihal: `Rekapitulasi Presensi Harian Pegawai`,
+          tanggalSurat: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+          namaPenandatangan: activeSignee.nama,
+          nikPenandatangan: activeSignee.nik,
+          jabatanPenandatangan: activeSignee.jabatan
+        }).catch(() => {})
       } else {
         // PDF Rekap Pegawai / Eksekutif
         const pdfFile = await generateAssistantPdf({
           title: matchedBidang 
             ? `DAFTAR PEGAWAI BIDANG ${matchedBidang.nama.trim().toUpperCase()}`
             : `LAPORAN PEGAWAI ${filterDescription.toUpperCase()}`,
-          nomorSurat: `090/LAP-SDM/PDAM-TAR/${new Date().getFullYear()}`,
+          nomorSurat: officialNomorSurat,
           subtitle: `Unit Kerja: ${filterDescription} | Total: ${targetPegawai.length} Pegawai Aktif`,
           filename: `${fileSlug}_${Date.now()}.pdf`,
+          penandatangan: activeSignee,
           contentLines: [
             `Berikut daftar resmi pegawai tercatat aktif di lingkungan ${filterDescription} Perumda Air Minum Tirta Ardhia Rinjani:`,
             `Seluruh data telah diverifikasi sesuai database kepegawaian SIMPEG TIARA.`
@@ -647,6 +714,16 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
           }
         })
         filesToAttach.push(pdfFile)
+
+        saveArsipSurat({
+          nomorSurat: officialNomorSurat,
+          jenisSurat: "UNDANGAN",
+          perihal: `Laporan Kepegawaian ${filterDescription}`,
+          tanggalSurat: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+          namaPenandatangan: activeSignee.nama,
+          nikPenandatangan: activeSignee.nik,
+          jabatanPenandatangan: activeSignee.jabatan
+        }).catch(() => {})
       }
     }
 
