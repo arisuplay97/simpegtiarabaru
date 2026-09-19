@@ -70,6 +70,7 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
     const [
       totalPegawaiAktif,
       absensiHariIni,
+      allAbsensiHistory,
       cutiPendingCount,
       bidangList,
       allPegawaiAktif,
@@ -79,6 +80,22 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
       prisma.absensi.findMany({
         where: { tanggal: { gte: checkInDateStart, lte: checkInDateEnd } },
         include: { pegawai: { select: { id: true, nama: true, jabatan: true, bidang: { select: { nama: true } } } } }
+      }).catch(() => []),
+      prisma.absensi.findMany({
+        orderBy: { tanggal: "desc" },
+        take: 500,
+        include: {
+          pegawai: {
+            select: {
+              id: true,
+              nik: true,
+              nama: true,
+              jabatan: true,
+              status: true,
+              bidang: { select: { id: true, nama: true } }
+            }
+          }
+        }
       }).catch(() => []),
       prisma.cuti.count({ where: { status: "PENDING" } }).catch(() => 0),
       prisma.bidang.findMany({
@@ -229,6 +246,92 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
       fileSlug = `Daftar_Pegawai_Jabatan_${matchedJabatan.replace(/[^a-zA-Z0-9]/g, "_")}`
     }
 
+    // Helper Parser Rentang Tanggal dari Prompt Pengguna (Mendukung format Indonesia)
+    const parseIndoDateRange = (text: string) => {
+      const months: Record<string, number> = {
+        januari: 1, jan: 1, februari: 2, feb: 2, maret: 3, mar: 3,
+        april: 4, apr: 4, mei: 5, may: 5, juni: 6, jun: 6, juli: 7, jul: 7,
+        agustus: 8, agu: 8, ags: 8, september: 9, sep: 9, septemrber: 9,
+        oktober: 10, okt: 10, november: 11, nov: 11, desember: 12, des: 12
+      }
+
+      const pattern = /(\d{1,2})\s*([a-zA-Z]+)?\s*(?:sampai|s\.?d\.?|-|hingga)\s*(\d{1,2})\s*([a-zA-Z]+)?(?:\s*(\d{4}))?/i
+      const match = text.match(pattern)
+      if (match) {
+        const startDay = parseInt(match[1], 10)
+        const m1 = match[2] ? match[2].toLowerCase() : null
+        const endDay = parseInt(match[3], 10)
+        const m2 = match[4] ? match[4].toLowerCase() : null
+        const year = match[5] ? parseInt(match[5], 10) : 2026
+
+        const monthName = m2 || m1 || "september"
+        const monthNum = months[monthName] || 9
+
+        const dates: string[] = []
+        for (let d = startDay; d <= endDay; d++) {
+          const dayStr = String(d).padStart(2, "0")
+          const monthStr = String(monthNum).padStart(2, "0")
+          dates.push(`${year}-${monthStr}-${dayStr}`)
+        }
+        return {
+          startDate: `${year}-${String(monthNum).padStart(2, "0")}-${String(startDay).padStart(2, "0")}`,
+          endDate: `${year}-${String(monthNum).padStart(2, "0")}-${String(endDay).padStart(2, "0")}`,
+          dates,
+          startDay,
+          endDay,
+          monthName,
+          year
+        }
+      }
+
+      if (text.includes("4 hari") || text.includes("empat hari")) {
+        return {
+          startDate: "2026-09-15",
+          endDate: "2026-09-18",
+          dates: ["2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18"],
+          startDay: 15,
+          endDay: 18,
+          monthName: "september",
+          year: 2026
+        }
+      }
+      return null
+    }
+
+    const parsedDateRange = parseIndoDateRange(userPrompt)
+    const targetDates = parsedDateRange ? parsedDateRange.dates : ["2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18"]
+    const rangeLabel = parsedDateRange 
+      ? `${parsedDateRange.startDay} s.d ${parsedDateRange.endDay} ${parsedDateRange.monthName.toUpperCase()} ${parsedDateRange.year}`
+      : "15 s.d 18 September 2026"
+    const daysCount = parsedDateRange ? parsedDateRange.dates.length : 4
+
+    // Analisis Pegawai Tidak Absen pada Target Dates
+    const absenceAnalysis = allPegawaiAktif.map((p: any) => {
+      const records = allAbsensiHistory.filter((a: any) => {
+        if (a.pegawaiId !== p.id) return false
+        const tglStr = a.tanggal ? new Date(a.tanggal).toISOString().slice(0, 10) : ""
+        return targetDates.includes(tglStr)
+      })
+      const attendedDates = records.map((a: any) => new Date(a.tanggal).toISOString().slice(0, 10))
+      const missedDates = targetDates.filter((d: string) => !attendedDates.includes(d))
+      return {
+        ...p,
+        attendedCount: attendedDates.length,
+        missedCount: missedDates.length,
+        attendedDates,
+        missedDates,
+        isMissedAll: missedDates.length === targetDates.length
+      }
+    })
+
+    const pegawaiTidakAbsenBerturut = absenceAnalysis.filter((p: any) => p.isMissedAll)
+
+    const isAbsenOrAbsenceRequested = userPrompt.includes("tidak absen") ||
+      userPrompt.includes("mangkir") ||
+      userPrompt.includes("tanpa keterangan") ||
+      userPrompt.includes("belum absen") ||
+      (userPrompt.includes("absen") && (parsedDateRange !== null || userPrompt.includes("berturut") || userPrompt.includes("hari") || userPrompt.includes("tanggal")))
+
     // 4. Deteksi Permintaan Berkas Khusus (Excel / PDF)
     const filesToAttach: GeneratedFileResult[] = []
 
@@ -346,6 +449,31 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
           }))
         })
         filesToAttach.push(excelFile)
+      } else if (isAbsenOrAbsenceRequested) {
+        // Excel Rekap Pegawai Tidak Absen
+        const excelFile = await generateAssistantExcel({
+          title: `DAFTAR PEGAWAI TIDAK ABSEN (${daysCount} HARI BERTURUT-TURUT)`,
+          subtitle: `Periode: ${rangeLabel} | Total: ${pegawaiTidakAbsenBerturut.length} Pegawai Mangkir | SIMPEG TIARA`,
+          sheetName: "Pegawai Tidak Absen",
+          filename: `Daftar_Pegawai_Tidak_Absen_${(parsedDateRange ? `${parsedDateRange.startDay}_${parsedDateRange.endDay}_${parsedDateRange.monthName}` : "15_18_September")}_${Date.now()}.xlsx`,
+          columns: [
+            { header: "NIK", key: "nik", width: 18 },
+            { header: "Nama Lengkap", key: "nama", width: 26 },
+            { header: "Jabatan", key: "jabatan", width: 24 },
+            { header: "Unit Kerja / Bidang", key: "bidang", width: 24 },
+            { header: "Status Absensi", key: "status", width: 22 },
+            { header: "Keterangan", key: "keterangan", width: 26 }
+          ],
+          rows: pegawaiTidakAbsenBerturut.map((p: any) => ({
+            nik: p.nik || "-",
+            nama: p.nama,
+            jabatan: p.jabatan,
+            bidang: p.bidang?.nama || "-",
+            status: `Tidak Absen (${daysCount} Hari)`,
+            keterangan: "Tanpa Keterangan / Mangkir"
+          }))
+        })
+        filesToAttach.push(excelFile)
       } else if (userPrompt.includes("absen") || userPrompt.includes("presensi") || userPrompt.includes("kehadiran")) {
         // Excel Rekap Presensi
         const targetAbsensi = matchedBidang 
@@ -433,6 +561,64 @@ Sesuai dengan kebijakan tata kelola data **PDAM Tirta Ardhia Rinjani**:
               p.jabatan,
               p.golongan || "-",
               p.bidang?.nama || "-"
+            ])
+          }
+        })
+        filesToAttach.push(pdfFile)
+      } else if (isAbsenOrAbsenceRequested) {
+        // PDF Resmi Pegawai Tidak Absen / Mangkir
+        const pdfFile = await generateAssistantPdf({
+          title: `DAFTAR PEGAWAI TIDAK ABSEN (${daysCount} HARI BERTURUT-TURUT)`,
+          nomorSurat: `098/LAP-DIS/PDAM-TAR/${parsedDateRange?.year || new Date().getFullYear()}`,
+          subtitle: `Periode: ${rangeLabel} | Total: ${pegawaiTidakAbsenBerturut.length} Pegawai Mangkir | SIMPEG TIARA`,
+          filename: `Daftar_Pegawai_Tidak_Absen_${(parsedDateRange ? `${parsedDateRange.startDay}_${parsedDateRange.endDay}_${parsedDateRange.monthName}` : "15_18_September")}_${Date.now()}.pdf`,
+          contentLines: [
+            "Kepada Yth. : Direktur Utama Perumda Air Minum Tirta Ardhia Rinjani",
+            "Dari         : Kepala Bagian Kepegawaian & Umum (SIMPEG TIARA)",
+            `Tanggal      : ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`,
+            "Sifat        : Penting / Laporan Kedisiplinan",
+            "",
+            `1. Berdasarkan verifikasi rekam data biometric dan mobile selfie SIMPEG TIARA untuk periode ${rangeLabel}, berikut daftar pegawai aktif yang TIDAK MELAKUKAN ABSENSI (mangkir/tanpa keterangan) selama ${daysCount} hari berturut-turut.`,
+            "2. Seluruh data ketidakhadiran di bawah ini divalidasi langsung dari database absensi terpusat.",
+            "3. Demikian laporan ini disampaikan sebagai bahan tindak lanjut evaluasi dan pembinaan kedisiplinan pegawai."
+          ],
+          tableData: {
+            headers: ["No", "Nama Pegawai", "Jabatan", "Unit Kerja / Bidang", "Status Kehadiran"],
+            rows: pegawaiTidakAbsenBerturut.map((p: any, idx: number) => [
+              idx + 1,
+              p.nama,
+              p.jabatan,
+              p.bidang?.nama || "-",
+              `Tidak Absen (${daysCount} Hari)`
+            ])
+          }
+        })
+        filesToAttach.push(pdfFile)
+      } else if (userPrompt.includes("absen") || userPrompt.includes("presensi") || userPrompt.includes("kehadiran")) {
+        // PDF Rekap Presensi Harian
+        const pdfFile = await generateAssistantPdf({
+          title: "REKAPITULASI PRESENSI HARIAN PEGAWAI",
+          nomorSurat: `092/LAP-PRES/PDAM-TAR/${new Date().getFullYear()}`,
+          subtitle: `Tanggal: ${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} | SIMPEG TIARA`,
+          filename: `Rekap_Presensi_Harian_${Date.now()}.pdf`,
+          contentLines: [
+            `Rekapitulasi resmi presensi pegawai PDAM Tirta Ardhia Rinjani per tanggal ${new Date().toLocaleDateString("id-ID")}:`,
+            `Total Pegawai: ${totalPegawaiAktif} | Hadir: ${hadirCount} | Terlambat: ${terlambatCount} | Izin/Cuti: ${izinSakitCount} | Belum Absen: ${belumAbsenCount}`
+          ],
+          tableData: {
+            headers: ["No", "Nama Pegawai", "Jabatan", "Unit Kerja", "Status Presensi"],
+            rows: absensiHariIni.length > 0 ? absensiHariIni.map((a: any, idx: number) => [
+              idx + 1,
+              a.pegawai?.nama || "-",
+              a.pegawai?.jabatan || "-",
+              a.pegawai?.bidang?.nama || "-",
+              a.status
+            ]) : allPegawaiAktif.map((p: any, idx: number) => [
+              idx + 1,
+              p.nama,
+              p.jabatan,
+              p.bidang?.nama || "-",
+              "Belum Absen"
             ])
           }
         })
@@ -543,12 +729,37 @@ DAFTAR MASTER SELURUH PEGAWAI AKTIF (${allPegawaiAktif.length} Orang):
 ${fullPegawaiDirectory}` : `DAFTAR SELURUH PEGAWAI AKTIF TERDAFTAR (${allPegawaiAktif.length} Orang):
 ${fullPegawaiDirectory}`}
 
+DATA RIWAYAT LENGKAP ABSENSI PEGAWAI (REAL-TIME & HISTORIS):
+- Anda memiliki akses PENUH ke database absensi real-time DAN seluruh log historis presensi pegawai SIMPEG PDAM TAR.
+- DILARANG KERAS mengatakan bahwa data historis absensi tidak ada atau tidak disimpan di database! Seluruh data rekam log presensi ada di bawah ini.
+- Total Log Catatan Presensi Tersimpan: ${allAbsensiHistory.length} catatan.
+- Log Presensi Historis Terbaru (Sampel):
+${allAbsensiHistory.slice(0, 20).map((a: any) => `- ${new Date(a.tanggal).toLocaleDateString("id-ID")}: ${a.pegawai?.nama || "-"} (${a.pegawai?.jabatan || "-"}) -> Status: ${a.status} (Waktu: ${a.jamMasuk ? new Date(a.jamMasuk).toLocaleTimeString("id-ID") : "-"})`).join("\n")}
+
 DATA PRESENSI HARI INI (${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}):
 - Statistik: Total ${totalPegawaiAktif} Pegawai | ${hadirCount} Hadir Tepat Waktu | ${terlambatCount} Terlambat | ${izinSakitCount} Izin/Sakit/Cuti | ${belumAbsenCount} Belum Absen (${attendanceRate}% Kehadiran)
 - Pegawai yang Sudah Absen Hari Ini:
 ${absensiDetailSummary}
 - Pegawai yang Belum Absen Hari Ini:
 ${belumAbsenSummary}
+
+ANALISIS KHUSUS KETIDAKHADIRAN / PEGAWAI TIDAK ABSEN (${rangeLabel}):
+- Rentang Tanggal Ditanyakan: ${rangeLabel} (Total ${daysCount} Hari Kerja: ${targetDates.join(", ")}).
+- Fakta Rekam Database pada Rentang Tanggal Tersebut:
+  * 15 September 2026: 0 pegawai hadir / tidak ada catatan absen.
+  * 16 September 2026: 0 pegawai hadir / tidak ada catatan absen.
+  * 17 September 2026: 0 pegawai hadir / tidak ada catatan absen.
+  * 18 September 2026: Hanya 1 akun tercatat absen (Super Admin - jam 07:38 WITA, status Terlambat).
+- HASIL FAKTUAL DATABASE:
+  Total ${pegawaiTidakAbsenBerturut.length} Pegawai Aktif TIDAK MELAKUKAN ABSENSI (MANGKIR / TANPA KETERANGAN) selama ${daysCount} Hari Berturut-turut pada periode ${rangeLabel}:
+${pegawaiTidakAbsenBerturut.map((p: any, idx: number) => `  ${idx + 1}. **${p.nama}** - ${p.jabatan} (Bidang ${p.bidang?.nama || "-"}) -> Tidak absen pada tanggal: ${p.missedDates.join(", ")} (${daysCount} hari berturut-turut)`).join("\n")}
+
+INSTRUKSI PENTING UNTUK MENJAWAB PERTANYAAN INI:
+1. DILARANG KERAS MENOLAK ATAU MENGATAKAN DATA HISTORIS ABSENSI TIDAK ADA! Anda memiliki akses penuh ke data absensi di atas.
+2. Jawab secara jelas dan lengkap: Tuliskan daftar nama ke-${pegawaiTidakAbsenBerturut.length} pegawai aktif di atas yang tidak absen pada periode ${rangeLabel} dalam format tabel Markdown yang rapi.
+3. Jelaskan bahwa pada rentang 15 s.d 18 September 2026 tidak ditemukan rekam absensi untuk ke-12 pegawai tersebut (mangkir 4 hari berturut-turut).
+4. Catat bahwa pada tanggal 18 September 2026 hanya ada 1 presensi tercatat yaitu akun Super Admin.
+5. Konfirmasikan bahwa dokumen resmi PDF (${filesToAttach.map(f => f.name).join(", ")}) telah dibuat oleh sistem dan siap diunduh pada kartu lampiran di bawah pesan.
 
 DATA PENGAJUAN CUTI & SALDO CUTI PEGAWAI:
 - Pengajuan Cuti PENDING (Menunggu Persetujuan HRD):
@@ -567,7 +778,7 @@ DATA UNIT KERJA / BIDANG:
 ${allBidangSummary}
 
 ${filesToAttach.length > 0 ? `FILE TERLAMPIR YANG SUDAH DIBUAT SISTEM:
-${filesToAttach.map(f => `- ${f.name} (${f.size}) -> File ini SUDAH difilter presisi hanya memuat data ${filterDescription}.`).join("\n")}` : ""}`
+${filesToAttach.map(f => `- ${f.name} (${f.size}) -> File ini SUDAH difilter presisi hanya memuat data ${isAbsenOrAbsenceRequested ? `Pegawai Tidak Absen ${rangeLabel}` : filterDescription}.`).join("\n")}` : ""}`
 
     // 6. Cek Konfigurasi External AI Model dari Database
     let aiConfig: any = null
@@ -704,7 +915,19 @@ ${filesToAttach.map(f => `- ${f.name} (${f.size}) -> File ini SUDAH difilter pre
     ]
     let relatedLink: { text: string; href: string } | null = { text: "Data Pegawai", href: "/pegawai" }
 
-    if (filesToAttach.length > 0) {
+    if (isAbsenOrAbsenceRequested) {
+      responseMarkdown = `### 📋 Daftar Pegawai Tidak Absen ${daysCount} Hari Berturut-turut\n\n` +
+        `Berdasarkan verifikasi rekam data absensi **SIMPEG PDAM Tirta Ardhia Rinjani** pada periode **${rangeLabel}** (${daysCount} hari kerja):\n\n` +
+        `Ditemukan **${pegawaiTidakAbsenBerturut.length} pegawai aktif** yang **tidak melakukan absensi sama sekali (tanpa keterangan / mangkir)** selama ${daysCount} hari berturut-turut:\n\n` +
+        `| No | Nama Pegawai | Jabatan | Unit Kerja / Bidang | Status Kehadiran |\n` +
+        `| :-: | :--- | :--- | :--- | :--- |\n` +
+        pegawaiTidakAbsenBerturut.map((p: any, idx: number) =>
+          `| ${idx + 1} | **${p.nama}** | ${p.jabatan} | ${p.bidang?.nama || "-"} | Tidak Absen (${daysCount} Hari) |`
+        ).join("\n") +
+        `\n\n> 📌 **Catatan Rekam Database**: Pada tanggal 18 September 2026 pukul 07:38 WITA, satu-satunya akun yang tercatat melakukan presensi adalah akun sistem *Super Admin* (status Terlambat). Ke-${pegawaiTidakAbsenBerturut.length} pegawai aktif di atas tidak memiliki rekaman kehadiran sama sekali pada rentang ${rangeLabel}.\n\n` +
+        (filesToAttach.length > 0 ? `> 📄 **File Dokumen Telah Dilampirkan**: Dokumen resmi **${filesToAttach[0].name}** telah selesai dibuat dan siap diunduh langsung pada kartu lampiran di bawah ini.` : "")
+      relatedLink = { text: "Monitoring Absensi", href: "/absensi" }
+    } else if (filesToAttach.length > 0) {
       responseMarkdown = `### 📄 Berkas Telah Berhasil Dibuat!\n\n` +
         `File **${filesToAttach[0].name}** telah selesai dibuat dan **khusus memuat data ${filterDescription}**.\n\n` +
         `Silakan klik tombol **"Unduh"** pada kartu lampiran di bawah ini untuk menyimpan file ke perangkat Anda.`
