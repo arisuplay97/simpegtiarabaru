@@ -48,8 +48,8 @@ export async function triggerNotification(title: string, body: string, url: stri
       if (reg && reg.showNotification) {
         await reg.showNotification(title, {
           body,
-          icon: "/logo-tar.png",
-          badge: "/logo-tar.png",
+          icon: "/slip.png",
+          badge: "/slip.png",
           vibrate: [100, 50, 100],
           data: { url }
         } as any)
@@ -58,7 +58,7 @@ export async function triggerNotification(title: string, body: string, url: stri
     }
 
     // Fallback standard notification
-    new Notification(title, { body, icon: "/logo-tar.png" })
+    new Notification(title, { body, icon: "/slip.png" })
   } catch (e) {
     console.warn("Failed to show notification:", e)
   }

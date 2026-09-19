@@ -259,7 +259,7 @@ export function SidebarNav() {
             "flex items-center justify-center rounded-xl overflow-hidden shrink-0 bg-blue-50/70 dark:bg-zinc-800/60 p-1 border border-slate-200/60 dark:border-zinc-700/60",
             (!isMobileMode && collapsed) ? "h-10 w-10" : "h-10 w-10"
           )}>
-            <Image src="/logo-tar.png" alt="Logo" width={34} height={34} className="object-contain" />
+            <Image src="/slip.png" alt="Logo" width={34} height={34} className="object-contain" />
           </div>
           {(isMobileMode || !collapsed) && (
             <div className="flex flex-col min-w-0">

@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   description: "ASIK Perumdam Tirta Ardhia Rinjani",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ASIK" },
+  icons: {
+    icon: "/slip.png",
+    shortcut: "/slip.png",
+    apple: "/slip.png",
+  },
 }
 
 export const viewport: Viewport = {

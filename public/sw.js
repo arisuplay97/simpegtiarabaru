@@ -90,8 +90,8 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body: data.body,
-    icon: "/logo-tar.png",
-    badge: "/logo-tar.png",
+    icon: "/slip.png",
+    badge: "/slip.png",
     tag: data.tag || "asik-notification",
     renotify: true,
     vibrate: [120, 80, 120],

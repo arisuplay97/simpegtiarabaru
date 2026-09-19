@@ -9,19 +9,19 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/logo-tar.png",
+      "src": "/slip.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/logo-tar.png",
+      "src": "/slip.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/apple-icon.png",
+      "src": "/slip.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
@@ -36,21 +36,21 @@
       "short_name": "Absen",
       "description": "Check-in absensi hari ini",
       "url": "/m/fingerprint",
-      "icons": [{ "src": "/logo-tar.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
     },
     {
       "name": "Kalender Kerja",
       "short_name": "Kalender",
       "description": "Kalender kehadiran",
       "url": "/m/kalender",
-      "icons": [{ "src": "/logo-tar.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
     },
     {
       "name": "Cuti & Izin",
       "short_name": "Cuti",
       "description": "Ajukan cuti atau izin",
       "url": "/m/cuti",
-      "icons": [{ "src": "/logo-tar.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
     }
   ]
 }
