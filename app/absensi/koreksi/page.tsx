@@ -5,17 +5,9 @@ import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -33,16 +25,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
@@ -54,10 +36,16 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  FileEdit,
+  FilePenLine,
   AlertCircle,
   Loader2,
   Eye,
+  ArrowRight,
+  RefreshCw,
+  Building2,
+  Check,
+  X,
+  FileEdit,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -81,20 +69,20 @@ interface KoreksiAbsensi {
   alasanTolak?: string
 }
 
-// ============ DATA DUMMY ============
+// ============ DATA AWAL ============
 const initialData: KoreksiAbsensi[] = [
   {
     id: "1",
     employeeName: "Ahmad Rizki Pratama",
     employeeInitials: "AR",
-    employeeUnit: "IT & Sistem",
-    nik: "3201150115850001",
+    employeeUnit: "IT & Sistem Informasi",
+    nik: "EMP-00102",
     tanggal: "15 Mar 2026",
     checkInLama: null,
     checkOutLama: null,
     checkInBaru: "08:00",
     checkOutBaru: "17:00",
-    alasan: "Lupa absen karena mesin fingerprint error pagi hari",
+    alasan: "Lupa absen karena mesin fingerprint dan jaringan kantor sedang maintenance pagi hari",
     status: "pending",
     submittedDate: "16 Mar 2026",
   },
@@ -102,14 +90,14 @@ const initialData: KoreksiAbsensi[] = [
     id: "2",
     employeeName: "Siti Nurhaliza",
     employeeInitials: "SN",
-    employeeUnit: "Keuangan",
-    nik: "3201032215900001",
+    employeeUnit: "Keuangan & Akuntansi",
+    nik: "EMP-00105",
     tanggal: "14 Mar 2026",
     checkInLama: "08:00",
     checkOutLama: null,
     checkInBaru: "08:00",
     checkOutBaru: "17:00",
-    alasan: "Lupa check-out karena terburu-buru rapat eksternal",
+    alasan: "Lupa check-out sore hari karena langsung berangkat rapat dinas eksternal",
     status: "approved",
     submittedDate: "15 Mar 2026",
     approvedBy: "Manager SDM",
@@ -118,47 +106,42 @@ const initialData: KoreksiAbsensi[] = [
     id: "3",
     employeeName: "Budi Santoso",
     employeeInitials: "BS",
-    employeeUnit: "Distribusi",
-    nik: "3201050512870001",
+    employeeUnit: "Distribusi Air & Jaringan",
+    nik: "EMP-00118",
     tanggal: "13 Mar 2026",
     checkInLama: "09:30",
     checkOutLama: "17:00",
     checkInBaru: "07:45",
     checkOutBaru: "17:00",
-    alasan: "Check-in tercatat salah karena sinyal GPS lemah",
+    alasan: "Check-in tercatat terlambat karena GPS handphone tidak mendeteksi radius lokasi kantor",
     status: "rejected",
     submittedDate: "14 Mar 2026",
     approvedBy: "Manager SDM",
-    alasanTolak: "Tidak ada bukti pendukung yang dilampirkan",
+    alasanTolak: "Tidak ada bukti pendukung surat tugas atau log riwayat aktivitas pada jam tersebut",
   },
 ]
 
 const statusConfig = {
   pending: {
     label: "Menunggu",
-    className: "bg-amber-100 text-amber-700 border-amber-200",
+    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+    dot: "bg-amber-500",
     icon: Clock,
   },
   approved: {
     label: "Disetujui",
-    className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    dot: "bg-emerald-500",
     icon: CheckCircle2,
   },
   rejected: {
     label: "Ditolak",
-    className: "bg-red-100 text-red-700 border-red-200",
+    badge: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+    dot: "bg-rose-500",
     icon: XCircle,
   },
 }
 
-const statsData = [
-  { label: "Total Pengajuan", value: "3", icon: FileEdit, color: "text-primary" },
-  { label: "Menunggu", value: "1", icon: Clock, color: "text-amber-600" },
-  { label: "Disetujui", value: "1", icon: CheckCircle2, color: "text-emerald-600" },
-  { label: "Ditolak", value: "1", icon: XCircle, color: "text-red-600" },
-]
-
-// ============ KOMPONEN UTAMA ============
 export default function KoreksiAbsensiPage() {
   const [data, setData] = useState<KoreksiAbsensi[]>(initialData)
   const [searchQuery, setSearchQuery] = useState("")
@@ -177,16 +160,17 @@ export default function KoreksiAbsensiPage() {
   const [formAlasan, setFormAlasan] = useState("")
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
-  // ---- Filter ----
+  // Filter
   const filtered = data.filter((item) => {
-    const matchSearch = item.employeeName
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
+    const matchSearch =
+      item.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.nik.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.alasan.toLowerCase().includes(searchQuery.toLowerCase())
     const matchStatus = statusFilter === "all" || item.status === statusFilter
     return matchSearch && matchStatus
   })
 
-  // ---- Validasi Form ----
+  // Validasi Form
   const validateForm = () => {
     const errors: Record<string, string> = {}
     if (!formDate) errors.tanggal = "Tanggal wajib dipilih"
@@ -200,18 +184,18 @@ export default function KoreksiAbsensiPage() {
     return Object.keys(errors).length === 0
   }
 
-  // ---- Submit Form ----
+  // Submit Form
   const handleSubmit = async () => {
     if (!validateForm()) return
     setIsLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
+    await new Promise((r) => setTimeout(r, 600))
 
     const newItem: KoreksiAbsensi = {
       id: String(Date.now()),
-      employeeName: "Dwiky Firmansyah", // user yang login
+      employeeName: "Dwiky Firmansyah",
       employeeInitials: "DF",
       employeeUnit: "SDM & Umum",
-      nik: "3201010101900001",
+      nik: "EMP-00109",
       tanggal: format(formDate!, "dd MMM yyyy", { locale: id }),
       checkInLama: null,
       checkOutLama: null,
@@ -233,10 +217,10 @@ export default function KoreksiAbsensiPage() {
     toast.success("Pengajuan koreksi absensi berhasil dikirim")
   }
 
-  // ---- Approve ----
+  // Approve
   const handleApprove = async (item: KoreksiAbsensi) => {
     setIsLoading(true)
-    await new Promise((r) => setTimeout(r, 600))
+    await new Promise((r) => setTimeout(r, 400))
     setData((prev) =>
       prev.map((d) =>
         d.id === item.id
@@ -248,7 +232,7 @@ export default function KoreksiAbsensiPage() {
     toast.success(`Koreksi absensi ${item.employeeName} disetujui`)
   }
 
-  // ---- Reject ----
+  // Reject
   const handleReject = async () => {
     if (!selectedItem) return
     if (!alasanTolak.trim()) {
@@ -256,7 +240,7 @@ export default function KoreksiAbsensiPage() {
       return
     }
     setIsLoading(true)
-    await new Promise((r) => setTimeout(r, 600))
+    await new Promise((r) => setTimeout(r, 400))
     setData((prev) =>
       prev.map((d) =>
         d.id === selectedItem.id
@@ -271,419 +255,575 @@ export default function KoreksiAbsensiPage() {
     toast.error(`Koreksi absensi ${selectedItem.employeeName} ditolak`)
   }
 
-  return (
-    <div className="flex min-h-screen bg-background">
-      <SidebarNav />
-      <div className="flex flex-1 flex-col sidebar-offset">
-        <TopBar breadcrumb={["Kehadiran", "Koreksi Absensi"]} />
-        <main className="flex-1 overflow-auto p-6">
+  // Stats calculation
+  const totalCount = data.length
+  const pendingCount = data.filter((d) => d.status === "pending").length
+  const approvedCount = data.filter((d) => d.status === "approved").length
+  const rejectedCount = data.filter((d) => d.status === "rejected").length
 
-          {/* Header */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  return (
+    <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-[#0B0C0E]">
+      <SidebarNav />
+
+      <div className="flex flex-1 flex-col sidebar-offset min-w-0">
+        <TopBar breadcrumb={["Kehadiran", "Koreksi Absensi"]} />
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1720px] mx-auto w-full">
+
+          {/* ── 1. CLEAN ENTERPRISE HEADER ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200/80 dark:border-zinc-800/80">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Koreksi Absensi</h1>
-              <p className="text-sm text-muted-foreground">
-                Pengajuan koreksi data kehadiran pegawai
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
+                  Koreksi Absensi
+                </h1>
+                <span className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-700/80">
+                  Penyesuaian Presensi
+                </span>
+              </div>
+              <p className="text-xs sm:text-[13px] text-slate-500 dark:text-zinc-400 mt-1">
+                Kelola pengajuan perbaikan catatan jam masuk dan pulang kerja pegawai secara terstruktur.
               </p>
             </div>
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Ajukan Koreksi
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Ajukan Koreksi Absensi</DialogTitle>
-                  <DialogDescription>
-                    Isi form berikut untuk mengajukan koreksi data kehadiran
-                  </DialogDescription>
-                </DialogHeader>
 
-                <div className="space-y-4">
-                  {/* Tanggal */}
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">
-                      Tanggal Absensi
-                    </label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !formDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formDate
-                            ? format(formDate, "dd MMMM yyyy", { locale: id })
-                            : "Pilih tanggal"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={formDate}
-                          onSelect={setFormDate}
-                          initialFocus
-                          disabled={(date) => date > new Date()}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {formErrors.tanggal && (
-                      <p className="mt-1 text-xs text-destructive">{formErrors.tanggal}</p>
-                    )}
-                  </div>
-
-                  {/* Jam Koreksi */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium">
-                        Jam Masuk (Koreksi)
-                      </label>
-                      <Input
-                        type="time"
-                        value={formCheckInBaru}
-                        onChange={(e) => setFormCheckInBaru(e.target.value)}
-                      />
-                      {formErrors.checkInBaru && (
-                        <p className="mt-1 text-xs text-destructive">{formErrors.checkInBaru}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium">
-                        Jam Keluar (Koreksi)
-                      </label>
-                      <Input
-                        type="time"
-                        value={formCheckOutBaru}
-                        onChange={(e) => setFormCheckOutBaru(e.target.value)}
-                      />
-                      {formErrors.checkOutBaru && (
-                        <p className="mt-1 text-xs text-destructive">{formErrors.checkOutBaru}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Alasan */}
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">
-                      Alasan Koreksi
-                    </label>
-                    <Textarea
-                      placeholder="Jelaskan alasan pengajuan koreksi absensi..."
-                      value={formAlasan}
-                      onChange={(e) => setFormAlasan(e.target.value)}
-                      rows={3}
-                    />
-                    {formErrors.alasan && (
-                      <p className="mt-1 text-xs text-destructive">{formErrors.alasan}</p>
-                    )}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formAlasan.length}/10 karakter minimum
-                    </p>
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                    Batal
-                  </Button>
-                  <Button onClick={handleSubmit} disabled={isLoading}>
-                    {isLoading ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengirim...</>
-                    ) : "Kirim Pengajuan"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button
+              size="sm"
+              onClick={() => setShowAddDialog(true)}
+              className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 text-xs font-semibold rounded-lg h-9 px-3.5 shadow-xs shrink-0 self-start sm:self-auto"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Ajukan Koreksi Presensi
+            </Button>
           </div>
 
-          {/* Stats */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {statsData.map((stat) => (
-              <Card key={stat.label} className="card-premium">
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+          {/* ── 2. CLEAN ENTERPRISE STAT CARDS ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              {
+                title: "Total Pengajuan",
+                value: totalCount,
+                sub: "Seluruh catatan koreksi",
+                icon: FileEdit,
+              },
+              {
+                title: "Menunggu Verifikasi",
+                value: pendingCount,
+                sub: "Perlu ditinjau HRD",
+                icon: Clock,
+              },
+              {
+                title: "Disetujui",
+                value: approvedCount,
+                sub: "Presensi disesuaikan",
+                icon: CheckCircle2,
+              },
+              {
+                title: "Ditolak",
+                value: rejectedCount,
+                sub: "Bukti tidak valid",
+                icon: XCircle,
+              },
+            ].map((c, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 p-4 shadow-2xs hover:border-slate-300 dark:hover:border-zinc-700 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+                    {c.title}
+                  </span>
+                  <div className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-zinc-800/80 flex items-center justify-center text-slate-600 dark:text-zinc-400 shrink-0">
+                    <c.icon className="h-3.5 w-3.5" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100 tabular-nums">
+                  {c.value}
+                </div>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  {c.sub}
+                </p>
+              </div>
             ))}
           </div>
 
-          {/* Filter */}
-          <Card className="card-premium mb-4">
-            <CardContent className="p-4">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari nama pegawai..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="pending">Menunggu</SelectItem>
-                    <SelectItem value="approved">Disetujui</SelectItem>
-                    <SelectItem value="rejected">Ditolak</SelectItem>
-                  </SelectContent>
-                </Select>
+          {/* ── 3. FILTER BAR ── */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 p-2.5 rounded-xl shadow-2xs">
+            <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-zinc-900 rounded-lg border border-slate-200/80 dark:border-zinc-800 select-none">
+              {[
+                { id: "all", label: "Semua" },
+                { id: "pending", label: "Menunggu" },
+                { id: "approved", label: "Disetujui" },
+                { id: "rejected", label: "Ditolak" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={cn(
+                    "px-3 py-1 rounded-md text-xs font-medium transition-colors",
+                    statusFilter === tab.id
+                      ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-50 shadow-2xs"
+                      : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama, NIK, alasan..."
+                className="pl-8 h-8 text-xs rounded-lg bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-medium"
+              />
+            </div>
+          </div>
+
+          {/* ── 4. MODERN TABLE WITH CLEAN VISUAL DIFF ── */}
+          <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-xl shadow-2xs overflow-hidden">
+            {filtered.length === 0 ? (
+              <div className="p-16 text-center space-y-2">
+                <FilePenLine className="h-8 w-8 text-slate-300 dark:text-zinc-600 mx-auto" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-zinc-300">
+                  Tidak ada permohonan koreksi absensi
+                </p>
+                <p className="text-xs text-slate-400 dark:text-zinc-500">
+                  Belum ada catatan yang sesuai dengan filter pencarian.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabel */}
-          <Card className="card-premium">
-            <CardContent className="p-0">
+            ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="text-xs">
                   <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-[220px]">Pegawai</TableHead>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead className="text-center">Data Lama</TableHead>
-                      <TableHead className="text-center">Data Koreksi</TableHead>
-                      <TableHead>Alasan</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Aksi</TableHead>
-                    </TableRow>
+                    <tr className="bg-slate-50/80 dark:bg-zinc-900/80 border-b border-slate-200/80 dark:border-zinc-800 text-[11px] font-semibold text-slate-600 dark:text-zinc-400">
+                      <TableHead className="py-3 px-4 min-w-[200px]">Pegawai</TableHead>
+                      <TableHead className="py-3 px-3">Tanggal Absen</TableHead>
+                      <TableHead className="py-3 px-3 min-w-[250px]">Perubahan Jam (Sebelum ➔ Sesudah)</TableHead>
+                      <TableHead className="py-3 px-3 max-w-[240px]">Alasan Permohonan</TableHead>
+                      <TableHead className="py-3 px-3">Diajukan</TableHead>
+                      <TableHead className="py-3 px-3 text-center">Status</TableHead>
+                      <TableHead className="py-3 px-3 text-right">Aksi</TableHead>
+                    </tr>
                   </TableHeader>
-                  <TableBody>
-                    {filtered.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="py-12 text-center">
-                          <div className="flex flex-col items-center gap-2">
-                            <Search className="h-8 w-8 text-muted-foreground/50" />
-                            <p className="font-medium text-muted-foreground">
-                              Tidak ada data ditemukan
+                  <TableBody className="divide-y divide-slate-100 dark:divide-zinc-800/60 font-medium">
+                    {filtered.map((item) => {
+                      const cfg = statusConfig[item.status]
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className="transition-colors hover:bg-slate-50/60 dark:hover:bg-zinc-800/30"
+                        >
+                          {/* Pegawai */}
+                          <TableCell className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8 rounded-lg border border-slate-200 dark:border-zinc-800">
+                                <AvatarFallback className="rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                  {item.employeeInitials}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-semibold text-slate-900 dark:text-zinc-100 text-xs leading-none">
+                                  {item.employeeName}
+                                </p>
+                                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1 font-mono">
+                                  {item.nik} · <span className="text-slate-600 dark:text-zinc-400 font-sans">{item.employeeUnit}</span>
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* Tanggal */}
+                          <TableCell className="py-3 px-3 font-medium text-slate-800 dark:text-zinc-200 whitespace-nowrap">
+                            {item.tanggal}
+                          </TableCell>
+
+                          {/* Clean Visual Diff */}
+                          <TableCell className="py-3 px-3">
+                            <div className="space-y-1 font-mono text-[11px]">
+                              {/* Jam Masuk */}
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase font-sans text-slate-400 w-11 shrink-0">Masuk</span>
+                                <span className={cn(
+                                  item.checkInLama ? "text-slate-500 dark:text-slate-400" : "text-slate-400 italic text-[10px]"
+                                )}>
+                                  {item.checkInLama || "Kosong"}
+                                </span>
+                                <ArrowRight className="w-3 h-3 text-slate-300 dark:text-zinc-600 shrink-0" />
+                                <span className="font-semibold text-slate-900 dark:text-zinc-100 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200/80 dark:border-zinc-700/80">
+                                  {item.checkInBaru}
+                                </span>
+                              </div>
+
+                              {/* Jam Pulang */}
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase font-sans text-slate-400 w-11 shrink-0">Pulang</span>
+                                <span className={cn(
+                                  item.checkOutLama ? "text-slate-500 dark:text-slate-400" : "text-slate-400 italic text-[10px]"
+                                )}>
+                                  {item.checkOutLama || "Kosong"}
+                                </span>
+                                <ArrowRight className="w-3 h-3 text-slate-300 dark:text-zinc-600 shrink-0" />
+                                <span className="font-semibold text-slate-900 dark:text-zinc-100 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200/80 dark:border-zinc-700/80">
+                                  {item.checkOutBaru}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* Alasan */}
+                          <TableCell className="py-3 px-3 max-w-[240px]">
+                            <p className="text-slate-700 dark:text-zinc-300 truncate text-xs" title={item.alasan}>
+                              {item.alasan}
                             </p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filtered.map((item) => {
-                        const StatusIcon = statusConfig[item.status].icon
-                        return (
-                          <TableRow key={item.id} className="hover:bg-muted/30">
-                            {/* Pegawai */}
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-9 w-9">
-                                  <AvatarFallback className="bg-primary/10 text-xs text-primary">
-                                    {item.employeeInitials}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium text-sm">{item.employeeName}</p>
-                                  <p className="text-xs text-muted-foreground">{item.employeeUnit}</p>
-                                </div>
-                              </div>
-                            </TableCell>
+                          </TableCell>
 
-                            {/* Tanggal */}
-                            <TableCell className="text-sm">{item.tanggal}</TableCell>
+                          {/* Tanggal Diajukan */}
+                          <TableCell className="py-3 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                            {item.submittedDate}
+                          </TableCell>
 
-                            {/* Data Lama */}
-                            <TableCell className="text-center">
-                              <div className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground">
-                                <span>Masuk: {item.checkInLama ?? <span className="text-red-500">-</span>}</span>
-                                <span>Keluar: {item.checkOutLama ?? <span className="text-red-500">-</span>}</span>
-                              </div>
-                            </TableCell>
+                          {/* Status */}
+                          <TableCell className="py-3 px-3 text-center whitespace-nowrap">
+                            <span className={cn(
+                              "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium border",
+                              cfg.badge
+                            )}>
+                              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", cfg.dot)} />
+                              {cfg.label}
+                            </span>
+                          </TableCell>
 
-                            {/* Data Koreksi */}
-                            <TableCell className="text-center">
-                              <div className="flex flex-col items-center gap-0.5 text-xs font-medium text-emerald-700">
-                                <span>Masuk: {item.checkInBaru}</span>
-                                <span>Keluar: {item.checkOutBaru}</span>
-                              </div>
-                            </TableCell>
-
-                            {/* Alasan */}
-                            <TableCell className="max-w-[180px]">
-                              <p className="truncate text-sm text-muted-foreground">
-                                {item.alasan}
-                              </p>
-                            </TableCell>
-
-                            {/* Status */}
-                            <TableCell className="text-center">
-                              <Badge
-                                variant="outline"
-                                className={cn("gap-1", statusConfig[item.status].className)}
+                          {/* Aksi */}
+                          <TableCell className="py-3 px-3 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setSelectedItem(item)
+                                  setShowDetailDialog(true)
+                                }}
+                                className="h-7 px-2 text-xs rounded-md text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                               >
-                                <StatusIcon className="h-3 w-3" />
-                                {statusConfig[item.status].label}
-                              </Badge>
-                            </TableCell>
+                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                Detail
+                              </Button>
 
-                            {/* Aksi */}
-                            <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                {/* Lihat Detail */}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => {
-                                    setSelectedItem(item)
-                                    setShowDetailDialog(true)
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-
-                                {/* Approve & Reject — hanya tampil jika pending */}
-                                {item.status === "pending" && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                                      onClick={() => handleApprove(item)}
-                                    >
-                                      <CheckCircle2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700"
-                                      onClick={() => {
-                                        setSelectedItem(item)
-                                        setShowRejectDialog(true)
-                                      }}
-                                    >
-                                      <XCircle className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })
-                    )}
+                              {item.status === "pending" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleApprove(item)}
+                                    className="h-7 px-2.5 text-xs rounded-md border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-medium"
+                                  >
+                                    <Check className="h-3 w-3 mr-1" />
+                                    Setujui
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedItem(item)
+                                      setShowRejectDialog(true)
+                                    }}
+                                    className="h-7 px-2 text-xs rounded-md border-slate-200 dark:border-zinc-800 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-medium"
+                                  >
+                                    <X className="h-3 w-3 mr-1" />
+                                    Tolak
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </tr>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+            )}
+          </div>
 
-      {/* Dialog Detail */}
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Detail Koreksi Absensi</DialogTitle>
-          </DialogHeader>
-          {selectedItem && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">Pegawai</p>
-                  <p className="font-medium">{selectedItem.employeeName}</p>
+          {/* ── 5. DIALOG: AJUKAN KOREKSI ── */}
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogContent className="max-w-md rounded-xl bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
+              <DialogHeader>
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div className="p-2 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-700/80">
+                    <FilePenLine className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                      Ajukan Koreksi Presensi
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
+                      Masukkan data kehadiran yang benar untuk diverifikasi atasan
+                    </DialogDescription>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Unit</p>
-                  <p className="font-medium">{selectedItem.employeeUnit}</p>
+              </DialogHeader>
+
+              <div className="space-y-3.5 py-2 text-xs">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                    Tanggal Absensi <span className="text-rose-500">*</span>
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-9 justify-start text-left font-normal rounded-lg bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-xs",
+                          !formDate && "text-slate-400"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {formDate ? format(formDate, "dd MMMM yyyy", { locale: id }) : "Pilih tanggal"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-xl" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formDate}
+                        onSelect={setFormDate}
+                        disabled={(d) => d > new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {formErrors.tanggal && (
+                    <p className="text-[11px] text-rose-500">{formErrors.tanggal}</p>
+                  )}
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">NIK</p>
-                  <p className="font-mono font-medium">{selectedItem.nik}</p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                      Jam Masuk (Benar) <span className="text-rose-500">*</span>
+                    </label>
+                    <Input
+                      type="time"
+                      value={formCheckInBaru}
+                      onChange={(e) => setFormCheckInBaru(e.target.value)}
+                      className="h-9 rounded-lg bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-xs font-mono"
+                    />
+                    {formErrors.checkInBaru && (
+                      <p className="text-[11px] text-rose-500">{formErrors.checkInBaru}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                      Jam Keluar (Benar) <span className="text-rose-500">*</span>
+                    </label>
+                    <Input
+                      type="time"
+                      value={formCheckOutBaru}
+                      onChange={(e) => setFormCheckOutBaru(e.target.value)}
+                      className="h-9 rounded-lg bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-xs font-mono"
+                    />
+                    {formErrors.checkOutBaru && (
+                      <p className="text-[11px] text-rose-500">{formErrors.checkOutBaru}</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tanggal</p>
-                  <p className="font-medium">{selectedItem.tanggal}</p>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                    Alasan Koreksi <span className="text-rose-500">*</span>
+                  </label>
+                  <Textarea
+                    placeholder="Jelaskan alasan pengajuan koreksi jam absensi..."
+                    value={formAlasan}
+                    onChange={(e) => setFormAlasan(e.target.value)}
+                    rows={3}
+                    className="rounded-lg bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-xs"
+                  />
+                  {formErrors.alasan && (
+                    <p className="text-[11px] text-rose-500">{formErrors.alasan}</p>
+                  )}
+                  <p className="text-[10px] text-slate-400">
+                    Minimal 10 karakter ({formAlasan.length} karakter terisi)
+                  </p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/50 p-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Data Lama</p>
-                  <p>Masuk: {selectedItem.checkInLama ?? "-"}</p>
-                  <p>Keluar: {selectedItem.checkOutLama ?? "-"}</p>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddDialog(false)}
+                  className="rounded-lg text-xs h-9"
+                >
+                  Batal
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-lg text-xs font-semibold h-9 px-4"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      Mengirim...
+                    </>
+                  ) : (
+                    "Kirim Pengajuan"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* ── 6. DIALOG: DETAIL KOREKSI ── */}
+          <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+            <DialogContent className="max-w-md rounded-xl bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
+              <DialogHeader>
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div className="p-2 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-700/80">
+                    <FilePenLine className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                      Rincian Koreksi Absensi
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
+                      Detail lengkap perubahan jam kehadiran
+                    </DialogDescription>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Data Koreksi</p>
-                  <p className="text-emerald-700 font-medium">Masuk: {selectedItem.checkInBaru}</p>
-                  <p className="text-emerald-700 font-medium">Keluar: {selectedItem.checkOutBaru}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Alasan</p>
-                <p>{selectedItem.alasan}</p>
-              </div>
-              {selectedItem.alasanTolak && (
-                <div className="rounded-lg bg-red-50 p-3">
-                  <p className="text-xs text-red-600 font-medium">Alasan Penolakan</p>
-                  <p className="text-red-700">{selectedItem.alasanTolak}</p>
+              </DialogHeader>
+
+              {selectedItem && (
+                <div className="space-y-3 py-2 text-xs">
+                  <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 space-y-1">
+                    <p className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                      {selectedItem.employeeName}
+                    </p>
+                    <p className="text-slate-500 font-mono">
+                      {selectedItem.nik} · {selectedItem.employeeUnit}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 space-y-2">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">
+                      Perbandingan Jam Presensi ({selectedItem.tanggal})
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                      <div className="p-2 rounded-lg bg-white dark:bg-zinc-800 border border-slate-200/60 dark:border-zinc-700">
+                        <span className="text-[10px] font-sans text-slate-400 block">Jam Masuk</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-slate-400 line-through">{selectedItem.checkInLama || "--:--"}</span>
+                          <ArrowRight className="w-3 h-3 text-slate-400" />
+                          <span className="font-semibold text-slate-900 dark:text-zinc-100">{selectedItem.checkInBaru}</span>
+                        </div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white dark:bg-zinc-800 border border-slate-200/60 dark:border-zinc-700">
+                        <span className="text-[10px] font-sans text-slate-400 block">Jam Keluar</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-slate-400 line-through">{selectedItem.checkOutLama || "--:--"}</span>
+                          <ArrowRight className="w-3 h-3 text-slate-400" />
+                          <span className="font-semibold text-slate-900 dark:text-zinc-100">{selectedItem.checkOutBaru}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
+                    <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-zinc-400 block mb-0.5">
+                      Alasan Permohonan
+                    </span>
+                    <p className="text-slate-700 dark:text-zinc-300">
+                      {selectedItem.alasan}
+                    </p>
+                  </div>
+
+                  {selectedItem.alasanTolak && (
+                    <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                      <span className="text-[10px] uppercase font-semibold text-rose-600 dark:text-rose-400 block mb-0.5">
+                        Alasan Penolakan
+                      </span>
+                      <p className="text-slate-700 dark:text-zinc-300">
+                        {selectedItem.alasanTolak}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
-              <div>
-                <p className="text-xs text-muted-foreground">Status</p>
-                <Badge
-                  variant="outline"
-                  className={statusConfig[selectedItem.status].className}
-                >
-                  {statusConfig[selectedItem.status].label}
-                </Badge>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
-              Tutup
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* AlertDialog Tolak */}
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Tolak Koreksi Absensi</AlertDialogTitle>
-            <AlertDialogDescription>
-              Masukkan alasan penolakan untuk{" "}
-              <span className="font-medium">{selectedItem?.employeeName}</span>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Textarea
-            placeholder="Alasan penolakan..."
-            value={alasanTolak}
-            onChange={(e) => setAlasanTolak(e.target.value)}
-            rows={3}
-            className="mt-2"
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setAlasanTolak("")}>
-              Batal
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleReject}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menolak...</>
-              ) : "Ya, Tolak"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDetailDialog(false)}
+                  className="rounded-lg text-xs h-9"
+                >
+                  Tutup
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* ── 7. DIALOG: TOLAK KOREKSI ── */}
+          <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+            <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
+              <DialogHeader>
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50">
+                    <XCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                      Tolak Koreksi Absensi
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
+                      {selectedItem?.employeeName} · {selectedItem?.tanggal}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-3 py-2 text-xs">
+                <p className="text-slate-600 dark:text-zinc-400">
+                  Masukkan alasan mengapa permohonan koreksi absensi ini tidak disetujui:
+                </p>
+                <Textarea
+                  placeholder="Contoh: Bukti pendukung tidak dilampirkan atau tidak ada konfirmasi atasan langsung..."
+                  rows={3}
+                  value={alasanTolak}
+                  onChange={(e) => setAlasanTolak(e.target.value)}
+                  className="rounded-xl bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-xs"
+                />
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRejectDialog(false)}
+                  className="rounded-xl text-xs h-9"
+                >
+                  Batal
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleReject}
+                  disabled={isLoading}
+                  className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold h-9 px-4"
+                >
+                  {isLoading ? "Menolak..." : "Konfirmasi Penolakan"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+        </main>
+      </div>
     </div>
   )
 }
