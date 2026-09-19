@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { daftarPangkat } from "@/lib/constants/pangkat"
+import { normalizeGolonganKey } from "@/lib/utils"
 
 export async function getPangkatData() {
   const pegawais = await prisma.pegawai.findMany({
@@ -10,6 +11,9 @@ export async function getPangkatData() {
     include: {
       bidang: true,
       riwayatPangkat: {
+        orderBy: { tanggalBerlaku: 'desc' }
+      },
+      riwayatPangkatDetail: {
         orderBy: { tanggalBerlaku: 'desc' }
       }
     },
@@ -21,9 +25,31 @@ export async function getPangkatData() {
   const riwayatPangkat: any[] = []
 
   for (const emp of pegawais) {
-    // TMT Pangkat Terakhir adalah either the last approved promotion or their join date or createdAt
-    const lastApproved = emp.riwayatPangkat.find(p => p.status === "APPROVED")
-    const tmtPangkatTerakhir = lastApproved?.tanggalBerlaku || emp.tanggalMasuk || emp.createdAt || now
+    // 1. Tentukan riwayat pangkat terakhir dari riwayat detail profil maupun pengajuan approved
+    const lastApprovedInApp = emp.riwayatPangkat.find(p => p.status === "APPROVED")
+    const lastProfilePangkat = emp.riwayatPangkatDetail[0]
+
+    // Kumpulkan seluruh tanggal valid mutasi/pangkat/masuk
+    const promotionTimestamps: number[] = []
+
+    if (lastApprovedInApp?.tanggalBerlaku) {
+      promotionTimestamps.push(new Date(lastApprovedInApp.tanggalBerlaku).getTime())
+    }
+    for (const pd of emp.riwayatPangkatDetail) {
+      if (pd.tanggalBerlaku) {
+        promotionTimestamps.push(new Date(pd.tanggalBerlaku).getTime())
+      }
+    }
+    if (emp.tanggalMasuk) {
+      promotionTimestamps.push(new Date(emp.tanggalMasuk).getTime())
+    }
+    if (emp.createdAt) {
+      promotionTimestamps.push(new Date(emp.createdAt).getTime())
+    }
+
+    const tmtPangkatTerakhir = promotionTimestamps.length > 0
+      ? new Date(Math.max(...promotionTimestamps))
+      : now
 
     const masaKerjaMs = now.getTime() - tmtPangkatTerakhir.getTime()
     const diffDays = Math.ceil((tmtPangkatTerakhir.getTime() + (4 * 365.25 * 24 * 60 * 60 * 1000) - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -31,24 +57,29 @@ export async function getPangkatData() {
     // Eligible if 4 years have passed (or within 60 days of 4th year)
     const isEligibleTime = diffDays <= 60 
 
-    const currentLabel = emp.pangkat || "Juru Muda"
-    const currentGolongan = emp.golongan || "A/I"
+    const currentLabel = emp.pangkat || lastProfilePangkat?.pangkat || "Juru Muda"
+    const currentGolongan = emp.golongan || lastProfilePangkat?.golongan || "A/I"
+    const normGolongan = normalizeGolonganKey(currentGolongan)
     
-    const currentIndex = daftarPangkat.findIndex(p => 
-      p.golongan.toLowerCase() === currentGolongan.toLowerCase() ||
-      p.nama.toLowerCase() === currentLabel.toLowerCase() ||
-      p.aliasGolongan.some(a => a.toLowerCase() === currentGolongan.toLowerCase())
-    )
+    const currentIndex = daftarPangkat.findIndex(p => {
+      const normP = normalizeGolonganKey(p.golongan)
+      return (
+        normP.toLowerCase() === normGolongan.toLowerCase() ||
+        p.golongan.toLowerCase() === currentGolongan.toLowerCase() ||
+        p.nama.toLowerCase() === currentLabel.toLowerCase() ||
+        p.aliasGolongan.some(a => {
+          const normA = normalizeGolonganKey(a)
+          return normA.toLowerCase() === normGolongan.toLowerCase() || a.toLowerCase() === currentGolongan.toLowerCase()
+        })
+      )
+    })
     
     let pangkatBaru = "-"
     let golonganBaru = "-"
     
     if (currentIndex !== -1 && currentIndex < daftarPangkat.length - 1) {
       pangkatBaru = daftarPangkat[currentIndex + 1].nama
-      // Preserve format preference if employee has A/III, keep A/IV style, or standard
-      golonganBaru = currentGolongan.includes('/') && currentGolongan.split('/')[0].length === 1 && isNaN(Number(currentGolongan.split('/')[0]))
-        ? daftarPangkat[currentIndex + 1].aliasGolongan[0]
-        : daftarPangkat[currentIndex + 1].golongan
+      golonganBaru = daftarPangkat[currentIndex + 1].golongan
     }
 
     const hasPending = emp.riwayatPangkat.some((k: any) => k.status === "PENDING")
@@ -194,13 +225,32 @@ export async function updateStatusPangkat(id: string, isApprove: boolean, catata
       })
 
       if (isApprove) {
-        // 1. Update pangkat & golongan pegawai
+        // Cari standar gaji untuk pangkat / golongan baru ini
+        const standardSalary = await (tx as any).standarGajiPangkat.findFirst({
+          where: {
+            OR: [
+              { golongan: updated.golonganBaru },
+              { pangkat: updated.pangkatBaru }
+            ]
+          }
+        })
+
+        const updateData: any = {
+          pangkat: updated.pangkatBaru,
+          golongan: updated.golonganBaru
+        }
+
+        if (standardSalary) {
+          updateData.gajiPokok = standardSalary.gajiPokok
+          if (Number(standardSalary.tunjangan) > 0) {
+            updateData.tunjangan = standardSalary.tunjangan
+          }
+        }
+
+        // 1. Update pangkat, golongan, dan sinkron gaji pegawai
         await tx.pegawai.update({
           where: { id: updated.pegawaiId },
-          data: {
-            pangkat: updated.pangkatBaru,
-            golongan: updated.golonganBaru
-          }
+          data: updateData
         })
 
         // 2. Buat record Mutasi berjenis PROMOSI agar sinkron di modul Promosi
@@ -273,6 +323,8 @@ export async function updateStatusPangkat(id: string, isApprove: boolean, catata
     revalidatePath("/mutasi")
     revalidatePath("/approval")
     revalidatePath("/notifikasi")
+    revalidatePath("/payroll")
+    revalidatePath("/kgb")
     revalidatePath(`/pegawai/${result.pegawaiId}`)
     return { success: true }
   } catch (error: any) {

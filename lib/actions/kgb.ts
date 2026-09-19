@@ -2,17 +2,28 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { normalizeGolonganKey } from "@/lib/utils"
 
 export async function getKGBData() {
   const now = new Date()
   
-  // Ambil semua pegawai aktif beserta riwayat KGB
+  // Ambil data standar gaji untuk fallback gaji pokok 0
+  const standarGajiList = await (prisma as any).standarGajiPangkat.findMany()
+
+  // Ambil semua pegawai aktif beserta riwayat KGB & riwayat Pangkat
   const allPegawai = await prisma.pegawai.findMany({
     where: { status: "AKTIF" },
     include: {
       bidang: true,
       kgb: {
         orderBy: { tanggalBerlaku: 'desc' },
+      },
+      riwayatPangkat: {
+        where: { status: "APPROVED" },
+        orderBy: { tanggalBerlaku: 'desc' }
+      },
+      riwayatPangkatDetail: {
+        orderBy: { tanggalBerlaku: 'desc' }
       }
     },
     orderBy: { nama: 'asc' }
@@ -22,11 +33,39 @@ export async function getKGBData() {
   const riwayatKGB: any[] = []
 
   for (const emp of allPegawai) {
-    // Cari KGB approved terakhir jika ada
+    // Cari titik perubahan gaji/pangkat terakhir:
+    // 1. KGB approved terakhir
+    // 2. Kenaikan pangkat approved terakhir
+    // 3. Riwayat pangkat profil terakhir
+    // 4. Tanggal masuk
+    const salaryDates: number[] = []
+
     const lastApprovedKgb = emp.kgb.find(k => k.status === "APPROVED")
-    
-    // TMT Gaji Terakhir = tanggalBerlaku KGB approved terakhir, atau tanggalMasuk, atau fallback ke createdAt/now
-    const tmtGajiTerakhir = lastApprovedKgb?.tanggalBerlaku || emp.tanggalMasuk || emp.createdAt || now
+    if (lastApprovedKgb?.tanggalBerlaku) {
+      salaryDates.push(new Date(lastApprovedKgb.tanggalBerlaku).getTime())
+    }
+
+    const lastApprovedPangkat = emp.riwayatPangkat[0]
+    if (lastApprovedPangkat?.tanggalBerlaku) {
+      salaryDates.push(new Date(lastApprovedPangkat.tanggalBerlaku).getTime())
+    }
+
+    const lastProfilePangkat = emp.riwayatPangkatDetail[0]
+    if (lastProfilePangkat?.tanggalBerlaku) {
+      salaryDates.push(new Date(lastProfilePangkat.tanggalBerlaku).getTime())
+    }
+
+    if (emp.tanggalMasuk) {
+      salaryDates.push(new Date(emp.tanggalMasuk).getTime())
+    }
+    if (emp.createdAt) {
+      salaryDates.push(new Date(emp.createdAt).getTime())
+    }
+
+    // TMT Gaji Terakhir = tanggal terbaru perubahan pangkat/KGB/masuk
+    const tmtGajiTerakhir = salaryDates.length > 0
+      ? new Date(Math.max(...salaryDates))
+      : now
     
     // KGB berikutnya = TMT Gaji Terakhir + 2 tahun (730 hari)
     const eligibleDate = new Date(tmtGajiTerakhir)
@@ -35,15 +74,25 @@ export async function getKGBData() {
     const diffTime = eligibleDate.getTime() - now.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-    const gajiPokokSaatIni = Number(emp.gajiPokok || 0)
+    let gajiPokokSaatIni = Number(emp.gajiPokok || 0)
+    
+    // Jika gajiPokok di database 0, cari patokan dari standar gaji pangkat
+    if (gajiPokokSaatIni === 0) {
+      const currentGol = emp.golongan || lastProfilePangkat?.golongan || ""
+      const normGol = normalizeGolonganKey(currentGol)
+      const matched = standarGajiList.find((s: any) => 
+        normalizeGolonganKey(s.golongan).toLowerCase() === normGol.toLowerCase() ||
+        s.golongan.toLowerCase() === currentGol.toLowerCase()
+      )
+      gajiPokokSaatIni = matched ? Number(matched.gajiPokok) : 3200000
+    }
     
     // Kenaikan standar BUMD / reguler rata-rata 4.5%
     const kenaikanPersen = 4.5
-    let gajiPokokBaru = Math.round(gajiPokokSaatIni * (1 + (kenaikanPersen / 100)))
-    if (gajiPokokSaatIni === 0) gajiPokokBaru = 3200000
+    const gajiPokokBaru = Math.round(gajiPokokSaatIni * (1 + (kenaikanPersen / 100)))
 
     // Masa Kerja Golongan (MKG) dalam tahun
-    const baseDateForMkg = emp.tanggalMasuk || emp.createdAt || now
+    const baseDateForMkg = tmtGajiTerakhir || emp.tanggalMasuk || emp.createdAt || now
     const mkgInMs = now.getTime() - baseDateForMkg.getTime()
     const mkg = Math.max(0, Math.floor(mkgInMs / (1000 * 60 * 60 * 24 * 365.25)))
 

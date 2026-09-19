@@ -548,14 +548,32 @@ export default function PayrollPage() {
     }
   }
 
+  const RANK_ORDER: Record<string, number> = {
+    "A/I": 1, "A/II": 2, "A/III": 3, "A/IV": 4,
+    "B/I": 5, "B/II": 6, "B/III": 7, "B/IV": 8,
+    "C/I": 9, "C/II": 10, "C/III": 11, "C/IV": 12,
+    "D/I": 13, "D/II": 14, "D/III": 15, "D/IV": 16,
+    "E/IV": 17
+  }
+
   const filteredStandarList = useMemo(() => {
-    if (!standarSearch.trim()) return standarPangkatList
-    const q = standarSearch.toLowerCase().trim()
-    return standarPangkatList.filter((item: any) => 
-      item.golongan?.toLowerCase().includes(q) ||
-      item.pangkat?.toLowerCase().includes(q) ||
-      (item.keterangan && item.keterangan.toLowerCase().includes(q))
-    )
+    let list = standarPangkatList
+    if (standarSearch.trim()) {
+      const q = standarSearch.toLowerCase().trim()
+      list = standarPangkatList.filter((item: any) => 
+        item.golongan?.toLowerCase().includes(q) ||
+        item.pangkat?.toLowerCase().includes(q) ||
+        (item.keterangan && item.keterangan.toLowerCase().includes(q))
+      )
+    }
+    return [...list].sort((a: any, b: any) => {
+      const keyA = normalizeGolonganKey(a.golongan)
+      const keyB = normalizeGolonganKey(b.golongan)
+      const orderA = RANK_ORDER[keyA] || RANK_ORDER[a.golongan?.toUpperCase().trim()] || 99
+      const orderB = RANK_ORDER[keyB] || RANK_ORDER[b.golongan?.toUpperCase().trim()] || 99
+      if (orderA !== orderB) return orderA - orderB
+      return (a.golongan || "").localeCompare(b.golongan || "")
+    })
   }, [standarPangkatList, standarSearch])
 
   const employeeCountByGolongan = useMemo(() => {
@@ -1529,22 +1547,13 @@ export default function PayrollPage() {
                             const normKey = normalizeGolonganKey(item.golongan)
                             const count = employeeCountByGolongan[rawKey] || employeeCountByGolongan[normKey] || 0
 
-                            // Golongan Badge Styling
-                            let badgeColor = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-                            if (item.golongan?.includes("/II")) {
-                              badgeColor = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                            } else if (item.golongan?.includes("/III")) {
-                              badgeColor = "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border-sky-200 dark:border-sky-800"
-                            } else if (item.golongan?.includes("/IV")) {
-                              badgeColor = "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                            }
-
                             return (
                               <TableRow key={item.id} className="hover:bg-muted/30 border-b border-border/50">
                                 <TableCell className="pl-4 py-2.5">
-                                  <Badge variant="outline" className={cn("font-mono text-xs font-semibold tracking-wider", badgeColor)}>
-                                    Gol {item.golongan}
-                                  </Badge>
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium border border-border/80 bg-background/80 text-foreground shadow-2xs">
+                                    <span className="text-[10px] font-semibold tracking-wider text-muted-foreground/80 uppercase">GOL</span>
+                                    <span className="font-bold text-foreground tracking-tight">{item.golongan}</span>
+                                  </div>
                                 </TableCell>
                                 <TableCell className="py-2.5">
                                   <div className="flex flex-col">

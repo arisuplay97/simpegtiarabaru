@@ -6,21 +6,30 @@ export interface PangkatItem {
 }
 
 export const daftarPangkat: PangkatItem[] = [
-  { id: 1, nama: "Juru Muda", golongan: "I/a", aliasGolongan: ["A/I", "I/a", "IA"] },
-  { id: 2, nama: "Juru Muda Tingkat I", golongan: "I/b", aliasGolongan: ["B/I", "I/b", "IB"] },
-  { id: 3, nama: "Juru", golongan: "I/c", aliasGolongan: ["C/I", "I/c", "IC"] },
-  { id: 4, nama: "Juru Tingkat I", golongan: "I/d", aliasGolongan: ["D/I", "I/d", "ID"] },
-  { id: 5, nama: "Pengatur Muda", golongan: "II/a", aliasGolongan: ["A/II", "II/a", "IIA"] },
-  { id: 6, nama: "Pengatur Muda Tingkat I", golongan: "II/b", aliasGolongan: ["B/II", "II/b", "IIB"] },
-  { id: 7, nama: "Pengatur", golongan: "II/c", aliasGolongan: ["C/II", "II/c", "IIC"] },
-  { id: 8, nama: "Pengatur Tingkat I", golongan: "II/d", aliasGolongan: ["D/II", "II/d", "IID"] },
-  { id: 9, nama: "Penata Muda", golongan: "III/a", aliasGolongan: ["A/III", "III/a", "IIIA"] },
-  { id: 10, nama: "Penata Muda Tingkat I", golongan: "III/b", aliasGolongan: ["B/III", "III/b", "IIIB"] },
-  { id: 11, nama: "Penata", golongan: "III/c", aliasGolongan: ["C/III", "III/c", "IIIC"] },
-  { id: 12, nama: "Penata Tingkat I", golongan: "III/d", aliasGolongan: ["D/III", "III/d", "IIID"] },
-  { id: 13, nama: "Pembina", golongan: "IV/a", aliasGolongan: ["A/IV", "IV/a", "IVA"] },
-  { id: 14, nama: "Pembina Tingkat I", golongan: "IV/b", aliasGolongan: ["B/IV", "IV/b", "IVB"] },
-  { id: 15, nama: "Pembina Utama Muda", golongan: "IV/c", aliasGolongan: ["C/IV", "IV/c", "IVC"] },
-  { id: 16, nama: "Pembina Utama Madya", golongan: "IV/d", aliasGolongan: ["D/IV", "IV/d", "IVD"] },
-  { id: 17, nama: "Pembina Utama", golongan: "IV/e", aliasGolongan: ["E/IV", "IV/e", "IVE"] },
+  // Golongan A
+  { id: 1, nama: "Juru Muda", golongan: "A/I", aliasGolongan: ["A/I", "A/1", "Gol A/I", "I/a", "IA"] },
+  { id: 2, nama: "Pengatur Muda", golongan: "A/II", aliasGolongan: ["A/II", "A/2", "Gol A/II", "II/a", "IIA"] },
+  { id: 3, nama: "Penata Muda", golongan: "A/III", aliasGolongan: ["A/III", "A/3", "Gol A/III", "III/a", "IIIA"] },
+  { id: 4, nama: "Pembina", golongan: "A/IV", aliasGolongan: ["A/IV", "A/4", "Gol A/IV", "IV/a", "IVA"] },
+
+  // Golongan B
+  { id: 5, nama: "Juru Muda Tingkat I", golongan: "B/I", aliasGolongan: ["B/I", "B/1", "Gol B/I", "I/b", "IB"] },
+  { id: 6, nama: "Pengatur Muda Tingkat I", golongan: "B/II", aliasGolongan: ["B/II", "B/2", "Gol B/II", "II/b", "IIB"] },
+  { id: 7, nama: "Penata Muda Tingkat I", golongan: "B/III", aliasGolongan: ["B/III", "B/3", "Gol B/III", "III/b", "IIIB"] },
+  { id: 8, nama: "Pembina Tingkat I", golongan: "B/IV", aliasGolongan: ["B/IV", "B/4", "Gol B/IV", "IV/b", "IVB"] },
+
+  // Golongan C
+  { id: 9, nama: "Juru", golongan: "C/I", aliasGolongan: ["C/I", "C/1", "Gol C/I", "I/c", "IC"] },
+  { id: 10, nama: "Pengatur", golongan: "C/II", aliasGolongan: ["C/II", "C/2", "Gol C/II", "II/c", "IIC"] },
+  { id: 11, nama: "Penata", golongan: "C/III", aliasGolongan: ["C/III", "C/3", "Gol C/III", "III/c", "IIIC"] },
+  { id: 12, nama: "Pembina Utama Muda", golongan: "C/IV", aliasGolongan: ["C/IV", "C/4", "Gol C/IV", "IV/c", "IVC"] },
+
+  // Golongan D
+  { id: 13, nama: "Juru Tingkat I", golongan: "D/I", aliasGolongan: ["D/I", "D/1", "Gol D/I", "I/d", "ID"] },
+  { id: 14, nama: "Pengatur Tingkat I", golongan: "D/II", aliasGolongan: ["D/II", "D/2", "Gol D/II", "II/d", "IID"] },
+  { id: 15, nama: "Penata Tingkat I", golongan: "D/III", aliasGolongan: ["D/III", "D/3", "Gol D/III", "III/d", "IIID"] },
+  { id: 16, nama: "Pembina Utama Madya", golongan: "D/IV", aliasGolongan: ["D/IV", "D/4", "Gol D/IV", "IV/d", "IVD"] },
+
+  // Golongan E
+  { id: 17, nama: "Pembina Utama", golongan: "E/IV", aliasGolongan: ["E/IV", "E/4", "Gol E/IV", "IV/e", "IVE"] },
 ]

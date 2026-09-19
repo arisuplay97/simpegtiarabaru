@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { TingkatPendidikan } from "@prisma/client"
+import { normalizeGolonganKey } from "@/lib/utils"
 
 export async function getEmployeeProfile(slugOrId: string) {
   let pegawai = null;
@@ -148,16 +149,65 @@ export async function deleteRiwayatJabatan(id: string, pegawaiId: string) {
 // ==== PANGKAT ====
 export async function addRiwayatPangkat(pegawaiId: string, data: any) {
   try {
-    await prisma.pegawaiPangkat.create({
-      data: {
-        pegawaiId,
-        pangkat: data.pangkat,
-        golongan: data.golongan,
-        tanggalBerlaku: new Date(data.tanggalBerlaku),
-        nomorSK: data.nomorSK
+    const tanggalBerlaku = new Date(data.tanggalBerlaku)
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Tambah riwayat pangkat baru
+      await tx.pegawaiPangkat.create({
+        data: {
+          pegawaiId,
+          pangkat: data.pangkat,
+          golongan: data.golongan,
+          tanggalBerlaku,
+          nomorSK: data.nomorSK
+        }
+      })
+
+      // 2. Cari riwayat pangkat dengan tanggal berlaku paling baru
+      const latest = await tx.pegawaiPangkat.findFirst({
+        where: { pegawaiId },
+        orderBy: { tanggalBerlaku: 'desc' }
+      })
+
+      // Jika riwayat yang baru diinput adalah yang paling baru (atau sama tanggalnya)
+      if (latest && latest.tanggalBerlaku.getTime() <= tanggalBerlaku.getTime()) {
+        const normGol = normalizeGolonganKey(data.golongan)
+        
+        // Cari standar gaji untuk golongan / pangkat ini
+        const standardSalary = await (tx as any).standarGajiPangkat.findFirst({
+          where: {
+            OR: [
+              { golongan: data.golongan },
+              { golongan: normGol },
+              { pangkat: data.pangkat }
+            ]
+          }
+        })
+
+        const updateData: any = {
+          pangkat: data.pangkat,
+          golongan: data.golongan
+        }
+
+        if (standardSalary) {
+          updateData.gajiPokok = standardSalary.gajiPokok
+          if (Number(standardSalary.tunjangan) > 0) {
+            updateData.tunjangan = standardSalary.tunjangan
+          }
+        }
+
+        await tx.pegawai.update({
+          where: { id: pegawaiId },
+          data: updateData
+        })
       }
     })
+
     revalidatePath(`/pegawai/${pegawaiId}`)
+    revalidatePath("/kenaikan-pangkat")
+    revalidatePath("/kgb")
+    revalidatePath("/payroll")
+    revalidatePath("/pegawai")
     return { success: true }
   } catch (e: any) {
     return { error: e.message }
@@ -166,8 +216,31 @@ export async function addRiwayatPangkat(pegawaiId: string, data: any) {
 
 export async function deleteRiwayatPangkat(id: string, pegawaiId: string) {
   try {
-    await prisma.pegawaiPangkat.delete({ where: { id } })
+    await prisma.$transaction(async (tx) => {
+      await tx.pegawaiPangkat.delete({ where: { id } })
+
+      // Cari sisa riwayat pangkat paling baru
+      const remainingLatest = await tx.pegawaiPangkat.findFirst({
+        where: { pegawaiId },
+        orderBy: { tanggalBerlaku: 'desc' }
+      })
+
+      if (remainingLatest) {
+        await tx.pegawai.update({
+          where: { id: pegawaiId },
+          data: {
+            pangkat: remainingLatest.pangkat,
+            golongan: remainingLatest.golongan
+          }
+        })
+      }
+    })
+
     revalidatePath(`/pegawai/${pegawaiId}`)
+    revalidatePath("/kenaikan-pangkat")
+    revalidatePath("/kgb")
+    revalidatePath("/payroll")
+    revalidatePath("/pegawai")
     return { success: true }
   } catch (e: any) {
     return { error: e.message }

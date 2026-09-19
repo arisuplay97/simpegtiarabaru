@@ -457,38 +457,42 @@ export async function updatePayrollSettings(data: {
 
 // ============ DEFAULT STANDAR GAJI PANGKAT ============
 const DEFAULT_STANDAR_GAJI_PANGKAT = [
-  // Golongan I - Juru
+  // Golongan A
   { golongan: "A/I", pangkat: "Juru Muda", gajiPokok: 2100000, tunjangan: 500000, keterangan: "Pendidikan SD/SMP" },
-  { golongan: "B/I", pangkat: "Juru Muda Tk. I", gajiPokok: 2350000, tunjangan: 600000, keterangan: "Pendidikan SMP Lanjutan" },
-  { golongan: "C/I", pangkat: "Juru", gajiPokok: 2600000, tunjangan: 700000, keterangan: "Tingkat Lanjutan" },
-  { golongan: "D/I", pangkat: "Juru Tk. I", gajiPokok: 2850000, tunjangan: 800000, keterangan: "Pangkat Tertinggi Golongan I" },
-
-  // Golongan II - Pengatur
   { golongan: "A/II", pangkat: "Pengatur Muda", gajiPokok: 3100000, tunjangan: 900000, keterangan: "Pendidikan SMA/SMK" },
-  { golongan: "B/II", pangkat: "Pengatur Muda Tk. I", gajiPokok: 3400000, tunjangan: 1050000, keterangan: "Pendidikan D1/D2" },
-  { golongan: "C/II", pangkat: "Pengatur", gajiPokok: 3750000, tunjangan: 1200000, keterangan: "Pendidikan D3" },
-  { golongan: "D/II", pangkat: "Pengatur Tk. I", gajiPokok: 4100000, tunjangan: 1350000, keterangan: "Pangkat Tertinggi Golongan II" },
-
-  // Golongan III - Penata
   { golongan: "A/III", pangkat: "Penata Muda", gajiPokok: 4600000, tunjangan: 1600000, keterangan: "Pendidikan S1 / D4" },
-  { golongan: "B/III", pangkat: "Penata Muda Tk. I", gajiPokok: 5100000, tunjangan: 1850000, keterangan: "Pendidikan S2 / Profesi" },
-  { golongan: "C/III", pangkat: "Penata", gajiPokok: 5650000, tunjangan: 2150000, keterangan: "Penata Madya" },
-  { golongan: "D/III", pangkat: "Penata Tk. I", gajiPokok: 6300000, tunjangan: 2500000, keterangan: "Pendidikan S3 / Pangkat Tertinggi Gol III" },
-
-  // Golongan IV - Pembina
   { golongan: "A/IV", pangkat: "Pembina", gajiPokok: 7100000, tunjangan: 3000000, keterangan: "Pangkat Eselon / Pembina Madya" },
+
+  // Golongan B
+  { golongan: "B/I", pangkat: "Juru Muda Tk. I", gajiPokok: 2350000, tunjangan: 600000, keterangan: "Pendidikan SMP Lanjutan" },
+  { golongan: "B/II", pangkat: "Pengatur Muda Tk. I", gajiPokok: 3400000, tunjangan: 1050000, keterangan: "Pendidikan D1/D2" },
+  { golongan: "B/III", pangkat: "Penata Muda Tk. I", gajiPokok: 5100000, tunjangan: 1850000, keterangan: "Pendidikan S2 / Profesi" },
   { golongan: "B/IV", pangkat: "Pembina Tk. I", gajiPokok: 8000000, tunjangan: 3500000, keterangan: "Pembina Tingkat I" },
+
+  // Golongan C
+  { golongan: "C/I", pangkat: "Juru", gajiPokok: 2600000, tunjangan: 700000, keterangan: "Tingkat Lanjutan" },
+  { golongan: "C/II", pangkat: "Pengatur", gajiPokok: 3750000, tunjangan: 1200000, keterangan: "Pendidikan D3" },
+  { golongan: "C/III", pangkat: "Penata", gajiPokok: 5650000, tunjangan: 2150000, keterangan: "Penata Madya" },
   { golongan: "C/IV", pangkat: "Pembina Utama Muda", gajiPokok: 9000000, tunjangan: 4100000, keterangan: "Pembina Utama Muda" },
+
+  // Golongan D
+  { golongan: "D/I", pangkat: "Juru Tk. I", gajiPokok: 2850000, tunjangan: 800000, keterangan: "Pangkat Tertinggi Golongan I" },
+  { golongan: "D/II", pangkat: "Pengatur Tk. I", gajiPokok: 4100000, tunjangan: 1350000, keterangan: "Pangkat Tertinggi Golongan II" },
+  { golongan: "D/III", pangkat: "Penata Tk. I", gajiPokok: 6300000, tunjangan: 2500000, keterangan: "Pendidikan S3 / Pangkat Tertinggi Gol III" },
   { golongan: "D/IV", pangkat: "Pembina Utama Madya", gajiPokok: 10200000, tunjangan: 4800000, keterangan: "Pembina Utama Madya" },
+
+  // Golongan E
   { golongan: "E/IV", pangkat: "Pembina Utama", gajiPokok: 11500000, tunjangan: 5600000, keterangan: "Pangkat Tertinggi Struktural" },
 ]
 
 // ============ GET STANDAR GAJI PANGKAT LIST ============
+// Urutan: A/I -> A/IV, kemudian B/I -> B/IV, C/I -> C/IV, D/I -> D/IV, E/IV
 const RANK_HIERARCHY_ORDER: Record<string, number> = {
-  "A/I": 1, "B/I": 2, "C/I": 3, "D/I": 4,
-  "A/II": 5, "B/II": 6, "C/II": 7, "D/II": 8,
-  "A/III": 9, "B/III": 10, "C/III": 11, "D/III": 12,
-  "A/IV": 13, "B/IV": 14, "C/IV": 15, "D/IV": 16, "E/IV": 17
+  "A/I": 1, "A/II": 2, "A/III": 3, "A/IV": 4,
+  "B/I": 5, "B/II": 6, "B/III": 7, "B/IV": 8,
+  "C/I": 9, "C/II": 10, "C/III": 11, "C/IV": 12,
+  "D/I": 13, "D/II": 14, "D/III": 15, "D/IV": 16,
+  "E/IV": 17
 }
 
 export async function getStandarGajiPangkatList() {
@@ -520,10 +524,12 @@ export async function getStandarGajiPangkatList() {
       keterangan: item.keterangan || ""
     }))
 
-    // Sort by hierarchical rank order
+    // Sort by hierarchical rank order (A/I to A/IV, then B/I to B/IV, etc.)
     return mapped.sort((a: any, b: any) => {
-      const orderA = RANK_HIERARCHY_ORDER[a.golongan.toUpperCase().trim()] || 99
-      const orderB = RANK_HIERARCHY_ORDER[b.golongan.toUpperCase().trim()] || 99
+      const keyA = normalizeGolonganKey(a.golongan)
+      const keyB = normalizeGolonganKey(b.golongan)
+      const orderA = RANK_HIERARCHY_ORDER[keyA] || RANK_HIERARCHY_ORDER[a.golongan.toUpperCase().trim()] || 99
+      const orderB = RANK_HIERARCHY_ORDER[keyB] || RANK_HIERARCHY_ORDER[b.golongan.toUpperCase().trim()] || 99
       if (orderA !== orderB) return orderA - orderB
       return a.golongan.localeCompare(b.golongan)
     })
