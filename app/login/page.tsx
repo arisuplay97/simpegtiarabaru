@@ -21,11 +21,12 @@ function LoginForm() {
   const [deviceId, setDeviceId] = useState("")
 
   useEffect(() => {
-    let storedId = localStorage.getItem("deviceId")
+    let storedId = localStorage.getItem("deviceId") || localStorage.getItem("tris_device_id")
     if (!storedId) {
-      storedId = crypto.randomUUID()
-      localStorage.setItem("deviceId", storedId)
+      storedId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)
     }
+    localStorage.setItem("deviceId", storedId)
+    localStorage.setItem("tris_device_id", storedId)
     setDeviceId(storedId)
 
     const savedUser = localStorage.getItem("simpeg_remember_user")
@@ -56,9 +57,12 @@ function LoginForm() {
       if (result?.error) {
         if (
           result.error.includes("Perangkat tidak dikenali") ||
-          result.error === "DeviceMismatch"
+          result.error.includes("DeviceMismatch") ||
+          result.error === "DeviceMismatch" ||
+          (result as any)?.code === "DeviceMismatch" ||
+          (result as any)?.url?.includes("DeviceMismatch")
         ) {
-          setError("Akun Anda sudah login di perangkat lain. Hubungi HRD.")
+          setError("Perangkat tidak dikenali! Akun Anda sudah terikat di perangkat lain. Hubungi HRD/Admin untuk reset perangkat.")
         } else {
           setError("NIK, username, atau kata sandi salah.")
         }

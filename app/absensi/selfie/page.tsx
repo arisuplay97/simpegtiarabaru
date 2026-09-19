@@ -90,12 +90,13 @@ export default function SelfieAttendancePage() {
 
   // Cek GPS & Device ID saat halaman dibuka
   useEffect(() => {
-    // 1. Generate & get Device ID for Anti-Titip Absen
-    let deviceId = localStorage.getItem("tris_device_id")
+    // 1. Generate & get Device ID for Anti-Titip Absen (sinkron dengan login)
+    let deviceId = localStorage.getItem("deviceId") || localStorage.getItem("tris_device_id")
     if (!deviceId) {
-      deviceId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)
-      localStorage.setItem("tris_device_id", deviceId)
+      deviceId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)
     }
+    localStorage.setItem("deviceId", deviceId)
+    localStorage.setItem("tris_device_id", deviceId)
 
     // 2. Fetch status absensi & lokasi dari database, lalu cek GPS
     const run = async () => {
