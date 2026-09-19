@@ -140,7 +140,8 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     // Skor Absen Bersih (20 poin): alpha -5/hari, terlambat -1/kejadian (lebih tegas)
     const skorAbsenBersih = Math.max(0, 20 - (alphaCount * 5) - (terlambatCount * 1))
 
-    const skorPerilaku = spAktif ? Math.max(0, 10 - 5) : 10  // SP aktif -5 poin
+    // Khusus sistem penilaian kedisiplinan absen ini, poin SP tidak dikurangi
+    const skorPerilaku = 10
 
     const totalSkor = Math.min(100, Math.round(
       (skorKehadiran + skorKetepatan + skorAbsenBersih + skorPerilaku) * 10
@@ -316,6 +317,12 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
     return rows.map((r, idx) => {
       const prev = prevMap.get(r.pegawaiId) || 0
       const delta = Number((r.totalSkor - Number(prev)).toFixed(1))
+      // Top 10 di leaderboard merupakan pegawai yang disiplin absen, jangan beri label "Sangat Kurang" atau "Kurang"
+      let predLabel = getPredikatLabel(r.predikat)
+      if (r.predikat === "SANGAT_KURANG" || r.predikat === "KURANG" || !predLabel) {
+        predLabel = idx === 0 ? "Top 1 Teladan" : idx === 1 ? "Top 2 Teladan" : idx === 2 ? "Top 3 Teladan" : "Disiplin"
+      }
+
       return {
         rank: idx + 1,
         pegawaiId: r.pegawaiId,
@@ -325,7 +332,7 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
         fotoUrl: r.pegawai.fotoUrl,
         totalSkor: r.totalSkor,
         predikat: r.predikat,
-        predikatLabel: getPredikatLabel(r.predikat),
+        predikatLabel: predLabel,
         delta,
         badges: badgeMap.get(r.pegawaiId) || [],
         periode: `${bulanNames[b - 1]} ${t}`

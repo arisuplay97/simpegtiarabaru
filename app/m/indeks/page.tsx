@@ -229,13 +229,19 @@ export default function MobileIndeks() {
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col items-end shrink-0 gap-1">
-                        <DeltaBadge delta={p.delta} />
-                        {p.predikatLabel && (
-                          <span className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
-                            {p.predikatLabel}
-                          </span>
-                        )}
+                      <div className="flex items-center shrink-0">
+                        <span className={cn(
+                          "text-[10px] font-bold px-2.5 py-1 rounded-full border",
+                          idx === 0
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                            : idx === 1
+                            ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300/40 dark:border-zinc-700"
+                            : idx === 2
+                            ? "bg-amber-700/10 text-amber-700 dark:text-amber-500 border-amber-700/30"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        )}>
+                          {p.predikatLabel || (idx === 0 ? "Top 1 Teladan" : idx < 3 ? `Top ${idx + 1}` : "Disiplin")}
+                        </span>
                       </div>
                     </div>
                   ))

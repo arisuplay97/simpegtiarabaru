@@ -73,19 +73,18 @@ function DeltaBadge({ delta }: { delta: number }) {
 }
 
 function ScorePill({ predikat, skor }: { predikat?: string; skor?: number }) {
-  const label = predikat || (
+  let label = predikat || (
     (skor || 0) >= 90 ? "Sangat Baik"
     : (skor || 0) >= 80 ? "Baik"
-    : (skor || 0) >= 70 ? "Cukup"
-    : (skor || 0) >= 60 ? "Kurang"
-    : "Sangat Kurang"
+    : "Disiplin"
   )
+  if (label === "Sangat Kurang" || label === "Kurang") {
+    label = "Disiplin"
+  }
   const color =
-    (skor || 0) >= 90 ? "bg-emerald-500"
-    : (skor || 0) >= 80 ? "bg-blue-500"
-    : (skor || 0) >= 70 ? "bg-amber-500"
-    : (skor || 0) >= 60 ? "bg-orange-500"
-    : "bg-red-500"
+    label === "Sangat Baik" || label.includes("Teladan") ? "bg-emerald-600 dark:bg-emerald-500"
+    : label === "Baik" ? "bg-blue-600 dark:bg-blue-500"
+    : "bg-emerald-600 dark:bg-emerald-500"
   return (
     <div className={cn("text-white text-xs font-semibold px-2.5 py-0.5 rounded-full min-w-[70px] text-center", color)}>
       {label}
@@ -397,10 +396,12 @@ function IndeksContent() {
                             </div>
                             <span className={cn(
                               "text-xs font-bold px-2.5 py-0.5 rounded-full mt-1",
-                              p.totalSkor >= 90 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" :
-                              p.totalSkor >= 80 ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" :
-                              "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
-                            )}>{p.predikatLabel || "Sangat Baik"}</span>
+                              colIdx === 1 ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/40" :
+                              colIdx === 0 ? "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300/40" :
+                              "bg-amber-700/10 text-amber-700 dark:text-amber-500 border border-amber-700/30"
+                            )}>
+                              {colIdx === 1 ? "Top 1 Teladan" : colIdx === 0 ? "Top 2 Teladan" : "Top 3 Teladan"}
+                            </span>
                             <div className="flex flex-wrap justify-center gap-1">
                               {(p.badges || []).slice(0, 2).map((b: string) => (
                                 <span key={b} title={BADGE_CONFIG[b]?.label} className={cn("flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border font-medium", BADGE_CONFIG[b]?.color)}>
@@ -447,7 +448,6 @@ function IndeksContent() {
                               </span>
                             ))}
                           </div>
-                          <DeltaBadge delta={p.delta} />
                           <ScorePill predikat={p.predikatLabel} skor={p.totalSkor} />
                         </div>
                       </div>
