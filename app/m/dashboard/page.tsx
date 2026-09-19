@@ -177,12 +177,13 @@ export default function MobileDashboard() {
         const s = await getEmployeeAttendanceSummary(p.id)
         setSummary(s)
 
-        // Run smart attendance reminder check
+        // Run smart attendance reminder check (hanya hari kerja, kecuali shift)
         checkAndSendSmartReminder({
           batasMasuk: s?.batasAbsenMasuk,
           mulaiPulang: s?.mulaiAbsenPulang,
           sudahMasuk: s?.sudahAbsenMasuk,
-          sudahPulang: s?.sudahAbsenPulang
+          sudahPulang: s?.sudahAbsenPulang,
+          isShift: Boolean((s as any)?.isShift || (s as any)?.jadwalShift)
         })
       }
       if (session?.user?.id) {

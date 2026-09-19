@@ -73,10 +73,20 @@ export function checkAndSendSmartReminder(settings?: {
   mulaiPulang?: string
   sudahMasuk?: boolean
   sudahPulang?: boolean
+  isShift?: boolean
 }) {
   if (!isReminderEnabled()) return
 
   const now = new Date()
+  const dayOfWeek = now.getDay() // 0 = Minggu, 6 = Sabtu
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+  // PENGINGAT HANYA AKTIF SAAT HARI KERJA (Senin - Jumat)
+  // Tidak mengirim notifikasi pada hari Sabtu & Minggu (kecuali pegawai memiliki jadwal shift khusus)
+  if (isWeekend && !settings?.isShift) {
+    return
+  }
+
   const todayStr = now.toISOString().split("T")[0]
   const currentHour = now.getHours()
   const currentMinute = now.getMinutes()
