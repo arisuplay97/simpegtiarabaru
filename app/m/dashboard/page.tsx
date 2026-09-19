@@ -8,7 +8,7 @@ import {
   TrendingUp, Award, Timer, UserCheck, Thermometer,
   FileText, Trophy, Medal,
   Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight,
-  Radio, CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, MapPin, Trash2
+  CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
@@ -271,8 +271,6 @@ export default function MobileDashboard() {
   const today = new Date()
   const monthName = format(today, "MMMM", { locale: idLocale })
   const userRole = ((session?.user as any)?.role || "").toUpperCase()
-  const isHrdOrAdmin = ["SUPERADMIN", "ADMIN", "HRD", "DIREKSI"].includes(userRole) || 
-                       (session?.user?.name || "").toLowerCase().includes("admin")
   const jabatan = (session?.user as any)?.jabatan || "Staff"
   const bidang = pegawai?.bidang?.nama || ""
   const subBidang = pegawai?.subBidang?.nama || ""
@@ -449,61 +447,7 @@ export default function MobileDashboard() {
           </div>
         )}
 
-        {/* ===== FITUR KHUSUS HRD: LIVE RADAR & PENGATURAN ===== */}
-        {isHrdOrAdmin && (
-          <div className="space-y-2">
-            <Link href="/m/radar" className="block active:scale-98 transition-all">
-              <div className="rounded-2xl p-4 bg-zinc-900 text-white border border-zinc-800 shadow-sm relative overflow-hidden group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center relative">
-                      <Radio className="h-4.5 w-4.5" />
-                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-bold tracking-tight">Live Radar Kehadiran</p>
-                        <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-white/10 text-zinc-300 font-bold uppercase">HRD</span>
-                      </div>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">Monitoring realtime & nudge WhatsApp</p>
-                    </div>
-                  </div>
-                  <div className="h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-700 transition-colors">
-                    <ChevronRight className="h-4 w-4 text-zinc-300" />
-                  </div>
-                </div>
-              </div>
-            </Link>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Link href="/m/settings/absensi" className="block active:scale-98 transition-all">
-                <div className="rounded-2xl p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-7 w-7 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                      <Clock className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 uppercase">Jadwal</span>
-                  </div>
-                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Atur Jam Absensi</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">Pusat, Cabang & Sabtu</p>
-                </div>
-              </Link>
-
-              <Link href="/m/settings/lokasi" className="block active:scale-98 transition-all">
-                <div className="rounded-2xl p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-7 w-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                      <MapPin className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 uppercase">Geofence</span>
-                  </div>
-                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Lokasi Absensi</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">Radius & Titik GPS</p>
-                </div>
-              </Link>
-            </div>
-          </div>
-        )}
 
         {/* Kontrak Warning */}
         {summary?.sisaKontrak !== undefined && summary.sisaKontrak <= 60 && (
