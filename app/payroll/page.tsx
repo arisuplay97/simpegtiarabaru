@@ -42,7 +42,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { cn, normalizeGolonganKey } from "@/lib/utils"
 import {
   Search,
   Download,
@@ -67,6 +67,10 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   ArrowUpDown,
+  Plus,
+  Trash2,
+  Award,
+  Sparkles,
 } from "lucide-react"
 import Image from "next/image"
 import { 
@@ -74,7 +78,11 @@ import {
   savePayroll, 
   processAllPayroll, 
   getPayrollSettings, 
-  updatePayrollSettings 
+  updatePayrollSettings,
+  getStandarGajiPangkatList,
+  saveStandarGajiPangkat,
+  deleteStandarGajiPangkat,
+  applyStandarGajiToPegawai
 } from "@/lib/actions/payroll"
 import { generateA5SlipGajiPdf } from "@/lib/cetak-slip"
 
@@ -169,6 +177,29 @@ export default function PayrollPage() {
     potonganLainnya: 0,
   })
 
+  // Standar Gaji per Pangkat / Golongan State
+  const [standarPangkatList, setStandarPangkatList] = useState<any[]>([])
+  const [isLoadingStandar, setIsLoadingStandar] = useState(false)
+  const [isSavingStandar, setIsSavingStandar] = useState(false)
+  const [standarSearch, setStandarSearch] = useState("")
+  const [isApplyingStandar, setIsApplyingStandar] = useState(false)
+  const [showStandarDialog, setShowStandarDialog] = useState(false)
+  const [standarForm, setStandarForm] = useState<{
+    id?: string
+    golongan: string
+    pangkat: string
+    gajiPokok: number
+    tunjangan: number
+    keterangan: string
+  }>({
+    id: undefined,
+    golongan: "",
+    pangkat: "",
+    gajiPokok: 0,
+    tunjangan: 0,
+    keterangan: ""
+  })
+
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [processProgress, setProcessProgress] = useState(0)
@@ -210,6 +241,24 @@ export default function PayrollPage() {
   useEffect(() => {
     fetchSettings()
   }, [fetchSettings])
+
+  // Load Standar Gaji Pangkat
+  const fetchStandarPangkat = useCallback(async () => {
+    setIsLoadingStandar(true)
+    try {
+      const list = await getStandarGajiPangkatList()
+      setStandarPangkatList(list)
+    } catch (err: any) {
+      console.error("Gagal memuat standar gaji:", err)
+      toast.error("Gagal memuat data standar gaji pangkat")
+    } finally {
+      setIsLoadingStandar(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchStandarPangkat()
+  }, [fetchStandarPangkat])
 
   // Recalculate BPJS proportionally if Gaji Pokok changes in Edit Modal
   const handleGajiPokokChange = (val: number) => {
@@ -412,6 +461,116 @@ export default function PayrollPage() {
       setIsSavingSettings(false)
     }
   }
+
+  // ============ STANDAR GAJI PANGKAT HANDLERS & MEMOS ============
+  const handleOpenEditStandar = (item?: any) => {
+    if (item) {
+      setStandarForm({
+        id: item.id,
+        golongan: item.golongan,
+        pangkat: item.pangkat,
+        gajiPokok: item.gajiPokok,
+        tunjangan: item.tunjangan,
+        keterangan: item.keterangan || ""
+      })
+    } else {
+      setStandarForm({
+        id: undefined,
+        golongan: "",
+        pangkat: "",
+        gajiPokok: 0,
+        tunjangan: 0,
+        keterangan: ""
+      })
+    }
+    setShowStandarDialog(true)
+  }
+
+  const handleSaveStandar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!standarForm.golongan.trim() || !standarForm.pangkat.trim()) {
+      toast.error("Golongan dan nama pangkat wajib diisi")
+      return
+    }
+
+    setIsSavingStandar(true)
+    try {
+      const res = await saveStandarGajiPangkat({
+        id: standarForm.id,
+        golongan: standarForm.golongan,
+        pangkat: standarForm.pangkat,
+        gajiPokok: Number(standarForm.gajiPokok),
+        tunjangan: Number(standarForm.tunjangan),
+        keterangan: standarForm.keterangan
+      })
+      if (res.error) throw new Error(res.error)
+
+      toast.success(`Standar gaji ${standarForm.golongan} (${standarForm.pangkat}) berhasil disimpan`)
+      setShowStandarDialog(false)
+      fetchStandarPangkat()
+      fetchData() // Refresh live draft values if any employee falls back to this
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menyimpan standar gaji")
+    } finally {
+      setIsSavingStandar(false)
+    }
+  }
+
+  const handleDeleteStandar = async (item: any) => {
+    if (!confirm(`Hapus standar gaji untuk Golongan ${item.golongan} (${item.pangkat})?`)) return
+    try {
+      const res = await deleteStandarGajiPangkat(item.id)
+      if (res.error) throw new Error(res.error)
+      toast.success(`Standar gaji ${item.golongan} berhasil dihapus`)
+      fetchStandarPangkat()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus standar gaji")
+    }
+  }
+
+  const handleApplyStandarToEmployees = async (mode: "zero_only" | "all", golongan?: string) => {
+    const confirmMsg = mode === "zero_only"
+      ? "Terapkan standar gaji ke pegawai aktif yang gajinya masih Rp 0?"
+      : "PERINGATAN: Ini akan menimpa seluruh nominal gaji pokok dan tunjangan pegawai aktif sesuai standar golongannya. Lanjutkan?"
+    
+    if (!confirm(confirmMsg)) return
+
+    setIsApplyingStandar(true)
+    try {
+      const res = await applyStandarGajiToPegawai({ mode, golongan })
+      if (res.error) throw new Error(res.error)
+      toast.success(`Standar gaji berhasil diterapkan ke ${res.updatedCount} pegawai`)
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menerapkan standar gaji ke pegawai")
+    } finally {
+      setIsApplyingStandar(false)
+    }
+  }
+
+  const filteredStandarList = useMemo(() => {
+    if (!standarSearch.trim()) return standarPangkatList
+    const q = standarSearch.toLowerCase().trim()
+    return standarPangkatList.filter((item: any) => 
+      item.golongan?.toLowerCase().includes(q) ||
+      item.pangkat?.toLowerCase().includes(q) ||
+      (item.keterangan && item.keterangan.toLowerCase().includes(q))
+    )
+  }, [standarPangkatList, standarSearch])
+
+  const employeeCountByGolongan = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const emp of data) {
+      if (!emp.golongan) continue
+      const raw = emp.golongan.toUpperCase().trim()
+      const norm = normalizeGolonganKey(emp.golongan)
+      map[raw] = (map[raw] || 0) + 1
+      if (norm && norm !== raw) {
+        map[norm] = (map[norm] || 0) + 1
+      }
+    }
+    return map
+  }, [data])
 
   // Handler: Export CSV
   const handleExportExcel = () => {
@@ -1261,6 +1420,190 @@ export default function PayrollPage() {
                   </Card>
                 </div>
               </form>
+
+              {/* Card 3: Standar Besaran Gaji Pokok & Tunjangan per Golongan/Pangkat */}
+              <Card className="border border-border/70 rounded-xl bg-card shadow-xs">
+                <CardHeader className="p-4 pb-3 border-b border-border/70">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center">
+                        <Award className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-sm font-semibold">Standar Besaran Gaji & Tunjangan per Golongan / Pangkat</CardTitle>
+                        <CardDescription className="text-xs">
+                          Konfigurasi resmi patokan gaji pokok & tunjangan (Gol A/I, B/I, C/I, dst) sebagai acuan baku payroll
+                        </CardDescription>
+                      </div>
+                    </div>
+
+                    {/* Actions: Sync and Add */}
+                    <div className="flex items-center gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs gap-1.5 border-border/80"
+                            disabled={isApplyingStandar}
+                          >
+                            <RefreshCw className={cn("h-3.5 w-3.5", isApplyingStandar && "animate-spin text-primary")} />
+                            <span>Terapkan ke Pegawai</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64">
+                          <DropdownMenuItem onClick={() => handleApplyStandarToEmployees("zero_only")}>
+                            <div className="flex flex-col py-0.5">
+                              <span className="font-medium text-xs">Terapkan ke Pegawai Rp 0 (Aman)</span>
+                              <span className="text-[10px] text-muted-foreground">Hanya isi pegawai yang nominal gajinya masih Rp 0</span>
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleApplyStandarToEmployees("all")}>
+                            <div className="flex flex-col py-0.5">
+                              <span className="font-medium text-xs text-rose-600 dark:text-rose-400">Sinkronkan SEMUA Pegawai</span>
+                              <span className="text-[10px] text-muted-foreground">Perbarui seluruh gaji aktif sesuai standar golongannya</span>
+                            </div>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <Button
+                        size="sm"
+                        className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground shadow-xs"
+                        onClick={() => handleOpenEditStandar()}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Tambah Tingkatan
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Search & Subtitle */}
+                  <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="relative w-full sm:w-80">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Cari Golongan (A/I, Gol B, C/III) atau nama pangkat..."
+                        value={standarSearch}
+                        onChange={(e) => setStandarSearch(e.target.value)}
+                        className="pl-8 h-8 text-xs border-border/80"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Total <strong>{filteredStandarList.length}</strong> tingkatan pangkat terdaftar</span>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/40 border-b border-border/70">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-[120px] text-xs font-semibold py-2.5 pl-4">Golongan</TableHead>
+                          <TableHead className="text-xs font-semibold py-2.5">Nama Pangkat & Kualifikasi</TableHead>
+                          <TableHead className="text-right text-xs font-semibold py-2.5">Gaji Pokok</TableHead>
+                          <TableHead className="text-right text-xs font-semibold py-2.5">Tunjangan</TableHead>
+                          <TableHead className="text-right text-xs font-semibold py-2.5">Total Standar</TableHead>
+                          <TableHead className="text-center text-xs font-semibold py-2.5">Pegawai Aktif</TableHead>
+                          <TableHead className="w-[130px] text-center text-xs font-semibold py-2.5 pr-4">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {isLoadingStandar ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="h-24 text-center text-xs text-muted-foreground">
+                              Memuat data standar gaji pangkat...
+                            </TableCell>
+                          </TableRow>
+                        ) : filteredStandarList.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="h-24 text-center text-xs text-muted-foreground">
+                              Tidak ada data standar pangkat yang cocok dengan pencarian.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredStandarList.map((item: any) => {
+                            const rawKey = (item.golongan || "").toUpperCase().trim()
+                            const normKey = normalizeGolonganKey(item.golongan)
+                            const count = employeeCountByGolongan[rawKey] || employeeCountByGolongan[normKey] || 0
+
+                            // Golongan Badge Styling
+                            let badgeColor = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                            if (item.golongan?.includes("/II")) {
+                              badgeColor = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                            } else if (item.golongan?.includes("/III")) {
+                              badgeColor = "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border-sky-200 dark:border-sky-800"
+                            } else if (item.golongan?.includes("/IV")) {
+                              badgeColor = "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                            }
+
+                            return (
+                              <TableRow key={item.id} className="hover:bg-muted/30 border-b border-border/50">
+                                <TableCell className="pl-4 py-2.5">
+                                  <Badge variant="outline" className={cn("font-mono text-xs font-semibold tracking-wider", badgeColor)}>
+                                    Gol {item.golongan}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-2.5">
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-medium text-foreground">{item.pangkat}</span>
+                                    {item.keterangan && (
+                                      <span className="text-[10px] text-muted-foreground">{item.keterangan}</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs font-semibold py-2.5 text-foreground">
+                                  {formatCurrency(item.gajiPokok)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs font-medium py-2.5 text-sky-600 dark:text-sky-400">
+                                  +{formatCurrency(item.tunjangan)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs font-bold py-2.5 text-emerald-600 dark:text-emerald-400">
+                                  {formatCurrency(item.gajiPokok + item.tunjangan)}
+                                </TableCell>
+                                <TableCell className="text-center py-2.5">
+                                  {count > 0 ? (
+                                    <Badge variant="secondary" className="text-[11px] font-medium gap-1 bg-muted px-2 py-0.5">
+                                      <Users className="h-3 w-3 text-muted-foreground" />
+                                      {count} orang
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground/60">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="pr-4 py-2.5 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground"
+                                      onClick={() => handleOpenEditStandar(item)}
+                                    >
+                                      <Edit3 className="h-3 w-3" />
+                                      Ubah
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-xs px-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                      onClick={() => handleDeleteStandar(item)}
+                                      title="Hapus tingkat ini"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </main>
@@ -1558,6 +1901,128 @@ export default function PayrollPage() {
               Kalkulasi batch payroll: {processProgress}%
             </p>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Tambah / Edit Standar Gaji Pangkat */}
+      <Dialog open={showStandarDialog} onOpenChange={setShowStandarDialog}>
+        <DialogContent className="max-w-md p-0 gap-0 overflow-hidden rounded-xl border border-border/70">
+          <DialogHeader className="p-4 border-b border-border/70 bg-muted/20">
+            <DialogTitle className="text-base font-semibold">
+              {standarForm.id ? "Ubah Standar Gaji Pangkat" : "Tambah Tingkatan Pangkat & Golongan"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Atur patokan besaran gaji pokok dan tunjangan untuk Golongan {standarForm.golongan || "baru"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveStandar}>
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="stdGolongan" className="text-xs font-medium">Golongan (cth: A/I, B/1, C/II)</Label>
+                  <Input
+                    id="stdGolongan"
+                    placeholder="cth: A/I atau C/III"
+                    value={standarForm.golongan}
+                    onChange={(e) => setStandarForm({ ...standarForm, golongan: e.target.value })}
+                    className="h-9 text-xs font-mono border-border/80 uppercase"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="stdPangkat" className="text-xs font-medium">Nama Pangkat</Label>
+                  <Input
+                    id="stdPangkat"
+                    placeholder="cth: Juru Muda, Penata"
+                    value={standarForm.pangkat}
+                    onChange={(e) => setStandarForm({ ...standarForm, pangkat: e.target.value })}
+                    className="h-9 text-xs border-border/80"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="stdGajiPokok" className="text-xs font-medium">Gaji Pokok Standar (Rp)</Label>
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    {formatCurrency(Number(standarForm.gajiPokok) || 0)}
+                  </span>
+                </div>
+                <Input
+                  id="stdGajiPokok"
+                  type="number"
+                  min="0"
+                  step="50000"
+                  value={standarForm.gajiPokok}
+                  onChange={(e) => setStandarForm({ ...standarForm, gajiPokok: Number(e.target.value) })}
+                  className="h-9 text-xs font-mono border-border/80"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="stdTunjangan" className="text-xs font-medium">Tunjangan Standar (Rp)</Label>
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    {formatCurrency(Number(standarForm.tunjangan) || 0)}
+                  </span>
+                </div>
+                <Input
+                  id="stdTunjangan"
+                  type="number"
+                  min="0"
+                  step="50000"
+                  value={standarForm.tunjangan}
+                  onChange={(e) => setStandarForm({ ...standarForm, tunjangan: Number(e.target.value) })}
+                  className="h-9 text-xs font-mono border-border/80"
+                  required
+                />
+              </div>
+
+              {/* Total Preview Pill */}
+              <div className="p-3 bg-muted/40 rounded-lg border border-border/60 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Total Standar THP:</span>
+                <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency((Number(standarForm.gajiPokok) || 0) + (Number(standarForm.tunjangan) || 0))}
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="stdKeterangan" className="text-xs font-medium">Keterangan / Kualifikasi (Opsional)</Label>
+                <Input
+                  id="stdKeterangan"
+                  placeholder="cth: Pendidikan SMA, S1, atau Jenjang Eselon"
+                  value={standarForm.keterangan}
+                  onChange={(e) => setStandarForm({ ...standarForm, keterangan: e.target.value })}
+                  className="h-9 text-xs border-border/80"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="p-4 border-t border-border/70 bg-muted/20 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-border/80"
+                onClick={() => setShowStandarDialog(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-8 text-xs bg-primary text-primary-foreground shadow-xs gap-1.5"
+                disabled={isSavingStandar}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {isSavingStandar ? "Menyimpan..." : "Simpan Standar"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

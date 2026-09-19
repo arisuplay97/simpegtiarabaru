@@ -6,6 +6,7 @@ import { startOfMonth, endOfMonth, parse } from "date-fns"
 import { logAudit } from "./audit-log"
 import { prosesPPh21Batch } from "./pph21"
 import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
+import { normalizeGolonganKey } from "@/lib/utils"
 
 // Helper to format date into YYYY-MM-DD in WITA (UTC+8)
 function formatLocal(d: Date) {
@@ -192,8 +193,8 @@ export async function getPayrollList(periodStr: string) {
   // Pre-fetch settings for calculations
   const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
 
-  // Batch query absensi, approved cuti, and approved lembur for this period to eliminate N+1 latency
-  const [allAbsensi, allApprovedCuti, allApprovedLembur] = await Promise.all([
+  // Batch query absensi, approved cuti, approved lembur, and salary standards
+  const [allAbsensi, allApprovedCuti, allApprovedLembur, allStandar] = await Promise.all([
     prisma.absensi.findMany({
       where: { tanggal: { gte: start, lte: end } }
     }),
@@ -209,7 +210,8 @@ export async function getPayrollList(periodStr: string) {
         status: "APPROVED",
         tanggal: { gte: start, lte: end }
       }
-    })
+    }),
+    (prisma as any).standarGajiPangkat.findMany()
   ])
 
   // Group by pegawaiId
@@ -231,11 +233,34 @@ export async function getPayrollList(periodStr: string) {
     lemburByPegawai[l.pegawaiId].push(l)
   }
 
+  // Standar gaji map by Golongan (supports flexible Gol A/I, A/1, etc.)
+  const standarMap: Record<string, { gajiPokok: number, tunjangan: number, pangkat: string }> = {}
+  for (const s of allStandar) {
+    const rawKey = (s.golongan || "").toUpperCase().trim()
+    const normKey = normalizeGolonganKey(s.golongan)
+    const val = {
+      gajiPokok: Number(s.gajiPokok),
+      tunjangan: Number(s.tunjangan),
+      pangkat: s.pangkat
+    }
+    standarMap[rawKey] = val
+    standarMap[normKey] = val
+  }
+
   // Format the response and calculate dynamic draft penalties
   const results = pegawai.map((emp) => {
     const pr = emp.payroll.length > 0 ? emp.payroll[0] : null
-    const baseGaji = Number(emp.gajiPokok || 0)
-    const baseTunjangan = Number(emp.tunjangan || 0)
+    let baseGaji = Number(emp.gajiPokok || 0)
+    let baseTunjangan = Number(emp.tunjangan || 0)
+
+    // Fallback ke standar pangkat jika pegawai belum memiliki nominal di profile
+    if (baseGaji === 0 && emp.golongan) {
+      const std = standarMap[emp.golongan.toUpperCase().trim()] || standarMap[normalizeGolonganKey(emp.golongan)]
+      if (std) {
+        baseGaji = std.gajiPokok
+        if (baseTunjangan === 0) baseTunjangan = std.tunjangan
+      }
+    }
 
     let penaltyInfo: ReturnType<typeof calculateAttendancePenalty> | null = null
     let calculatedPotongan = 0
@@ -426,7 +451,227 @@ export async function updatePayrollSettings(data: {
     return { success: true }
   } catch (error: any) {
     console.error("Error updatePayrollSettings:", error)
-    return { error: error.message || "Gagal memperbarui pengaturan payroll" }
+    return { error: "Gagal memperbarui pengaturan payroll" }
+  }
+}
+
+// ============ DEFAULT STANDAR GAJI PANGKAT ============
+const DEFAULT_STANDAR_GAJI_PANGKAT = [
+  // Golongan I - Juru
+  { golongan: "A/I", pangkat: "Juru Muda", gajiPokok: 2100000, tunjangan: 500000, keterangan: "Pendidikan SD/SMP" },
+  { golongan: "B/I", pangkat: "Juru Muda Tk. I", gajiPokok: 2350000, tunjangan: 600000, keterangan: "Pendidikan SMP Lanjutan" },
+  { golongan: "C/I", pangkat: "Juru", gajiPokok: 2600000, tunjangan: 700000, keterangan: "Tingkat Lanjutan" },
+  { golongan: "D/I", pangkat: "Juru Tk. I", gajiPokok: 2850000, tunjangan: 800000, keterangan: "Pangkat Tertinggi Golongan I" },
+
+  // Golongan II - Pengatur
+  { golongan: "A/II", pangkat: "Pengatur Muda", gajiPokok: 3100000, tunjangan: 900000, keterangan: "Pendidikan SMA/SMK" },
+  { golongan: "B/II", pangkat: "Pengatur Muda Tk. I", gajiPokok: 3400000, tunjangan: 1050000, keterangan: "Pendidikan D1/D2" },
+  { golongan: "C/II", pangkat: "Pengatur", gajiPokok: 3750000, tunjangan: 1200000, keterangan: "Pendidikan D3" },
+  { golongan: "D/II", pangkat: "Pengatur Tk. I", gajiPokok: 4100000, tunjangan: 1350000, keterangan: "Pangkat Tertinggi Golongan II" },
+
+  // Golongan III - Penata
+  { golongan: "A/III", pangkat: "Penata Muda", gajiPokok: 4600000, tunjangan: 1600000, keterangan: "Pendidikan S1 / D4" },
+  { golongan: "B/III", pangkat: "Penata Muda Tk. I", gajiPokok: 5100000, tunjangan: 1850000, keterangan: "Pendidikan S2 / Profesi" },
+  { golongan: "C/III", pangkat: "Penata", gajiPokok: 5650000, tunjangan: 2150000, keterangan: "Penata Madya" },
+  { golongan: "D/III", pangkat: "Penata Tk. I", gajiPokok: 6300000, tunjangan: 2500000, keterangan: "Pendidikan S3 / Pangkat Tertinggi Gol III" },
+
+  // Golongan IV - Pembina
+  { golongan: "A/IV", pangkat: "Pembina", gajiPokok: 7100000, tunjangan: 3000000, keterangan: "Pangkat Eselon / Pembina Madya" },
+  { golongan: "B/IV", pangkat: "Pembina Tk. I", gajiPokok: 8000000, tunjangan: 3500000, keterangan: "Pembina Tingkat I" },
+  { golongan: "C/IV", pangkat: "Pembina Utama Muda", gajiPokok: 9000000, tunjangan: 4100000, keterangan: "Pembina Utama Muda" },
+  { golongan: "D/IV", pangkat: "Pembina Utama Madya", gajiPokok: 10200000, tunjangan: 4800000, keterangan: "Pembina Utama Madya" },
+  { golongan: "E/IV", pangkat: "Pembina Utama", gajiPokok: 11500000, tunjangan: 5600000, keterangan: "Pangkat Tertinggi Struktural" },
+]
+
+// ============ GET STANDAR GAJI PANGKAT LIST ============
+const RANK_HIERARCHY_ORDER: Record<string, number> = {
+  "A/I": 1, "B/I": 2, "C/I": 3, "D/I": 4,
+  "A/II": 5, "B/II": 6, "C/II": 7, "D/II": 8,
+  "A/III": 9, "B/III": 10, "C/III": 11, "D/III": 12,
+  "A/IV": 13, "B/IV": 14, "C/IV": 15, "D/IV": 16, "E/IV": 17
+}
+
+export async function getStandarGajiPangkatList() {
+  try {
+    let list = await (prisma as any).standarGajiPangkat.findMany()
+
+    // Auto-seed if empty
+    if (list.length === 0) {
+      for (const item of DEFAULT_STANDAR_GAJI_PANGKAT) {
+        await (prisma as any).standarGajiPangkat.create({
+          data: {
+            golongan: item.golongan,
+            pangkat: item.pangkat,
+            gajiPokok: item.gajiPokok,
+            tunjangan: item.tunjangan,
+            keterangan: item.keterangan
+          }
+        })
+      }
+      list = await (prisma as any).standarGajiPangkat.findMany()
+    }
+
+    const mapped = list.map((item: any) => ({
+      id: item.id,
+      golongan: item.golongan,
+      pangkat: item.pangkat,
+      gajiPokok: Number(item.gajiPokok),
+      tunjangan: Number(item.tunjangan),
+      keterangan: item.keterangan || ""
+    }))
+
+    // Sort by hierarchical rank order
+    return mapped.sort((a: any, b: any) => {
+      const orderA = RANK_HIERARCHY_ORDER[a.golongan.toUpperCase().trim()] || 99
+      const orderB = RANK_HIERARCHY_ORDER[b.golongan.toUpperCase().trim()] || 99
+      if (orderA !== orderB) return orderA - orderB
+      return a.golongan.localeCompare(b.golongan)
+    })
+  } catch (error: any) {
+    console.error("Error getStandarGajiPangkatList:", error)
+    return DEFAULT_STANDAR_GAJI_PANGKAT.map((d, i) => ({ id: String(i + 1), ...d }))
+  }
+}
+
+// ============ SAVE / UPDATE STANDAR GAJI PANGKAT ============
+export async function saveStandarGajiPangkat(data: {
+  id?: string
+  golongan: string
+  pangkat: string
+  gajiPokok: number
+  tunjangan: number
+  keterangan?: string
+}) {
+  try {
+    if (data.id) {
+      await (prisma as any).standarGajiPangkat.update({
+        where: { id: data.id },
+        data: {
+          golongan: data.golongan.trim(),
+          pangkat: data.pangkat.trim(),
+          gajiPokok: data.gajiPokok,
+          tunjangan: data.tunjangan,
+          keterangan: data.keterangan,
+        }
+      })
+    } else {
+      await (prisma as any).standarGajiPangkat.upsert({
+        where: { golongan: data.golongan.trim() },
+        update: {
+          pangkat: data.pangkat.trim(),
+          gajiPokok: data.gajiPokok,
+          tunjangan: data.tunjangan,
+          keterangan: data.keterangan,
+        },
+        create: {
+          golongan: data.golongan.trim(),
+          pangkat: data.pangkat.trim(),
+          gajiPokok: data.gajiPokok,
+          tunjangan: data.tunjangan,
+          keterangan: data.keterangan,
+        }
+      })
+    }
+
+    await logAudit({
+      action: data.id ? "UPDATE" : "CREATE",
+      module: "payroll",
+      targetName: `Standar Gaji ${data.golongan} (${data.pangkat})`,
+      newData: data as any,
+    })
+
+    revalidatePath("/payroll")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error saveStandarGajiPangkat:", error)
+    return { error: error.message || "Gagal menyimpan standar gaji pangkat" }
+  }
+}
+
+// ============ DELETE STANDAR GAJI PANGKAT ============
+export async function deleteStandarGajiPangkat(id: string) {
+  try {
+    const deleted = await (prisma as any).standarGajiPangkat.delete({
+      where: { id }
+    })
+
+    await logAudit({
+      action: "DELETE",
+      module: "payroll",
+      targetName: `Standar Gaji ${deleted.golongan} (${deleted.pangkat})`,
+    })
+
+    revalidatePath("/payroll")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error deleteStandarGajiPangkat:", error)
+    return { error: error.message || "Gagal menghapus standar gaji pangkat" }
+  }
+}
+
+// ============ APPLY STANDAR GAJI TO ACTIVE EMPLOYEES ============
+export async function applyStandarGajiToPegawai(options: { mode: "all" | "zero_only", golongan?: string }) {
+  try {
+    const standarList = await (prisma as any).standarGajiPangkat.findMany()
+    const standarMap: Record<string, { gajiPokok: number, tunjangan: number, pangkat: string }> = {}
+    
+    for (const s of standarList) {
+      const rawKey = (s.golongan || "").toUpperCase().trim()
+      const normKey = normalizeGolonganKey(s.golongan)
+      const val = {
+        gajiPokok: Number(s.gajiPokok),
+        tunjangan: Number(s.tunjangan),
+        pangkat: s.pangkat
+      }
+      standarMap[rawKey] = val
+      standarMap[normKey] = val
+    }
+
+    const whereClause: any = { status: "AKTIF" }
+    if (options.golongan && options.golongan !== "all") {
+      whereClause.golongan = options.golongan
+    }
+
+    const pegawais = await prisma.pegawai.findMany({
+      where: whereClause
+    })
+
+    let updatedCount = 0
+    for (const p of pegawais) {
+      const golKey = (p.golongan || "").toUpperCase().trim()
+      const normKey = normalizeGolonganKey(p.golongan)
+      const matched = standarMap[golKey] || standarMap[normKey]
+
+      if (matched) {
+        const currentPokok = Number(p.gajiPokok || 0)
+        const shouldUpdate = options.mode === "all" || currentPokok === 0
+
+        if (shouldUpdate) {
+          await prisma.pegawai.update({
+            where: { id: p.id },
+            data: {
+              gajiPokok: matched.gajiPokok,
+              tunjangan: matched.tunjangan,
+              pangkat: p.pangkat && p.pangkat !== "-" ? p.pangkat : matched.pangkat
+            }
+          })
+          updatedCount++
+        }
+      }
+    }
+
+    await logAudit({
+      action: "UPDATE",
+      module: "payroll",
+      targetName: `Terapkan Standar Gaji (${updatedCount} pegawai)`,
+      newData: { options, updatedCount } as any,
+    })
+
+    revalidatePath("/payroll")
+    return { success: true, updatedCount }
+  } catch (error: any) {
+    console.error("Error applyStandarGajiToPegawai:", error)
+    return { error: error.message || "Gagal menerapkan standar gaji ke pegawai" }
   }
 }
 
@@ -454,8 +699,8 @@ export async function processAllPayroll(periodStr: string) {
     // Batch create their default payroll
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
 
-    // Batch query absensi and approved cuti for all employees to eliminate N+1 latency
-    const [allAbsensi, allApprovedCuti] = await Promise.all([
+    // Batch query absensi, approved cuti, and standards to eliminate N+1 latency
+    const [allAbsensi, allApprovedCuti, allStandar] = await Promise.all([
       prisma.absensi.findMany({
         where: { tanggal: { gte: start, lte: end } }
       }),
@@ -465,7 +710,8 @@ export async function processAllPayroll(periodStr: string) {
           tanggalMulai: { lte: end },
           tanggalSelesai: { gte: start }
         }
-      })
+      }),
+      (prisma as any).standarGajiPangkat.findMany()
     ])
 
     const absensiByPegawai: Record<string, any[]> = {}
@@ -480,7 +726,30 @@ export async function processAllPayroll(periodStr: string) {
       cutiByPegawai[c.pegawaiId].push(c)
     }
 
+    const standarMap: Record<string, { gajiPokok: number, tunjangan: number }> = {}
+    for (const s of allStandar) {
+      const rawKey = (s.golongan || "").toUpperCase().trim()
+      const normKey = normalizeGolonganKey(s.golongan)
+      const val = {
+        gajiPokok: Number(s.gajiPokok),
+        tunjangan: Number(s.tunjangan)
+      }
+      standarMap[rawKey] = val
+      standarMap[normKey] = val
+    }
+
     const batch = employees.map((emp) => {
+      let gPokok = Number(emp.gajiPokok || 0)
+      let tunj = Number(emp.tunjangan || 0)
+
+      if (gPokok === 0 && emp.golongan) {
+        const std = standarMap[emp.golongan.toUpperCase().trim()] || standarMap[normalizeGolonganKey(emp.golongan)]
+        if (std) {
+          gPokok = std.gajiPokok
+          if (tunj === 0) tunj = std.tunjangan
+        }
+      }
+
       const penalty = calculateAttendancePenalty({
         pegawai: emp,
         start,
@@ -489,9 +758,6 @@ export async function processAllPayroll(periodStr: string) {
         absensiList: absensiByPegawai[emp.id] || [],
         cutiList: cutiByPegawai[emp.id] || []
       })
-
-      const gPokok = Number(emp.gajiPokok || 0)
-      const tunj = Number(emp.tunjangan || 0)
       const pot = penalty.totalPotongan
 
       return {

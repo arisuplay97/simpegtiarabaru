@@ -448,6 +448,18 @@ model Pengaturan {
   updatedAt         DateTime @updatedAt
 }
 
+// ============ STANDAR GAJI PANGKAT & GOLONGAN ============
+model StandarGajiPangkat {
+  id          String   @id @default(cuid())
+  golongan    String   @unique // Format: A/I, B/I, C/II, D/III, dst
+  pangkat     String   // Contoh: Juru Muda, Penata, Pembina, dst
+  gajiPokok   Decimal  @default(0)
+  tunjangan   Decimal  @default(0)
+  keterangan  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // ============ KGB (Kenaikan Gaji Berkala) ============
 model KGB {
   id              String   @id @default(cuid())
