@@ -375,9 +375,15 @@ export default function MobileFingerprint() {
           ) : pendingQueueCount > 0 ? (
             <button
               onClick={async () => {
-                toast.info("Menyinkronkan antrian offline...")
-                const { synced } = await syncMobileOfflineQueue()
-                if (synced > 0) toast.success(`${synced} presensi tersinkron!`)
+                const toastId = toast.loading("Menyinkronkan antrian offline...")
+                const res = await syncMobileOfflineQueue()
+                if (res.synced > 0) {
+                  toast.success(`${res.synced} presensi berhasil tersinkron!`, { id: toastId })
+                } else if (res.failed > 0) {
+                  toast.error(`Gagal sinkronisasi: ${res.errors[0] || "Ditolak server"}`, { id: toastId })
+                } else {
+                  toast.info("Tidak ada presensi di antrian.", { id: toastId })
+                }
                 updateQueueCount()
               }}
               className="flex items-center gap-1 bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 text-[11px] font-semibold px-2.5 py-1 rounded-full active:scale-95"

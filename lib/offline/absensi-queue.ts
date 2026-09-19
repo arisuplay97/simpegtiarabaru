@@ -205,14 +205,43 @@ export async function deleteFromMobileQueue(id: string): Promise<void> {
   })
 }
 
+export async function clearMobileQueue(): Promise<void> {
+  try {
+    const db = await openDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(MOBILE_STORE_NAME, "readwrite")
+      const store = tx.objectStore(MOBILE_STORE_NAME)
+      const req = store.clear()
+      req.onsuccess = () => {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("offline-queue-updated"))
+        }
+        resolve()
+      }
+      req.onerror = () => reject(req.error)
+    })
+  } catch (err) {
+    console.error("Gagal membersihkan antrian mobile:", err)
+  }
+}
+
+export interface MobileSyncResult {
+  synced: number
+  failed: number
+  errors: string[]
+  failedItems: Array<{ id: string; error: string; statusCode?: number }>
+}
+
 export async function syncMobileOfflineQueue(
   onProgress?: (done: number, total: number) => void
-): Promise<{ synced: number; failed: number }> {
+): Promise<MobileSyncResult> {
   const queue = await getMobileQueue()
-  if (queue.length === 0) return { synced: 0, failed: 0 }
+  if (queue.length === 0) return { synced: 0, failed: 0, errors: [], failedItems: [] }
 
   let synced = 0
   let failed = 0
+  const errors: string[] = []
+  const failedItems: Array<{ id: string; error: string; statusCode?: number }> = []
 
   for (const item of queue) {
     try {
@@ -234,9 +263,16 @@ export async function syncMobileOfflineQueue(
         await deleteFromMobileQueue(item.id)
         synced++
       } else {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMsg = errorData.error || `Server menolak presensi (Kode: ${response.status})`
+        errors.push(errorMsg)
+        failedItems.push({ id: item.id, error: errorMsg, statusCode: response.status })
         failed++
       }
-    } catch {
+    } catch (networkErr: any) {
+      const msg = networkErr?.message || "Koneksi terputus saat menghubungi server"
+      errors.push(msg)
+      failedItems.push({ id: item.id, error: msg })
       failed++
     }
     onProgress?.(synced + failed, queue.length)
@@ -244,9 +280,12 @@ export async function syncMobileOfflineQueue(
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("offline-queue-updated"))
+    if (errors.length > 0) {
+      window.dispatchEvent(new CustomEvent("offline-sync-error", { detail: { errors, failedItems } }))
+    }
   }
 
-  return { synced, failed }
+  return { synced, failed, errors, failedItems }
 }
 
 function triggerSyncRegister() {
@@ -256,3 +295,4 @@ function triggerSyncRegister() {
     }).catch(() => {})
   }
 }
+

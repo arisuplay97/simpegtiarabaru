@@ -52,7 +52,7 @@ export async function checkDeviceAndAbsen(
       return { error: "Hari Minggu adalah hari libur operasional. Presensi ditutup." }
     }
 
-    if (dayOfWeek === 6 && !isCabang) {
+    if (dayOfWeek === 6 && !isCabang && !(pegawai as any).bebasAbsensi) {
       return { error: "Hari Sabtu adalah hari libur untuk kantor pusat. Presensi hari Sabtu khusus pekerja kantor cabang." }
     }
 
@@ -99,9 +99,9 @@ export async function checkDeviceAndAbsen(
     let batasCheckin = (pengaturan as any)?.batasAbsenMasuk || "14:00"
     const batasTerlambat = pengaturan?.batasTerlambat || 15
 
-    if (isCabang) {
+    if (isCabang || (dayOfWeek === 6 && (pegawai as any).bebasAbsensi)) {
       if (dayOfWeek === 6) {
-        // Pengaturan Khusus Hari Sabtu Cabang
+        // Pengaturan Khusus Hari Sabtu Cabang / Bebas Absensi
         jamMasukSetting = pengaturan?.jamMasukSabtuCabang || "08:00"
         jamPulangSetting = pengaturan?.jamPulangSabtuCabang || "13:00"
         batasCheckin = pengaturan?.batasMasukSabtuCabang || "11:00"

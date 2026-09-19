@@ -4,6 +4,7 @@ import "../globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { MobileBottomNav } from "@/components/mobile/bottom-nav"
+import { MobileOfflineSyncWatcher } from "@/components/mobile/offline-sync-watcher"
 import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
@@ -37,6 +38,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       <body className={`${inter.variable} font-sans antialiased bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 selection:bg-zinc-900 selection:text-white dark:selection:bg-white dark:selection:text-zinc-900`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
+            <MobileOfflineSyncWatcher />
             <div className="flex min-h-screen flex-col max-w-md mx-auto relative shadow-sm border-x border-zinc-200/50 dark:border-zinc-800/50">
               {/* Content — padded bottom for nav */}
               <main className="flex-1 overflow-y-auto">

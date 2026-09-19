@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Hari Minggu adalah hari libur operasional. Presensi ditutup." }, { status: 400 })
     }
 
-    if (dayOfWeek === 6 && !isCabang) {
+    if (dayOfWeek === 6 && !isCabang && !pegawai.bebasAbsensi) {
       return NextResponse.json({ error: "Hari Sabtu adalah hari libur untuk kantor pusat. Presensi hari Sabtu khusus pegawai kantor cabang." }, { status: 400 })
     }
 
@@ -148,9 +148,9 @@ export async function POST(req: Request) {
     let batasPulangStr = pengaturan?.batasAbsenPulang || "18:00"
     let jamMasukSetting = pengaturan?.jamMasuk || "08:00"
 
-    if (isCabang) {
+    if (isCabang || (dayOfWeek === 6 && pegawai.bebasAbsensi)) {
       if (dayOfWeek === 6) {
-        // Khusus Hari Sabtu Kantor Cabang
+        // Khusus Hari Sabtu Kantor Cabang / Bebas Absensi
         mulaiMasukStr = pengaturan?.mulaiMasukSabtuCabang || "06:30"
         batasMasukStr = pengaturan?.batasMasukSabtuCabang || "11:00"
         mulaiPulangStr = pengaturan?.mulaiPulangSabtuCabang || "12:00"

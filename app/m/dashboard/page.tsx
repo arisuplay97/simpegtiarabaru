@@ -8,7 +8,7 @@ import {
   TrendingUp, Award, Timer, UserCheck, Thermometer,
   FileText, Trophy, Medal,
   Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight,
-  Radio, CloudUpload, BellRing, BellOff, MapPin
+  Radio, CloudUpload, BellRing, BellOff, MapPin, Trash2
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
@@ -19,7 +19,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { VerifiedBadge } from "@/components/simpeg/verified-badge"
 import { cn } from "@/lib/utils"
-import { getMobileQueue, syncMobileOfflineQueue } from "@/lib/offline/absensi-queue"
+import { getMobileQueue, syncMobileOfflineQueue, clearMobileQueue } from "@/lib/offline/absensi-queue"
 import { 
   requestPushPermission, isReminderEnabled, 
   toggleReminder, checkAndSendSmartReminder 
@@ -129,6 +129,8 @@ export default function MobileDashboard() {
   const [showAllLeaderboard, setShowAllLeaderboard] = useState(false)
   const [offlineQueueCount, setOfflineQueueCount] = useState(0)
   const [isReminderActive, setIsReminderActive] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   useEffect(() => {
     const hour = new Date().getHours()
@@ -142,6 +144,9 @@ export default function MobileDashboard() {
     try {
       const q = await getMobileQueue()
       setOfflineQueueCount(q.length)
+      if (q.length === 0) {
+        setSyncError(null)
+      }
     } catch {}
   }
 
@@ -155,8 +160,21 @@ export default function MobileDashboard() {
   }, [status])
 
   useEffect(() => {
-    window.addEventListener("offline-queue-updated", checkOfflineQueue)
-    return () => window.removeEventListener("offline-queue-updated", checkOfflineQueue)
+    const handleQueueUpdated = () => {
+      checkOfflineQueue()
+      fetchData()
+    }
+    const handleSyncError = (e: any) => {
+      if (e.detail?.errors?.length > 0) {
+        setSyncError(e.detail.errors[0])
+      }
+    }
+    window.addEventListener("offline-queue-updated", handleQueueUpdated)
+    window.addEventListener("offline-sync-error", handleSyncError)
+    return () => {
+      window.removeEventListener("offline-queue-updated", handleQueueUpdated)
+      window.removeEventListener("offline-sync-error", handleSyncError)
+    }
   }, [])
 
   const fetchData = async () => {
@@ -217,18 +235,37 @@ export default function MobileDashboard() {
   }
 
   const handleSyncOffline = async () => {
+    if (isSyncing) return
+    setIsSyncing(true)
     const toastId = toast.loading("Menyinkronkan antrian offline...")
     try {
-      const { synced } = await syncMobileOfflineQueue()
-      if (synced > 0) {
-        toast.success(`${synced} presensi offline berhasil terkirim ke server!`, { id: toastId })
+      const res = await syncMobileOfflineQueue()
+      if (res.synced > 0) {
+        toast.success(`${res.synced} presensi offline berhasil terkirim ke server!`, { id: toastId })
+        setSyncError(null)
+      } else if (res.failed > 0) {
+        const errMsg = res.errors[0] || "Ditolak oleh server"
+        setSyncError(errMsg)
+        toast.error(`Gagal sinkronisasi: ${errMsg}`, { id: toastId, duration: 6000 })
       } else {
-        toast.info("Tidak ada presensi yang perlu disinkronkan.", { id: toastId })
+        toast.info("Tidak ada presensi di antrian.", { id: toastId })
+        setSyncError(null)
       }
       await checkOfflineQueue()
       await fetchData()
-    } catch {
+    } catch (err: any) {
       toast.error("Gagal menyinkronkan data offline.", { id: toastId })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleClearOfflineQueue = async () => {
+    if (window.confirm("Hapus antrian presensi offline ini? Presensi yang belum tersimpan ke server akan dibatalkan.")) {
+      await clearMobileQueue()
+      setSyncError(null)
+      await checkOfflineQueue()
+      toast.info("Antrian offline telah dibersihkan.")
     }
   }
 
@@ -362,22 +399,47 @@ export default function MobileDashboard() {
 
         {/* Offline Queue Sync Banner */}
         {offlineQueueCount > 0 && (
-          <div className="rounded-2xl p-3.5 bg-zinc-900 text-white border border-zinc-800 shadow-sm flex items-center justify-between gap-3 animate-in fade-in-50">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                <CloudUpload className="h-4 w-4" />
+          <div className="rounded-2xl p-3.5 bg-zinc-900 text-white border border-zinc-800 shadow-sm space-y-2.5 animate-in fade-in-50">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={cn(
+                  "h-8 w-8 rounded-xl flex items-center justify-center shrink-0",
+                  syncError ? "bg-rose-500/20 text-rose-400" : "bg-amber-500/20 text-amber-400"
+                )}>
+                  {syncError ? <AlertCircle className="h-4 w-4" /> : <CloudUpload className="h-4 w-4" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold truncate">Antrian Offline ({offlineQueueCount})</p>
+                  <p className="text-[11px] text-zinc-400 truncate">
+                    {syncError ? "Perlu perhatian / ditolak server" : "Siap dikirim ke server"}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold truncate">Antrian Offline ({offlineQueueCount})</p>
-                <p className="text-[11px] text-zinc-400 truncate">Siap dikirim ke server</p>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={handleClearOfflineQueue}
+                  className="p-1.5 rounded-xl bg-white/10 hover:bg-rose-500/20 text-zinc-300 hover:text-rose-300 transition-colors active:scale-95"
+                  title="Hapus / Batalkan Antrian"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={handleSyncOffline}
+                  disabled={isSyncing}
+                  className="px-3 py-1.5 rounded-xl bg-white text-zinc-900 text-xs font-bold active:scale-95 transition-transform shadow-xs disabled:opacity-50"
+                >
+                  {isSyncing ? "Mengirim..." : syncError ? "Coba Lagi" : "Sync Sekarang"}
+                </button>
               </div>
             </div>
-            <button
-              onClick={handleSyncOffline}
-              className="px-3 py-1.5 rounded-xl bg-white text-zinc-900 text-xs font-bold active:scale-95 transition-transform shadow-xs shrink-0"
-            >
-              Sync Sekarang
-            </button>
+            {syncError && (
+              <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 flex items-start gap-2">
+                <AlertCircle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-rose-300 leading-tight">
+                  {syncError}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
