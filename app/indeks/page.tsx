@@ -72,16 +72,23 @@ function DeltaBadge({ delta }: { delta: number }) {
   return <span className="text-[11px] text-neutral-400 flex items-center gap-0.5"><Minus className="h-3 w-3" />Stabil</span>
 }
 
-function ScorePill({ skor }: { skor: number }) {
+function ScorePill({ predikat, skor }: { predikat?: string; skor?: number }) {
+  const label = predikat || (
+    (skor || 0) >= 90 ? "Sangat Baik"
+    : (skor || 0) >= 80 ? "Baik"
+    : (skor || 0) >= 70 ? "Cukup"
+    : (skor || 0) >= 60 ? "Kurang"
+    : "Sangat Kurang"
+  )
   const color =
-    skor >= 90 ? "bg-emerald-500"
-    : skor >= 80 ? "bg-blue-500"
-    : skor >= 70 ? "bg-amber-500"
-    : skor >= 60 ? "bg-orange-500"
+    (skor || 0) >= 90 ? "bg-emerald-500"
+    : (skor || 0) >= 80 ? "bg-blue-500"
+    : (skor || 0) >= 70 ? "bg-amber-500"
+    : (skor || 0) >= 60 ? "bg-orange-500"
     : "bg-red-500"
   return (
-    <div className={cn("text-white text-sm font-bold px-2.5 py-0.5 rounded-full min-w-[52px] text-center", color)}>
-      {skor}
+    <div className={cn("text-white text-xs font-semibold px-2.5 py-0.5 rounded-full min-w-[70px] text-center", color)}>
+      {label}
     </div>
   )
 }
@@ -388,10 +395,12 @@ function IndeksContent() {
                               <p className="text-xs font-bold text-neutral-800 dark:text-white leading-tight line-clamp-1">{p.nama}</p>
                               <p className="text-[10px] text-neutral-400 truncate">{p.unit}</p>
                             </div>
-                            <div className={cn(
-                              "text-xl font-black",
-                              p.totalSkor >= 90 ? "text-emerald-600" : p.totalSkor >= 80 ? "text-blue-600" : "text-amber-600"
-                            )}>{p.totalSkor}</div>
+                            <span className={cn(
+                              "text-xs font-bold px-2.5 py-0.5 rounded-full mt-1",
+                              p.totalSkor >= 90 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" :
+                              p.totalSkor >= 80 ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" :
+                              "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                            )}>{p.predikatLabel || "Sangat Baik"}</span>
                             <div className="flex flex-wrap justify-center gap-1">
                               {(p.badges || []).slice(0, 2).map((b: string) => (
                                 <span key={b} title={BADGE_CONFIG[b]?.label} className={cn("flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border font-medium", BADGE_CONFIG[b]?.color)}>
@@ -439,7 +448,7 @@ function IndeksContent() {
                             ))}
                           </div>
                           <DeltaBadge delta={p.delta} />
-                          <ScorePill skor={p.totalSkor} />
+                          <ScorePill predikat={p.predikatLabel} skor={p.totalSkor} />
                         </div>
                       </div>
                     ))}
@@ -464,7 +473,9 @@ function IndeksContent() {
 
               {/* ── RANKING UNIT ─────────────────────────────────── */}
               <TabsContent value="ranking-unit" className="mt-4 space-y-3">
-                {rankingUnit.map(unit => (
+                {rankingUnit
+                  .filter(unit => !unit.nama?.toLowerCase().includes("direksi"))
+                  .map(unit => (
                   <Card key={unit.id} className={cn(
                     "border shadow-sm bg-white dark:bg-neutral-900 overflow-hidden",
                     unit.rank === 1 ? "border-amber-300 dark:border-amber-700" : "border-neutral-100 dark:border-neutral-800"
@@ -479,7 +490,7 @@ function IndeksContent() {
                               {unit.jumlahPegawai} pegawai
                             </span>
                           </div>
-                          <Progress value={unit.avgSkor} className="h-2 bg-neutral-100 dark:bg-neutral-800" />
+                          <Progress value={unit.persenHadir} className="h-2 bg-neutral-100 dark:bg-neutral-800" />
                           <div className="flex items-center justify-between mt-1.5">
                             <span className="text-[11px] text-neutral-400">Kehadiran {unit.persenHadir}%</span>
                             <span className={cn(
@@ -490,12 +501,6 @@ function IndeksContent() {
                               "bg-red-100 text-red-700"
                             )}>{unit.predikatLabel}</span>
                           </div>
-                        </div>
-                        <div className={cn(
-                          "text-2xl font-black shrink-0",
-                          unit.avgSkor >= 90 ? "text-emerald-600" : unit.avgSkor >= 80 ? "text-blue-600" : unit.avgSkor >= 70 ? "text-amber-600" : "text-red-500"
-                        )}>
-                          {unit.avgSkor}
                         </div>
                       </div>
                     </CardContent>
@@ -545,7 +550,7 @@ function IndeksContent() {
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className={cn("text-lg font-black", p.totalSkor < 60 ? "text-red-600" : "text-orange-500")}>{p.totalSkor}</div>
+                            <div className={cn("text-xs font-bold", p.totalSkor < 60 ? "text-red-600" : "text-orange-500")}>{p.predikatLabel || "Perlu Perhatian"}</div>
                             <div className="text-[10px] text-neutral-400">{p.unit}</div>
                           </div>
                         </div>

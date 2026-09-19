@@ -229,13 +229,13 @@ export default function MobileIndeks() {
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col items-end shrink-0">
-                        <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 leading-none tabular-nums">
-                          {p.totalSkor}
-                        </span>
-                        <div className="mt-1">
-                          <DeltaBadge delta={p.delta} />
-                        </div>
+                      <div className="flex flex-col items-end shrink-0 gap-1">
+                        <DeltaBadge delta={p.delta} />
+                        {p.predikatLabel && (
+                          <span className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                            {p.predikatLabel}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))
@@ -246,26 +246,28 @@ export default function MobileIndeks() {
             {/* RANKING UNIT TAB */}
             {activeTab === "ranking-unit" && (
               <>
-                {rankingUnit.length === 0 ? (
+                {rankingUnit.filter((u) => !u.nama?.toLowerCase().includes("direksi")).length === 0 ? (
                   <div className="text-center p-8 text-zinc-400 dark:text-zinc-500 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 text-xs font-medium">
                     Belum ada data ranking unit
                   </div>
                 ) : (
-                  rankingUnit.map((u) => (
+                  rankingUnit
+                    .filter((u) => !u.nama?.toLowerCase().includes("direksi"))
+                    .map((u) => (
                     <div key={u.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-2xs border border-zinc-200/80 dark:border-zinc-800">
                       <div className="flex items-center gap-3 mb-2">
                         <RankBadge rank={u.rank} />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{u.nama}</p>
                         </div>
-                        <div className="text-base font-bold text-zinc-900 dark:text-zinc-100 shrink-0 tabular-nums">
-                          {u.avgSkor}
-                        </div>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                          {u.predikatLabel}
+                        </span>
                       </div>
-                      <Progress value={u.avgSkor} className="h-1.5 bg-zinc-100 dark:bg-zinc-800 mb-2" />
+                      <Progress value={u.persenHadir} className="h-1.5 bg-zinc-100 dark:bg-zinc-800 mb-2" />
                       <div className="flex items-center justify-between text-[10px] text-zinc-500">
                         <span>{u.jumlahPegawai} Pegawai</span>
-                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">{u.predikatLabel}</span>
+                        <span className="font-medium text-zinc-600 dark:text-zinc-400">Kehadiran {u.persenHadir}%</span>
                       </div>
                     </div>
                   ))
@@ -300,7 +302,9 @@ export default function MobileIndeks() {
                           ))}
                         </div>
                       </div>
-                      <div className="text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums">{p.totalSkor}</div>
+                      <div className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                        {p.predikatLabel || "Perlu Perhatian"}
+                      </div>
                     </div>
                   ))
                 )}

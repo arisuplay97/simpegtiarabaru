@@ -355,6 +355,8 @@ export async function getRankingUnit(bulan?: number, tahun?: number) {
     rows.forEach(r => {
       const unit = r.pegawai.bidang
       if (!unit) return
+      // Jangan masukkan Direksi ke dalam ranking unit
+      if (unit.nama.trim().toLowerCase().includes("direksi")) return
       if (!unitMap.has(unit.id)) unitMap.set(unit.id, { nama: unit.nama, scores: [], hadirTotal: 0, hariKerjaTotal: 0 })
       const entry = unitMap.get(unit.id)!
       entry.scores.push(r.totalSkor)

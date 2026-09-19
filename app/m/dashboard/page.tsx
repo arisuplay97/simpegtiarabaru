@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation"
 import {
   Megaphone, AlertCircle, ChevronRight,
   CalendarDays, Clock, BookOpen,
-  TrendingUp, Award, Timer, UserCheck, Thermometer,
-  FileText, Trophy, Medal,
+  TrendingUp, Timer, UserCheck, Thermometer,
+  FileText,
   Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight,
   CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
-import { getLeaderboard } from "@/lib/actions/indeks"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import Link from "next/link"
@@ -83,35 +82,6 @@ function PengumumanTicker({ items }: { items: { title: string; message: string }
   )
 }
 
-// ─── Rank Badge ─────────────────────────────────────────────────
-function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) {
-    return (
-      <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-xs">
-        <Trophy className="h-3 w-3" />
-      </div>
-    )
-  }
-  if (rank === 2) {
-    return (
-      <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-zinc-400/10 text-zinc-400 border border-zinc-400/20">
-        <Medal className="h-3 w-3" />
-      </div>
-    )
-  }
-  if (rank === 3) {
-    return (
-      <div className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full bg-amber-700/10 text-amber-700 border border-amber-700/20">
-        <Award className="h-3 w-3" />
-      </div>
-    )
-  }
-  return (
-    <div className="flex shrink-0 h-6 w-6 items-center justify-center text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full">
-      #{rank}
-    </div>
-  )
-}
 
 // ─── Menu Utama Layanan Pegawai (3D Icons) ───────────────────────
 const menuItems = [
@@ -131,8 +101,6 @@ export default function MobileDashboard() {
   const [unread, setUnread] = useState(0)
   const [greeting, setGreeting] = useState("")
   const [pengumuman, setPengumuman] = useState<any[]>([])
-  const [disiplinTop, setDisiplinTop] = useState<any[]>([])
-  const [showAllLeaderboard, setShowAllLeaderboard] = useState(false)
   const [offlineQueueCount, setOfflineQueueCount] = useState(0)
   const [isReminderActive, setIsReminderActive] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
@@ -219,12 +187,8 @@ export default function MobileDashboard() {
         const u = await getUnreadCount(session.user.id)
         setUnread(u)
       }
-      const [pgm, lb] = await Promise.all([
-        getPengumumanAktif(),
-        getLeaderboard()
-      ])
+      const pgm = await getPengumumanAktif()
       setPengumuman(pgm)
-      setDisiplinTop(lb.slice(0, 10))
     } catch {}
   }
 
@@ -706,92 +670,6 @@ export default function MobileDashboard() {
           </div>
         </div>
 
-        {/* ===== LEADERBOARD DISIPLIN ===== */}
-        <div className="rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
-          <div className="p-5 pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Peringkat Disiplin</p>
-                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">Top Performa Hari Ini</p>
-              </div>
-              <span className="text-[11px] font-medium text-zinc-400">
-                {format(today, "dd MMM yyyy", { locale: idLocale })}
-              </span>
-            </div>
-          </div>
-
-          {disiplinTop.length === 0 ? (
-            <div className="p-6 text-center text-xs text-zinc-400">
-              Belum ada kalkulasi indeks disiplin untuk hari ini
-            </div>
-          ) : (
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-              {(showAllLeaderboard ? disiplinTop : disiplinTop.slice(0, 5)).map((p, idx) => (
-                <div 
-                  key={p.pegawaiId} 
-                  className={cn(
-                    "flex items-center gap-3 px-5 py-3 transition-colors",
-                    idx === 0 ? "bg-zinc-50/70 dark:bg-zinc-800/30" : ""
-                  )}
-                >
-                  <RankBadge rank={p.rank} />
-
-                  <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700">
-                    {p.fotoUrl ? (
-                      <img src={p.fotoUrl} className="h-full w-full object-cover" alt="" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-zinc-600 dark:text-zinc-300">
-                        {p.nama?.charAt(0) || "U"}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                      {p.nama}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                      {p.unit || p.jabatan || "-"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center shrink-0">
-                    {p.rank === 1 ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        Top 1
-                      </span>
-                    ) : p.rank === 2 ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300/40 dark:border-zinc-700">
-                        Top 2
-                      </span>
-                    ) : p.rank === 3 ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-700/10 text-amber-700 dark:text-amber-500 border border-amber-700/20">
-                        Top 3
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                        Disiplin
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {disiplinTop.length > 5 && (
-                <button
-                  onClick={() => setShowAllLeaderboard(v => !v)}
-                  className="w-full py-3 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center gap-1.5 transition-colors bg-zinc-50/50 dark:bg-zinc-800/20"
-                >
-                  {showAllLeaderboard ? (
-                    <>Tampilkan Lebih Sedikit</>
-                  ) : (
-                    <>Lihat Top 10 Selengkapnya <ChevronRight className="h-3.5 w-3.5" /></>
-                  )}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* Footer info */}
         <div className="text-center pt-2 pb-6">
