@@ -377,7 +377,7 @@ export default function DashboardPage() {
                     <div className="flex items-start justify-between gap-4 relative z-10">
                       <div className="space-y-2.5 flex-1 min-w-0">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-white/15 text-white backdrop-blur-xs border border-white/20 shadow-2xs">
-                          <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" /> TIARA ASSISTANT AI
+                          <Sparkles className="w-3 h-3 text-amber-300" /> TIARA ASSISTANT AI
                         </span>
                         <h3 className="text-xl font-bold tracking-tight leading-snug">
                           Butuh Bantuan? Saya Asisten Tiara Siap Membantu Anda
@@ -389,7 +389,6 @@ export default function DashboardPage() {
 
                       {/* Lottie Animation inside the card */}
                       <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 relative flex items-center justify-center -mt-1 -mr-1">
-                        <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl animate-pulse pointer-events-none" />
                         <TiaraAiOrb className="w-full h-full" />
                       </div>
                     </div>

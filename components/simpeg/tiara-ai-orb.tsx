@@ -21,7 +21,7 @@ export function TiaraAiOrb({ className = "w-full h-full", loop = true }: TiaraAi
   if (!mounted) {
     return (
       <div className={`flex items-center justify-center ${className}`}>
-        <div className="w-16 h-16 rounded-full bg-blue-400/20 blur-md animate-pulse" />
+        <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-zinc-800" />
       </div>
     )
   }
@@ -31,7 +31,7 @@ export function TiaraAiOrb({ className = "w-full h-full", loop = true }: TiaraAi
       <Lottie
         animationData={animationData}
         loop={loop}
-        className="w-full h-full object-contain pointer-events-none drop-shadow-[0_0_24px_rgba(59,130,246,0.35)]"
+        className="w-full h-full object-contain pointer-events-none"
       />
     </div>
   )
