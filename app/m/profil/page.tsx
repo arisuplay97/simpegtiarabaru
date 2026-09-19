@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft, ChevronRight, Clock, Radio } from "lucide-react"
+import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft, ChevronRight, Clock, Radio, ChevronDown, HelpCircle } from "lucide-react"
 import { getEmployeeProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
 import { changePasswordWithVerification } from "@/lib/actions/auth-actions"
 import { format } from "date-fns"
@@ -10,6 +10,44 @@ import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+
+const faqList = [
+  {
+    question: 'Kenapa saya tidak bisa login dan muncul pesan "Akun Terhubung ke Perangkat Lain"?',
+    answer:
+      'Demi keamanan data kepegawaian dan mencegah kecurangan presensi (titip absen), SIMPEG TIARA menerapkan sistem 1 Akun 1 Device (Device Binding). Akun Anda secara otomatis terkunci pada smartphone pertama yang Anda gunakan untuk login.',
+  },
+  {
+    question: 'Bagaimana jika HP saya hilang, rusak, atau saya baru saja ganti HP baru?',
+    answer:
+      'Anda tidak bisa langsung login di HP baru. Silakan hubungi Admin / HRD untuk melakukan Reset Device Binding akun Anda. Setelah di-reset oleh HRD, Anda dapat langsung login di perangkat baru Anda.',
+  },
+  {
+    question: 'Bagaimana jika saya lupa kata sandi (password)?',
+    answer:
+      'Hubungi Administrator/HRD untuk melakukan reset password akun Anda. Setelah login, sangat disarankan untuk langsung mengganti kata sandi di menu profil.',
+  },
+  {
+    question: 'Mengapa saat absen muncul pesan "Di Luar Radius Kantor"?',
+    answer:
+      'Presensi mewajibkan Anda berada di dalam radius area kantor yang telah ditentukan (Kantor Pusat maupun Kantor Cabang). Pastikan GPS/Lokasi di HP Anda sudah aktif.',
+  },
+  {
+    question: 'Bagaimana jika saya berhalangan hadir karena sakit mendadak?',
+    answer:
+      'Segera pilih menu Pengajuan Cuti & Izin > pilih kategori Sakit > cantumkan keterangan serta unggah foto surat keterangan dokter (SKD) resmi.',
+  },
+  {
+    question: 'Kenapa saya tidak menerima notifikasi pengumuman HRD di status bar HP?',
+    answer:
+      'Pastikan Anda telah mengaktifkan tombol lonceng notifikasi di aplikasi dan mengklik "Izinkan / Allow Notifications" pada pop-up browser. Di Android/iOS, pastikan juga izin notifikasi untuk peramban (Chrome/Safari) tidak diblokir di setelan sistem HP Anda.',
+  },
+  {
+    question: 'Bagaimana cara memasang SIMPEG di layar depan HP seperti aplikasi Play Store?',
+    answer:
+      'Buka SIMPEG di Chrome (Android) > tekan menu titik tiga di kanan atas > pilih "Instal Aplikasi" atau "Tambahkan ke Layar Utama". Untuk pengguna iPhone (Safari), tekan tombol Share (ikon kotak panah ke atas) > pilih "Add to Home Screen".',
+  },
+]
 
 export default function MobileProfil() {
   const { data: session, status, update } = useSession()
@@ -26,6 +64,11 @@ export default function MobileProfil() {
     email: "",
     telepon: ""
   })
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+
+  const toggleFaq = (index: number) => {
+    setOpenFaq((prev) => (prev === index ? null : index))
+  }
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -278,6 +321,69 @@ export default function MobileProfil() {
           </div>
         )
       })()}
+
+      {/* Pusat Bantuan & FAQ */}
+      <div className="px-4 mt-4 space-y-2 max-w-md mx-auto">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5">
+            <HelpCircle className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+              Tanya Jawab & Bantuan (FAQ)
+            </p>
+          </div>
+          <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full border border-blue-200/50 dark:border-blue-900/40">
+            {faqList.length} Tanya Jawab
+          </span>
+        </div>
+
+        <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-2 shadow-2xs divide-y divide-zinc-100 dark:divide-zinc-800/80">
+          {faqList.map((faq, i) => {
+            const isOpen = openFaq === i
+            return (
+              <div key={i} className="p-1.5 first:pt-1 last:pb-1">
+                <button
+                  type="button"
+                  onClick={() => toggleFaq(i)}
+                  className="w-full flex items-start justify-between gap-2.5 text-left p-1.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-850/60 transition-colors group"
+                >
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[10px] font-bold mt-0.5">
+                      {i + 1}
+                    </span>
+                    <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
+                      {faq.question}
+                    </p>
+                  </div>
+                  <div className="p-0.5 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200 shrink-0">
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform duration-300 ease-in-out",
+                        isOpen && "rotate-180 text-blue-600 dark:text-blue-400"
+                      )}
+                    />
+                  </div>
+                </button>
+
+                {/* Collapsible Answer with smooth height & opacity transition */}
+                <div
+                  className={cn(
+                    "grid transition-all duration-300 ease-in-out",
+                    isOpen
+                      ? "grid-rows-[1fr] opacity-100 mt-1.5 mb-1"
+                      : "grid-rows-[0fr] opacity-0"
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-850/60 p-3 ml-7 text-xs leading-relaxed text-zinc-600 dark:text-zinc-300 border border-zinc-100 dark:border-zinc-800/80">
+                      {faq.answer}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
       {/* Actions */}
       <div className="px-4 mt-4 space-y-2.5 max-w-md mx-auto">
