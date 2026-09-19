@@ -27,7 +27,8 @@ import {
 import { toast } from "sonner"
 import { 
   IconCuti3D, IconAbsensi3D, IconKalender3D, 
-  IconKinerja3D, IconLembur3D, IconSlipGaji3D 
+  IconKinerja3D, IconLembur3D, IconSlipGaji3D,
+  IconHadir3D, IconSakit3D, IconIzin3D, IconCutiRekap3D
 } from "@/components/mobile/icons-3d"
 
 // ─── Digital Clock ──────────────────────────────────────────────
@@ -609,29 +610,65 @@ export default function MobileDashboard() {
 
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: "Hadir", value: hadirCount, icon: UserCheck, color: "text-emerald-600 dark:text-emerald-400" },
-              { label: "Sakit", value: sakitCount, icon: Thermometer, color: "text-amber-600 dark:text-amber-400" },
-              { label: "Izin",  value: izinCount,  icon: FileText,    color: "text-sky-600 dark:text-sky-400" },
-              { label: "Cuti",  value: pegawai?.saldoCuti ?? 0, icon: CalendarDays, color: "text-indigo-600 dark:text-indigo-400" },
+              { 
+                label: "Hadir", 
+                desc: "Bln Ini",
+                value: hadirCount, 
+                icon: IconHadir3D,
+              },
+              { 
+                label: "Sakit", 
+                desc: "Bln Ini",
+                value: sakitCount, 
+                icon: IconSakit3D,
+              },
+              { 
+                label: "Izin",  
+                desc: "Bln Ini",
+                value: izinCount,  
+                icon: IconIzin3D,
+              },
+              { 
+                label: "Sisa Cuti",  
+                desc: "Jatah Thn",
+                value: pegawai?.saldoCuti ?? 12, 
+                icon: IconCutiRekap3D,
+              },
             ].map((item) => {
               const Icon = item.icon
               return (
                 <div 
                   key={item.label} 
-                  className="rounded-xl p-3 flex flex-col items-center gap-1 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800"
+                  className="rounded-2xl p-2.5 flex flex-col items-center gap-1 bg-zinc-50/80 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800 shadow-2xs text-center group hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50 transition-all"
                 >
-                  <div className={cn("p-1.5 rounded-lg bg-white dark:bg-zinc-800 shadow-2xs", item.color)}>
-                    <Icon className="h-3.5 w-3.5" />
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-white dark:bg-zinc-850 shadow-2xs border border-zinc-200/60 dark:border-zinc-750 group-hover:scale-105 transition-transform duration-200">
+                    <Icon className="h-6 w-6" size={26} />
                   </div>
-                  <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tabular-nums leading-tight mt-0.5">
+                  <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums leading-tight mt-0.5">
                     {item.value}
                   </span>
-                  <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-tight">
+                  <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300 tracking-tight leading-none">
                     {item.label}
+                  </span>
+                  <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 leading-none">
+                    {item.desc}
                   </span>
                 </div>
               )
             })}
+          </div>
+
+          {/* Keterangan Status Cuti */}
+          <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center gap-1.5 min-w-0 truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+              <span className="truncate"><strong>Sisa Cuti:</strong> Kuota tahunan ({pegawai?.saldoCuti ?? 12} hari)</span>
+            </div>
+            {cutiCount > 0 && (
+              <span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0 ml-1">
+                Pakai bln ini: {cutiCount}
+              </span>
+            )}
           </div>
         </div>
 

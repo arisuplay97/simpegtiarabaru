@@ -547,3 +547,275 @@ export function IconSlipGaji3D({ className = "w-8 h-8", size }: Icon3DProps) {
     </svg>
   )
 }
+
+/**
+ * 7. ICON HADIR 3D (REKAP PRESENSI)
+ * Lencana medali 3D hijau zamrud dengan centang tebal dan kilau specular
+ */
+export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
+  const s = size || 32
+  return (
+    <svg
+      width={s}
+      height={s}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <filter id="hadir-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#10b981" floodOpacity="0.3" />
+          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
+        </filter>
+        <linearGradient id="hadir-body" x1="8" y1="8" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#34d399" />
+          <stop offset="50%" stopColor="#10b981" />
+          <stop offset="100%" stopColor="#047857" />
+        </linearGradient>
+        <linearGradient id="hadir-rim" x1="10" y1="10" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#a7f3d0" />
+          <stop offset="100%" stopColor="#065f46" />
+        </linearGradient>
+      </defs>
+
+      {/* 3D Circular Shield */}
+      <g filter="url(#hadir-shadow)">
+        <circle cx="24" cy="24" r="19" fill="url(#hadir-body)" />
+        <circle cx="24" cy="24" r="17.5" stroke="url(#hadir-rim)" strokeWidth="1.5" opacity="0.6" />
+        
+        {/* Specular Gloss Highlight */}
+        <path
+          d="M12 18C14 13 18 10 24 10"
+          stroke="#ffffff"
+          strokeWidth="2"
+          strokeLinecap="round"
+          opacity="0.6"
+        />
+
+        {/* 3D Checkmark */}
+        <path
+          d="M16 24.5L22 30.5L32.5 18.5"
+          stroke="#ffffff"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    </svg>
+  )
+}
+
+/**
+ * 8. ICON SAKIT 3D (REKAP PRESENSI)
+ * Kapsul medis 3D miring dengan tanda palang kesehatan dan kilau kaca
+ */
+export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
+  const s = size || 32
+  return (
+    <svg
+      width={s}
+      height={s}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <filter id="sakit-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#f59e0b" floodOpacity="0.3" />
+          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
+        </filter>
+        <linearGradient id="pill-top" x1="12" y1="12" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fbbf24" />
+          <stop offset="50%" stopColor="#f59e0b" />
+          <stop offset="100%" stopColor="#d97706" />
+        </linearGradient>
+        <linearGradient id="pill-bottom" x1="20" y1="20" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="60%" stopColor="#f8fafc" />
+          <stop offset="100%" stopColor="#e2e8f0" />
+        </linearGradient>
+      </defs>
+
+      {/* Pill Capsule at 45 Degree Angle */}
+      <g filter="url(#sakit-shadow)" transform="rotate(-45 24 24)">
+        {/* Full Pill Base */}
+        <rect x="15" y="10" width="18" height="28" rx="9" fill="url(#pill-bottom)" />
+        
+        {/* Top Half (Warm Amber/Coral) */}
+        <path
+          d="M15 19C15 14.0294 19.0294 10 24 10C28.9706 10 33 14.0294 33 19V24H15V19Z"
+          fill="url(#pill-top)"
+        />
+        
+        {/* Center Divider Line */}
+        <line x1="15" y1="24" x2="33" y2="24" stroke="#d97706" strokeWidth="0.8" opacity="0.4" />
+
+        {/* Specular Pill Highlight */}
+        <path
+          d="M18 13C19.5 11.5 21.5 11 24 11"
+          stroke="#ffffff"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          opacity="0.75"
+        />
+
+        {/* Medical Cross Sign */}
+        <path
+          d="M24 16V22M21 19H27"
+          stroke="#ffffff"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+      </g>
+    </svg>
+  )
+}
+
+/**
+ * 9. ICON IZIN 3D (REKAP PRESENSI)
+ * Dokumen surat permohonan izin 3D dengan cap stempel biru resmi
+ */
+export function IconIzin3D({ className = "w-6 h-6", size }: Icon3DProps) {
+  const s = size || 32
+  return (
+    <svg
+      width={s}
+      height={s}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <filter id="izin-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#0284c7" floodOpacity="0.25" />
+          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
+        </filter>
+        <linearGradient id="doc-bg" x1="10" y1="8" x2="38" y2="42" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="70%" stopColor="#f0f9ff" />
+          <stop offset="100%" stopColor="#e0f2fe" />
+        </linearGradient>
+        <linearGradient id="doc-header" x1="10" y1="8" x2="34" y2="16" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#0284c7" />
+        </linearGradient>
+        <linearGradient id="stamp-blue" x1="26" y1="26" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#0ea5e9" />
+          <stop offset="100%" stopColor="#0369a1" />
+        </linearGradient>
+      </defs>
+
+      {/* Main Document Body */}
+      <g filter="url(#izin-shadow)">
+        <path
+          d="M11 9C11 6.79086 12.7909 5 15 5H29L37 13V39C37 41.2091 35.2091 43 33 43H15C12.7909 43 11 41.2091 11 39V9Z"
+          fill="url(#doc-bg)"
+        />
+        {/* Folded Corner */}
+        <path d="M29 5V11C29 12.1046 29.8954 13 31 13H37L29 5Z" fill="#bae6fd" />
+        
+        {/* Document Header Accent */}
+        <rect x="15" y="10" width="10" height="3" rx="1.5" fill="url(#doc-header)" />
+        
+        {/* Text Lines */}
+        <rect x="15" y="18" width="18" height="2" rx="1" fill="#94a3b8" />
+        <rect x="15" y="23" width="14" height="2" rx="1" fill="#cbd5e1" />
+        <rect x="15" y="28" width="11" height="2" rx="1" fill="#cbd5e1" />
+      </g>
+
+      {/* Official Approval Wax Stamp 3D */}
+      <g filter="url(#izin-shadow)">
+        <circle cx="32" cy="33" r="8" fill="url(#stamp-blue)" />
+        <circle cx="32" cy="33" r="7" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
+        <path
+          d="M29 33L31 35L35.5 30.5"
+          stroke="#ffffff"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    </svg>
+  )
+}
+
+/**
+ * 10. ICON CUTI REKAP 3D (JATAH SALDO CUTI TAHUNAN)
+ * Koper liburan / tropis 3D ungu-indigo dengan lencana saldo jatah tahunan
+ */
+export function IconCutiRekap3D({ className = "w-6 h-6", size }: Icon3DProps) {
+  const s = size || 32
+  return (
+    <svg
+      width={s}
+      height={s}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <filter id="rekap-cuti-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#8b5cf6" floodOpacity="0.3" />
+          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
+        </filter>
+        <linearGradient id="suitcase-body" x1="8" y1="14" x2="40" y2="42" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="50%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#6d28d9" />
+        </linearGradient>
+        <linearGradient id="palm-accent" x1="26" y1="24" x2="42" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fb7185" />
+          <stop offset="100%" stopColor="#e11d48" />
+        </linearGradient>
+      </defs>
+
+      {/* Suitcase Handle */}
+      <path
+        d="M19 14V10C19 8.34315 20.3431 7 22 7H26C27.6569 7 29 8.34315 29 10V14"
+        stroke="#64748b"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+
+      {/* Suitcase 3D Body */}
+      <g filter="url(#rekap-cuti-shadow)">
+        <rect x="8" y="14" width="32" height="26" rx="6" fill="url(#suitcase-body)" />
+        <rect x="9" y="15" width="30" height="24" rx="5" stroke="#ffffff" strokeWidth="0.8" opacity="0.4" />
+        
+        {/* Horizontal Straps */}
+        <rect x="15" y="14" width="3" height="26" fill="#5b21b6" opacity="0.5" />
+        <rect x="30" y="14" width="3" height="26" fill="#5b21b6" opacity="0.5" />
+
+        {/* Center Lock Metallic */}
+        <rect x="22" y="24" width="4" height="4" rx="1" fill="#fde047" />
+
+        {/* Specular Curved Highlight */}
+        <path
+          d="M11 17C13 16 16 15.5 20 15.5"
+          stroke="#ffffff"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          opacity="0.7"
+        />
+      </g>
+
+      {/* Floating Vacation Beach Umbrella / Pin */}
+      <g filter="url(#rekap-cuti-shadow)">
+        <circle cx="35" cy="33" r="7.5" fill="url(#palm-accent)" />
+        <circle cx="35" cy="33" r="6.5" stroke="#ffffff" strokeWidth="0.8" opacity="0.5" />
+        {/* Vacation Sun / Star */}
+        <path
+          d="M35 29V37M31 33H39M32 30L38 36M32 36L38 30"
+          stroke="#ffffff"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </g>
+    </svg>
+  )
+}
+
