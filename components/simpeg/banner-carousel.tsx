@@ -31,10 +31,10 @@ export function BannerCarousel({
   const touchStartX = useRef<number | null>(null)
   const touchEndX = useRef<number | null>(null)
 
-  // Pastikan ada setidaknya 1 banner (fallback ke /op.png)
-  const items = banners && banners.length > 0
-    ? banners
-    : [{ id: "default-fallback", judul: "Pengingat Absensi Masuk & Pulang", imageUrl: "/op.png" }]
+  // Jika tidak ada banner, jangan tampilkan apa pun
+  if (!banners || banners.length === 0) return null
+
+  const items = banners
 
   const hasMultiple = items.length > 1
 

@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { put, del } from "@vercel/blob"
-import { revalidatePath } from "next/cache"
 import fs from "fs"
 import path from "path"
 
@@ -45,7 +44,6 @@ export async function getBannersPwa(onlyActive: boolean = false): Promise<Banner
     }
 
     const now = new Date()
-    // Awal hari ini (00:00:00) agar banner yang disetel untuk hari ini tidak kedaluwarsa sebelum tengah malam
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
 
     const whereClause: any = {}
@@ -77,24 +75,13 @@ export async function getBannersPwa(onlyActive: boolean = false): Promise<Banner
     }))
   } catch (error) {
     console.error("Gagal mengambil banner PWA:", error)
-    // Fallback darurat jika ada error koneksi
-    return [
-      {
-        id: "fallback-default",
-        judul: "Pengingat Absensi Masuk & Pulang",
-        imageUrl: "/op.png",
-        tampilkanSampai: null,
-        aktif: true,
-        urutan: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ]
+    return []
   }
 }
 
 /**
  * Upload dan buat banner baru.
+ * File sudah dikompresi di sisi browser (WebP), jadi validasi lebih longgar.
  */
 export async function createBannerPwa(formData: FormData) {
   try {
@@ -113,13 +100,14 @@ export async function createBannerPwa(formData: FormData) {
       return { error: "File gambar banner wajib dipilih" }
     }
 
-    // Maksimal 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      return { error: "Ukuran file maksimal 5MB" }
+    // Batas 15MB (sebelum kompresi client, file aslinya bisa besar)
+    if (file.size > 15 * 1024 * 1024) {
+      return { error: "Ukuran file maksimal 15MB" }
     }
 
+    // Validasi tipe file - terima semua format gambar umum termasuk WebP hasil kompresi
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]
-    if (!allowedTypes.includes(file.type)) {
+    if (!file.type.startsWith("image/") && !allowedTypes.includes(file.type)) {
       return { error: "Format gambar harus JPG, PNG, WebP, atau GIF" }
     }
 
@@ -139,7 +127,7 @@ export async function createBannerPwa(formData: FormData) {
 
     // Proses upload gambar
     let imageUrl = ""
-    const ext = file.name.split(".").pop() || "png"
+    const ext = file.name.split(".").pop() || "webp"
     const timestamp = Date.now()
 
     // Coba upload ke Vercel Blob jika token ada
@@ -151,8 +139,8 @@ export async function createBannerPwa(formData: FormData) {
           addRandomSuffix: true,
         })
         imageUrl = blob.url
-      } catch (blobErr) {
-        console.warn("Upload ke Vercel Blob gagal, menggunakan penyimpanan lokal:", blobErr)
+      } catch (blobErr: any) {
+        console.warn("Upload ke Vercel Blob gagal:", blobErr?.message || blobErr)
       }
     }
 
@@ -166,9 +154,9 @@ export async function createBannerPwa(formData: FormData) {
         const arrayBuffer = await file.arrayBuffer()
         await fs.promises.writeFile(localFilePath, Buffer.from(arrayBuffer))
         imageUrl = `/uploads/banners/${localFileName}`
-      } catch (localErr) {
-        console.error("Gagal menyimpan file secara lokal:", localErr)
-        return { error: "Gagal mengunggah gambar banner" }
+      } catch (localErr: any) {
+        console.error("Gagal menyimpan file secara lokal:", localErr?.message || localErr)
+        return { error: `Gagal mengunggah gambar banner: ${localErr?.message || "Unknown error"}` }
       }
     }
 
@@ -181,9 +169,6 @@ export async function createBannerPwa(formData: FormData) {
         urutan: 0,
       },
     })
-
-    revalidatePath("/pengumuman")
-    revalidatePath("/m/dashboard")
 
     return { success: true, data: banner }
   } catch (error: any) {
@@ -217,7 +202,6 @@ export async function deleteBannerPwa(id: string) {
         console.warn("Gagal menghapus blob banner:", delErr)
       }
     } else if (existing.imageUrl.startsWith("/uploads/banners/")) {
-      // Jika di folder lokal, coba hapus filenya
       try {
         const localPath = path.join(process.cwd(), "public", existing.imageUrl.replace(/^\//, ""))
         await fs.promises.unlink(localPath)
@@ -225,9 +209,6 @@ export async function deleteBannerPwa(id: string) {
     }
 
     await prisma.bannerPwa.delete({ where: { id } })
-
-    revalidatePath("/pengumuman")
-    revalidatePath("/m/dashboard")
 
     return { success: true }
   } catch (error: any) {
@@ -252,9 +233,6 @@ export async function toggleBannerPwa(id: string, aktif: boolean) {
       where: { id },
       data: { aktif },
     })
-
-    revalidatePath("/pengumuman")
-    revalidatePath("/m/dashboard")
 
     return { success: true }
   } catch (error: any) {
