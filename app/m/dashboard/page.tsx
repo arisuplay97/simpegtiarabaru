@@ -7,7 +7,7 @@ import {
   CalendarDays, Clock, BookOpen,
   TrendingUp, Timer, UserCheck, Thermometer,
   FileText,
-  Bell, CheckCircle2, XCircle, Pointer, ArrowUpRight,
+  Bell, CheckCircle2, XCircle, ArrowUpRight,
   CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
@@ -44,21 +44,12 @@ function DigitalClock() {
   }, [])
 
   if (!time) {
-    return <div className="h-8 w-24 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-lg" />
+    return <div className="h-7 w-16 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-lg" />
   }
 
   return (
-    <div className="flex flex-col items-end">
-      <div className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums flex items-center gap-1.5 leading-none">
-        <span>{format(time, "HH:mm")}</span>
-        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-md leading-none">
-          {format(time, "ss")}
-        </span>
-      </div>
-      <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-1 leading-none">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        WIB
-      </div>
+    <div className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">
+      {format(time, "HH:mm")}
     </div>
   )
 }
@@ -488,72 +479,6 @@ export default function MobileDashboard() {
               </div>
             </div>
           </div>
-
-          {/* Status & Tombol Presensi Hari Ini */}
-          {(() => {
-            if (!summary) return null
-            const currentHour = new Date().getHours()
-            const batasMasukH = parseInt(summary.batasAbsenMasuk?.split(":")[0]) || 14
-            const mulaiPulangH = parseInt(summary.mulaiAbsenPulang?.split(":")[0]) || 15
-            const batasPulangH = parseInt(summary.batasAbsenPulang?.split(":")[0]) || 18
-
-            if (summary.sudahAbsenPulang) {
-              return (
-                <div className="mt-3.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Presensi Hari Ini Lengkap (Sudah Masuk & Pulang)
-                </div>
-              )
-            }
-
-            if (!summary.sudahAbsenMasuk) {
-              if (currentHour >= batasMasukH) {
-                return (
-                  <div className="mt-3.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
-                    <XCircle className="h-4 w-4" />
-                    Sesi Presensi Masuk Telah Ditutup
-                  </div>
-                )
-              }
-              return (
-                <Link href="/m/fingerprint" className="block mt-3.5">
-                  <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-bold shadow-xs active:scale-[0.98] transition-all hover:opacity-95">
-                    <Pointer className="h-4 w-4" />
-                    Check-In Presensi Masuk
-                  </button>
-                </Link>
-              )
-            } else {
-              if (currentHour < mulaiPulangH) {
-                return (
-                  <div className="mt-3.5 flex items-center justify-between py-2 px-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Sudah Masuk ({summary?.waktuAbsen?.split(" - ")[0] || "08:00"})
-                    </span>
-                    <span className="text-[11px] text-zinc-400">
-                      Sesi pulang pukul {summary.mulaiAbsenPulang || "15:00"}
-                    </span>
-                  </div>
-                )
-              }
-              if (currentHour >= batasPulangH) {
-                return (
-                  <div className="mt-3.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
-                    <XCircle className="h-4 w-4" />
-                    Sesi Presensi Pulang Telah Berakhir
-                  </div>
-                )
-              }
-              return (
-                <Link href="/m/fingerprint" className="block mt-3.5">
-                  <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs active:scale-[0.98] transition-all">
-                    <Pointer className="h-4 w-4" />
-                    Check-Out Presensi Pulang
-                  </button>
-                </Link>
-              )
-            }
-          })()}
         </div>
 
         {/* ===== PENGUMUMAN TICKER ===== */}
