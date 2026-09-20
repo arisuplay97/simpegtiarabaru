@@ -654,7 +654,7 @@ export default function MobileFingerprint() {
         <p className="text-[10px] text-zinc-400 font-medium leading-none">
           ASIK Mobile · Perumdam Tirta Ardhia Rinjani
         </p>
-        <p className="text-[9px] text-zinc-500 font-medium mt-1 leading-none">
+        <p className="text-[10px] text-white font-bold mt-1 leading-none tracking-tight">
           Inovasi Digital - Tim IT Sekretariat
         </p>
       </div>

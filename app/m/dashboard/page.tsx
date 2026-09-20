@@ -726,10 +726,10 @@ export default function MobileDashboard() {
 
         {/* Footer info */}
         <div className="text-center pt-2 pb-6">
-          <p className="text-[11px] text-zinc-400 font-medium">
+          <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium">
             ASIK Mobile · Perumdam Tirta Ardhia Rinjani
           </p>
-          <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+          <p className="text-[11px] text-zinc-950 dark:text-white font-bold mt-0.5 tracking-tight">
             Inovasi Digital - Tim IT Sekretariat
           </p>
         </div>

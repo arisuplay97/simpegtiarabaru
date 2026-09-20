@@ -42,7 +42,7 @@ const navigation: NavGroup[] = [
       { title: "Dashboard Direksi", href: "/dashboard/direksi", icon: TrendingUp, allowedRoles: ["super_admin", "direktur"] },
       { title: "Approval Center", href: "/approval", icon: BadgeCheck, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Notifikasi", href: "/notifikasi", icon: BellRing },
-      { title: "Pengumuman Berjalan", href: "/pengumuman", icon: Megaphone, allowedRoles: ["super_admin", "hrd", "direktur"] },
+      { title: "Pengumuman", href: "/pengumuman", icon: Megaphone, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Tiara Assistant", href: "/assistant", icon: Bot, labelBadge: "AI" },
     ],
   },
