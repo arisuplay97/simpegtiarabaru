@@ -719,6 +719,9 @@ export default function MobileDashboard() {
           <p className="text-[11px] text-zinc-400 font-medium">
             ASIK Mobile · Perumdam Tirta Ardhia Rinjani
           </p>
+          <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+            Inovasi Digital - Tim IT Sekretariat
+          </p>
         </div>
 
       </div>
