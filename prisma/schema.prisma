@@ -954,3 +954,18 @@ model AiConfig {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// ============ BANNER PWA MOBILE ============
+model BannerPwa {
+  id              String    @id @default(cuid())
+  judul           String?
+  imageUrl        String
+  tampilkanSampai DateTime? // null = berlaku selamanya
+  aktif           Boolean   @default(true)
+  urutan          Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([aktif])
+  @@index([tampilkanSampai])
+}

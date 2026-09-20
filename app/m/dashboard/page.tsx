@@ -12,6 +12,8 @@ import {
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
+import { getBannersPwa, BannerItem } from "@/lib/actions/banner"
+import { BannerCarousel } from "@/components/simpeg/banner-carousel"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import Link from "next/link"
@@ -101,6 +103,7 @@ export default function MobileDashboard() {
   const [unread, setUnread] = useState(0)
   const [greeting, setGreeting] = useState("")
   const [pengumuman, setPengumuman] = useState<any[]>([])
+  const [banners, setBanners] = useState<BannerItem[]>([])
   const [offlineQueueCount, setOfflineQueueCount] = useState(0)
   const [isReminderActive, setIsReminderActive] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
@@ -189,6 +192,8 @@ export default function MobileDashboard() {
       }
       const pgm = await getPengumumanAktif()
       setPengumuman(pgm)
+      const bList = await getBannersPwa(true)
+      setBanners(bList)
     } catch {}
   }
 
@@ -534,18 +539,8 @@ export default function MobileDashboard() {
         {/* ===== PENGUMUMAN TICKER ===== */}
         {pengumuman.length > 0 && <PengumumanTicker items={pengumuman} />}
 
-        {/* ===== BANNER OP.PNG (DIPERTAHANKAN SESUAI PERINTAH USER) ===== */}
-        <div className="rounded-2xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-xs bg-white dark:bg-zinc-900">
-          <Image
-            src={`/op.png?v=${Date.now()}`}
-            alt="Jangan lupa absen masuk dan pulang!"
-            width={800}
-            height={300}
-            className="w-full object-cover"
-            priority
-            unoptimized
-          />
-        </div>
+        {/* ===== BANNER CAROUSEL PWA ===== */}
+        <BannerCarousel banners={banners} />
 
         {/* ===== REKAP PRESENSI ===== */}
         <div className="rounded-2xl p-5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
