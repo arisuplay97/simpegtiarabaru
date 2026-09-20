@@ -38,7 +38,9 @@ import {
   Clock, Mail, Phone, ChevronLeft, ChevronRight,
   Loader2, AlertTriangle, Camera, ArrowUpDown,
   Filter, X, Briefcase, Building2, ShieldCheck,
-  CreditCard, GraduationCap, MapPin, Sparkles
+  CreditCard, GraduationCap, MapPin, Sparkles,
+  FileSpreadsheet, UploadCloud, CheckCircle2, AlertCircle,
+  FileDown, Check, Info
 } from "lucide-react"
 import { 
   getEmployees, 
@@ -47,7 +49,10 @@ import {
   updateEmployee, 
   deleteEmployee,
   getBidang,
-  getPegawaiPageData
+  getPegawaiPageData,
+  parsePegawaiImportFile,
+  importPegawaiBatch,
+  type ImportPegawaiItem
 } from "@/lib/actions/pegawai"
 import { 
   bidangList as fallbackBidang, 
@@ -168,6 +173,19 @@ export default function EmployeeListPage() {
   const [stats, setStats] = useState<any>(null)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+
+  // State Import Excel / CSV
+  const [showImportDialog, setShowImportDialog] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [isParsing, setIsParsing] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{
+    total: number
+    newCount: number
+    existingCount: number
+    items: ImportPegawaiItem[]
+    preview: ImportPegawaiItem[]
+  } | null>(null)
 
   const emptyForm: EmployeeForm = {
     nik: "", nama: "", email: "", telepon: "",
@@ -365,6 +383,59 @@ export default function EmployeeListPage() {
       fetchData()
     } catch {
       toast.error("Gagal menghapus pegawai")
+    }
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportFile(file)
+    setIsParsing(true)
+    setImportResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await parsePegawaiImportFile(formData)
+      if (!res.success) {
+        toast.error("Gagal membaca berkas import")
+        return
+      }
+      setImportResult(res)
+      toast.success(`${res.total} baris data berhasil dibaca`)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Gagal memproses berkas Excel/CSV")
+    } finally {
+      setIsParsing(false)
+    }
+  }
+
+  const handleExecuteImport = async () => {
+    if (!importResult || importResult.items.length === 0) return
+    setIsImporting(true)
+    try {
+      const res = await importPegawaiBatch(importResult.items)
+      if (res.success) {
+        toast.success(`Berhasil mengimpor ${res.total} pegawai! (${res.created} baru, ${res.updated} diperbarui)`)
+        if (res.failed && res.failed.length > 0) {
+          toast.warning(`${res.failed.length} data dilewati karena format tidak sesuai.`)
+        }
+        setShowImportDialog(false)
+        setImportFile(null)
+        setImportResult(null)
+        // Refresh data
+        const { emps, stats: newStats } = await getPegawaiPageData()
+        setEmployees(emps as any)
+        setStats(newStats)
+      } else {
+        toast.error(res.error || "Gagal melakukan impor batch")
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Terjadi kesalahan saat mengimpor data")
+    } finally {
+      setIsImporting(false)
     }
   }
 
@@ -1013,6 +1084,19 @@ export default function EmployeeListPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => {
+                  setImportFile(null)
+                  setImportResult(null)
+                  setShowImportDialog(true)
+                }}
+                className="h-9 gap-1.5 text-xs font-medium border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                Import Excel / CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleExport}
                 className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-zinc-800"
               >
@@ -1625,6 +1709,196 @@ export default function EmployeeListPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog Import Excel / CSV */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-6 rounded-2xl border-slate-200 dark:border-zinc-800">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-zinc-50 flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              Import Data Pegawai Massal
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
+              Unggah berkas Excel (.xlsx / .xls) atau CSV untuk mendaftarkan atau memperbarui banyak data pegawai secara otomatis.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+            {/* Template Download & Info Card */}
+            <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/50 p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-slate-900 dark:text-zinc-100 flex items-center gap-1.5">
+                    <FileDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Unduh Format Template Resmi
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed">
+                    Gunakan template resmi yang telah disesuaikan dengan master unit kerja dan standar gaji pangkat.
+                  </p>
+                </div>
+                <a
+                  href="/api/pegawai/template"
+                  download="Template_Import_Pegawai_PDAM.xlsx"
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-xs shrink-0"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Unduh Template (.xlsx)
+                </a>
+              </div>
+
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 p-3 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <Info className="h-3.5 w-3.5 shrink-0" />
+                  Fleksibilitas Pengisian Data:
+                </div>
+                <p className="leading-relaxed pl-5">
+                  Kolom yang <strong>wajib diisi hanyalah NIK dan Nama Lengkap</strong>. Seluruh data lain (keluarga, ijazah pendidikan, dokumen SK, rekening bank, dan foto) <strong>dapat dilengkapi atau diedit kapan saja</strong> nanti melalui halaman Profil Pegawai.
+                </p>
+              </div>
+            </div>
+
+            {/* Upload Area */}
+            {!importResult ? (
+              <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-zinc-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-white dark:bg-zinc-950 p-8 text-center transition-colors">
+                <input
+                  type="file"
+                  id="excel-file-input"
+                  accept=".xlsx, .xls, .csv"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  disabled={isParsing}
+                />
+                <label
+                  htmlFor="excel-file-input"
+                  className="cursor-pointer flex flex-col items-center justify-center space-y-3"
+                >
+                  <div className="h-12 w-12 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    {isParsing ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <UploadCloud className="h-6 w-6" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">
+                      {isParsing ? "Sedang membaca berkas..." : "Klik untuk memilih berkas Excel atau CSV"}
+                    </p>
+                    <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                      Mendukung .xlsx, .xls, atau .csv (Maksimal 10MB)
+                    </p>
+                  </div>
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Result Statistics */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 text-center">
+                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Total Baris</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-zinc-100">{importResult.total}</p>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200/80 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 text-center">
+                    <p className="text-[10px] uppercase font-semibold text-emerald-700 dark:text-emerald-400 tracking-wider">Pegawai Baru</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{importResult.newCount}</p>
+                  </div>
+                  <div className="rounded-xl border border-blue-200/80 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-950/20 p-3 text-center">
+                    <p className="text-[10px] uppercase font-semibold text-blue-700 dark:text-blue-400 tracking-wider">Update Terdaftar</p>
+                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{importResult.existingCount}</p>
+                  </div>
+                </div>
+
+                {/* Preview Table */}
+                <div className="rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
+                  <div className="px-3.5 py-2 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-slate-50/50 dark:bg-zinc-900/50">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                      Pratinjau Data Terbaca ({importResult.preview.length} dari {importResult.total})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImportFile(null)
+                        setImportResult(null)
+                      }}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 underline"
+                    >
+                      Ganti Berkas
+                    </button>
+                  </div>
+                  <div className="max-h-56 overflow-auto">
+                    <table className="w-full text-[11px] text-left">
+                      <thead className="bg-slate-50 dark:bg-zinc-900/80 sticky top-0 text-slate-600 dark:text-zinc-400 text-[10px] uppercase tracking-wider">
+                        <tr>
+                          <th className="px-3 py-2">Status</th>
+                          <th className="px-3 py-2">NIK</th>
+                          <th className="px-3 py-2">Nama</th>
+                          <th className="px-3 py-2">Unit / Bidang</th>
+                          <th className="px-3 py-2">Jabatan</th>
+                          <th className="px-3 py-2">Gol</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80 font-normal">
+                        {importResult.preview.map((p, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/40">
+                            <td className="px-3 py-1.5">
+                              {p.isExisting ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                                  Update
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                  Baru
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-1.5 font-mono text-[10px] text-slate-700 dark:text-zinc-300">{p.nik}</td>
+                            <td className="px-3 py-1.5 font-medium text-slate-900 dark:text-zinc-100">{p.nama}</td>
+                            <td className="px-3 py-1.5 text-slate-600 dark:text-zinc-400">{p.bidang || "-"}</td>
+                            <td className="px-3 py-1.5 text-slate-600 dark:text-zinc-400">{p.jabatan || "Staff"}</td>
+                            <td className="px-3 py-1.5 font-semibold text-slate-700 dark:text-zinc-300">{p.golongan || "A/I"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between sm:justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowImportDialog(false)
+                setImportFile(null)
+                setImportResult(null)
+              }}
+              className="h-9 text-xs border-slate-200 dark:border-zinc-800"
+            >
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleExecuteImport}
+              disabled={!importResult || isImporting || importResult.total === 0}
+              className="h-9 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Mengimpor Data...
+                </>
+              ) : (
+                <>
+                  <Check className="h-3.5 w-3.5" />
+                  {importResult ? `Mulai Import (${importResult.total} Pegawai)` : "Mulai Import"}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

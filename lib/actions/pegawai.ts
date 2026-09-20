@@ -8,6 +8,9 @@ import { auth } from "@/lib/auth"
 import bcrypt from "bcryptjs"
 import { getAtasanOtomatis, parseTipeJabatan } from "@/lib/data/bidang-store"
 import { logAudit } from "./audit-log"
+import ExcelJS from "exceljs"
+import { normalizeGolonganKey } from "@/lib/utils"
+import { daftarPangkat } from "@/lib/constants/pangkat"
 
 // Helper: map lowercase tipeJabatan to DB enum
 const mapTipeJabatan = (val: string): string => {
@@ -727,5 +730,634 @@ export async function getSearchSuggestions(query: string) {
   } catch (error) {
     console.error("Error fetching search suggestions:", error)
     return []
+  }
+}
+
+// ============ IMPORT EXCEL / CSV PEGAWAI ============
+
+export interface ImportPegawaiItem {
+  nik: string
+  nama: string
+  email?: string | null
+  telepon?: string | null
+  bidang?: string | null
+  subBidang?: string | null
+  jabatan?: string | null
+  tipeJabatan?: string | null
+  golongan?: string | null
+  pangkat?: string | null
+  tanggalMasuk?: string | Date | null
+  status?: string | null
+  gajiPokok?: number | string | null
+  tunjangan?: number | string | null
+  jenisKelamin?: string | null
+  tempatLahir?: string | null
+  tanggalLahir?: string | Date | null
+  agama?: string | null
+  statusNikah?: string | null
+  alamat?: string | null
+  npwp?: string | null
+  pendidikanTerakhir?: string | null
+  jurusan?: string | null
+  institusi?: string | null
+  tahunLulus?: string | null
+  bank?: string | null
+  noRekening?: string | null
+  bpjsKesehatan?: string | null
+  bpjsKetenagakerjaan?: string | null
+  isExisting?: boolean
+}
+
+// Helpers untuk sanitasi & mapping enum impor
+function parseExcelDate(val: any): Date | null {
+  if (!val) return null
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val
+  }
+  if (typeof val === "number") {
+    // Serial number Excel -> JS Date (Dec 30 1899 epoch)
+    const date = new Date(Math.round((val - 25569) * 86400 * 1000))
+    return isNaN(date.getTime()) ? null : date
+  }
+  if (typeof val === "string") {
+    const s = val.trim()
+    if (!s) return null
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+      const d = new Date(s)
+      return isNaN(d.getTime()) ? null : d
+    }
+    const parts = s.split(/[\/\-\.]/)
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        const d = new Date(`${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`)
+        return isNaN(d.getTime()) ? null : d
+      } else if (parts[2].length === 4) {
+        const d = new Date(`${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`)
+        return isNaN(d.getTime()) ? null : d
+      }
+    }
+    const d = new Date(s)
+    return isNaN(d.getTime()) ? null : d
+  }
+  return null
+}
+
+function parseNumber(val: any): number {
+  if (typeof val === "number") return val
+  if (!val) return 0
+  const cleanStr = String(val).replace(/[^0-9\.\-]/g, "")
+  const num = parseFloat(cleanStr)
+  return isNaN(num) ? 0 : num
+}
+
+function mapJenisKelamin(val: any): "L" | "P" | null {
+  if (!val) return null
+  const s = String(val).trim().toUpperCase()
+  if (s.startsWith("P") || s.includes("WANITA") || s.includes("PEREMPUAN")) return "P"
+  if (s.startsWith("L") || s.includes("PRIA") || s.includes("LAKI")) return "L"
+  return null
+}
+
+function mapAgama(val: any) {
+  if (!val) return null
+  const s = String(val).trim().toUpperCase()
+  const valid = ["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU"]
+  return valid.includes(s) ? (s as any) : null
+}
+
+function mapStatusNikah(val: any) {
+  if (!val) return null
+  const s = String(val).trim().toUpperCase()
+  if (s.includes("BELUM") || s.includes("LAJANG") || s.includes("SINGLE")) return "BELUM_MENIKAH"
+  if (s.includes("CERAI") || s.includes("DUDA") || s.includes("JANDA")) return "CERAI"
+  if (s.includes("NIKAH") || s.includes("KAWIN") || s.includes("MENIKAH")) return "MENIKAH"
+  return null
+}
+
+function mapPendidikan(val: any) {
+  if (!val) return null
+  const s = String(val).trim().toUpperCase().replace(/[^A-Z0-9]/g, "")
+  const map: Record<string, string> = {
+    SD: "SD",
+    SMP: "SMP",
+    MTS: "SMP",
+    SMA: "SMA",
+    SMK: "SMA",
+    MA: "SMA",
+    SLTA: "SMA",
+    D1: "D1",
+    D2: "D2",
+    D3: "D3",
+    D4: "D4",
+    S1: "S1",
+    SARJANA: "S1",
+    S2: "S2",
+    MAGISTER: "S2",
+    S3: "S3",
+    DOKTOR: "S3",
+  }
+  return (map[s] as any) || null
+}
+
+function mapStatusPegawai(val: any): "AKTIF" | "CUTI" | "NON_AKTIF" | "PENSIUN" {
+  if (!val) return "AKTIF"
+  const s = String(val).trim().toUpperCase()
+  if (s.includes("CUTI")) return "CUTI"
+  if (s.includes("PENSIUN")) return "PENSIUN"
+  if (s.includes("NON") || s.includes("KELUAR") || s.includes("RESIGN")) return "NON_AKTIF"
+  return "AKTIF"
+}
+
+// Server Action 1: Parse Excel / CSV File dan Kembalikan Preview Terverifikasi
+export async function parsePegawaiImportFile(formData: FormData) {
+  const session = await auth()
+  if (!session?.user) throw new Error("Unauthorized")
+
+  const file = formData.get("file") as File
+  if (!file) throw new Error("Berkas tidak ditemukan")
+
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const filename = file.name.toLowerCase()
+
+  const parsedItems: ImportPegawaiItem[] = []
+
+  if (filename.endsWith(".csv")) {
+    const text = buffer.toString("utf-8")
+    const lines = text.split(/\r?\n/).filter(line => line.trim() !== "")
+    if (lines.length < 2) throw new Error("Berkas CSV kosong atau tidak memiliki data")
+
+    // Deteksi delimiter (, atau ;)
+    const firstLine = lines[0]
+    const delimiter = firstLine.includes(";") && !firstLine.includes(",") ? ";" : ","
+    
+    // Simple CSV line splitter that handles quotes
+    const splitCsvLine = (line: string) => {
+      const result: string[] = []
+      let cur = ""
+      let inQuotes = false
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        if (char === '"') {
+          inQuotes = !inQuotes
+        } else if (char === delimiter && !inQuotes) {
+          result.push(cur.trim().replace(/^"|"$/g, "").replace(/""/g, '"'))
+          cur = ""
+        } else {
+          cur += char
+        }
+      }
+      result.push(cur.trim().replace(/^"|"$/g, "").replace(/""/g, '"'))
+      return result
+    }
+
+    const headers = splitCsvLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ""))
+    
+    for (let i = 1; i < lines.length; i++) {
+      const cols = splitCsvLine(lines[i])
+      if (cols.length === 0 || !cols.some(c => c !== "")) continue
+
+      const rowObj: any = {}
+      headers.forEach((h, idx) => {
+        rowObj[h] = cols[idx] || ""
+      })
+
+      // Skip hint row
+      const rawNik = (rowObj.nik || rowObj.noktp || rowObj.ktp || "").replace(/[^0-9A-Za-z]/g, "")
+      if (!rawNik || rawNik.length < 4 || (rowObj.nik && rowObj.nik.includes("["))) continue
+
+      parsedItems.push({
+        nik: rawNik,
+        nama: rowObj.nama || rowObj.namalengkap || rowObj.namakaryawan || "Tanpa Nama",
+        email: rowObj.email || rowObj.surel || null,
+        telepon: rowObj.telepon || rowObj.nohp || rowObj.hp || rowObj.wa || null,
+        bidang: rowObj.bidang || rowObj.unitkerja || rowObj.unit || rowObj.divisi || null,
+        subBidang: rowObj.subbidang || null,
+        jabatan: rowObj.jabatan || rowObj.posisi || "Staff",
+        tipeJabatan: rowObj.tipejabatan || rowObj.eselon || "STAFF",
+        golongan: rowObj.golongan || rowObj.gol || "A/I",
+        pangkat: rowObj.pangkat || rowObj.namapangkat || null,
+        tanggalMasuk: rowObj.tanggalmasuk || rowObj.tmt || rowObj.tglmasuk || null,
+        status: rowObj.status || rowObj.statuspegawai || "AKTIF",
+        gajiPokok: parseNumber(rowObj.gajipokok || rowObj.gapok || rowObj.gaji),
+        tunjangan: parseNumber(rowObj.tunjangan),
+        jenisKelamin: rowObj.jeniskelamin || rowObj.jk || null,
+        tempatLahir: rowObj.tempatlahir || rowObj.tmplahir || null,
+        tanggalLahir: rowObj.tanggallahir || rowObj.tgllahir || null,
+        agama: rowObj.agama || null,
+        statusNikah: rowObj.statusnikah || rowObj.statuskawin || null,
+        alamat: rowObj.alamat || rowObj.domisili || null,
+        npwp: rowObj.npwp || null,
+        pendidikanTerakhir: rowObj.pendidikanterakhir || rowObj.pendidikan || null,
+        jurusan: rowObj.jurusan || null,
+        institusi: rowObj.institusi || rowObj.universitas || null,
+        tahunLulus: rowObj.tahunlulus || null,
+        bank: rowObj.bank || rowObj.namabank || null,
+        noRekening: rowObj.norekening || rowObj.norek || null,
+        bpjsKesehatan: rowObj.bpjskesehatan || null,
+        bpjsKetenagakerjaan: rowObj.bpjsketenagakerjaan || rowObj.kpj || null,
+      })
+    }
+  } else {
+    // Excel file (.xlsx / .xls)
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.load(buffer as any)
+    const worksheet = workbook.worksheets[0]
+    if (!worksheet) throw new Error("Sheet Excel tidak ditemukan")
+
+    const getCellValue = (val: any): string => {
+      if (val === null || val === undefined) return ""
+      if (typeof val === "object") {
+        if (val instanceof Date) return val.toISOString().split("T")[0]
+        if (val.text) return String(val.text).trim()
+        if (val.result !== undefined) return String(val.result).trim()
+        if (Array.isArray(val.richText)) return val.richText.map((t: any) => t.text || "").join("").trim()
+      }
+      return String(val).trim()
+    }
+
+    // Cari baris header
+    let headerRowIndex = 1
+    let colMap: Record<string, number> = {}
+
+    for (let r = 1; r <= Math.min(10, worksheet.rowCount); r++) {
+      const row = worksheet.getRow(r)
+      const potentialCols: Record<string, number> = {}
+      row.eachCell((cell, colNum) => {
+        const text = getCellValue(cell.value).toLowerCase().replace(/[^a-z0-9]/g, "")
+        if (text) potentialCols[text] = colNum
+      })
+      if (potentialCols["nik"] || potentialCols["noktp"] || potentialCols["nama"] || potentialCols["namalengkap"]) {
+        headerRowIndex = r
+        colMap = potentialCols
+        break
+      }
+    }
+
+    const findCol = (...aliases: string[]): number | undefined => {
+      for (const a of aliases) {
+        const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, "")
+        if (colMap[cleanA] !== undefined) return colMap[cleanA]
+      }
+      return undefined
+    }
+
+    const nikCol = findCol("nik", "no_ktp", "noktp", "ktp", "nomorindukkependudukan")
+    const namaCol = findCol("nama", "namalengkap", "namakaryawan", "namapegawai", "name")
+    const emailCol = findCol("email", "surel", "mail")
+    const telpCol = findCol("telepon", "notelp", "nohp", "hp", "whatsapp", "wa", "phone", "kontak")
+    const bidangCol = findCol("bidang", "unitkerja", "unit", "divisi", "departemen", "bagian")
+    const subBidangCol = findCol("subbidang", "subbagian", "seksi")
+    const jabatanCol = findCol("jabatan", "posisi", "role", "pekerjaan")
+    const tipeJabatanCol = findCol("tipejabatan", "tipe_jabatan", "eselon", "level")
+    const golCol = findCol("golongan", "gol", "golruang", "ruang", "grade")
+    const pangkatCol = findCol("pangkat", "namapangkat")
+    const tmtCol = findCol("tanggalmasuk", "tmt", "tmtmasuk", "tmtkerja", "tglmasuk", "mulaikerja", "hiredate", "joindate")
+    const statusCol = findCol("status", "statuspegawai", "statuskerja")
+    const gapokCol = findCol("gajipokok", "gapok", "gaji", "basicsalary")
+    const tunjanganCol = findCol("tunjangan", "allowance")
+    const jkCol = findCol("jeniskelamin", "jk", "gender", "sex")
+    const tmpLahirCol = findCol("tempatlahir", "tmplahir", "kotalahir", "pob")
+    const tglLahirCol = findCol("tanggallahir", "tgllahir", "dob", "birthdate")
+    const agamaCol = findCol("agama", "religion")
+    const nikahCol = findCol("statusnikah", "statuskawin", "statuspernikahan", "maritalstatus")
+    const alamatCol = findCol("alamat", "alamattinggal", "domisili", "address")
+    const npwpCol = findCol("npwp", "nonpwp", "nomornpwp")
+    const pendCol = findCol("pendidikanterakhir", "pendidikan", "tingkatpendidikan", "jenjang")
+    const jurusanCol = findCol("jurusan", "prodi", "programstudi")
+    const instCol = findCol("institusi", "sekolah", "universitas", "kampus")
+    const lulusCol = findCol("tahunlulus", "thnlulus")
+    const bankCol = findCol("bank", "namabank")
+    const norekCol = findCol("norekening", "nomorrekening", "norek")
+    const bpjsKesCol = findCol("bpjskesehatan", "nobpjs", "bpjskes")
+    const bpjsTkCol = findCol("bpjsketenagakerjaan", "kpj", "bpjstk")
+
+    for (let r = headerRowIndex + 1; r <= worksheet.rowCount; r++) {
+      const row = worksheet.getRow(r)
+      const rawNikCell = nikCol ? row.getCell(nikCol).value : null
+      const rawNik = getCellValue(rawNikCell).replace(/[^0-9A-Za-z]/g, "")
+      
+      // Lewati baris kosong atau baris hint/petunjuk
+      if (!rawNik || rawNik.length < 4 || getCellValue(rawNikCell).includes("[")) continue
+
+      const rawNama = namaCol ? getCellValue(row.getCell(namaCol).value) : ""
+      if (!rawNama || rawNama.includes("[")) continue
+
+      const rawTmt = tmtCol ? row.getCell(tmtCol).value : null
+      const parsedTmt = parseExcelDate(rawTmt)
+
+      const rawTglLahir = tglLahirCol ? row.getCell(tglLahirCol).value : null
+      const parsedTglLahir = parseExcelDate(rawTglLahir)
+
+      parsedItems.push({
+        nik: rawNik,
+        nama: rawNama,
+        email: emailCol ? getCellValue(row.getCell(emailCol).value) || null : null,
+        telepon: telpCol ? getCellValue(row.getCell(telpCol).value) || null : null,
+        bidang: bidangCol ? getCellValue(row.getCell(bidangCol).value) || null : null,
+        subBidang: subBidangCol ? getCellValue(row.getCell(subBidangCol).value) || null : null,
+        jabatan: jabatanCol ? getCellValue(row.getCell(jabatanCol).value) || "Staff" : "Staff",
+        tipeJabatan: tipeJabatanCol ? getCellValue(row.getCell(tipeJabatanCol).value) || "STAFF" : "STAFF",
+        golongan: golCol ? getCellValue(row.getCell(golCol).value) || "A/I" : "A/I",
+        pangkat: pangkatCol ? getCellValue(row.getCell(pangkatCol).value) || null : null,
+        tanggalMasuk: parsedTmt ? parsedTmt.toISOString().split("T")[0] : null,
+        status: statusCol ? getCellValue(row.getCell(statusCol).value) || "AKTIF" : "AKTIF",
+        gajiPokok: gapokCol ? parseNumber(row.getCell(gapokCol).value) : 0,
+        tunjangan: tunjanganCol ? parseNumber(row.getCell(tunjanganCol).value) : 0,
+        jenisKelamin: jkCol ? getCellValue(row.getCell(jkCol).value) || null : null,
+        tempatLahir: tmpLahirCol ? getCellValue(row.getCell(tmpLahirCol).value) || null : null,
+        tanggalLahir: parsedTglLahir ? parsedTglLahir.toISOString().split("T")[0] : null,
+        agama: agamaCol ? getCellValue(row.getCell(agamaCol).value) || null : null,
+        statusNikah: nikahCol ? getCellValue(row.getCell(nikahCol).value) || null : null,
+        alamat: alamatCol ? getCellValue(row.getCell(alamatCol).value) || null : null,
+        npwp: npwpCol ? getCellValue(row.getCell(npwpCol).value) || null : null,
+        pendidikanTerakhir: pendCol ? getCellValue(row.getCell(pendCol).value) || null : null,
+        jurusan: jurusanCol ? getCellValue(row.getCell(jurusanCol).value) || null : null,
+        institusi: instCol ? getCellValue(row.getCell(instCol).value) || null : null,
+        tahunLulus: lulusCol ? getCellValue(row.getCell(lulusCol).value) || null : null,
+        bank: bankCol ? getCellValue(row.getCell(bankCol).value) || null : null,
+        noRekening: norekCol ? getCellValue(row.getCell(norekCol).value) || null : null,
+        bpjsKesehatan: bpjsKesCol ? getCellValue(row.getCell(bpjsKesCol).value) || null : null,
+        bpjsKetenagakerjaan: bpjsTkCol ? getCellValue(row.getCell(bpjsTkCol).value) || null : null,
+      })
+    }
+  }
+
+  if (parsedItems.length === 0) {
+    throw new Error("Tidak ada data pegawai yang valid ditemukan di dalam berkas")
+  }
+
+  // Cek NIK mana saja yang sudah terdaftar di sistem
+  const existingRecords = await prisma.pegawai.findMany({
+    where: {
+      nik: { in: parsedItems.map(p => p.nik) }
+    },
+    select: { nik: true, nama: true }
+  })
+  const existingSet = new Set(existingRecords.map(r => r.nik))
+
+  const enrichedItems = parsedItems.map(item => ({
+    ...item,
+    isExisting: existingSet.has(item.nik)
+  }))
+
+  return {
+    success: true,
+    total: enrichedItems.length,
+    newCount: enrichedItems.filter(i => !i.isExisting).length,
+    existingCount: enrichedItems.filter(i => i.isExisting).length,
+    items: enrichedItems,
+    preview: enrichedItems.slice(0, 10),
+  }
+}
+
+// Server Action 2: Eksekusi Import Batch dengan Smart Upsert & Akun Otomatis
+export async function importPegawaiBatch(items: ImportPegawaiItem[]) {
+  const session = await auth()
+  if (!session?.user) throw new Error("Unauthorized")
+
+  const userRole = (session.user as any).role
+  if (userRole === "PEGAWAI") throw new Error("Akses Ditolak: Hanya Administrator dan HRD yang berhak mengimpor data")
+
+  if (!items || items.length === 0) {
+    return { success: false, error: "Tidak ada data yang dikirim untuk diimport" }
+  }
+
+  // Ambil data referensi
+  const [allBidang, allStandar, pengaturan] = await Promise.all([
+    prisma.bidang.findMany({ include: { subBidang: true } }),
+    prisma.standarGajiPangkat.findMany(),
+    prisma.pengaturan.findUnique({ where: { id: "1" } })
+  ])
+
+  const defaultCuti = pengaturan?.jatahCutiTahunan ?? 12
+  const defaultPasswordHash = await bcrypt.hash("123456", 10)
+
+  // Map standar gaji berdasarkan golongan & pangkat
+  const standarMap: Record<string, number> = {}
+  allStandar.forEach(s => {
+    standarMap[normalizeGolonganKey(s.golongan)] = Number(s.gajiPokok)
+    standarMap[s.golongan.toUpperCase().trim()] = Number(s.gajiPokok)
+    if (s.pangkat) standarMap[s.pangkat.toLowerCase().trim()] = Number(s.gajiPokok)
+  })
+
+  let createdCount = 0
+  let updatedCount = 0
+  const errors: { nik: string; nama: string; reason: string }[] = []
+
+  for (const item of items) {
+    const cleanNik = String(item.nik || "").replace(/[^0-9A-Za-z]/g, "").trim()
+    if (!cleanNik) {
+      errors.push({ nik: "-", nama: item.nama || "-", reason: "NIK kosong atau tidak valid" })
+      continue
+    }
+
+    try {
+      const normGol = normalizeGolonganKey(item.golongan) || "A/I"
+      const defaultPangkatItem = daftarPangkat.find(p => normalizeGolonganKey(p.golongan) === normGol)
+      const targetPangkat = item.pangkat?.trim() || defaultPangkatItem?.nama || "Juru Muda"
+
+      // Resolusi gaji pokok
+      let targetGajiPokok = typeof item.gajiPokok === "number" ? item.gajiPokok : parseNumber(item.gajiPokok)
+      if (targetGajiPokok <= 0) {
+        targetGajiPokok = standarMap[normGol] || (targetPangkat ? standarMap[targetPangkat.toLowerCase()] : 0) || 0
+      }
+
+      const targetTunjangan = typeof item.tunjangan === "number" ? item.tunjangan : parseNumber(item.tunjangan)
+
+      // Resolusi Bidang & SubBidang
+      let matchedBidangId: string | null = null
+      let matchedSubBidangId: string | null = null
+
+      if (item.bidang) {
+        const rawBid = item.bidang.trim().toLowerCase()
+        const b = allBidang.find(x => 
+          x.id === rawBid ||
+          x.nama.toLowerCase().includes(rawBid) ||
+          rawBid.includes(x.nama.toLowerCase()) ||
+          (x.kode && x.kode.toLowerCase() === rawBid)
+        )
+        if (b) {
+          matchedBidangId = b.id
+          if (item.subBidang && b.subBidang?.length > 0) {
+            const rawSub = item.subBidang.trim().toLowerCase()
+            const sb = b.subBidang.find(s => s.nama.toLowerCase().includes(rawSub) || rawSub.includes(s.nama.toLowerCase()))
+            if (sb) matchedSubBidangId = sb.id
+          }
+        }
+      }
+
+      const parsedTanggalMasuk = parseExcelDate(item.tanggalMasuk) || new Date()
+      const parsedTanggalLahir = parseExcelDate(item.tanggalLahir)
+
+      // Cek apakah pegawai dengan NIK ini sudah ada
+      const existing = await prisma.pegawai.findUnique({
+        where: { nik: cleanNik }
+      })
+
+      if (existing) {
+        // SMART UPDATE: Perbarui data tanpa menghapus riwayat atau relasi yang sudah ada
+        const updatePayload: any = {
+          nama: item.nama?.trim() || existing.nama,
+          jabatan: item.jabatan?.trim() || existing.jabatan,
+          tipeJabatan: mapTipeJabatan(item.tipeJabatan || existing.tipeJabatan) as any,
+          golongan: normGol,
+          pangkat: targetPangkat,
+        }
+
+        if (item.telepon) updatePayload.telepon = item.telepon.trim()
+        if (matchedBidangId) updatePayload.bidangId = matchedBidangId
+        if (matchedSubBidangId) updatePayload.subBidangId = matchedSubBidangId
+        if (targetGajiPokok > 0) updatePayload.gajiPokok = targetGajiPokok
+        if (targetTunjangan > 0) updatePayload.tunjangan = targetTunjangan
+        if (item.status) updatePayload.status = mapStatusPegawai(item.status)
+        if (item.tanggalMasuk) updatePayload.tanggalMasuk = parsedTanggalMasuk
+
+        // Data pribadi & keluarga (jika disediakan dalam excel)
+        if (item.jenisKelamin) updatePayload.jenisKelamin = mapJenisKelamin(item.jenisKelamin)
+        if (item.tempatLahir) updatePayload.tempatLahir = item.tempatLahir.trim()
+        if (parsedTanggalLahir) updatePayload.tanggalLahir = parsedTanggalLahir
+        if (item.agama) updatePayload.agama = mapAgama(item.agama)
+        if (item.statusNikah) updatePayload.statusNikah = mapStatusNikah(item.statusNikah)
+        if (item.alamat) updatePayload.alamat = item.alamat.trim()
+        if (item.npwp) updatePayload.npwp = item.npwp.trim()
+
+        // Pendidikan
+        if (item.pendidikanTerakhir) updatePayload.pendidikanTerakhir = mapPendidikan(item.pendidikanTerakhir)
+        if (item.jurusan) updatePayload.jurusan = item.jurusan.trim()
+        if (item.institusi) updatePayload.institusi = item.institusi.trim()
+        if (item.tahunLulus) updatePayload.tahunLulus = item.tahunLulus.trim()
+
+        // Keuangan
+        if (item.bank) updatePayload.bank = item.bank.trim()
+        if (item.noRekening) updatePayload.noRekening = item.noRekening.trim()
+        if (item.bpjsKesehatan) updatePayload.bpjsKesehatan = item.bpjsKesehatan.trim()
+        if (item.bpjsKetenagakerjaan) updatePayload.bpjsKetenagakerjaan = item.bpjsKetenagakerjaan.trim()
+
+        await prisma.pegawai.update({
+          where: { id: existing.id },
+          data: updatePayload,
+        })
+
+        // Pastikan ada riwayat pangkat awal jika belum ada
+        const existingPangkat = await prisma.pegawaiPangkat.findFirst({
+          where: { pegawaiId: existing.id }
+        })
+        if (!existingPangkat) {
+          await prisma.pegawaiPangkat.create({
+            data: {
+              pegawaiId: existing.id,
+              pangkat: targetPangkat,
+              golongan: normGol,
+              tanggalBerlaku: parsedTanggalMasuk,
+              nomorSK: `SK-AWAL-${cleanNik.slice(-4)}`,
+            }
+          })
+        }
+
+        updatedCount++
+      } else {
+        // BARU: Buat User Login dan Pegawai
+        let email = item.email?.trim()
+        if (!email) {
+          email = `${cleanNik}@tiara.id`
+        }
+
+        // Cek jika email sudah digunakan user lain
+        let userId: string
+        const existingUser = await prisma.user.findUnique({ where: { email } })
+        if (existingUser) {
+          userId = existingUser.id
+        } else {
+          const role = mapJabatanToRole(item.tipeJabatan || "STAFF", item.jabatan || "Staff") || "PEGAWAI"
+          const newUser = await prisma.user.create({
+            data: {
+              email,
+              password: defaultPasswordHash,
+              role: role as any,
+            }
+          })
+          userId = newUser.id
+        }
+
+        const newEmp = await prisma.pegawai.create({
+          data: {
+            nik: cleanNik,
+            nama: item.nama?.trim() || "Pegawai Baru",
+            email,
+            telepon: clean(item.telepon),
+            jabatan: item.jabatan?.trim() || "Staff",
+            tipeJabatan: mapTipeJabatan(item.tipeJabatan || "STAFF") as any,
+            golongan: normGol,
+            pangkat: targetPangkat,
+            gajiPokok: targetGajiPokok,
+            tunjangan: targetTunjangan,
+            status: mapStatusPegawai(item.status),
+            saldoCuti: defaultCuti,
+            tanggalMasuk: parsedTanggalMasuk,
+            bidangId: matchedBidangId,
+            subBidangId: matchedSubBidangId,
+            userId,
+            // Data pribadi
+            jenisKelamin: mapJenisKelamin(item.jenisKelamin),
+            tempatLahir: clean(item.tempatLahir),
+            tanggalLahir: parsedTanggalLahir,
+            agama: mapAgama(item.agama),
+            statusNikah: mapStatusNikah(item.statusNikah),
+            alamat: clean(item.alamat),
+            npwp: clean(item.npwp),
+            // Pendidikan
+            pendidikanTerakhir: mapPendidikan(item.pendidikanTerakhir),
+            jurusan: clean(item.jurusan),
+            institusi: clean(item.institusi),
+            tahunLulus: clean(item.tahunLulus),
+            // Keuangan
+            bank: clean(item.bank),
+            noRekening: clean(item.noRekening),
+            bpjsKesehatan: clean(item.bpjsKesehatan),
+            bpjsKetenagakerjaan: clean(item.bpjsKetenagakerjaan),
+          }
+        })
+
+        // Otomatis masukkan riwayat pangkat awal agar tracking KGB dan Kenaikan Pangkat langsung sinkron
+        await prisma.pegawaiPangkat.create({
+          data: {
+            pegawaiId: newEmp.id,
+            pangkat: targetPangkat,
+            golongan: normGol,
+            tanggalBerlaku: parsedTanggalMasuk,
+            nomorSK: `SK-AWAL-${cleanNik.slice(-4)}`,
+          }
+        })
+
+        createdCount++
+      }
+    } catch (err: any) {
+      console.error(`Error import NIK ${cleanNik}:`, err)
+      errors.push({
+        nik: cleanNik,
+        nama: item.nama || "-",
+        reason: err.message || "Gagal memproses data"
+      })
+    }
+  }
+
+  await logAudit({
+    action: "IMPORT",
+    module: "pegawai",
+    targetName: `Import Data Pegawai: ${createdCount} baru, ${updatedCount} diperbarui`,
+    newData: { total: items.length, created: createdCount, updated: updatedCount, errorsCount: errors.length } as any,
+  })
+
+  revalidatePath("/pegawai")
+  revalidatePath("/payroll")
+  revalidatePath("/kenaikan-pangkat")
+  revalidatePath("/kgb")
+
+  return {
+    success: true,
+    total: items.length,
+    created: createdCount,
+    updated: updatedCount,
+    failed: errors,
   }
 }
