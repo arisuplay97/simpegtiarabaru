@@ -8,8 +8,7 @@ import {
   TrendingUp, Timer, UserCheck, Thermometer,
   FileText,
   Bell, CheckCircle2, XCircle, ArrowUpRight,
-  CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2,
-  Briefcase, Building2
+  CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
@@ -362,17 +361,11 @@ export default function MobileDashboard() {
                   )}
                 </h1>
 
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800/90 border border-zinc-700/70 text-zinc-200 text-[11px] font-medium truncate max-w-[190px] shadow-2xs">
-                    <Briefcase className="w-3 h-3 text-zinc-400 shrink-0" />
-                    <span className="truncate">{jabatan}{subBidang ? ` · ${subBidang}` : ""}</span>
-                  </span>
-                  {bidang && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800/90 border border-zinc-700/70 text-zinc-300 text-[11px] font-medium truncate max-w-[160px] shadow-2xs">
-                      <Building2 className="w-3 h-3 text-zinc-400 shrink-0" />
-                      <span className="truncate">{bidang}</span>
-                    </span>
-                  )}
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                  <p className="text-xs font-semibold text-zinc-300 tracking-tight truncate">
+                    {jabatan}{subBidang ? ` · ${subBidang}` : ""}
+                  </p>
                 </div>
               </div>
             </div>

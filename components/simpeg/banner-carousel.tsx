@@ -23,7 +23,7 @@ export function BannerCarousel({
   banners,
   autoSlideInterval = 4000,
   className = "",
-  aspectRatioClass = "aspect-[16/7]",
+  aspectRatioClass = "aspect-[1200/431]",
   showControls = true,
 }: BannerCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -114,13 +114,13 @@ export function BannerCarousel({
         {items.map((item, index) => (
           <div
             key={item.id || index}
-            className={`relative w-full shrink-0 ${aspectRatioClass} overflow-hidden bg-zinc-100 dark:bg-zinc-800`}
+            className={`relative w-full shrink-0 ${aspectRatioClass} overflow-hidden bg-black/95 dark:bg-black`}
           >
             <Image
               src={item.imageUrl.startsWith("http") || item.imageUrl.startsWith("/") || item.imageUrl.startsWith("data:") ? item.imageUrl : `/${item.imageUrl}`}
               alt={item.judul || `Banner ${index + 1}`}
               fill
-              className="object-cover"
+              className="object-contain"
               priority={index === 0}
               unoptimized
             />

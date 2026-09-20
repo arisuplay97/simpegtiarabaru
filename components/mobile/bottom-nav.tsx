@@ -36,11 +36,19 @@ export function MobileBottomNav() {
                 className="relative flex flex-col items-center justify-center w-16 group"
               >
                 <div
-                  className="absolute -top-5 h-14 w-14 flex items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-[3px] border-white dark:border-zinc-950 shadow-[0_8px_20px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_20px_rgba(255,255,255,0.08)] active:scale-90 transition-all duration-200 group-hover:shadow-[0_10px_24px_rgba(0,0,0,0.25)]"
+                  className={cn(
+                    "absolute -top-5 h-14 w-14 flex items-center justify-center rounded-full border-[3px] border-white dark:border-zinc-950 active:scale-90 transition-all duration-200 shadow-md",
+                    isActive
+                      ? "bg-blue-600 text-white shadow-[0_8px_20px_rgba(37,99,235,0.35)]"
+                      : "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
+                  )}
                 >
                   <tab.icon className="h-6 w-6 stroke-[2.2]" />
                 </div>
-                <span className="text-[9px] font-bold text-zinc-900 dark:text-zinc-200 mt-7 pt-1.5 tracking-wider uppercase">
+                <span className={cn(
+                  "text-[9px] font-bold mt-7 pt-1.5 tracking-wider uppercase transition-colors",
+                  isActive ? "text-blue-600 dark:text-blue-400" : "text-zinc-900 dark:text-zinc-200"
+                )}>
                   {tab.label}
                 </span>
               </Link>
@@ -57,7 +65,7 @@ export function MobileBottomNav() {
                 className={cn(
                   "flex h-8 w-11 items-center justify-center rounded-full transition-all duration-200",
                   isActive
-                    ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                    ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/50 shadow-2xs"
                     : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"
                 )}
               >
@@ -70,7 +78,7 @@ export function MobileBottomNav() {
                 className={cn(
                   "text-[10px] tracking-tight leading-none transition-colors",
                   isActive
-                    ? "font-bold text-zinc-900 dark:text-zinc-100"
+                    ? "font-bold text-blue-600 dark:text-blue-400"
                     : "font-medium text-zinc-400 dark:text-zinc-500"
                 )}
               >

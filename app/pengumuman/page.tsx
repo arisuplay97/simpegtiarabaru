@@ -872,10 +872,10 @@ export default function PengumumanPage() {
                                 <BannerCarousel
                                   banners={activeBanners}
                                   autoSlideInterval={4000}
-                                  aspectRatioClass="aspect-[16/7]"
+                                  aspectRatioClass="aspect-[1200/431]"
                                 />
                               ) : (
-                                <div className="aspect-[16/7] rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center text-center p-3 bg-zinc-50 dark:bg-zinc-800/40">
+                                <div className="aspect-[1200/431] rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center text-center p-3 bg-zinc-50 dark:bg-zinc-800/40">
                                   <ImageIcon className="h-5 w-5 text-zinc-400 mb-1" />
                                   <p className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">Tidak ada banner aktif</p>
                                   <p className="text-[9px] text-zinc-400">Banner yang aktif akan tampil di sini</p>

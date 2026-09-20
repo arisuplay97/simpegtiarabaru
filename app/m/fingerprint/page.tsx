@@ -274,73 +274,98 @@ export default function MobileFingerprint() {
     }
   }, [location, isOnline, isCheckout])
 
-  // ===== SUCCESS / RECEIPT SCREEN =====
+  // ===== SUCCESS / RECEIPT SCREEN (Executive Clean Modern) =====
   if (done) {
     const isCheckIn = resultData?.tipe === "CHECK_IN"
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center p-6 bg-zinc-50 dark:bg-[#09090b]">
-        <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-7 flex flex-col items-center border border-zinc-200/80 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center p-5 bg-zinc-100/80 dark:bg-[#09090b]">
+        <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[28px] p-6 flex flex-col items-center border border-zinc-200/90 dark:border-zinc-800 shadow-xl relative overflow-hidden">
           
-          {/* Accent top indicator */}
-          <div className={cn("absolute top-0 left-0 right-0 h-1.5", isOfflineQueued ? "bg-amber-500" : isCheckIn ? "bg-emerald-600" : "bg-zinc-900 dark:bg-white")} />
+          {/* Top subtle gradient accent line */}
+          <div className={cn(
+            "absolute top-0 left-0 right-0 h-1.5",
+            isOfflineQueued 
+              ? "bg-gradient-to-r from-blue-500 via-sky-500 to-indigo-500" 
+              : isCheckIn 
+              ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500" 
+              : "bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600"
+          )} />
 
-          {/* Preserved Lottie Success Animation */}
-          <div className="w-48 h-48 flex items-center justify-center my-1">
-            <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
+          {/* Refined Luxury Success Badge */}
+          <div className="relative my-3 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_24px_rgba(16,185,129,0.2)]">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+            </div>
           </div>
 
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center">
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center tracking-tight">
             {isOfflineQueued 
-              ? (isCheckIn ? "Presensi Masuk Tersimpan (Offline)" : "Presensi Pulang Tersimpan (Offline)")
+              ? (isCheckIn ? "Presensi Masuk Tersimpan" : "Presensi Pulang Tersimpan")
               : (isCheckIn ? "Presensi Masuk Berhasil" : "Presensi Pulang Berhasil")
             }
           </h2>
 
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center mt-1 mb-5">
-            Pukul {resultData?.waktu || format(new Date(), "HH:mm")} WITA · {format(new Date(), "EEEE, dd MMMM yyyy", { locale: idLocale })}
-          </p>
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 mt-2 mb-5">
+            <Clock className="w-3 h-3 text-zinc-400" />
+            <span>Pukul {resultData?.waktu || format(new Date(), "HH:mm")} WITA</span>
+            <span>·</span>
+            <span>{format(new Date(), "dd MMM yyyy", { locale: idLocale })}</span>
+          </div>
 
-          <div className="w-full space-y-2.5 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl mb-6 border border-zinc-200/60 dark:border-zinc-800 text-xs">
-            <div className="flex justify-between items-center">
+          {/* Digital Receipt Breakdown Box */}
+          <div className="w-full space-y-2.5 bg-zinc-50/80 dark:bg-zinc-800/40 p-4 rounded-2xl mb-5 border border-zinc-200/70 dark:border-zinc-800 text-xs">
+            <div className="flex justify-between items-center py-1">
               <span className="text-zinc-500 dark:text-zinc-400">Metode</span>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Biometrik Mobile
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                Biometrik GPS & Wajah
               </span>
             </div>
 
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
+              <span className="text-zinc-500 dark:text-zinc-400">Jenis Presensi</span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                {isCheckIn ? "Check-In (Masuk)" : "Check-Out (Pulang)"}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
               <span className="text-zinc-500 dark:text-zinc-400">Status</span>
               <span className={cn(
-                "font-semibold px-2.5 py-0.5 rounded-full text-[11px] border",
+                "font-bold px-2.5 py-0.5 rounded-full text-[11px] border",
                 isOfflineQueued 
-                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                  ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20"
                   : resultData?.status === "TERLAMBAT"
-                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25"
-                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
               )}>
-                {isOfflineQueued ? "Antrian Offline" : (resultData?.status || "HADIR")}
+                {isOfflineQueued ? "Tersimpan Offline (Antrian)" : (resultData?.status || "HADIR")}
               </span>
             </div>
 
             {location && (
-              <div className="flex justify-between items-center">
-                <span className="text-zinc-500 dark:text-zinc-400">Akurasi GPS</span>
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+              <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
+                <span className="text-zinc-500 dark:text-zinc-400">Akurasi Lokasi</span>
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-zinc-400" />
                   ±{Math.round(location.accuracy)} meter
                 </span>
               </div>
             )}
 
             {isOfflineQueued && (
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pt-1.5 leading-relaxed border-t border-zinc-200/60 dark:border-zinc-700/60">
-                Data tersimpan di perangkat HP dan akan terkirim otomatis saat online.
-              </p>
+              <div className="mt-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-800/60 flex items-center gap-2 text-blue-700 dark:text-blue-300 text-[11px]">
+                <CloudUpload className="w-4 h-4 shrink-0 text-blue-500" />
+                <p className="leading-tight">
+                  Tersimpan aman di memori perangkat. Akan terkirim otomatis saat online.
+                </p>
+              </div>
             )}
           </div>
 
           <button 
             onClick={() => router.push("/m/dashboard")} 
-            className="w-full rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3.5 font-semibold text-sm shadow-xs active:scale-95 transition-all"
+            className="w-full rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3.5 font-bold text-sm shadow-md active:scale-95 transition-all"
           >
             Selesai & Kembali ke Beranda
           </button>
