@@ -224,6 +224,7 @@ model Cuti {
   jenisCuti      String
   status         StatusCuti @default(PENDING)
   alasan         String
+  dokumenUrl     String?    // URL foto surat keterangan dokter / bukti izin
   pegawai        Pegawai    @relation(fields: [pegawaiId], references: [id])
   createdAt      DateTime   @default(now())
 

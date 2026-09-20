@@ -87,6 +87,7 @@ export async function createCuti(payload: any) {
         tanggalSelesai: end,
         jenisCuti: payload.jenisCuti,
         alasan: payload.alasan,
+        dokumenUrl: payload.dokumenUrl || null,
         status: "PENDING"
       }
     })
@@ -98,9 +99,9 @@ export async function createCuti(payload: any) {
       targetName: `Pengajuan Cuti ${newCuti.jenisCuti}`,
       newData: newCuti as any,
     })
-    
 
     revalidatePath("/cuti")
+    revalidatePath("/m/cuti")
     return { success: true, data: newCuti }
   } catch (error: any) {
     console.error("Gagal membuat pengajuan cuti:", error)

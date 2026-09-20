@@ -61,6 +61,7 @@ import {
   Sparkles,
   Building2,
   AlertCircle,
+  Paperclip,
 } from "lucide-react"
 import {
   getCutiList,
@@ -81,6 +82,7 @@ interface LeaveRequest {
   endDate: string
   duration: number
   reason: string
+  dokumenUrl?: string | null
   status: "pending" | "approved" | "rejected"
   submittedDate: string
 }
@@ -133,6 +135,7 @@ export default function CutiPage() {
   const [reason, setReason] = useState("")
   const [leaveType, setLeaveType] = useState("Cuti Tahunan")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [viewingDoc, setViewingDoc] = useState<{ url: string; title: string } | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -173,6 +176,7 @@ export default function CutiPage() {
           endDate: format(end, "dd MMM yyyy", { locale: id }),
           duration: dur,
           reason: c.alasan,
+          dokumenUrl: c.dokumenUrl || null,
           status: normalizedStatus,
           submittedDate: format(new Date(c.createdAt), "dd MMM yyyy", {
             locale: id,
@@ -506,11 +510,21 @@ export default function CutiPage() {
                             </span>
                           </TableCell>
 
-                          {/* Alasan */}
+                          {/* Alasan & Bukti Lampiran */}
                           <TableCell className="py-3 px-3 max-w-[240px]">
                             <p className="text-slate-700 dark:text-zinc-300 truncate text-xs" title={item.reason}>
                               {item.reason}
                             </p>
+                            {item.dokumenUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setViewingDoc({ url: item.dokumenUrl!, title: `Surat Bukti ${item.type} — ${item.employeeName}` })}
+                                className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-2 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-800/60 transition-colors"
+                              >
+                                <Paperclip className="h-3 w-3 shrink-0" />
+                                <span>Lihat Surat Bukti</span>
+                              </button>
+                            )}
                           </TableCell>
 
                           {/* Tanggal Diajukan */}
@@ -715,6 +729,56 @@ export default function CutiPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* ── DIALOG PREVIEW SURAT DOKTER / BUKTI LAMPIRAN ── */}
+          {viewingDoc && (
+            <Dialog open={!!viewingDoc} onOpenChange={() => setViewingDoc(null)}>
+              <DialogContent className="max-w-2xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                <DialogHeader className="border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                  <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                    <Paperclip className="h-4 w-4 text-blue-500" />
+                    <span>{viewingDoc.title}</span>
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="max-h-[70vh] flex items-center justify-center overflow-auto rounded-xl bg-zinc-950 p-2 border border-zinc-800 my-2">
+                  {viewingDoc.url.toLowerCase().endsWith(".pdf") || viewingDoc.url.includes("application/pdf") ? (
+                    <iframe 
+                      src={viewingDoc.url} 
+                      title={viewingDoc.title}
+                      className="w-full h-[60vh] border-none rounded-lg" 
+                    />
+                  ) : (
+                    <img 
+                      src={viewingDoc.url} 
+                      alt="Surat Bukti" 
+                      className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-xl" 
+                    />
+                  )}
+                </div>
+
+                <DialogFooter className="flex items-center justify-between sm:justify-between border-t border-zinc-100 dark:border-zinc-800 pt-3">
+                  <a
+                    href={viewingDoc.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Buka / Unduh Dokumen Asli
+                  </a>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setViewingDoc(null)}
+                    className="text-xs rounded-lg"
+                  >
+                    Tutup
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
         </main>
       </div>
