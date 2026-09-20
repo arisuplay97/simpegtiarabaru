@@ -11,18 +11,45 @@ export interface UnifiedApprovalItem {
   originalId: string
   employeeName: string
   employeeNik: string
+  employeeAvatar?: string | null
   employeeInitials: string
   unit: string
   jabatan: string
   type: ApprovalType
   title: string
+  badgeLabel?: string
   date: string // e.g. TMT / Tanggal Efektif
   submittedDate: string
+  createdAtISO: string
+  waitingDays: number
   status: "pending" | "approved" | "rejected"
   priority: "normal" | "urgent" | "overdue"
   description: string
   details: Record<string, any>
+  dokumenUrl?: string | null
   slaHours?: number
+}
+
+// Fast count for sidebar badge and header status
+export async function getPendingApprovalCount(): Promise<number> {
+  try {
+    const session = await auth()
+    if (!session?.user) return 0
+    const allowedRoles = ["HRD", "SUPERADMIN", "DIREKSI"]
+    if (!allowedRoles.includes(session.user.role ?? "")) return 0
+
+    const [cuti, mutasi, kgb, pangkat] = await Promise.all([
+      prisma.cuti.count({ where: { status: "PENDING" } }),
+      prisma.mutasi.count({ where: { status: "PENDING" } }),
+      prisma.kGB.count({ where: { status: "PENDING" } }),
+      prisma.kenaikanPangkat.count({ where: { status: "PENDING" } }),
+    ])
+
+    return cuti + mutasi + kgb + pangkat
+  } catch (error) {
+    console.error("Error getPendingApprovalCount:", error)
+    return 0
+  }
 }
 
 // Aggregation function
@@ -34,32 +61,53 @@ export async function getPendingApprovals(): Promise<UnifiedApprovalItem[]> {
   if (!allowedRoles.includes(session.user.role ?? "")) return []
 
   const items: UnifiedApprovalItem[] = []
+  const now = new Date()
 
   // 1. CUTI
   const pendingCuti = await prisma.cuti.findMany({
     where: { status: "PENDING" },
     include: { pegawai: { include: { bidang: true } } },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { createdAt: 'desc' }
   })
   pendingCuti.forEach(c => {
+    const subDate = new Date(c.createdAt)
+    const diffDays = Math.max(0, Math.floor((now.getTime() - subDate.getTime()) / (1000 * 60 * 60 * 24)))
+    let priority: "normal" | "urgent" | "overdue" = "normal"
+    if (diffDays >= 7) priority = "overdue"
+    else if (diffDays >= 3) priority = "urgent"
+
+    const start = new Date(c.tanggalMulai)
+    const end = new Date(c.tanggalSelesai)
+    const tglMulai = start.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    const tglSelesai = end.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    const daysDuration = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+
     items.push({
       id: `cuti-${c.id}`,
       originalId: c.id,
       employeeName: c.pegawai.nama,
       employeeNik: c.pegawai.nik,
+      employeeAvatar: c.pegawai.fotoUrl,
       employeeInitials: (c.pegawai.nama || "U").substring(0, 2).toUpperCase(),
       unit: c.pegawai.bidang?.nama || "Umum",
-      jabatan: c.pegawai.jabatan,
+      jabatan: c.pegawai.jabatan || "Staff",
       type: "cuti",
       title: `Pengajuan ${c.jenisCuti.replace(/_/g, " ")}`,
-      date: `${c.tanggalMulai.toISOString().split('T')[0]} - ${c.tanggalSelesai.toISOString().split('T')[0]}`,
-      submittedDate: c.createdAt.toISOString().split('T')[0],
+      badgeLabel: c.jenisCuti.replace(/_/g, " "),
+      date: tglMulai === tglSelesai ? tglMulai : `${tglMulai} – ${tglSelesai} (${daysDuration} Hari)`,
+      submittedDate: subDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      createdAtISO: c.createdAt.toISOString(),
+      waitingDays: diffDays,
       status: "pending",
-      priority: "normal",
-      description: c.alasan || "Pengajuan Cuti",
+      priority,
+      description: c.alasan || "Pengajuan izin/cuti kepegawaian",
+      dokumenUrl: c.dokumenUrl,
       details: {
-        "Sisa Cuti": `${c.pegawai.saldoCuti} Hari`,
-        "Tipe": c.jenisCuti,
+        "Jenis Izin / Cuti": c.jenisCuti.replace(/_/g, " "),
+        "Periode": `${tglMulai} – ${tglSelesai}`,
+        "Durasi": `${daysDuration} Hari Kerja`,
+        "Sisa Saldo Cuti": `${c.pegawai.saldoCuti} Hari`,
+        "Surat / Dokumen Bukti": c.dokumenUrl ? "Tersedia (Klik lihat pada lampiran)" : "Tidak dilampirkan"
       }
     })
   })
@@ -68,28 +116,43 @@ export async function getPendingApprovals(): Promise<UnifiedApprovalItem[]> {
   const pendingMutasi = await prisma.mutasi.findMany({
     where: { status: "PENDING" },
     include: { pegawai: { include: { bidang: true } } },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { createdAt: 'desc' }
   })
   pendingMutasi.forEach(m => {
+    const subDate = new Date(m.createdAt)
+    const diffDays = Math.max(0, Math.floor((now.getTime() - subDate.getTime()) / (1000 * 60 * 60 * 24)))
+    let priority: "normal" | "urgent" | "overdue" = "normal"
+    if (diffDays >= 7) priority = "overdue"
+    else if (diffDays >= 3) priority = "urgent"
+
+    const tmtDate = new Date(m.tanggalEfektif).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+
     items.push({
       id: `mutasi-${m.id}`,
       originalId: m.id,
       employeeName: m.pegawai.nama,
       employeeNik: m.pegawai.nik,
+      employeeAvatar: m.pegawai.fotoUrl,
       employeeInitials: (m.pegawai.nama || "U").substring(0, 2).toUpperCase(),
-      unit: m.unitAsal,
-      jabatan: m.jabatanAsal,
+      unit: m.unitAsal || m.pegawai.bidang?.nama || "Sekretariat Perusahaan",
+      jabatan: m.jabatanAsal || m.pegawai.jabatan || "Staff",
       type: "mutasi",
-      title: `Pengajuan ${m.type}`,
-      date: `TMT: ${m.tanggalEfektif.toISOString().split('T')[0]}`,
-      submittedDate: m.createdAt.toISOString().split('T')[0],
+      title: `Pengajuan Mutasi / Rotasi Jabatan`,
+      badgeLabel: m.type || "MUTASI",
+      date: `TMT: ${tmtDate}`,
+      submittedDate: subDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      createdAtISO: m.createdAt.toISOString(),
+      waitingDays: diffDays,
       status: "pending",
-      priority: "urgent",
-      description: m.alasan || "Pengajuan pemindahan tugas/karir",
+      priority,
+      description: m.alasan || "Pengajuan mutasi / perpindahan unit penugasan",
       details: {
-        "Unit Tujuan": m.unitTujuan,
-        "Jabatan Tujuan": m.jabatanTujuan,
-        "Jenis": m.type
+        "Tipe Mutasi": m.type,
+        "Unit Kerja Asal": m.unitAsal || "-",
+        "Jabatan Asal": m.jabatanAsal || "-",
+        "Unit Kerja Tujuan": m.unitTujuan || "-",
+        "Jabatan Baru": m.jabatanTujuan || "-",
+        "TMT Efektif": tmtDate
       }
     })
   })
@@ -98,27 +161,40 @@ export async function getPendingApprovals(): Promise<UnifiedApprovalItem[]> {
   const pendingKGB = await prisma.kGB.findMany({
     where: { status: "PENDING" },
     include: { pegawai: { include: { bidang: true } } },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { createdAt: 'desc' }
   })
   pendingKGB.forEach(k => {
+    const subDate = new Date(k.createdAt)
+    const diffDays = Math.max(0, Math.floor((now.getTime() - subDate.getTime()) / (1000 * 60 * 60 * 24)))
+    let priority: "normal" | "urgent" | "overdue" = "normal"
+    if (diffDays >= 7) priority = "overdue"
+    else if (diffDays >= 3) priority = "urgent"
+
+    const tmtDate = new Date(k.tanggalBerlaku).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+
     items.push({
       id: `kgb-${k.id}`,
       originalId: k.id,
       employeeName: k.pegawai.nama,
       employeeNik: k.pegawai.nik,
+      employeeAvatar: k.pegawai.fotoUrl,
       employeeInitials: (k.pegawai.nama || "U").substring(0, 2).toUpperCase(),
       unit: k.pegawai.bidang?.nama || "Umum",
       jabatan: k.pegawai.jabatan,
       type: "kgb",
-      title: "Kenaikan Gaji Berkala",
-      date: `TMT: ${k.tanggalBerlaku.toISOString().split('T')[0]}`,
-      submittedDate: k.createdAt.toISOString().split('T')[0],
+      title: "Kenaikan Gaji Berkala (KGB)",
+      badgeLabel: "KGB",
+      date: `TMT: ${tmtDate}`,
+      submittedDate: subDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      createdAtISO: k.createdAt.toISOString(),
+      waitingDays: diffDays,
       status: "pending",
-      priority: "normal",
-      description: k.keterangan || "Pengajuan KGB Reguler",
+      priority,
+      description: k.keterangan || "Pengajuan penyesuaian kenaikan gaji berkala",
       details: {
-        "Gaji Lama": `Rp ${Number(k.gajiPokokLama).toLocaleString('id-ID')}`,
-        "Gaji Baru": `Rp ${Number(k.gajiPokokBaru).toLocaleString('id-ID')}`
+        "Gaji Pokok Lama": `Rp ${Number(k.gajiPokokLama).toLocaleString('id-ID')}`,
+        "Gaji Pokok Baru": `Rp ${Number(k.gajiPokokBaru).toLocaleString('id-ID')}`,
+        "Tanggal Berlaku": tmtDate
       }
     })
   })
@@ -127,42 +203,52 @@ export async function getPendingApprovals(): Promise<UnifiedApprovalItem[]> {
   const pendingPangkat = await prisma.kenaikanPangkat.findMany({
     where: { status: "PENDING" },
     include: { pegawai: { include: { bidang: true } } },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { createdAt: 'desc' }
   })
   pendingPangkat.forEach(p => {
+    const subDate = new Date(p.createdAt)
+    const diffDays = Math.max(0, Math.floor((now.getTime() - subDate.getTime()) / (1000 * 60 * 60 * 24)))
+    let priority: "normal" | "urgent" | "overdue" = "normal"
+    if (diffDays >= 7) priority = "overdue"
+    else if (diffDays >= 3) priority = "urgent"
+
+    const tmtDate = new Date(p.tanggalBerlaku).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+
     items.push({
       id: `pangkat-${p.id}`,
       originalId: p.id,
       employeeName: p.pegawai.nama,
       employeeNik: p.pegawai.nik,
+      employeeAvatar: p.pegawai.fotoUrl,
       employeeInitials: (p.pegawai.nama || "U").substring(0, 2).toUpperCase(),
       unit: p.pegawai.bidang?.nama || "Umum",
       jabatan: p.pegawai.jabatan,
       type: "pangkat",
       title: "Kenaikan Pangkat Reguler",
-      date: `TMT: ${p.tanggalBerlaku.toISOString().split('T')[0]}`,
-      submittedDate: p.createdAt.toISOString().split('T')[0],
+      badgeLabel: "PANGKAT",
+      date: `TMT: ${tmtDate}`,
+      submittedDate: subDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      createdAtISO: p.createdAt.toISOString(),
+      waitingDays: diffDays,
       status: "pending",
-      priority: "urgent",
-      description: p.keterangan || "Pengajuan penyesuaian/kenaikan jenjang pangkat",
+      priority,
+      description: p.keterangan || "Pengajuan penyesuaian jenjang kepangkatan/golongan",
       details: {
-        "Golongan Lama": `${p.pangkatLama} - ${p.golonganLama}`,
-        "Golongan Baru": `${p.pangkatBaru} - ${p.golonganBaru}`
+        "Pangkat / Golongan Lama": `${p.pangkatLama || "-"} (${p.golonganLama || "-"})`,
+        "Pangkat / Golongan Baru": `${p.pangkatBaru || "-"} (${p.golonganBaru || "-"})`,
+        "Tanggal Berlaku": tmtDate
       }
     })
   })
 
-  // Calculate SLA/Priority based on days pending
-  const now = new Date()
-  items.forEach(item => {
-    const subDate = new Date(item.submittedDate)
-    const diffDays = Math.floor((now.getTime() - subDate.getTime()) / (1000 * 60 * 60 * 24))
-    if (diffDays > 3) item.priority = "urgent"
-    if (diffDays > 7) item.priority = "overdue"
+  // Urutkan: overdue / urgent di atas, lalu berdasarkan tanggal pengajuan terbaru
+  items.sort((a, b) => {
+    if (a.priority === "overdue" && b.priority !== "overdue") return -1
+    if (b.priority === "overdue" && a.priority !== "overdue") return 1
+    if (a.priority === "urgent" && b.priority !== "urgent") return -1
+    if (b.priority === "urgent" && a.priority !== "urgent") return 1
+    return new Date(b.createdAtISO).getTime() - new Date(a.createdAtISO).getTime()
   })
-
-  // Sort by created at
-  items.sort((a, b) => new Date(a.submittedDate).getTime() - new Date(b.submittedDate).getTime())
 
   return items
 }

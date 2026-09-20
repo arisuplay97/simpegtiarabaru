@@ -1,6 +1,8 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -15,374 +17,549 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { format, addDays } from "date-fns"
-import { id } from "date-fns/locale"
 import {
-  Plane,
+  Calendar,
   Clock,
   ArrowRightLeft,
-  Wallet,
   FileText,
   Star,
   TrendingUp,
   ChevronRight,
+  CheckCircle2,
+  AlertCircle,
+  Check,
+  X,
+  RefreshCw,
+  ExternalLink,
+  Eye,
 } from "lucide-react"
+import {
+  getPendingApprovals,
+  processUnifiedApproval,
+  UnifiedApprovalItem,
+  ApprovalType,
+} from "@/lib/actions/approval"
 
-type ApprovalType = "all" | "cuti" | "lembur" | "mutasi" | "payroll" | "dokumen" | "pangkat" | "gaji"
-type ApprovalStep = "hrd" | "direktur" | "final"
-type ApprovalStatus = "pending" | "urgent" | "overdue" | "approved" | "rejected"
-
-interface ApprovalItem {
-  id: string
-  employeeName: string
-  employeeAvatar?: string
-  employeeInitials: string
-  unit: string
-  type: ApprovalType
-  title: string
-  date: string
-  status: ApprovalStatus
-  slaHours?: number
-  description?: string
-  currentStep: ApprovalStep
-  approvedBy?: string[]
-  rejectedBy?: string
-  updatedAt?: string
-  note?: string
-}
-
-const approvalTypes: { value: ApprovalType; label: string; icon: React.ElementType }[] = [
+const approvalCategories: { value: string; label: string; icon: React.ElementType }[] = [
   { value: "all", label: "Semua", icon: FileText },
-  { value: "cuti", label: "Cuti/Izin", icon: Plane },
-  { value: "lembur", label: "Lembur", icon: Clock },
+  { value: "cuti", label: "Cuti & Izin", icon: Calendar },
   { value: "mutasi", label: "Mutasi", icon: ArrowRightLeft },
-  { value: "payroll", label: "Payroll", icon: Wallet },
-  { value: "dokumen", label: "Dokumen", icon: FileText },
   { value: "pangkat", label: "Pangkat", icon: Star },
-  { value: "gaji", label: "Gaji", icon: TrendingUp },
-]
-
-const initialApprovalItems: ApprovalItem[] = [
-  {
-    id: "1",
-    employeeName: "Ahmad Rizki Pratama",
-    employeeInitials: "AR",
-    unit: "IT & Sistem",
-    type: "cuti",
-    title: "Pengajuan Cuti Tahunan",
-    date: `${format(new Date(), "dd")}-${format(addDays(new Date(), 4), "dd MMM yyyy", { locale: id })}`,
-    status: "urgent",
-    slaHours: 4,
-    description: "Cuti untuk keperluan keluarga",
-    currentStep: "hrd",
-    approvedBy: [],
-  },
-  {
-    id: "2",
-    employeeName: "Siti Nurhaliza",
-    employeeInitials: "SN",
-    unit: "Keuangan",
-    type: "lembur",
-    title: "Pengajuan Lembur",
-    date: format(new Date(), "dd MMM yyyy", { locale: id }),
-    status: "pending",
-    slaHours: 12,
-    description: "Lembur closing laporan bulanan",
-    currentStep: "hrd",
-    approvedBy: [],
-  },
-  {
-    id: "3",
-    employeeName: "Budi Santoso",
-    employeeInitials: "BS",
-    unit: "Distribusi",
-    type: "mutasi",
-    title: "Usulan Mutasi",
-    date: `Efektif 1 ${format(addDays(new Date(), 30), "MMM yyyy", { locale: id })}`,
-    status: "pending",
-    slaHours: 48,
-    description: "Mutasi ke Cabang Utara",
-    currentStep: "direktur",
-    approvedBy: ["HRD"],
-  },
-  {
-    id: "4",
-    employeeName: "Dewi Lestari",
-    employeeInitials: "DL",
-    unit: "Pelayanan",
-    type: "pangkat",
-    title: "Kenaikan Pangkat",
-    date: `Periode ${format(new Date(), "yyyy", { locale: id })} Q1`,
-    status: "overdue",
-    slaHours: 0,
-    description: "C/I ke C/II",
-    currentStep: "hrd",
-    approvedBy: [],
-  },
-  {
-    id: "5",
-    employeeName: "Eko Prasetyo",
-    employeeInitials: "EP",
-    unit: "Produksi",
-    type: "gaji",
-    title: "Kenaikan Gaji Berkala",
-    date: `TMT 1 ${format(addDays(new Date(), 30), "MMM yyyy", { locale: id })}`,
-    status: "pending",
-    slaHours: 24,
-    description: "KGB masa kerja 2 tahun",
-    currentStep: "direktur",
-    approvedBy: ["HRD"],
-  },
+  { value: "kgb", label: "KGB", icon: TrendingUp },
 ]
 
 function getTypeIcon(type: ApprovalType) {
-  const iconMap: Record<ApprovalType, React.ElementType> = {
-    all: FileText,
-    cuti: Plane,
-    lembur: Clock,
-    mutasi: ArrowRightLeft,
-    payroll: Wallet,
-    dokumen: FileText,
-    pangkat: Star,
-    gaji: TrendingUp,
+  switch (type) {
+    case "cuti": return Calendar
+    case "mutasi": return ArrowRightLeft
+    case "pangkat": return Star
+    case "kgb": return TrendingUp
+    default: return FileText
   }
-  return iconMap[type]
 }
 
-function getStepLabel(step: ApprovalStep) {
-  if (step === "hrd") return "Menunggu Review HRD"
-  if (step === "direktur") return "Menunggu Persetujuan Direktur"
-  return "Final"
-}
-
-function getStatusBadge(status: ApprovalStatus) {
-  const styles = {
-    pending: "bg-amber-100 text-amber-700 border-amber-200",
-    urgent: "bg-orange-100 text-orange-700 border-orange-200",
-    overdue: "bg-red-100 text-red-700 border-red-200",
-    approved: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    rejected: "bg-rose-100 text-rose-700 border-rose-200",
+function getPriorityBadge(priority: "normal" | "urgent" | "overdue", waitingDays?: number) {
+  if (priority === "overdue") {
+    return (
+      <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400 text-[10px] font-bold px-1.5 py-0">
+        Overdue {waitingDays ? `(${waitingDays}h)` : ""}
+      </Badge>
+    )
   }
-  const labels = {
-    pending: "Pending",
-    urgent: "Urgent",
-    overdue: "Overdue",
-    approved: "Disetujui",
-    rejected: "Ditolak",
+  if (priority === "urgent") {
+    return (
+      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-400 text-[10px] font-bold px-1.5 py-0">
+        Prioritas {waitingDays ? `(${waitingDays}h)` : ""}
+      </Badge>
+    )
   }
   return (
-    <Badge variant="outline" className={cn("text-[10px]", styles[status])}>
-      {labels[status]}
+    <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 text-[10px] font-medium px-1.5 py-0">
+      Normal
     </Badge>
   )
 }
 
 export function ApprovalPanel() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const { data: session } = useSession()
+  const userId = session?.user?.id || ""
 
-  const [selectedType, setSelectedType] = useState<ApprovalType>("all")
-  const [items, setItems] = useState<ApprovalItem[]>(initialApprovalItems)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [note, setNote] = useState("")
+  const [items, setItems] = useState<UnifiedApprovalItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+
+  // Modal State
+  const [selectedItem, setSelectedItem] = useState<UnifiedApprovalItem | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState("")
+  const [processing, setProcessing] = useState(false)
+
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    else setRefreshing(true)
+
+    try {
+      const data = await getPendingApprovals()
+      setItems(data)
+    } catch {
+      toast.error("Gagal memuat daftar pengajuan pending")
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+
+    const handleUpdate = () => {
+      loadData(true)
+    }
+    window.addEventListener("approval-updated", handleUpdate)
+    return () => window.removeEventListener("approval-updated", handleUpdate)
+  }, [loadData])
 
   const filteredItems = useMemo(() => {
-    return selectedType === "all" ? items : items.filter((item) => item.type === selectedType)
-  }, [items, selectedType])
+    if (selectedCategory === "all") return items
+    return items.filter((item) => item.type === selectedCategory)
+  }, [items, selectedCategory])
 
-  const selectedItem = items.find((item) => item.id === selectedId) ?? null
-  const pendingCount = items.filter((item) => ["pending", "urgent", "overdue"].includes(item.status)).length
+  const counts = useMemo(() => {
+    return {
+      all: items.length,
+      cuti: items.filter((i) => i.type === "cuti").length,
+      mutasi: items.filter((i) => i.type === "mutasi").length,
+      pangkat: items.filter((i) => i.type === "pangkat").length,
+      kgb: items.filter((i) => i.type === "kgb").length,
+    }
+  }, [items])
 
-  const updateItem = (id: string, updater: (item: ApprovalItem) => ApprovalItem) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? updater(item) : item)))
+  const handleApprove = async (item: UnifiedApprovalItem) => {
+    setProcessing(true)
+    try {
+      const res = await processUnifiedApproval(item.type, item.originalId, true, userId)
+      if (res.error) throw new Error(res.error)
+
+      toast.success(`Pengajuan ${item.title} berhasil disetujui`)
+      setIsDetailOpen(false)
+      setSelectedItem(null)
+      loadData(true)
+      window.dispatchEvent(new Event("approval-updated"))
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menyetujui pengajuan")
+    } finally {
+      setProcessing(false)
+    }
   }
 
-  const handleApprove = () => {
+  const handleReject = async () => {
     if (!selectedItem) return
-    updateItem(selectedItem.id, (item) => {
-      if (item.currentStep === "hrd") {
-        return {
-          ...item,
-          currentStep: "direktur",
-          status: "pending",
-          approvedBy: [...(item.approvedBy ?? []), "HRD"],
-          updatedAt: new Date().toLocaleString("id-ID"),
-          note,
-        }
-      }
-      return {
-        ...item,
-        currentStep: "final",
-        status: "approved",
-        approvedBy: [...(item.approvedBy ?? []), "Direktur"],
-        updatedAt: new Date().toLocaleString("id-ID"),
-        note,
-      }
-    })
-    toast.success(selectedItem.currentStep === "hrd" ? "Approval dilanjutkan ke Direktur" : "Approval final disetujui")
-    setSelectedId(null)
-    setNote("")
+    if (!rejectReason.trim()) {
+      toast.error("Alasan penolakan wajib diisi")
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const res = await processUnifiedApproval(
+        selectedItem.type,
+        selectedItem.originalId,
+        false,
+        userId,
+        rejectReason
+      )
+      if (res.error) throw new Error(res.error)
+
+      toast.success(`Pengajuan ${selectedItem.title} ditolak`)
+      setIsRejectOpen(false)
+      setIsDetailOpen(false)
+      setSelectedItem(null)
+      setRejectReason("")
+      loadData(true)
+      window.dispatchEvent(new Event("approval-updated"))
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menolak pengajuan")
+    } finally {
+      setProcessing(false)
+    }
   }
 
-  const handleReject = () => {
-    if (!selectedItem) return
-    updateItem(selectedItem.id, (item) => ({
-      ...item,
-      status: "rejected",
-      rejectedBy: item.currentStep === "hrd" ? "HRD" : "Direktur",
-      updatedAt: new Date().toLocaleString("id-ID"),
-      note,
-    }))
-    toast.success("Pengajuan ditolak")
-    setSelectedId(null)
-    setNote("")
-  }
-
-  if (!mounted) {
-    return <div className="h-[400px] w-full animate-pulse bg-muted rounded-xl" />
+  const openReview = (item: UnifiedApprovalItem) => {
+    setSelectedItem(item)
+    setIsDetailOpen(true)
   }
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-card">
-      <div className="border-b border-border p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-foreground">Approval Center</h3>
-            <p className="text-xs text-muted-foreground">{pendingCount} pengajuan menunggu</p>
+    <div className="flex flex-col h-full rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-[#111113] shadow-xs overflow-hidden">
+      
+      {/* ── TOP BAR HEADER ── */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/40">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs">
+            <CheckCircle2 className="h-4 w-4" />
           </div>
-          <Button variant="outline" size="sm" className="text-xs">
-            Lihat Semua
-            <ChevronRight className="ml-1 h-3 w-3" />
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+              Antrean Persetujuan
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+              {items.length} berkas menunggu disposisi
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200"
+            onClick={() => loadData(true)}
+            disabled={refreshing}
+            title="Segarkan Data"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin text-blue-600")} />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-7 text-xs font-semibold px-2.5 bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700 hover:border-blue-500"
+          >
+            <Link href="/approval">
+              Modul Penuh
+              <ChevronRight className="ml-1 h-3 w-3" />
+            </Link>
           </Button>
         </div>
       </div>
 
-      <div className="border-b border-border px-2 py-2">
-        <ScrollArea className="w-full">
-          <div className="flex gap-1 pb-1">
-            {approvalTypes.map((type) => {
-              const count = type.value === "all" ? items.length : items.filter((item) => item.type === type.value).length
-              return (
-                <button
-                  key={type.value}
-                  onClick={() => setSelectedType(type.value)}
+      {/* ── HORIZONTAL CATEGORY PILLS ── */}
+      <div className="px-3 py-2 border-b border-slate-100 dark:border-zinc-800 bg-white dark:bg-[#111113] overflow-x-auto">
+        <div className="flex items-center gap-1 min-w-max">
+          {approvalCategories.map((cat) => {
+            const count = counts[cat.value as keyof typeof counts] ?? 0
+            const active = selectedCategory === cat.value
+            return (
+              <button
+                key={cat.value}
+                onClick={() => setSelectedCategory(cat.value)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all",
+                  active
+                    ? "bg-blue-600 text-white font-semibold shadow-2xs"
+                    : "text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/80 hover:text-slate-900 dark:hover:text-zinc-100"
+                )}
+              >
+                <cat.icon className="h-3 w-3" />
+                <span>{cat.label}</span>
+                <span
                   className={cn(
-                    "flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
-                    selectedType === type.value
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold",
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400"
                   )}
                 >
-                  <type.icon className="h-3 w-3" />
-                  {type.label}
-                  <span className={cn(
-                    "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px]",
-                    selectedType === type.value ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-                  )}>
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </ScrollArea>
-      </div>
-
-      <ScrollArea className="flex-1 p-2">
-        <div className="space-y-2">
-          {filteredItems.map((item) => {
-            const TypeIcon = getTypeIcon(item.type)
-            return (
-              <div key={item.id} className="rounded-lg border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm">
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarImage src={item.employeeAvatar} />
-                    <AvatarFallback className="bg-secondary text-xs">{item.employeeInitials}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="line-clamp-1 text-sm font-medium text-foreground">{item.employeeName}</p>
-                        <p className="text-xs text-muted-foreground">{item.unit}</p>
-                      </div>
-                      {getStatusBadge(item.status)}
-                    </div>
-                    <div className="mt-2 flex items-start gap-2">
-                      <div className="mt-0.5 rounded-md bg-primary/10 p-1.5 text-primary">
-                        <TypeIcon className="h-3 w-3" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground">{item.title}</p>
-                        <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">{item.date} • {getStepLabel(item.currentStep)}</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <div className="text-[11px] text-muted-foreground">SLA: {item.slaHours ?? 0} jam</div>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedId(item.id)}>Review</Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  {count}
+                </span>
+              </button>
             )
           })}
         </div>
-      </ScrollArea>
+      </div>
 
-      <Dialog open={!!selectedItem} onOpenChange={(open) => { if (!open) { setSelectedId(null); setNote("") } }}>
-        <DialogContent className="sm:max-w-xl">
-          {selectedItem && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{selectedItem.title}</DialogTitle>
-                <DialogDescription>{selectedItem.employeeName} • {selectedItem.unit}</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm md:grid-cols-2">
-                  <div>
-                    <div className="text-muted-foreground">Status Saat Ini</div>
-                    <div className="mt-1">{getStatusBadge(selectedItem.status)}</div>
+      {/* ── CARD LIST ── */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400">
+            <div className="h-7 w-7 rounded-full border-2 border-blue-600/30 border-t-blue-600 animate-spin mb-3" />
+            <p className="text-xs font-medium">Memuat data persetujuan riil...</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3 shadow-xs">
+              <Check className="h-6 w-6" strokeWidth={2.5} />
+            </div>
+            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-100 mb-1">
+              Semua Pengajuan Selesai
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-[260px] leading-relaxed">
+              Tidak ada pengajuan kepegawaian yang membutuhkan tindakan persetujuan saat ini.
+            </p>
+          </div>
+        ) : (
+          filteredItems.map((item) => {
+            const TypeIcon = getTypeIcon(item.type)
+            return (
+              <div
+                key={item.id}
+                className="group relative rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-3.5 transition-all hover:border-blue-400/80 hover:shadow-xs"
+              >
+                {/* Header row: type badge & priority badge */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn(
+                      "flex h-5 items-center gap-1 px-2 rounded-md text-[10px] font-bold uppercase tracking-wider",
+                      item.type === "cuti" ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50 dark:border-blue-900/50" :
+                      item.type === "mutasi" ? "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/50 dark:border-amber-900/50" :
+                      item.type === "pangkat" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-900/50" :
+                      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-900/50"
+                    )}>
+                      <TypeIcon className="h-3 w-3" />
+                      {item.badgeLabel || item.type}
+                    </span>
                   </div>
-                  <div>
-                    <div className="text-muted-foreground">Current Step</div>
-                    <div className="mt-1 font-medium">{getStepLabel(selectedItem.currentStep)}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Tanggal</div>
-                    <div className="mt-1 font-medium">{selectedItem.date}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Approved By</div>
-                    <div className="mt-1 font-medium">{selectedItem.approvedBy?.length ? selectedItem.approvedBy.join(", ") : "Belum ada"}</div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="text-muted-foreground">Keterangan</div>
-                    <div className="mt-1 font-medium">{selectedItem.description}</div>
+
+                  {getPriorityBadge(item.priority, item.waitingDays)}
+                </div>
+
+                {/* Employee info */}
+                <div className="flex items-start gap-2.5">
+                  <Avatar className="h-9 w-9 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-2xs shrink-0">
+                    <AvatarImage src={item.employeeAvatar || undefined} className="object-cover" />
+                    <AvatarFallback className="text-xs font-bold bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200">
+                      {item.employeeInitials}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate">
+                        {item.employeeName}
+                      </p>
+                      <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500 whitespace-nowrap">
+                        {item.submittedDate}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
+                      {item.jabatan} • {item.unit}
+                    </p>
+
+                    <div className="mt-1.5 rounded-lg bg-slate-50 dark:bg-zinc-800/60 px-2.5 py-1.5 text-[11px] text-slate-600 dark:text-zinc-300 border border-slate-100 dark:border-zinc-800 line-clamp-2">
+                      <span className="font-medium text-slate-800 dark:text-zinc-200">Alasan:</span> {item.description}
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-between text-[11px]">
+                      <span className="font-medium text-slate-500 dark:text-zinc-400 flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-slate-400" />
+                        {item.date}
+                      </span>
+
+                      {item.dokumenUrl && (
+                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
+                          <FileText className="h-3 w-3" /> Ada Lampiran
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Catatan Reviewer</div>
-                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tambahkan catatan review jika diperlukan" />
-                </div>
-                {selectedItem.updatedAt && (
-                  <div className="text-xs text-muted-foreground">Update terakhir: {selectedItem.updatedAt}</div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={handleReject}>Tolak</Button>
-                {selectedItem.status !== "approved" && selectedItem.status !== "rejected" && (
-                  <Button onClick={handleApprove}>
-                    {selectedItem.currentStep === "hrd" ? "Setujui & Lanjut ke Direktur" : "Setujui Final"}
+
+                {/* Actions bottom row */}
+                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-zinc-800/80 flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs font-medium px-2.5"
+                    onClick={() => openReview(item)}
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    Review Detail
                   </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
+
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs font-semibold px-3 bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs"
+                    onClick={() => handleApprove(item)}
+                    disabled={processing}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Setujui
+                  </Button>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* ── DETAIL & DECISION MODAL ── */}
+      {selectedItem && (
+        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+          <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/60">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-blue-600 text-white text-[10px] uppercase font-bold tracking-wider">
+                    {selectedItem.type}
+                  </Badge>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                    {selectedItem.title}
+                  </h3>
+                </div>
+                {getPriorityBadge(selectedItem.priority, selectedItem.waitingDays)}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Diajukan pada {selectedItem.submittedDate} (Menunggu {selectedItem.waitingDays} hari)
+              </p>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
+              {/* Pegawai Info */}
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/40">
+                <Avatar className="h-11 w-11 rounded-xl border border-slate-200 dark:border-zinc-700">
+                  <AvatarImage src={selectedItem.employeeAvatar || undefined} className="object-cover" />
+                  <AvatarFallback className="font-bold text-sm bg-slate-100 dark:bg-zinc-800">
+                    {selectedItem.employeeInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-zinc-100">{selectedItem.employeeName}</h4>
+                  <p className="text-slate-500 dark:text-zinc-400 font-mono text-[11px]">NIK: {selectedItem.employeeNik}</p>
+                  <p className="text-slate-600 dark:text-zinc-300 text-[11px]">{selectedItem.jabatan} • {selectedItem.unit}</p>
+                </div>
+              </div>
+
+              {/* Rincian Permohonan */}
+              <div className="rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+                <div className="px-3.5 py-2 bg-slate-100/70 dark:bg-zinc-800/60 font-bold text-slate-700 dark:text-zinc-200">
+                  Rincian Informasi Pengajuan
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-zinc-800">
+                  <div className="p-3 bg-white dark:bg-zinc-900 flex justify-between">
+                    <span className="text-slate-500 dark:text-zinc-400 font-medium">Alasan / Keterangan</span>
+                    <span className="font-semibold text-slate-900 dark:text-zinc-100 text-right max-w-[65%]">
+                      "{selectedItem.description}"
+                    </span>
+                  </div>
+                  {Object.entries(selectedItem.details || {}).map(([key, val]) => (
+                    <div key={key} className="p-3 bg-white dark:bg-zinc-900 flex justify-between">
+                      <span className="text-slate-500 dark:text-zinc-400 font-medium">{key}</span>
+                      <span className="font-semibold text-slate-900 dark:text-zinc-100 text-right max-w-[65%]">
+                        {String(val)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lampiran Gambar / Dokumen jika ada */}
+              {selectedItem.dokumenUrl && (
+                <div className="rounded-xl border border-slate-200 dark:border-zinc-800 p-3 bg-slate-50/50 dark:bg-zinc-900/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-700 dark:text-zinc-200 flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5 text-blue-600" />
+                      Lampiran Surat Dokter / Bukti Izin
+                    </span>
+                    <a
+                      href={selectedItem.dokumenUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      Buka Asli <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 max-h-48 bg-slate-100 flex items-center justify-center">
+                    <img
+                      src={selectedItem.dokumenUrl}
+                      alt="Surat Dokter"
+                      className="object-contain max-h-48 w-full"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="px-5 py-3 border-t border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 flex flex-row items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDetailOpen(false)}
+                disabled={processing}
+              >
+                Tutup
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+                onClick={() => setIsRejectOpen(true)}
+                disabled={processing}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Tolak
+              </Button>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => handleApprove(selectedItem)}
+                disabled={processing}
+              >
+                <Check className="h-3.5 w-3.5 mr-1" />
+                {processing ? "Menyimpan..." : "Setujui Sekarang"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── REJECT REASON DIALOG ── */}
+      <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600 text-base font-bold">
+              <AlertCircle className="h-5 w-5" />
+              Tolak Pengajuan
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Kirimkan alasan penolakan agar pegawai mengetahui tindak lanjut yang perlu dilakukan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <Label htmlFor="alasan" className="text-xs font-semibold">
+              Alasan Penolakan <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="alasan"
+              placeholder="Contoh: Lampiran surat keterangan dokter tidak terbaca, sisa cuti tidak mencukupi..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="text-xs min-h-[90px] resize-none"
+            />
+          </div>
+
+          <DialogFooter className="flex flex-row items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsRejectOpen(false)
+                setRejectReason("")
+              }}
+              disabled={processing}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleReject}
+              disabled={processing || !rejectReason.trim()}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {processing ? "Memproses..." : "Konfirmasi Tolak"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }

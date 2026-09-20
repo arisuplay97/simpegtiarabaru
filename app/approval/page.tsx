@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -9,10 +9,9 @@ import { TopBar } from "@/components/simpeg/top-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -25,116 +24,127 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
   Search,
-  Filter,
   Check,
   X,
   Eye,
   Calendar,
   Clock,
-  MessageSquare,
   AlertCircle,
   Briefcase,
   ArrowRightLeft,
   Star,
   CheckCircle2,
-  XCircle,
   TrendingUp,
   User,
   FileText,
+  RefreshCw,
+  ExternalLink,
+  ShieldCheck,
+  Building2,
+  CalendarDays,
+  FileCheck,
+  Layers,
+  Sparkles,
 } from "lucide-react"
 
-import { getPendingApprovals, processUnifiedApproval, UnifiedApprovalItem } from "@/lib/actions/approval"
-
-const getTypeIcon = (type: string) => {
-  switch (type) {
-    case "cuti": return <Calendar className="w-5 h-5 text-blue-500" />
-    case "lembur": return <Clock className="w-5 h-5 text-indigo-500" />
-    case "mutasi": return <ArrowRightLeft className="w-5 h-5 text-amber-500" />
-    case "pangkat": return <Star className="w-5 h-5 text-emerald-500" />
-    case "kgb": return <TrendingUp className="w-5 h-5 text-emerald-600" />
-    default: return <Briefcase className="w-5 h-5 text-slate-500" />
-  }
-}
-
-const getPriorityBadge = (priority: string) => {
-  switch (priority) {
-    case "urgent":
-      return <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 rounded-md py-0 text-[10px] uppercase font-bold tracking-wider">Urgent</Badge>
-    case "overdue":
-      return <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 rounded-md py-0 text-[10px] uppercase font-bold tracking-wider">Overdue</Badge>
-    default:
-      return null
-  }
-}
+import {
+  getPendingApprovals,
+  processUnifiedApproval,
+  UnifiedApprovalItem,
+  ApprovalType,
+} from "@/lib/actions/approval"
 
 export default function ApprovalDashboardPage() {
   const { data: session } = useSession()
   const user = session?.user
-  const isHRD = user?.role === "HRD" || user?.role === "SUPERADMIN" || user?.role === "DIREKSI"
+  const userRole = user?.role?.toString().toUpperCase() || ""
+  const isAuthorized = userRole === "HRD" || userRole === "SUPERADMIN" || userRole === "DIREKSI"
 
   const [items, setItems] = useState<UnifiedApprovalItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  
-  const [activeTab, setActiveTab] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
+  // Filters
+  const [activeTab, setActiveTab] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [urgentOnly, setUrgentOnly] = useState(false)
+
+  // Modals
   const [selectedItem, setSelectedItem] = useState<UnifiedApprovalItem | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true)
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true)
+    else setIsRefreshing(true)
+
     try {
       const data = await getPendingApprovals()
-      // Sort so overdue/urgent is at the top
-      data.sort((a, b) => {
-        if (a.priority === "overdue" && b.priority !== "overdue") return -1
-        if (b.priority === "overdue" && a.priority !== "overdue") return 1
-        if (a.priority === "urgent" && b.priority !== "urgent") return -1
-        if (b.priority === "urgent" && a.priority !== "urgent") return 1
-        return 0
-      })
       setItems(data)
-    } catch (e: any) {
+    } catch {
       toast.error("Gagal memuat task approval")
     } finally {
       setIsLoading(false)
+      setIsRefreshing(false)
     }
   }, [])
 
   useEffect(() => {
     loadData()
+
+    const handleUpdate = () => {
+      loadData(true)
+    }
+    window.addEventListener("approval-updated", handleUpdate)
+    return () => window.removeEventListener("approval-updated", handleUpdate)
   }, [loadData])
 
-  const filteredItems = items.filter(item => {
-    const matchesTab = activeTab === "all" || item.type === activeTab
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.employeeName.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesTab && matchesSearch
-  })
+  // Statistics for executive ribbon
+  const stats = useMemo(() => {
+    return {
+      all: items.length,
+      cuti: items.filter((i) => i.type === "cuti").length,
+      mutasi: items.filter((i) => i.type === "mutasi").length,
+      pangkat: items.filter((i) => i.type === "pangkat").length,
+      kgb: items.filter((i) => i.type === "kgb").length,
+      urgent: items.filter((i) => i.priority === "urgent" || i.priority === "overdue").length,
+    }
+  }, [items])
 
-  const stats = {
-    all: items.length,
-    cuti: items.filter(i => i.type === "cuti").length,
-    mutasi: items.filter(i => i.type === "mutasi").length,
-    pangkat: items.filter(i => i.type === "pangkat").length,
-    kgb: items.filter(i => i.type === "kgb").length,
-    urgent: items.filter(i => i.priority === "urgent" || i.priority === "overdue").length,
-  }
+  // Filtered items
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesTab = activeTab === "all" || item.type === activeTab
+      const matchesSearch =
+        searchQuery.trim() === "" ||
+        item.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.employeeNik.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.unit.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase())
+
+      const matchesUrgent = !urgentOnly || item.priority === "urgent" || item.priority === "overdue"
+
+      return matchesTab && matchesSearch && matchesUrgent
+    })
+  }, [items, activeTab, searchQuery, urgentOnly])
 
   const handleApprove = async (item: UnifiedApprovalItem) => {
     setIsSubmitting(true)
     try {
       const res = await processUnifiedApproval(item.type, item.originalId, true, user?.id || "")
       if (res.error) throw new Error(res.error)
-      
-      toast.success("Pengajuan berhasil disetujui")
+
+      toast.success(`Pengajuan ${item.title} untuk ${item.employeeName} berhasil disetujui`)
       setIsDetailOpen(false)
-      loadData()
+      setSelectedItem(null)
+      loadData(true)
+      window.dispatchEvent(new Event("approval-updated"))
     } catch (err: any) {
-      toast.error(err.message || "Gagal menyetujui")
+      toast.error(err.message || "Gagal menyetujui pengajuan")
     } finally {
       setIsSubmitting(false)
     }
@@ -149,16 +159,24 @@ export default function ApprovalDashboardPage() {
 
     setIsSubmitting(true)
     try {
-      const res = await processUnifiedApproval(selectedItem.type, selectedItem.originalId, false, user?.id || "", rejectReason)
+      const res = await processUnifiedApproval(
+        selectedItem.type,
+        selectedItem.originalId,
+        false,
+        user?.id || "",
+        rejectReason
+      )
       if (res.error) throw new Error(res.error)
-      
-      toast.success("Pengajuan telah ditolak")
+
+      toast.success(`Pengajuan ${selectedItem.title} telah ditolak`)
       setIsRejectOpen(false)
       setIsDetailOpen(false)
-      loadData()
+      setSelectedItem(null)
       setRejectReason("")
+      loadData(true)
+      window.dispatchEvent(new Event("approval-updated"))
     } catch (err: any) {
-      toast.error(err.message || "Gagal menolak")
+      toast.error(err.message || "Gagal menolak pengajuan")
     } finally {
       setIsSubmitting(false)
     }
@@ -169,375 +187,773 @@ export default function ApprovalDashboardPage() {
     setIsDetailOpen(true)
   }
 
-  if (!isHRD) {
+  const getTypeStyle = (type: ApprovalType) => {
+    switch (type) {
+      case "cuti":
+        return {
+          badgeBg: "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200/60 dark:border-blue-800/60",
+          icon: Calendar,
+          label: "Cuti & Izin",
+        }
+      case "mutasi":
+        return {
+          badgeBg: "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60",
+          icon: ArrowRightLeft,
+          label: "Mutasi Tugas",
+        }
+      case "pangkat":
+        return {
+          badgeBg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60",
+          icon: Star,
+          label: "Kenaikan Pangkat",
+        }
+      case "kgb":
+        return {
+          badgeBg: "bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200/60 dark:border-teal-800/60",
+          icon: TrendingUp,
+          label: "KGB Reguler",
+        }
+      default:
+        return {
+          badgeBg: "bg-slate-50 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 border-slate-200 dark:border-zinc-700",
+          icon: Briefcase,
+          label: "Pengajuan",
+        }
+    }
+  }
+
+  if (!isAuthorized) {
     return (
-      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
-        <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-slate-200">
-          <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-slate-900">Akses Dibatasi</h2>
-          <p className="text-sm text-slate-500 mt-2">Hanya Admin, HRD, atau Direksi yang dapat melihat Approval Dashboard.</p>
+      <div className="flex min-h-screen bg-slate-50 dark:bg-[#09090b] items-center justify-center p-6">
+        <div className="text-center p-8 bg-white dark:bg-[#111113] rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 max-w-md">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4 border border-amber-200 dark:border-amber-900/50">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">Akses Dibatasi</h2>
+          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2">
+            Hanya Administrator, HRD, dan Direksi yang berwenang meninjau atau menyetujui pengajuan kepegawaian.
+          </p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50">
+    <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-[#09090b]">
       <SidebarNav />
-      <div className="flex flex-1 flex-col sidebar-offset">
-        <TopBar breadcrumb={["Approval Panel", "Dashboard"]} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
-            
-            {/* Header */}
-            <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Task Approval</h1>
-                <p className="text-slate-500 text-sm mt-1 sm:mt-2">
-                  Tinjau dan putuskan berbagai pengajuan kepegawaian yang masuk.
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-sm font-medium">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{stats.urgent} Urgent Task</span>
+      <div className="flex flex-1 flex-col sidebar-offset min-w-0">
+        <TopBar breadcrumb={["Kepegawaian", "Approval Center"]} />
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+          
+          {/* ============================================================
+             1. HEADER & ACTIONS BAR
+             ============================================================ */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-xs">
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
+                  Approval Center
+                </h1>
+                <Badge variant="outline" className="bg-blue-50/80 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200/80 dark:border-blue-900/60 text-[11px] font-bold rounded-lg px-2.5 py-0.5 whitespace-nowrap">
+                  Live Database
+                </Badge>
               </div>
+              <p className="text-xs sm:text-[13px] text-slate-500 dark:text-zinc-400 mt-1">
+                Pusat verifikasi dan otorisasi berkas pengajuan kepegawaian PDAM Tirta Ardhia Rinjani.
+              </p>
             </div>
 
-            {/* Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              
-              {/* Left Column: Filters */}
-              <div className="lg:col-span-1 space-y-4">
-                <Card className="border-slate-200 shadow-sm">
-                  <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                    <h3 className="font-semibold text-slate-800 text-sm">Kategori Pengajuan</h3>
-                  </div>
-                  <div className="p-2 flex flex-col gap-1">
-                    <button 
-                      onClick={() => setActiveTab("all")}
-                      className={cn(
-                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
-                        activeTab === "all" ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <span className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-slate-500"/> Semua Pengajuan</span>
-                      <Badge variant="secondary" className="bg-slate-200 text-slate-700 font-mono text-xs">{stats.all}</Badge>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("cuti")}
-                      className={cn(
-                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
-                        activeTab === "cuti" ? "bg-blue-50 text-blue-900 font-medium" : "text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-blue-500"/> Cuti Pegawai</span>
-                      <Badge variant="secondary" className="bg-blue-100 hover:bg-blue-100 text-blue-700 font-mono text-xs">{stats.cuti}</Badge>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("mutasi")}
-                      className={cn(
-                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
-                        activeTab === "mutasi" ? "bg-amber-50 text-amber-900 font-medium" : "text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <span className="flex items-center gap-2"><ArrowRightLeft className="w-4 h-4 text-amber-500"/> Mutasi & Rotasi</span>
-                      <Badge variant="secondary" className="bg-amber-100 hover:bg-amber-100 text-amber-700 font-mono text-xs">{stats.mutasi}</Badge>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("pangkat")}
-                      className={cn(
-                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
-                        activeTab === "pangkat" ? "bg-emerald-50 text-emerald-900 font-medium" : "text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <span className="flex items-center gap-2"><Star className="w-4 h-4 text-emerald-500"/> Kenaikan Pangkat</span>
-                      <Badge variant="secondary" className="bg-emerald-100 hover:bg-emerald-100 text-emerald-700 font-mono text-xs">{stats.pangkat}</Badge>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("kgb")}
-                      className={cn(
-                        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
-                        activeTab === "kgb" ? "bg-emerald-50 text-emerald-900 font-medium" : "text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-600"/> KGB</span>
-                      <Badge variant="secondary" className="bg-emerald-100 hover:bg-emerald-100 text-emerald-700 font-mono text-xs">{stats.kgb}</Badge>
-                    </button>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Right Column: List */}
-              <div className="lg:col-span-3 flex flex-col gap-4">
-                
-                {/* Search Bar */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input 
-                    placeholder="Cari berdasarkan nama, unit, atau judul pengajuan..." 
-                    className="pl-10 h-11 bg-white border-slate-200 shadow-sm"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                {isLoading ? (
-                  <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-slate-200 shadow-sm min-h-[300px]">
-                     <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
-                     <p className="text-slate-500 font-medium">Memuat antrian task...</p>
-                  </div>
-                ) : filteredItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-xl border border-slate-200 shadow-sm min-h-[300px]">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Semua Selesai!</h3>
-                    <p className="text-slate-500 max-w-sm">
-                      Tidak ada task approval tertunda yang perlu ditangani saat ini pada kategori ini.
-                    </p>
-                  </div>
-                ) : (
-                  <ScrollArea className="h-[calc(100vh-280px)] pr-4 -mr-4">
-                    <div className="space-y-3 pb-8">
-                      {filteredItems.map(item => (
-                        <Card key={item.id} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group">
-                          <CardContent className="p-0">
-                            <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:gap-6 w-full">
-                              
-                              {/* Icon logic */}
-                              <div className="hidden sm:flex flex-col items-center justify-start shrink-0 pt-1">
-                                <div className={cn(
-                                  "w-12 h-12 rounded-full flex items-center justify-center border shadow-sm",
-                                  item.type === 'cuti' ? "bg-blue-50 border-blue-100" :
-                                  item.type === 'lembur' ? "bg-indigo-50 border-indigo-100" :
-                                  item.type === 'mutasi' ? "bg-amber-50 border-amber-100" :
-                                  item.type === 'pangkat' ? "bg-emerald-50 border-emerald-100" :
-                                  "bg-slate-50 border-slate-100"
-                                )}>
-                                  {getTypeIcon(item.type)}
-                                </div>
-                              </div>
-
-                              {/* Main info */}
-                              <div className="flex-1 flex flex-col">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h3 className="text-base font-bold text-slate-900 leading-tight">
-                                      {item.title}
-                                    </h3>
-                                    {getPriorityBadge(item.priority)}
-                                  </div>
-                                  <span className="text-xs text-slate-500 whitespace-nowrap hidden sm:inline-flex bg-slate-100 px-2 py-1 rounded-md font-medium">
-                                    {item.submittedDate}
-                                  </span>
-                                </div>
-                                
-                                <p className="text-sm text-slate-600 line-clamp-1 mb-3">
-                                  {item.description}
-                                </p>
-
-                                <div className="flex items-center gap-3 mt-auto flex-wrap">
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="w-6 h-6 border bg-white">
-                                      <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-semibold">{item.employeeInitials}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex flex-col">
-                                      <span className="text-xs font-semibold text-slate-800 leading-none">{item.employeeName}</span>
-                                      <span className="text-[10px] text-slate-500">{item.unit}</span>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="w-1 h-1 bg-slate-300 rounded-full mx-1 hidden sm:block"></div>
-                                  
-                                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-50 border px-2 py-1 rounded-md">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    <span>{item.date}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Actions */}
-                              <div className="flex sm:flex-col items-center justify-end gap-2 shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-5 sm:ml-2">
-                                <Button 
-                                  className="w-full sm:w-auto font-medium" 
-                                  onClick={() => viewDetails(item)}
-                                >
-                                  Tinjau Data
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-              </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadData(true)}
+                disabled={isRefreshing}
+                className="h-9 px-3 text-xs font-semibold bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", isRefreshing && "animate-spin text-blue-600")} />
+                Segarkan
+              </Button>
             </div>
-
           </div>
+
+          {/* ============================================================
+             2. EXECUTIVE KPI RIBBON (Interactive Category Cards)
+             ============================================================ */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {/* 1. Total */}
+            <button
+              onClick={() => { setActiveTab("all"); setUrgentOnly(false); }}
+              className={cn(
+                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                activeTab === "all" && !urgentOnly
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                  : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider",
+                  activeTab === "all" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
+                )}>
+                  Semua Berkas
+                </span>
+                <Layers className={cn(
+                  "w-4 h-4",
+                  activeTab === "all" && !urgentOnly ? "text-white" : "text-slate-400"
+                )} />
+              </div>
+              <p className={cn(
+                "text-2xl font-black mt-2 tracking-tight",
+                activeTab === "all" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
+              )}>
+                {stats.all}
+              </p>
+              <p className={cn(
+                "text-[11px] mt-0.5 truncate",
+                activeTab === "all" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
+              )}>
+                Menunggu keputusan
+              </p>
+            </button>
+
+            {/* 2. Cuti */}
+            <button
+              onClick={() => { setActiveTab("cuti"); setUrgentOnly(false); }}
+              className={cn(
+                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                activeTab === "cuti" && !urgentOnly
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                  : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider",
+                  activeTab === "cuti" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
+                )}>
+                  Cuti & Izin
+                </span>
+                <CalendarDays className={cn(
+                  "w-4 h-4",
+                  activeTab === "cuti" && !urgentOnly ? "text-white" : "text-blue-500"
+                )} />
+              </div>
+              <p className={cn(
+                "text-2xl font-black mt-2 tracking-tight",
+                activeTab === "cuti" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
+              )}>
+                {stats.cuti}
+              </p>
+              <p className={cn(
+                "text-[11px] mt-0.5 truncate",
+                activeTab === "cuti" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
+              )}>
+                Izin & cuti sakit
+              </p>
+            </button>
+
+            {/* 3. Mutasi */}
+            <button
+              onClick={() => { setActiveTab("mutasi"); setUrgentOnly(false); }}
+              className={cn(
+                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                activeTab === "mutasi" && !urgentOnly
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                  : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider",
+                  activeTab === "mutasi" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
+                )}>
+                  Mutasi & Rotasi
+                </span>
+                <ArrowRightLeft className={cn(
+                  "w-4 h-4",
+                  activeTab === "mutasi" && !urgentOnly ? "text-white" : "text-amber-500"
+                )} />
+              </div>
+              <p className={cn(
+                "text-2xl font-black mt-2 tracking-tight",
+                activeTab === "mutasi" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
+              )}>
+                {stats.mutasi}
+              </p>
+              <p className={cn(
+                "text-[11px] mt-0.5 truncate",
+                activeTab === "mutasi" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
+              )}>
+                Perpindahan tugas
+              </p>
+            </button>
+
+            {/* 4. KGB & Pangkat */}
+            <button
+              onClick={() => { setActiveTab("pangkat"); setUrgentOnly(false); }}
+              className={cn(
+                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                  : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider",
+                  (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
+                )}>
+                  Karier & Gaji
+                </span>
+                <Star className={cn(
+                  "w-4 h-4",
+                  (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-white" : "text-emerald-500"
+                )} />
+              </div>
+              <p className={cn(
+                "text-2xl font-black mt-2 tracking-tight",
+                (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
+              )}>
+                {stats.pangkat + stats.kgb}
+              </p>
+              <p className={cn(
+                "text-[11px] mt-0.5 truncate",
+                (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
+              )}>
+                Pangkat & KGB
+              </p>
+            </button>
+
+            {/* 5. Butuh Tindakan Segera (> 3 Hari) */}
+            <button
+              onClick={() => setUrgentOnly(!urgentOnly)}
+              className={cn(
+                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden col-span-2 sm:col-span-1",
+                urgentOnly
+                  ? "bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-500/10"
+                  : stats.urgent > 0
+                  ? "bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/50 hover:border-rose-300"
+                  : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider",
+                  urgentOnly ? "text-rose-100" : stats.urgent > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-400 dark:text-zinc-500"
+                )}>
+                  Prioritas / SLA
+                </span>
+                <AlertCircle className={cn(
+                  "w-4 h-4",
+                  urgentOnly ? "text-white" : stats.urgent > 0 ? "text-rose-600" : "text-slate-400"
+                )} />
+              </div>
+              <p className={cn(
+                "text-2xl font-black mt-2 tracking-tight",
+                urgentOnly ? "text-white" : stats.urgent > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-zinc-50"
+              )}>
+                {stats.urgent}
+              </p>
+              <p className={cn(
+                "text-[11px] mt-0.5 truncate font-medium",
+                urgentOnly ? "text-rose-100" : stats.urgent > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-zinc-400"
+              )}>
+                {urgentOnly ? "Filter aktif (klik lepas)" : stats.urgent > 0 ? "Menunggu > 3 hari" : "Semua dalam batas SLA"}
+              </p>
+            </button>
+          </div>
+
+          {/* ============================================================
+             3. TOOLBAR (Search & Category Pills)
+             ============================================================ */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-[#111113] p-3 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Cari nama pegawai, NIK, unit kerja, alasan..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8 h-9.5 text-xs bg-slate-50/60 dark:bg-zinc-900/60 border-slate-200/80 dark:border-zinc-800 rounded-xl focus-visible:ring-blue-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Category Segmented Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
+              {[
+                { key: "all", label: "Semua", count: stats.all },
+                { key: "cuti", label: "Cuti & Izin", count: stats.cuti },
+                { key: "mutasi", label: "Mutasi", count: stats.mutasi },
+                { key: "pangkat", label: "Pangkat", count: stats.pangkat },
+                { key: "kgb", label: "KGB", count: stats.kgb },
+              ].map((tab) => {
+                const isActive = activeTab === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all",
+                      isActive
+                        ? "bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs"
+                        : "text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/60 hover:text-slate-900 dark:hover:text-zinc-200"
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={cn(
+                        "flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                        isActive
+                          ? "bg-slate-700 text-white dark:bg-zinc-300 dark:text-zinc-900"
+                          : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400"
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* ============================================================
+             4. CARDS LISTING (Anti-AI-Slop Enterprise Cards)
+             ============================================================ */}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#111113] rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+              <div className="h-8 w-8 rounded-full border-3 border-blue-600/30 border-t-blue-600 animate-spin mb-3" />
+              <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300">
+                Memuat antrean pengajuan kepegawaian...
+              </p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-[#111113] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4 border border-emerald-200/60 dark:border-emerald-800/60 shadow-xs">
+                <Check className="w-7 h-7" strokeWidth={2.5} />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 mb-1">
+                Semua Disposisi Selesai
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 max-w-md leading-relaxed">
+                Tidak ada berkas yang tertunda pada kategori ini. Seluruh pengajuan kepegawaian telah ditinjau dan diputuskan.
+              </p>
+              {(searchQuery || urgentOnly || activeTab !== "all") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("")
+                    setActiveTab("all")
+                    setUrgentOnly(false)
+                  }}
+                  className="mt-4 text-xs font-semibold"
+                >
+                  Reset Filter Pencarian
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3.5">
+              {filteredItems.map((item) => {
+                const typeStyle = getTypeStyle(item.type)
+                const TypeIcon = typeStyle.icon
+
+                return (
+                  <div
+                    key={item.id}
+                    className="group rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-blue-500/40 transition-all duration-200"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      
+                      {/* Section 1: Employee Avatar & Identity */}
+                      <div className="flex items-start sm:items-center gap-3.5 min-w-[260px] lg:max-w-[320px] shrink-0">
+                        <Avatar className="h-12 w-12 rounded-2xl border-2 border-slate-100 dark:border-zinc-800 shadow-xs shrink-0 ring-1 ring-slate-200/60 dark:ring-zinc-700/60">
+                          <AvatarImage src={item.employeeAvatar || undefined} className="object-cover" />
+                          <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+                            {item.employeeInitials}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 truncate">
+                              {item.employeeName}
+                            </h3>
+                            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-semibold">
+                              {item.employeeNik}
+                            </span>
+                          </div>
+
+                          <p className="text-xs font-medium text-slate-500 dark:text-zinc-400 truncate mt-0.5">
+                            {item.jabatan}
+                          </p>
+                          <p className="text-[11px] text-slate-400 dark:text-zinc-500 truncate flex items-center gap-1 mt-0.5">
+                            <Building2 className="w-3 h-3" />
+                            {item.unit}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Request Details & Alasan */}
+                      <div className="flex-1 min-w-0 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-zinc-800/80 pt-3 lg:pt-0 lg:pl-5">
+                        {/* Type & Priority Header */}
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <span className={cn(
+                            "flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border",
+                            typeStyle.badgeBg
+                          )}>
+                            <TypeIcon className="w-3.5 h-3.5" />
+                            {item.badgeLabel || item.type}
+                          </span>
+
+                          {item.priority === "overdue" && (
+                            <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400 text-[10px] font-bold px-2 py-0.5">
+                              Lewat SLA ({item.waitingDays} hari)
+                            </Badge>
+                          )}
+                          {item.priority === "urgent" && (
+                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5">
+                              Prioritas Tinggi ({item.waitingDays} hari)
+                            </Badge>
+                          )}
+
+                          <span className="text-[11px] text-slate-400 dark:text-zinc-500 ml-auto hidden sm:inline-block">
+                            Diajukan: <span className="font-semibold text-slate-600 dark:text-zinc-300">{item.submittedDate}</span>
+                          </span>
+                        </div>
+
+                        {/* Reason quote */}
+                        <div className="rounded-xl bg-slate-50/80 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60 px-3.5 py-2 text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">
+                          <span className="font-bold text-slate-900 dark:text-zinc-100">Keterangan:</span> “{item.description}”
+                        </div>
+
+                        {/* Metadata chips */}
+                        <div className="flex items-center gap-2 flex-wrap mt-2.5 text-xs">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium text-[11px]">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            {item.date}
+                          </span>
+
+                          {item.dokumenUrl && (
+                            <button
+                              onClick={() => setPreviewImageUrl(item.dokumenUrl || null)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/60 font-semibold text-[11px] hover:bg-blue-100 transition-colors"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              Lihat Surat Dokter / Bukti
+                            </button>
+                          )}
+
+                          {item.type === "cuti" && item.details?.["Sisa Saldo Cuti"] && (
+                            <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                              Saldo: <strong className="text-slate-800 dark:text-zinc-200">{item.details["Sisa Saldo Cuti"]}</strong>
+                            </span>
+                          )}
+
+                          {item.type === "mutasi" && item.details?.["Unit Kerja Tujuan"] && (
+                            <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                              Tujuan: <strong className="text-amber-600 dark:text-amber-400">{item.details["Unit Kerja Tujuan"]}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Section 3: Executive Action Buttons */}
+                      <div className="flex sm:flex-row lg:flex-col items-center lg:items-end justify-end gap-2 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-zinc-800/80 pt-3 lg:pt-0 lg:pl-5">
+                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => viewDetails(item)}
+                            className="h-8.5 px-3 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:border-slate-400 w-full sm:w-auto"
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1.5" />
+                            Detail Data
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedItem(item)
+                              setIsRejectOpen(true)
+                            }}
+                            className="h-8.5 px-3 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/50 dark:hover:bg-rose-950/30 w-full sm:w-auto"
+                          >
+                            <X className="w-3.5 h-3.5 mr-1" />
+                            Tolak
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(item)}
+                            disabled={isSubmitting}
+                            className="h-8.5 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs w-full sm:w-auto"
+                          >
+                            <Check className="w-3.5 h-3.5 mr-1" />
+                            Setujui
+                          </Button>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
         </main>
       </div>
 
-      {/* DETAIL DIALOG */}
+      {/* ============================================================
+         5. DETAIL REVIEW MODAL
+         ============================================================ */}
       {selectedItem && (
         <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-          <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-slate-50/50">
-            {/* ... Modal Header ... */}
-            <div className="bg-white px-6 py-5 border-b border-slate-200">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "w-14 h-14 rounded-xl flex items-center justify-center border shadow-sm",
-                    selectedItem.type === 'cuti' ? "bg-blue-50 border-blue-100" :
-                    selectedItem.type === 'mutasi' ? "bg-amber-50 border-amber-100" :
-                    selectedItem.type === 'pangkat' ? "bg-emerald-50 border-emerald-100" :
-                    "bg-slate-50 border-slate-100"
-                  )}>
-                    {getTypeIcon(selectedItem.type)}
+          <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/60">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-xs">
+                    {getTypeStyle(selectedItem.type).icon({ className: "w-5 h-5" })}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">{selectedItem.title}</DialogTitle>
-                      {getPriorityBadge(selectedItem.priority)}
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                        {selectedItem.title}
+                      </h3>
+                      <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 text-[10px] uppercase font-bold">
+                        {selectedItem.badgeLabel || selectedItem.type}
+                      </Badge>
                     </div>
-                    <p className="text-sm text-slate-500 font-medium">Diajukan pada tanggal {selectedItem.submittedDate}</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                      Diajukan pada {selectedItem.submittedDate} (Menunggu {selectedItem.waitingDays} hari kerja)
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <ScrollArea className="max-h-[60vh]">
-              <div className="p-6 space-y-6">
-                
-                {/* Section: Employee Info */}
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                    <User className="w-4 h-4" /> Informasi Pegawai
-                  </h4>
-                  <div className="bg-white border text-sm border-slate-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-                    <Avatar className="w-12 h-12 border bg-white shadow-sm">
-                      <AvatarFallback className="text-sm bg-slate-100 text-slate-700 font-bold">{selectedItem.employeeInitials}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 grid grid-cols-2 gap-y-2 gap-x-4">
-                      <div>
-                        <p className="text-xs text-slate-500 mb-0.5">Nama Lengkap</p>
-                        <p className="font-semibold text-slate-900">{selectedItem.employeeName}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 mb-0.5">NIK Karyawan</p>
-                        <p className="font-semibold text-slate-900 font-mono">{selectedItem.employeeNik}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 mb-0.5">Jabatan Lengkap</p>
-                        <p className="font-semibold text-slate-900">{selectedItem.jabatan}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 mb-0.5">Unit Kerja / Bidang</p>
-                        <p className="font-semibold text-slate-900">{selectedItem.unit}</p>
-                      </div>
-                    </div>
+            {/* Modal Content */}
+            <ScrollArea className="max-h-[65vh] p-6 space-y-5 text-xs">
+              {/* Pegawai Box */}
+              <div className="p-4 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50 flex items-center gap-4">
+                <Avatar className="h-14 w-14 rounded-2xl border-2 border-white dark:border-zinc-700 shadow-sm shrink-0">
+                  <AvatarImage src={selectedItem.employeeAvatar || undefined} className="object-cover" />
+                  <AvatarFallback className="font-bold text-base bg-blue-600 text-white">
+                    {selectedItem.employeeInitials}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 flex-1">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Nama Pegawai</span>
+                    <p className="text-xs font-bold text-slate-900 dark:text-zinc-100">{selectedItem.employeeName}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">NIK / No. Induk</span>
+                    <p className="text-xs font-mono font-bold text-slate-900 dark:text-zinc-100">{selectedItem.employeeNik}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Jabatan</span>
+                    <p className="text-xs font-medium text-slate-700 dark:text-zinc-300">{selectedItem.jabatan}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Unit Kerja / Bidang</span>
+                    <p className="text-xs font-medium text-slate-700 dark:text-zinc-300">{selectedItem.unit}</p>
                   </div>
                 </div>
-
-                {/* Section: Request Details */}
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> Detail Pengajuan
-                  </h4>
-                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 bg-slate-50/80 border-b border-slate-100">
-                      <p className="text-slate-800 text-sm font-medium leading-relaxed">"{selectedItem.description}"</p>
-                    </div>
-                    <div className="p-0">
-                      <table className="w-full text-sm">
-                        <tbody>
-                          <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                            <td className="py-3 px-4 text-slate-500 w-1/3 font-medium bg-slate-50/50">Tanggal Terkait</td>
-                            <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-slate-400" />
-                              {selectedItem.date}
-                            </td>
-                          </tr>
-                          {Object.entries(selectedItem.details).map(([key, value], idx) => (
-                            <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                              <td className="py-3 px-4 text-slate-500 w-1/3 font-medium bg-slate-50/50">{key}</td>
-                              <td className="py-3 px-4 font-semibold text-slate-900">{value}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
               </div>
+
+              {/* Detail Table */}
+              <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden mt-4">
+                <div className="px-4 py-2.5 bg-slate-100/70 dark:bg-zinc-800/70 font-bold text-slate-800 dark:text-zinc-200 text-xs">
+                  Rincian Parameter Pengajuan
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-zinc-800 text-xs">
+                  <div className="p-3.5 bg-white dark:bg-zinc-900 flex justify-between">
+                    <span className="text-slate-500 font-medium">Alasan / Dasar Pengajuan</span>
+                    <span className="font-bold text-slate-900 dark:text-zinc-100 text-right max-w-[65%]">
+                      "{selectedItem.description}"
+                    </span>
+                  </div>
+                  <div className="p-3.5 bg-white dark:bg-zinc-900 flex justify-between">
+                    <span className="text-slate-500 font-medium">Periode / Tanggal Efektif</span>
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      {selectedItem.date}
+                    </span>
+                  </div>
+                  {Object.entries(selectedItem.details || {}).map(([k, v]) => (
+                    <div key={k} className="p-3.5 bg-white dark:bg-zinc-900 flex justify-between">
+                      <span className="text-slate-500 font-medium">{k}</span>
+                      <span className="font-bold text-slate-900 dark:text-zinc-100 text-right max-w-[65%]">
+                        {String(v)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview Lampiran */}
+              {selectedItem.dokumenUrl && (
+                <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 p-4 bg-slate-50/50 dark:bg-zinc-900/40 space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5 text-xs">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      Dokumen Lampiran (Surat Keterangan Dokter / Bukti Izin)
+                    </span>
+                    <a
+                      href={selectedItem.dokumenUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1 font-bold text-xs"
+                    >
+                      Buka Dokumen Asli <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                  <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-2 flex justify-center">
+                    <img
+                      src={selectedItem.dokumenUrl}
+                      alt="Lampiran Surat Dokter"
+                      className="max-h-72 object-contain rounded-lg"
+                    />
+                  </div>
+                </div>
+              )}
             </ScrollArea>
 
-            {/* Footer / Actions */}
-            <div className="bg-white px-6 py-4 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-10">
-              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsDetailOpen(false)}>
+            {/* Modal Footer */}
+            <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/60 flex flex-row items-center justify-between gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDetailOpen(false)}
+                disabled={isSubmitting}
+              >
                 Tutup Review
               </Button>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button 
-                  variant="destructive" 
-                  className="w-full sm:w-auto font-medium shadow-sm hover:bg-rose-600 text-white" 
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-semibold"
                   onClick={() => setIsRejectOpen(true)}
                   disabled={isSubmitting}
                 >
-                  <X className="w-4 h-4 mr-2" />
+                  <X className="w-3.5 h-3.5 mr-1" />
                   Tolak Pengajuan
                 </Button>
-                <Button 
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 font-medium shadow-sm text-white border-transparent" 
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                   onClick={() => handleApprove(selectedItem)}
                   disabled={isSubmitting}
                 >
-                  <Check className="w-4 h-4 mr-2" />
+                  <Check className="w-3.5 h-3.5 mr-1" />
                   {isSubmitting ? "Memproses..." : "Setujui Pengajuan"}
                 </Button>
               </div>
-            </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* REJECT DIALOG */}
+      {/* ============================================================
+         6. REJECT CONFIRMATION DIALOG
+         ============================================================ */}
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-rose-600">
-              <AlertCircle className="w-5 h-5" />
-              Tolak Pengajuan
+            <DialogTitle className="flex items-center gap-2 text-rose-600 text-base font-bold">
+              <AlertCircle className="h-5 w-5" />
+              Tolak Pengajuan Kepegawaian
             </DialogTitle>
-            <DialogDescription>
-              Berikan alasan penolakan. Pesan ini akan dikirim ke pegawai yang bersangkutan.
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
+              Kirimkan alasan penolakan secara jelas. Notifikasi otomatis akan dikirimkan kepada pegawai yang bersangkutan.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="reason">Alasan Penolakan <span className="text-red-500">*</span></Label>
-              <Textarea 
-                id="reason" 
-                placeholder="Contoh: Dokumen lampiran tidak valid, kuota cuti tidak mencukupi..." 
-                className="min-h-[100px] resize-none focus-visible:ring-rose-500"
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-              />
-            </div>
+
+          <div className="space-y-3 py-2">
+            <Label htmlFor="alasan-modal" className="text-xs font-semibold text-slate-800 dark:text-zinc-200">
+              Alasan Penolakan <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="alasan-modal"
+              placeholder="Contoh: Dokumen bukti dokter tidak jelas, kuota saldo cuti tahunan telah habis..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="text-xs min-h-[100px] resize-none focus-visible:ring-rose-500"
+            />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setIsRejectOpen(false); setRejectReason("") }}>Batal</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !rejectReason.trim()}>
+
+          <DialogFooter className="flex flex-row items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsRejectOpen(false)
+                setRejectReason("")
+              }}
+              disabled={isSubmitting}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleReject}
+              disabled={isSubmitting || !rejectReason.trim()}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+            >
               {isSubmitting ? "Memproses..." : "Konfirmasi Penolakan"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ============================================================
+         7. IMAGE PREVIEW MODAL
+         ============================================================ */}
+      {previewImageUrl && (
+        <Dialog open={!!previewImageUrl} onOpenChange={() => setPreviewImageUrl(null)}>
+          <DialogContent className="sm:max-w-3xl p-2 bg-slate-900 border-slate-800 text-white">
+            <div className="flex justify-between items-center px-4 py-2 border-b border-slate-800">
+              <span className="text-xs font-bold">Surat Keterangan / Bukti Lampiran</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-slate-400 hover:text-white h-7 px-2"
+                onClick={() => setPreviewImageUrl(null)}
+              >
+                Tutup
+              </Button>
+            </div>
+            <div className="p-4 flex items-center justify-center max-h-[75vh] overflow-auto">
+              <img
+                src={previewImageUrl}
+                alt="Bukti Lampiran"
+                className="max-h-[70vh] object-contain rounded-lg"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   )
 }

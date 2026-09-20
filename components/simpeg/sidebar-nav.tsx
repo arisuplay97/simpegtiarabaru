@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useEffect, createContext, useContext } from "react"
+import { useMemo, useState, useEffect, createContext, useContext, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -40,7 +40,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: "Dashboard Utama", href: "/dashboard", icon: LayoutGrid },
       { title: "Dashboard Direksi", href: "/dashboard/direksi", icon: TrendingUp, allowedRoles: ["super_admin", "direktur"] },
-      { title: "Approval Center", href: "/approval", icon: BadgeCheck, badge: 12, allowedRoles: ["super_admin", "hrd", "direktur"] },
+      { title: "Approval Center", href: "/approval", icon: BadgeCheck, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Notifikasi", href: "/notifikasi", icon: BellRing },
       { title: "Pengumuman Berjalan", href: "/pengumuman", icon: Megaphone, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Tiara Assistant", href: "/assistant", icon: Bot, labelBadge: "AI" },
@@ -209,25 +209,75 @@ export function SidebarNav() {
     return () => { document.body.style.overflow = "" }
   }, [mobileOpen])
 
+  const [approvalCount, setApprovalCount] = useState<number | null>(null)
+
+  const isApprovalRole = useMemo(() => {
+    if (!userRole) return false
+    const normalized = userRole.toUpperCase()
+    return normalized === "SUPERADMIN" || normalized === "HRD" || normalized === "DIREKSI"
+  }, [userRole])
+
+  const fetchApprovalCount = useCallback(async () => {
+    if (!isApprovalRole) {
+      setApprovalCount(null)
+      return
+    }
+    try {
+      const res = await fetch("/api/approval/count", { cache: "no-store" })
+      if (res.ok) {
+        const data = await res.json()
+        setApprovalCount(typeof data.count === "number" ? data.count : null)
+      }
+    } catch {
+      // ignore
+    }
+  }, [isApprovalRole])
+
+  useEffect(() => {
+    fetchApprovalCount()
+
+    // Dengarkan event update persetujuan dari modul approval atau dashboard
+    const handleUpdate = () => {
+      fetchApprovalCount()
+    }
+    window.addEventListener("approval-updated", handleUpdate)
+    window.addEventListener("focus", handleUpdate)
+
+    return () => {
+      window.removeEventListener("approval-updated", handleUpdate)
+      window.removeEventListener("focus", handleUpdate)
+    }
+  }, [fetchApprovalCount])
+
   const filteredNavigation = useMemo(() => {
     return navigation
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => {
-          if (!item.allowedRoles) return true
-          if (!userRole) return false
-          const normalizedAllowed = item.allowedRoles.map(r =>
-            r === "super_admin" ? "SUPERADMIN" :
-            r === "direktur" ? "DIREKSI" :
-            r === "kepala_bidang" ? "KEPALA_BIDANG" :
-            r === "kepala_cabang" ? "KEPALA_CABANG" :
-            r.toUpperCase()
-          )
-          return normalizedAllowed.includes(userRole)
-        }),
+        items: group.items
+          .filter((item) => {
+            if (!item.allowedRoles) return true
+            if (!userRole) return false
+            const normalizedAllowed = item.allowedRoles.map(r =>
+              r === "super_admin" ? "SUPERADMIN" :
+              r === "direktur" ? "DIREKSI" :
+              r === "kepala_bidang" ? "KEPALA_BIDANG" :
+              r === "kepala_cabang" ? "KEPALA_CABANG" :
+              r.toUpperCase()
+            )
+            return normalizedAllowed.includes(userRole)
+          })
+          .map((item) => {
+            if (item.href === "/approval") {
+              return {
+                ...item,
+                badge: approvalCount && approvalCount > 0 ? approvalCount : undefined,
+              }
+            }
+            return item
+          }),
       }))
       .filter((group) => group.items.length > 0)
-  }, [userRole])
+  }, [userRole, approvalCount])
 
   const handleLogout = () => { signOut({ callbackUrl: "/login" }) }
   const handleNavClick = () => { setMobileOpen(false) }
