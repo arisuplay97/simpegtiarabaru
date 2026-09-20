@@ -160,23 +160,35 @@ export default function MobileDashboard() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/pegawai/me")
-      if (res.ok) {
-        const p = await res.json()
-        setPegawai(p)
+      // Fase 1: Ambil data pegawai, pengumuman, banner, dan unread secara PARALEL
+      const [pegawaiRes, pgm, bList, unreadCount] = await Promise.all([
+        fetch("/api/pegawai/me").then(r => r.ok ? r.json() : null).catch(() => null),
+        getPengumumanAktif().catch(() => []),
+        getBannersPwa(true).catch(() => []),
+        session?.user?.id ? getUnreadCount(session.user.id).catch(() => 0) : Promise.resolve(0),
+      ])
+
+      // Set data yang sudah tersedia langsung (UI sudah bisa render parsial)
+      setPengumuman(pgm)
+      setBanners(bList)
+      setUnread(unreadCount)
+
+      if (pegawaiRes) {
+        setPegawai(pegawaiRes)
         
-        if (typeof window !== "undefined" && p) {
+        if (typeof window !== "undefined") {
           localStorage.setItem("offlineFaceStatus", JSON.stringify({
-            faceRegistered: p.faceRegistered,
-            faceDescriptor: p.faceDescriptor,
-            id: p.id
+            faceRegistered: pegawaiRes.faceRegistered,
+            faceDescriptor: pegawaiRes.faceDescriptor,
+            id: pegawaiRes.id
           }))
         }
 
-        const s = await getEmployeeAttendanceSummary(p.id)
+        // Fase 2: Ambil summary absensi (tergantung pegawaiId)
+        const s = await getEmployeeAttendanceSummary(pegawaiRes.id)
         setSummary(s)
 
-        // Run smart attendance reminder check (hanya hari kerja, kecuali shift atau cabang hari Sabtu)
+        // Jalankan smart reminder (non-blocking)
         checkAndSendSmartReminder({
           batasMasuk: s?.batasAbsenMasuk,
           mulaiPulang: s?.mulaiAbsenPulang,
@@ -186,16 +198,9 @@ export default function MobileDashboard() {
           isCabang: Boolean(s?.isCabang),
         })
       }
-      if (session?.user?.id) {
-        const u = await getUnreadCount(session.user.id)
-        setUnread(u)
-      }
-      const pgm = await getPengumumanAktif()
-      setPengumuman(pgm)
-      const bList = await getBannersPwa(true)
-      setBanners(bList)
     } catch {}
   }
+
 
   const handleToggleReminder = async () => {
     if (!isReminderActive) {

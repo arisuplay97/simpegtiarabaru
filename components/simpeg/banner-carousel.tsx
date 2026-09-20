@@ -15,7 +15,7 @@ interface BannerCarouselProps {
   banners: BannerCarouselItem[]
   autoSlideInterval?: number // default 4000ms
   className?: string
-  aspectRatioClass?: string // default: "aspect-[16/7] md:aspect-[21/9]" or "aspect-[16/8]"
+  aspectRatioClass?: string // default: "aspect-[16/7]"
   showControls?: boolean
 }
 
@@ -31,18 +31,18 @@ export function BannerCarousel({
   const touchStartX = useRef<number | null>(null)
   const touchEndX = useRef<number | null>(null)
 
-  // Jika tidak ada banner, jangan tampilkan apa pun
-  if (!banners || banners.length === 0) return null
-
-  const items = banners
-
+  // Safely determine items — hooks MUST run before any early return
+  const items = banners && banners.length > 0 ? banners : []
   const hasMultiple = items.length > 1
+  const isEmpty = items.length === 0
 
   const nextSlide = useCallback(() => {
+    if (items.length === 0) return
     setCurrentIndex((prev) => (prev + 1) % items.length)
   }, [items.length])
 
   const prevSlide = useCallback(() => {
+    if (items.length === 0) return
     setCurrentIndex((prev) => (prev - 1 + items.length) % items.length)
   }, [items.length])
 
@@ -59,10 +59,13 @@ export function BannerCarousel({
 
   // Reset currentIndex jika items berubah dan index di luar jangkauan
   useEffect(() => {
-    if (currentIndex >= items.length) {
+    if (items.length > 0 && currentIndex >= items.length) {
       setCurrentIndex(0)
     }
   }, [items.length, currentIndex])
+
+  // Jika tidak ada banner, jangan tampilkan apa pun (SETELAH semua hooks)
+  if (isEmpty) return null
 
   // Touch handlers untuk swipe di mobile HP
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -114,7 +117,7 @@ export function BannerCarousel({
             className={`relative w-full shrink-0 ${aspectRatioClass} overflow-hidden bg-zinc-100 dark:bg-zinc-800`}
           >
             <Image
-              src={item.imageUrl.startsWith("http") || item.imageUrl.startsWith("/") ? item.imageUrl : `/${item.imageUrl}`}
+              src={item.imageUrl.startsWith("http") || item.imageUrl.startsWith("/") || item.imageUrl.startsWith("data:") ? item.imageUrl : `/${item.imageUrl}`}
               alt={item.judul || `Banner ${index + 1}`}
               fill
               className="object-cover"

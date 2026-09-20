@@ -30,6 +30,7 @@ import {
   createBannerPwa,
   deleteBannerPwa,
   toggleBannerPwa,
+  restoreDefaultBannerPwa,
   BannerItem
 } from "@/lib/actions/banner"
 import { BannerCarousel } from "@/components/simpeg/banner-carousel"
@@ -177,6 +178,27 @@ export default function PengumumanPage() {
     }
   }
 
+  const [isRestoringDefault, setIsRestoringDefault] = useState(false)
+
+  // Pulihkan Banner Default
+  const handleRestoreDefault = async () => {
+    setIsRestoringDefault(true)
+    const toastId = toast.loading("Memulihkan banner bawaan...")
+    try {
+      const res = await restoreDefaultBannerPwa()
+      if (res.error) {
+        toast.error(res.error, { id: toastId })
+      } else {
+        toast.success("Banner bawaan berhasil dipulihkan!", { id: toastId })
+        await loadBanners()
+      }
+    } catch {
+      toast.error("Gagal memulihkan banner", { id: toastId })
+    } finally {
+      setIsRestoringDefault(false)
+    }
+  }
+
   // Handle Upload Banner
   const handleUploadBanner = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -193,9 +215,21 @@ export default function PengumumanPage() {
       if (bannerJudul.trim()) formData.append("judul", bannerJudul.trim())
       if (bannerSampai) formData.append("tampilkanSampai", bannerSampai)
 
-      const res = await createBannerPwa(formData)
-      if (res.error) {
-        toast.error(res.error, { id: toastId })
+      // Coba lewat dedicated API route (lebih stabil untuk multipart file)
+      let resData: any = null
+      try {
+        const apiRes = await fetch("/api/banner/upload", {
+          method: "POST",
+          body: formData,
+        })
+        resData = await apiRes.json()
+      } catch {
+        // Fallback ke server action jika fetch API route gagal
+        resData = await createBannerPwa(formData)
+      }
+
+      if (resData?.error) {
+        toast.error(resData.error, { id: toastId })
       } else {
         toast.success("Banner berhasil diunggah dan ditayangkan di PWA Mobile!", { id: toastId })
         // Reset form
@@ -623,8 +657,26 @@ export default function PengumumanPage() {
                       ) : banners.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
                           <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
-                          <p className="text-sm text-muted-foreground">Belum ada banner terdaftar.</p>
-                          <p className="text-xs text-muted-foreground">Unggah banner pertama pada form di atas.</p>
+                          <p className="text-sm font-medium text-foreground">Belum ada banner terdaftar</p>
+                          <p className="text-xs text-muted-foreground max-w-sm">
+                            Unggah gambar banner baru pada form di atas, atau klik tombol di bawah untuk memunculkan kembali banner absensi bawaan.
+                          </p>
+                          {canManage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 text-xs"
+                              onClick={handleRestoreDefault}
+                              disabled={isRestoringDefault}
+                            >
+                              {isRestoringDefault ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                              ) : (
+                                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                              )}
+                              Pulihkan Banner Default (/op.png)
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-3.5">
@@ -816,11 +868,19 @@ export default function PengumumanPage() {
                                 )}
                               </div>
                               
-                              <BannerCarousel
-                                banners={activeBanners}
-                                autoSlideInterval={4000}
-                                aspectRatioClass="aspect-[16/7]"
-                              />
+                              {activeBanners.length > 0 ? (
+                                <BannerCarousel
+                                  banners={activeBanners}
+                                  autoSlideInterval={4000}
+                                  aspectRatioClass="aspect-[16/7]"
+                                />
+                              ) : (
+                                <div className="aspect-[16/7] rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center text-center p-3 bg-zinc-50 dark:bg-zinc-800/40">
+                                  <ImageIcon className="h-5 w-5 text-zinc-400 mb-1" />
+                                  <p className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">Tidak ada banner aktif</p>
+                                  <p className="text-[9px] text-zinc-400">Banner yang aktif akan tampil di sini</p>
+                                </div>
+                              )}
                             </div>
 
                             {/* Mock Dashboard Widgets underneath */}

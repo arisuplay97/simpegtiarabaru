@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft, ChevronRight, Clock, Radio, ChevronDown, HelpCircle } from "lucide-react"
-import { getEmployeeProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
+import { getMobileProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
 import { changePasswordWithVerification } from "@/lib/actions/auth-actions"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -77,19 +77,13 @@ export default function MobileProfil() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/pegawai/me")
-      if (res.ok) {
-        const data = await res.json()
-        if (data?.id) {
-          const profile = await getEmployeeProfile(data.id)
-          setPegawai(profile)
-          if (profile) {
-            setFormData({
-              email: profile.email || "",
-              telepon: profile.telepon || ""
-            })
-          }
-        }
+      const profile = await getMobileProfile()
+      if (profile) {
+        setPegawai(profile)
+        setFormData({
+          email: profile.email || "",
+          telepon: profile.telepon || ""
+        })
       }
     } finally {
       setLoading(false)

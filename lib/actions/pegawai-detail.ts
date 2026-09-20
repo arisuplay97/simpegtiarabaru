@@ -59,6 +59,27 @@ export async function getEmployeeProfile(slugOrId: string) {
   return pegawai
 }
 
+/**
+ * Versi ringan untuk halaman profil mobile.
+ * Hanya mengambil data dasar + bidang/subBidang (tanpa keluarga, pendidikan, riwayat, dll).
+ * Menggabungkan 2 panggilan (/api/pegawai/me + getEmployeeProfile) jadi 1 server action.
+ */
+export async function getMobileProfile() {
+  const { auth } = await import("@/lib/auth")
+  const session = await auth()
+  if (!session?.user?.id) return null
+
+  const pegawai = await prisma.pegawai.findUnique({
+    where: { userId: session.user.id },
+    include: {
+      bidang: true,
+      subBidang: true,
+    }
+  })
+
+  return pegawai
+}
+
 // ==== KELUARGA ====
 export async function addKeluarga(pegawaiId: string, data: any) {
   try {

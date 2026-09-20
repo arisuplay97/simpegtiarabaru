@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { put, del } from "@vercel/blob"
+import { revalidatePath } from "next/cache"
 import fs from "fs"
 import path from "path"
 
@@ -19,30 +20,11 @@ export interface BannerItem {
 
 /**
  * Mengambil daftar banner PWA.
- * Jika tabel masih kosong, otomatis mendaftarkan banner default (/op.png).
  * Jika onlyActive = true: hanya yang aktif & belum kedaluwarsa.
+ * Tidak melakukan auto-seed sembarangan jika tabel kosong agar banner yang sengaja dihapus tidak muncul kembali.
  */
 export async function getBannersPwa(onlyActive: boolean = false): Promise<BannerItem[]> {
   try {
-    // Cek apakah sudah ada banner sama sekali di database
-    const count = await prisma.bannerPwa.count()
-    if (count === 0) {
-      // Seed banner default /op.png sesuai permintaan user agar banner sekarang tetap muncul
-      try {
-        await prisma.bannerPwa.create({
-          data: {
-            judul: "Pengingat Absensi Masuk & Pulang",
-            imageUrl: "/op.png",
-            tampilkanSampai: null,
-            aktif: true,
-            urutan: 0,
-          },
-        })
-      } catch (seedErr) {
-        console.error("Gagal melakukan seed default banner:", seedErr)
-      }
-    }
-
     const now = new Date()
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
 
@@ -80,8 +62,43 @@ export async function getBannersPwa(onlyActive: boolean = false): Promise<Banner
 }
 
 /**
+ * Kembalikan banner bawaan /op.png jika admin menginginkannya secara eksplisit.
+ */
+export async function restoreDefaultBannerPwa() {
+  try {
+    const session = await auth()
+    if (!session?.user) return { error: "Tidak terautentikasi" }
+    const role = (session.user as any).role
+    if (!["SUPERADMIN", "HRD", "DIREKSI"].includes(role)) {
+      return { error: "Akses ditolak" }
+    }
+
+    const banner = await prisma.bannerPwa.create({
+      data: {
+        judul: "Pengingat Absensi Masuk & Pulang",
+        imageUrl: "/op.png",
+        tampilkanSampai: null,
+        aktif: true,
+        urutan: 0,
+      },
+    })
+
+    revalidatePath("/pengumuman")
+    revalidatePath("/m/dashboard")
+    return { success: true, data: banner }
+  } catch (error: any) {
+    console.error("Error restoreDefaultBannerPwa:", error)
+    return { error: error.message || "Gagal menambahkan banner default" }
+  }
+}
+
+/**
  * Upload dan buat banner baru.
- * File sudah dikompresi di sisi browser (WebP), jadi validasi lebih longgar.
+ * File sudah dikompresi di sisi browser (WebP), jadi ukuran kecil.
+ * Memiliki 3 lapis penyimpanan:
+ * 1. Vercel Blob (jika token tersedia)
+ * 2. Local public/uploads/banners (untuk development lokal)
+ * 3. Base64 Data URL (fallback pasti berhasil di Vercel serverless tanpa filesystem access)
  */
 export async function createBannerPwa(formData: FormData) {
   try {
@@ -100,15 +117,9 @@ export async function createBannerPwa(formData: FormData) {
       return { error: "File gambar banner wajib dipilih" }
     }
 
-    // Batas 15MB (sebelum kompresi client, file aslinya bisa besar)
+    // Batas 15MB
     if (file.size > 15 * 1024 * 1024) {
       return { error: "Ukuran file maksimal 15MB" }
-    }
-
-    // Validasi tipe file - terima semua format gambar umum termasuk WebP hasil kompresi
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]
-    if (!file.type.startsWith("image/") && !allowedTypes.includes(file.type)) {
-      return { error: "Format gambar harus JPG, PNG, WebP, atau GIF" }
     }
 
     // Parsing tanggal batas tampil
@@ -130,7 +141,7 @@ export async function createBannerPwa(formData: FormData) {
     const ext = file.name.split(".").pop() || "webp"
     const timestamp = Date.now()
 
-    // Coba upload ke Vercel Blob jika token ada
+    // 1. Coba upload ke Vercel Blob jika token ada
     const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
     if (hasBlobToken) {
       try {
@@ -140,11 +151,11 @@ export async function createBannerPwa(formData: FormData) {
         })
         imageUrl = blob.url
       } catch (blobErr: any) {
-        console.warn("Upload ke Vercel Blob gagal:", blobErr?.message || blobErr)
+        console.warn("Upload ke Vercel Blob gagal, mencoba penyimpanan alternatif:", blobErr?.message || blobErr)
       }
     }
 
-    // Fallback penyimpanan lokal jika Blob tidak tersedia / gagal
+    // 2. Fallback penyimpanan lokal jika Blob tidak berhasil
     if (!imageUrl) {
       try {
         const uploadDir = path.join(process.cwd(), "public", "uploads", "banners")
@@ -155,8 +166,19 @@ export async function createBannerPwa(formData: FormData) {
         await fs.promises.writeFile(localFilePath, Buffer.from(arrayBuffer))
         imageUrl = `/uploads/banners/${localFileName}`
       } catch (localErr: any) {
-        console.error("Gagal menyimpan file secara lokal:", localErr?.message || localErr)
-        return { error: `Gagal mengunggah gambar banner: ${localErr?.message || "Unknown error"}` }
+        console.warn("Penyimpanan lokal tidak tersedia (misal di Vercel serverless):", localErr?.message || localErr)
+      }
+    }
+
+    // 3. Fallback 100% aman: Simpan sebagai Base64 Data URL jika Blob & Lokal tidak dapat diakses
+    if (!imageUrl) {
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const base64Str = Buffer.from(arrayBuffer).toString("base64")
+        const mimeType = file.type || "image/webp"
+        imageUrl = `data:${mimeType};base64,${base64Str}`
+      } catch (b64Err: any) {
+        return { error: `Gagal memproses file gambar: ${b64Err?.message || "Unknown error"}` }
       }
     }
 
@@ -169,6 +191,9 @@ export async function createBannerPwa(formData: FormData) {
         urutan: 0,
       },
     })
+
+    revalidatePath("/pengumuman")
+    revalidatePath("/m/dashboard")
 
     return { success: true, data: banner }
   } catch (error: any) {
@@ -210,6 +235,9 @@ export async function deleteBannerPwa(id: string) {
 
     await prisma.bannerPwa.delete({ where: { id } })
 
+    revalidatePath("/pengumuman")
+    revalidatePath("/m/dashboard")
+
     return { success: true }
   } catch (error: any) {
     console.error("Error deleteBannerPwa:", error)
@@ -234,9 +262,13 @@ export async function toggleBannerPwa(id: string, aktif: boolean) {
       data: { aktif },
     })
 
+    revalidatePath("/pengumuman")
+    revalidatePath("/m/dashboard")
+
     return { success: true }
   } catch (error: any) {
     console.error("Error toggleBannerPwa:", error)
     return { error: error.message || "Gagal mengubah status banner" }
   }
 }
+
