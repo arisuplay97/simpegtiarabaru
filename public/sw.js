@@ -3,13 +3,15 @@
 // - Web Push Notifications & Attendance Reminders
 // - Background Sync for offline attendance queue
 
-const CACHE_NAME = "hris-pwa-v3";
+const CACHE_NAME = "hris-pwa-v4";
 
 const PRECACHE_ASSETS = [
   "/offline.html",
+  "/favicon.PNG",
   "/putih.png",
   "/slip.png",
-  "/manifest.json"
+  "/manifest.json",
+  "/m/fingerprint"
 ];
 
 self.addEventListener("install", (event) => {
@@ -38,30 +40,64 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch handler with full offline navigation fallback
+// Fetch handler with full offline navigation fallback & asset caching
 self.addEventListener("fetch", (event) => {
-  // 1. Navigation requests: Network-first, fallback to /offline.html
+  // 1. Navigation requests (HTML pages): Network-first, cache fallback, then /offline.html
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(async () => {
-        const cache = await caches.open(CACHE_NAME);
-        const cachedOffline = await cache.match("/offline.html");
-        if (cachedOffline) {
-          return cachedOffline;
-        }
-        return new Response("Mode Offline ASIK Mobile - Koneksi terputus.", {
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-        });
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          
+          // Cek jika halaman spesifik ini (/m/fingerprint, dsb) tersimpan di cache
+          const matched = await cache.match(event.request);
+          if (matched) {
+            return matched;
+          }
+
+          // Fallback ke shell offline interaktif mandiri
+          const cachedOffline = await cache.match("/offline.html");
+          if (cachedOffline) {
+            return cachedOffline;
+          }
+          return new Response("Mode Offline ASIK Mobile - Koneksi terputus.", {
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          });
+        })
     );
     return;
   }
 
   const url = new URL(event.request.url);
 
-  // 2. Static offline shell assets cache
+  // 2. Next.js Static JS/CSS Chunks & Fonts Caching (Stale-While-Revalidate)
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        }).catch(() => caches.match(event.request));
+      })
+    );
+    return;
+  }
+
+  // 3. Static offline shell assets cache
   if (
     url.pathname === "/offline.html" ||
+    url.pathname === "/favicon.PNG" ||
     url.pathname === "/putih.png" ||
     url.pathname === "/slip.png" ||
     url.pathname === "/manifest.json"
@@ -81,7 +117,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 3. Cached AI models if accessed
+  // 4. Cached AI models if accessed
   if (url.pathname.startsWith("/models/")) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {

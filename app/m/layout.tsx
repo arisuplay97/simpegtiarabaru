@@ -15,9 +15,9 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black", title: "ASIK" },
   icons: {
-    icon: "/slip.png",
-    shortcut: "/slip.png",
-    apple: "/slip.png",
+    icon: "/favicon.PNG",
+    shortcut: "/favicon.PNG",
+    apple: "/favicon.PNG",
   },
   other: {
     "mobile-web-app-capable": "yes",

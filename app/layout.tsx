@@ -25,9 +25,9 @@ export const metadata: Metadata = {
     title: "SIMPEG",
   },
   icons: {
-    icon: "/slip.png",
-    shortcut: "/slip.png",
-    apple: "/slip.png",
+    icon: "/favicon.PNG",
+    shortcut: "/favicon.PNG",
+    apple: "/favicon.PNG",
   },
   other: {
     "mobile-web-app-capable": "yes",
