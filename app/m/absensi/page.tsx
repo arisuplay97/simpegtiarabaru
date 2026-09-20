@@ -29,7 +29,10 @@ export default function MobileAbsensi() {
   const [tahun] = useState(now.getFullYear())
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login")
+    if (status === "unauthenticated") {
+      if (typeof window !== "undefined" && !navigator.onLine) return
+      router.push("/login")
+    }
     if (status === "authenticated") loadData()
   }, [status])
 

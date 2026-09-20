@@ -191,8 +191,27 @@ export default function MobileDashboard() {
   }
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login")
-    if (status === "authenticated") {
+    // Coba load data profil pegawai dari cache lokal terlebih dahulu jika offline
+    if (typeof window !== "undefined") {
+      try {
+        const cachedProfile = localStorage.getItem("cached_pegawai_profile")
+        if (cachedProfile) {
+          setPegawai(JSON.parse(cachedProfile))
+        }
+      } catch {}
+    }
+
+    if (status === "unauthenticated") {
+      // PERBAIKAN SAFARI OFFLINE: Jika perangkat sedang offline, jangan pernah redirect ke /login
+      if (typeof window !== "undefined" && !navigator.onLine) {
+        console.warn("PWA sedang offline: mempertahankan tampilan dashboard tanpa redirect ke login")
+        checkOfflineQueue()
+        return
+      }
+      router.push("/login")
+    }
+
+    if (status === "authenticated" || (typeof window !== "undefined" && !navigator.onLine)) {
       fetchData()
       checkOfflineQueue()
       const enabled = isReminderEnabled()
@@ -232,16 +251,21 @@ export default function MobileDashboard() {
       ])
 
       // Set data yang sudah tersedia langsung (UI sudah bisa render parsial)
-      setPengumuman(pgm)
-      setBanners(bList)
+      if (pgm?.length) setPengumuman(pgm)
+      if (bList?.length) setBanners(bList)
       setUnread(unreadCount)
 
       if (pegawaiRes) {
         setPegawai(pegawaiRes)
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("cached_pegawai_profile", JSON.stringify(pegawaiRes))
+          } catch {}
+        }
 
         // Fase 2: Ambil summary absensi (tergantung pegawaiId)
-        const s = await getEmployeeAttendanceSummary(pegawaiRes.id)
-        setSummary(s)
+        const s = await getEmployeeAttendanceSummary(pegawaiRes.id).catch(() => null)
+        if (s) setSummary(s)
 
         if (s && typeof window !== "undefined") {
           try {

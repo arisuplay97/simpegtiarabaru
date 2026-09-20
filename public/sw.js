@@ -3,7 +3,7 @@
 // - Web Push Notifications & Attendance Reminders
 // - Background Sync for offline attendance queue
 
-const CACHE_NAME = "hris-pwa-v4";
+const CACHE_NAME = "hris-pwa-v5";
 
 const PRECACHE_ASSETS = [
   "/offline.html",
@@ -11,6 +11,7 @@ const PRECACHE_ASSETS = [
   "/putih.png",
   "/slip.png",
   "/manifest.json",
+  "/m/dashboard",
   "/m/fingerprint"
 ];
 
@@ -76,6 +77,31 @@ self.addEventListener("fetch", (event) => {
   }
 
   const url = new URL(event.request.url);
+
+  // 1.5. Offline Auth Session & Profile Cache (Network-first with fallback to cached session)
+  if (url.pathname === "/api/auth/session" || url.pathname === "/api/pegawai/me") {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          const cached = await cache.match(event.request);
+          if (cached) {
+            return cached;
+          }
+          return new Response(JSON.stringify({}), {
+            headers: { "Content-Type": "application/json" },
+          });
+        })
+    );
+    return;
+  }
 
   // 2. Next.js Static JS/CSS Chunks & Fonts Caching (Stale-While-Revalidate)
   if (url.pathname.startsWith("/_next/static/")) {

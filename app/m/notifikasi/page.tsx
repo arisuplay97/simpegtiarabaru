@@ -16,7 +16,10 @@ export default function MobileNotifikasi() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login")
+    if (status === "unauthenticated") {
+      if (typeof window !== "undefined" && !navigator.onLine) return
+      router.push("/login")
+    }
     if (status === "authenticated") fetchData()
   }, [status])
 

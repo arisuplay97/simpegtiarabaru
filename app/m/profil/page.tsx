@@ -71,7 +71,10 @@ export default function MobileProfil() {
   }
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login")
+    if (status === "unauthenticated") {
+      if (typeof window !== "undefined" && !navigator.onLine) return
+      router.push("/login")
+    }
     if (status === "authenticated") fetchData()
   }, [status])
 

@@ -79,8 +79,17 @@ export default function MobileFingerprint() {
   const fingerprintLottieRef = useRef<any>(null)
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login")
-    if (status === "authenticated") {
+    if (status === "unauthenticated") {
+      if (typeof window !== "undefined" && !navigator.onLine) {
+        console.warn("PWA sedang offline: mempertahankan scanner absensi offline")
+        getLocation()
+        checkStatus()
+        updateQueueCount()
+        return
+      }
+      router.push("/login")
+    }
+    if (status === "authenticated" || (typeof window !== "undefined" && !navigator.onLine)) {
       getLocation()
       checkStatus()
       updateQueueCount()
