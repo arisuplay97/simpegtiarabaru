@@ -18,7 +18,7 @@ import {
   Loader2, CheckCircle2, AlertCircle, RefreshCw,
   Radio, Image as ImageIcon, UploadCloud, Calendar,
   Smartphone, X, Check, Clock, Wifi, BatteryCharging,
-  Info, Eye, ChevronRight
+  Info, Eye, ChevronRight, Zap
 } from "lucide-react"
 import {
   getPengumumanAktif,
@@ -33,6 +33,7 @@ import {
   BannerItem
 } from "@/lib/actions/banner"
 import { BannerCarousel } from "@/components/simpeg/banner-carousel"
+import { compressImageForMobile, formatFileSize } from "@/lib/utils/image-compression"
 import { toast } from "sonner"
 import { format, addDays } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -63,6 +64,12 @@ export default function PengumumanPage() {
   const [bannerSampai, setBannerSampai] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [compressionInfo, setCompressionInfo] = useState<{
+    originalSize: number
+    compressedSize: number
+    savedPercent: number
+    isCompressing: boolean
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load data Ticker Pengumuman
@@ -96,14 +103,14 @@ export default function PengumumanPage() {
     reloadAll()
   }, [reloadAll])
 
-  // File selection & preview
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // File selection & automatic client-side compression
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validasi ukuran file (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Ukuran file maksimal 5MB")
+    // Validasi ukuran awal (maks 15MB sebelum kompresi)
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal 15MB")
       return
     }
 
@@ -114,13 +121,43 @@ export default function PengumumanPage() {
       return
     }
 
-    setSelectedFile(file)
-    const localUrl = URL.createObjectURL(file)
-    setPreviewUrl(localUrl)
+    setCompressionInfo({
+      originalSize: file.size,
+      compressedSize: file.size,
+      savedPercent: 0,
+      isCompressing: true,
+    })
+
+    try {
+      // Kompresi cerdas: otomatis me-resize ke lebar ideal mobile (maks 1200px) dan convert ke WebP
+      const result = await compressImageForMobile(file, 1200, 600, 0.82)
+      setSelectedFile(result.file)
+      const localUrl = URL.createObjectURL(result.file)
+      setPreviewUrl(localUrl)
+
+      setCompressionInfo({
+        originalSize: result.originalSize,
+        compressedSize: result.compressedSize,
+        savedPercent: result.savedPercent,
+        isCompressing: false,
+      })
+
+      if (result.savedPercent > 0) {
+        toast.success(
+          `Gambar banner dioptimalkan! Hemat ${result.savedPercent}% (${formatFileSize(result.originalSize)} ➔ ${formatFileSize(result.compressedSize)})`
+        )
+      }
+    } catch {
+      // Fallback jika proses kompresi browser tidak didukung
+      setSelectedFile(file)
+      setPreviewUrl(URL.createObjectURL(file))
+      setCompressionInfo(null)
+    }
   }
 
   const handleClearFile = () => {
     setSelectedFile(null)
+    setCompressionInfo(null)
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
@@ -369,8 +406,12 @@ export default function PengumumanPage() {
                               Klik untuk memilih atau seret gambar ke sini
                             </p>
                             <p className="text-[11px] text-muted-foreground mt-1 text-center">
-                              Rasio disarankan 16:7 atau 2:1 (misal 800×350 px). JPG, PNG, WebP, GIF (Maks. 5MB)
+                              Rasio disarankan 16:7 atau 2:1 (misal 800×350 px). Mendukung JPG, PNG, WebP, GIF.
                             </p>
+                            <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium border border-emerald-500/20">
+                              <Zap className="h-3 w-3" />
+                              <span>Auto-Compression Aktif (Otomatis dikecilkan ke WebP agar PWA ringan)</span>
+                            </div>
                             <input
                               id="bannerFile"
                               ref={fileInputRef}
@@ -382,7 +423,7 @@ export default function PengumumanPage() {
                             />
                           </label>
                         ) : (
-                          <div className="relative rounded-xl overflow-hidden border border-border bg-muted/20 p-2">
+                          <div className="relative rounded-xl overflow-hidden border border-border bg-muted/20 p-2.5 space-y-2">
                             <div className="relative aspect-[16/7] w-full rounded-lg overflow-hidden bg-black/5">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
@@ -391,13 +432,13 @@ export default function PengumumanPage() {
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            <div className="flex items-center justify-between mt-2 px-1">
+                            <div className="flex items-center justify-between px-1">
                               <div className="min-w-0">
-                                <p className="text-xs font-medium truncate text-foreground">
+                                <p className="text-xs font-medium truncate text-foreground flex items-center gap-1.5">
                                   {selectedFile?.name}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">
-                                  {((selectedFile?.size || 0) / (1024 * 1024)).toFixed(2)} MB
+                                  Ukuran upload: {formatFileSize(selectedFile?.size || 0)}
                                 </p>
                               </div>
                               <Button
@@ -412,6 +453,30 @@ export default function PengumumanPage() {
                                 Ganti Gambar
                               </Button>
                             </div>
+
+                            {/* Badge Hasil Kompresi */}
+                            {compressionInfo && (
+                              <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300">
+                                <Zap className="h-4 w-4 text-emerald-600 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  {compressionInfo.isCompressing ? (
+                                    <span className="flex items-center gap-1.5">
+                                      <Loader2 className="h-3 w-3 animate-spin" /> Sedang mengompresi gambar...
+                                    </span>
+                                  ) : compressionInfo.savedPercent > 0 ? (
+                                    <span>
+                                      <strong>Teroptimasi untuk PWA:</strong> Ukuran asli {formatFileSize(compressionInfo.originalSize)} ➔{" "}
+                                      <strong className="text-emerald-700 dark:text-emerald-300">{formatFileSize(compressionInfo.compressedSize)}</strong>{" "}
+                                      <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 text-[10px] ml-1 py-0">
+                                        Hemat {compressionInfo.savedPercent}%
+                                      </Badge>
+                                    </span>
+                                  ) : (
+                                    <span>Gambar sudah dalam ukuran optimal ({formatFileSize(compressionInfo.compressedSize)})</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
