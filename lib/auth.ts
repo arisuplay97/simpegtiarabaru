@@ -38,15 +38,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials.password as string
         const deviceId = credentials.deviceId as string | undefined
 
-        // Coba cari di database dulu (by email atau NIK) - gunakan exact match
+        // Cari di database berdasarkan NIK pegawai, username akun, atau email
         try {
           const user = await prisma.user.findFirst({
             where: {
               OR: [
+                { pegawai: { nik: { equals: username, mode: "insensitive" } } },
+                { username: { equals: username, mode: "insensitive" } },
                 { email: { equals: username, mode: "insensitive" } },
                 { email: { equals: `${username}@tiara.com`, mode: "insensitive" } },
+                { email: { equals: `${username}@tiara.id`, mode: "insensitive" } },
                 { email: { startsWith: `${username}@`, mode: "insensitive" } },
-                { pegawai: { nik: username } }
               ]
             },
             include: {
@@ -73,8 +75,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               id: user.id, 
               email: user.email, 
               role: user.role, 
-              name: user.pegawai?.nama || user.email,
-              username: user.pegawai?.nik || user.email,
+              name: user.pegawai?.nama || user.username || user.email,
+              username: user.pegawai?.nik || user.username || user.email.split("@")[0],
               jabatan: user.pegawai?.jabatan || "",
               unitKerja: user.pegawai?.bidangId || "",
               mustChangePassword: user.mustChangePassword,

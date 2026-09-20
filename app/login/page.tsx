@@ -82,11 +82,14 @@ function LoginForm() {
     <form onSubmit={handleLogin} className="space-y-4" id="login-form">
       {/* Field: Username / NIK */}
       <div className="space-y-1.5">
+        <label htmlFor="login-username" className="text-xs font-medium text-zinc-300 block">
+          NIK atau Username
+        </label>
         <div className="relative group">
           <input
             id="login-username"
             type="text"
-            placeholder="Masukkan NIK atau Username"
+            placeholder="Masukkan NIK Pegawai atau Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -100,6 +103,9 @@ function LoginForm() {
 
       {/* Field: Kata Sandi */}
       <div className="space-y-1.5">
+        <label htmlFor="login-password" className="text-xs font-medium text-zinc-300 block">
+          Kata Sandi
+        </label>
         <div className="relative group">
           <input
             id="login-password"
@@ -215,7 +221,7 @@ export default function LoginPage() {
             Selamat Datang
           </h1>
           <p className="text-xs text-zinc-400 font-normal mt-1">
-            Silakan masukkan kredensial akun Anda.
+            Masuk menggunakan NIK Pegawai atau Username.
           </p>
         </div>
 

@@ -45,10 +45,26 @@ export async function updateSystemUser(id: string, data: any) {
       role: data.role
     }
 
+    if (data.username !== undefined) {
+      const cleanUsername = data.username ? data.username.toLowerCase().trim() : null
+      if (cleanUsername) {
+        const existingUsername = await prisma.user.findFirst({
+          where: {
+            username: { equals: cleanUsername, mode: "insensitive" },
+            id: { not: id }
+          }
+        })
+        if (existingUsername) {
+          return { error: "Username ini sudah digunakan oleh akun lain." }
+        }
+      }
+      updateData.username = cleanUsername
+    }
+
     if (data.email) {
       const existing = await prisma.user.findUnique({ where: { email: data.email } })
       if (existing && existing.id !== id) {
-        return { error: "Username atau email ini sudah digunakan oleh akun lain." }
+        return { error: "Email ini sudah digunakan oleh akun lain." }
       }
       updateData.email = data.email
     }

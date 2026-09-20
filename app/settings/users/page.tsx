@@ -40,10 +40,10 @@ import { getSystemUsers, updateSystemUser, deleteSystemUser, resetUserPassword }
 interface SystemUser {
   id: string
   email: string
+  username?: string | null
   role: string
   createdAt: string | Date
   name?: string
-  username?: string
   status?: string
   pegawai?: {
     nama: string
@@ -89,8 +89,8 @@ export default function UserManagementPage() {
     if (res.data) {
       const mapped = res.data.map((u: any) => ({
         ...u,
-        name: u.pegawai?.nama || u.email,
-        username: u.pegawai?.nik || u.email,
+        name: u.pegawai?.nama || u.username || u.email,
+        username: u.username || u.pegawai?.nik || u.email.split("@")[0],
         status: u.pegawai?.status?.toLowerCase() === "aktif" ? "active" : "inactive"
       }))
       setUsers(mapped)
@@ -125,8 +125,12 @@ export default function UserManagementPage() {
   const filtered = users.filter(u => {
     const name = u.pegawai?.nama || ""
     const email = u.email || ""
+    const nik = u.pegawai?.nik || ""
+    const uname = u.username || ""
     const matchSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.toLowerCase().includes(searchQuery.toLowerCase())
+      email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      nik.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      uname.toLowerCase().includes(searchQuery.toLowerCase())
     const matchRole = roleFilter === "all" || u.role === roleFilter
     return matchSearch && matchRole
   })
@@ -145,7 +149,7 @@ export default function UserManagementPage() {
     setEditingUser(u)
     setForm({ 
         name: u.pegawai?.nama || "", 
-        username: u.email.split("@")[0], 
+        username: u.username || u.pegawai?.nik || u.email.split("@")[0], 
         email: u.email, 
         password: "", 
         nik: u.pegawai?.nik || "", 
@@ -170,7 +174,7 @@ export default function UserManagementPage() {
     if (!form.unitKerja.trim()) errors.unitKerja = "Unit kerja wajib diisi"
     if (!form.jabatan.trim()) errors.jabatan = "Jabatan wajib diisi"
     // Cek username duplikat
-    const dupUsername = users.find(u => u.username === form.username && u.id !== editingUser?.id)
+    const dupUsername = users.find(u => u.username?.toLowerCase() === form.username.toLowerCase() && u.id !== editingUser?.id)
     if (dupUsername) errors.username = "Username sudah digunakan"
     // Cek email duplikat
     const dupEmail = users.find(u => u.email === form.email && u.id !== editingUser?.id)
@@ -185,24 +189,14 @@ export default function UserManagementPage() {
     setIsSaving(true)
 
     if (editingUser) {
-      // Logic for syncing username to email for system accounts
-      let finalEmail = form.email;
-      let originalUsernameText = editingUser.email.split("@")[0].toLowerCase();
-      
-      if (form.username.toLowerCase() !== originalUsernameText) {
-          // Jika username berubah dari bawaan email sebelumnya
-          finalEmail = form.username.includes("@") ? form.username.toLowerCase() : `${form.username.toLowerCase()}@tiara.com`;
-      } else if (form.email !== editingUser.email) {
-          finalEmail = form.email.toLowerCase();
-      }
-
       const res = await updateSystemUser(editingUser.id, {
         role: form.role,
-        email: finalEmail,
+        username: form.username.toLowerCase().trim(),
+        email: form.email.trim(),
         password: form.password || undefined
       })
       if (res.success) {
-        toast.success(`Data ${form.name} berhasil diperbarui`)
+        toast.success(`Data user ${form.name} berhasil diperbarui`)
         fetchUsers()
         setShowDialog(false)
       } else {
@@ -318,8 +312,9 @@ export default function UserManagementPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="w-[220px]">User</TableHead>
-                      <TableHead>Username</TableHead>
+                      <TableHead className="w-[200px]">Pegawai</TableHead>
+                      <TableHead>NIK (Login)</TableHead>
+                      <TableHead>Username (Login)</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Unit / Jabatan</TableHead>
                       <TableHead className="text-center">Status</TableHead>
@@ -330,7 +325,7 @@ export default function UserManagementPage() {
                   <TableBody>
                     {filtered.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="py-12 text-center">
+                        <TableCell colSpan={8} className="py-12 text-center">
                           <div className="flex flex-col items-center gap-2">
                             <Users className="h-8 w-8 text-muted-foreground/50" />
                             <p className="text-muted-foreground">Tidak ada user ditemukan</p>
@@ -353,7 +348,14 @@ export default function UserManagementPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono text-sm">{u.email.split("@")[0]}</span>
+                          <span className="font-mono text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                            {u.pegawai?.nik || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-800/40">
+                            {u.username || u.pegawai?.nik || u.email.split("@")[0]}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={roleBadgeClass[u.role]}>
@@ -419,8 +421,16 @@ export default function UserManagementPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Username</Label>
-                <Input className="mt-1 font-mono" value={form.username} onChange={e => setForm({...form, username: e.target.value.toLowerCase()})} placeholder="username" />
+                <Label>Username Login</Label>
+                <Input
+                  className="mt-1 font-mono font-semibold"
+                  value={form.username}
+                  onChange={e => setForm({...form, username: e.target.value.toLowerCase()})}
+                  placeholder="Contoh: budi atau NIK"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Pegawai dapat login langsung menggunakan NIK atau Username ini.
+                </p>
                 {formErrors.username && <p className="mt-1 text-xs text-destructive">{formErrors.username}</p>}
               </div>
               <div>
@@ -443,15 +453,22 @@ export default function UserManagementPage() {
               </div>
             </div>
 
-            <div>
-              <Label>Email</Label>
-              <Input className="mt-1" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@tiara.com" />
-              {formErrors.email && <p className="mt-1 text-xs text-destructive">{formErrors.email}</p>}
-            </div>
-
-            <div>
-              <Label>NIK</Label>
-              <Input className="mt-1 font-mono" value={form.nik} onChange={e => setForm({...form, nik: e.target.value})} placeholder="8 digit NIK" maxLength={8} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>NIK Pegawai</Label>
+                <Input className="mt-1 font-mono bg-muted/40" value={form.nik} disabled placeholder="NIK Pegawai" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  NIK terikat dengan pegawai dan selalu bisa digunakan login.
+                </p>
+              </div>
+              <div>
+                <Label>Email Pegawai (Kontak)</Label>
+                <Input className="mt-1" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@tiara.id" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Untuk keperluan notifikasi/kontak (tidak wajib untuk login).
+                </p>
+                {formErrors.email && <p className="mt-1 text-xs text-destructive">{formErrors.email}</p>}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

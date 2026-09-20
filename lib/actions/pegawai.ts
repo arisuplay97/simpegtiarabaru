@@ -182,6 +182,7 @@ export async function createEmployee(data: any, fotoFile?: File) {
     user: {
       create: {
         email: data.email,
+        username: data.nik,
         password: hashedPassword,
         role: data.role || "PEGAWAI",
       },
@@ -1267,11 +1268,18 @@ export async function importPegawaiBatch(items: ImportPegawaiItem[]) {
         const existingUser = await prisma.user.findUnique({ where: { email } })
         if (existingUser) {
           userId = existingUser.id
+          if (!existingUser.username) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { username: cleanNik }
+            })
+          }
         } else {
           const role = mapJabatanToRole(item.tipeJabatan || "STAFF", item.jabatan || "Staff") || "PEGAWAI"
           const newUser = await prisma.user.create({
             data: {
               email,
+              username: cleanNik,
               password: defaultPasswordHash,
               role: role as any,
             }
