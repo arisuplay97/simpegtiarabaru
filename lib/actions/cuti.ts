@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "./audit-log"
+import { createNotification } from "./notifikasi"
+import { format } from "date-fns"
+import { id as idLocale } from "date-fns/locale"
 
 export async function getCutiList() {
   try {
@@ -99,6 +102,26 @@ export async function createCuti(payload: any) {
       targetName: `Pengajuan Cuti ${newCuti.jenisCuti}`,
       newData: newCuti as any,
     })
+
+    // Kirim notifikasi lonceng & Web Push ke HRD & Super Admin
+    try {
+      const hrdUsers = await prisma.user.findMany({
+        where: { role: { in: ["HRD", "SUPERADMIN"] } },
+        select: { id: true }
+      })
+      const tglMulaiStr = format(start, "d MMM yyyy", { locale: idLocale })
+      const tglSelesaiStr = format(end, "d MMM yyyy", { locale: idLocale })
+      for (const u of hrdUsers) {
+        await createNotification(
+          u.id,
+          "Pengajuan Cuti Baru",
+          `${pegawai.nama} mengajukan ${payload.jenisCuti} (${tglMulaiStr} - ${tglSelesaiStr}).`,
+          "/cuti"
+        )
+      }
+    } catch (notifErr) {
+      console.warn("Gagal mengirim notifikasi cuti ke HRD:", notifErr)
+    }
 
     revalidatePath("/cuti")
     revalidatePath("/m/cuti")
@@ -204,7 +227,34 @@ export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "
       newData: updatedCuti as any,
     })
 
+    // Kirim notifikasi lonceng & Web Push langsung ke HP pegawai bersangkutan
+    if (cuti.pegawai?.userId) {
+      try {
+        const tglMulaiStr = format(new Date(cuti.tanggalMulai), "d MMM yyyy", { locale: idLocale })
+        const tglSelesaiStr = format(new Date(cuti.tanggalSelesai), "d MMM yyyy", { locale: idLocale })
+        
+        if (newStatus === "APPROVED") {
+          await createNotification(
+            cuti.pegawai.userId,
+            "Permohonan Cuti Disetujui ✅",
+            `Permohonan ${cuti.jenisCuti} Anda (${tglMulaiStr} – ${tglSelesaiStr}) telah DISETUJUI oleh HRD.`,
+            "/m/cuti"
+          )
+        } else {
+          await createNotification(
+            cuti.pegawai.userId,
+            "Permohonan Cuti Ditolak ❌",
+            `Permohonan ${cuti.jenisCuti} Anda (${tglMulaiStr} – ${tglSelesaiStr}) DITOLAK oleh HRD. Hubungi HRD untuk info lebih lanjut.`,
+            "/m/cuti"
+          )
+        }
+      } catch (notifErr) {
+        console.warn("Gagal mengirim notifikasi status cuti ke pegawai:", notifErr)
+      }
+    }
+
     revalidatePath("/cuti")
+    revalidatePath("/m/cuti")
     return { success: true, data: updatedCuti }
   } catch (error: any) {
     console.error("Gagal mengubah status cuti:", error)
