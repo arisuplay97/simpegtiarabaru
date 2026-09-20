@@ -311,12 +311,14 @@ export default function MobileFingerprint() {
             <div className="flex justify-between items-center">
               <span className="text-zinc-500 dark:text-zinc-400">Status</span>
               <span className={cn(
-                "font-semibold px-2 py-0.5 rounded-md text-[11px]",
+                "font-semibold px-2.5 py-0.5 rounded-full text-[11px] border",
                 isOfflineQueued 
-                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
-                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                  : resultData?.status === "TERLAMBAT"
+                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
               )}>
-                {isOfflineQueued ? "Antrian Offline (Pending Sync)" : (resultData?.status || "HADIR")}
+                {isOfflineQueued ? "Antrian Offline" : (resultData?.status || "HADIR")}
               </span>
             </div>
 
@@ -330,8 +332,8 @@ export default function MobileFingerprint() {
             )}
 
             {isOfflineQueued && (
-              <p className="text-[11px] text-amber-700 dark:text-amber-300 pt-1 leading-relaxed border-t border-zinc-200/60 dark:border-zinc-700/60">
-                Data tersimpan aman di memori perangkat HP. Sistem akan mengirim otomatis saat koneksi internet aktif kembali.
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pt-1.5 leading-relaxed border-t border-zinc-200/60 dark:border-zinc-700/60">
+                Data tersimpan di perangkat HP dan akan terkirim otomatis saat online.
               </p>
             )}
           </div>

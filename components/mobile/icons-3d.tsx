@@ -635,7 +635,9 @@ export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
 
 /**
  * 8. ICON SAKIT 3D (REKAP PRESENSI)
- * Karakter 3D orang sakit dengan kompres gel penurun demam di dahi dan termometer mulut
+ * Medical First-Aid / Health 3D Badge dengan palet coral-rose premium,
+ * salib medis timbul porcelain, dan aksen detak kesehatan kristal.
+ * Desain ultra clean, modern, enterprise, bebas AI slop.
  */
 export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
   const s = size || 38
@@ -649,91 +651,77 @@ export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="sakit-person-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.2" floodColor="#ea580c" floodOpacity="0.25" />
+        <filter id="sakit-clean-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#e11d48" floodOpacity="0.28" />
           <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
         </filter>
-        <radialGradient id="sick-face" cx="22" cy="20" r="19" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ffedd5" />
-          <stop offset="55%" stopColor="#fed7aa" />
-          <stop offset="85%" stopColor="#fdba74" />
-          <stop offset="100%" stopColor="#fb923c" />
-        </radialGradient>
-        <linearGradient id="cooling-patch" x1="14" y1="8" x2="34" y2="16" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#93c5fd" />
-          <stop offset="50%" stopColor="#60a5fa" />
-          <stop offset="100%" stopColor="#3b82f6" />
+        {/* Main 3D Card Gradient - Premium Rose / Coral */}
+        <linearGradient id="sakit-base" x1="10" y1="8" x2="38" y2="42" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fb7185" />
+          <stop offset="50%" stopColor="#f43f5e" />
+          <stop offset="100%" stopColor="#e11d48" />
         </linearGradient>
-        <linearGradient id="thermometer-glass" x1="24" y1="28" x2="40" y2="44" gradientUnits="userSpaceOnUse">
+        {/* Bevel Rim */}
+        <linearGradient id="sakit-rim" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#fda4af" stopOpacity="0.1" />
+        </linearGradient>
+        {/* Porcelain Medical Cross */}
+        <linearGradient id="sakit-cross" x1="18" y1="14" x2="30" y2="34" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="70%" stopColor="#f1f5f9" />
+          <stop offset="60%" stopColor="#f8fafc" />
           <stop offset="100%" stopColor="#e2e8f0" />
+        </linearGradient>
+        {/* Pulse Glow */}
+        <linearGradient id="sakit-pulse" x1="12" y1="36" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+          <stop offset="50%" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.4" />
         </linearGradient>
       </defs>
 
-      {/* 3D Round Face Base */}
-      <g filter="url(#sakit-person-shadow)">
-        <circle cx="24" cy="24" r="18" fill="url(#sick-face)" />
-        <circle cx="24" cy="24" r="17.2" stroke="#ffffff" strokeWidth="0.8" opacity="0.4" />
+      {/* 3D Depth Layer */}
+      <rect x="9" y="11" width="30" height="30" rx="9" fill="#be123c" opacity="0.6" />
 
-        {/* Fever Flush Cheeks */}
-        <circle cx="14" cy="27" r="4.5" fill="#f43f5e" opacity="0.38" />
-        <circle cx="34" cy="27" r="4.5" fill="#f43f5e" opacity="0.38" />
+      {/* Main 3D Rounded Shield Base */}
+      <g filter="url(#sakit-clean-shadow)">
+        <rect x="8" y="9" width="32" height="32" rx="9" fill="url(#sakit-base)" />
+        <rect x="8" y="9" width="32" height="32" rx="9" stroke="url(#sakit-rim)" strokeWidth="0.9" />
 
-        {/* Droopy/Sick Unwell Eyes */}
+        {/* Specular Studio Top Sheen */}
         <path
-          d="M14.5 21.5C16 19 19 19 20.5 21.5"
-          stroke="#451a03"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M27.5 21.5C29 19 32 19 33.5 21.5"
-          stroke="#451a03"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-
-        {/* Sad Downturned Mouth */}
-        <path
-          d="M20 31.5C22 29.8 26 29.8 28 31.5"
-          stroke="#7c2d12"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-
-        {/* Cooling Gel Fever Patch on Forehead 🩹 */}
-        <rect x="14" y="9.5" width="20" height="7.5" rx="3.75" fill="url(#cooling-patch)" />
-        <rect x="14" y="9.5" width="20" height="7.5" rx="3.75" stroke="#bfdbfe" strokeWidth="0.7" opacity="0.8" />
-        
-        {/* Patch Medical Cross Icon */}
-        <path d="M24 11.5V15M22.2 13.2H25.8" stroke="#ffffff" strokeWidth="1.4" strokeLinecap="round" />
-        {/* Specular sheen on patch */}
-        <path d="M16 11.5C18 10.5 22 10.5 25 10.5" stroke="#ffffff" strokeWidth="1" strokeLinecap="round" opacity="0.65" />
-
-        {/* Specular Gloss on Top Head */}
-        <path
-          d="M13 18C15 13 19 10 24 10"
+          d="M11 15C13 11 18 10 24 10C30 10 35 11 37 15"
           stroke="#ffffff"
-          strokeWidth="1.8"
+          strokeWidth="1.2"
           strokeLinecap="round"
-          opacity="0.4"
+          opacity="0.5"
         />
-      </g>
 
-      {/* Clinical Thermometer sticking out of mouth */}
-      <g filter="url(#sakit-person-shadow)">
-        {/* Thermometer Stem */}
-        <line x1="24" y1="31" x2="36" y2="40" stroke="url(#thermometer-glass)" strokeWidth="4.5" strokeLinecap="round" />
-        <line x1="24" y1="31" x2="36" y2="40" stroke="#cbd5e1" strokeWidth="4.5" strokeLinecap="round" opacity="0.4" />
-        
-        {/* Red Mercury Thread */}
-        <line x1="25" y1="32" x2="36" y2="40" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
-        
-        {/* Mercury Bulb at Tip */}
-        <circle cx="37" cy="41" r="3.5" fill="#dc2626" />
-        <circle cx="37" cy="41" r="3.5" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
-        <circle cx="36" cy="40" r="1" fill="#ffffff" opacity="0.9" />
+        {/* Embossed 3D Porcelain Medical Cross */}
+        <g>
+          {/* Cross Drop Shadow */}
+          <path
+            d="M21 16H27V21H32V27H27V32H21V27H16V21H21V16Z"
+            fill="#9f1239"
+            opacity="0.4"
+            transform="translate(0, 1.2)"
+          />
+          {/* Cross Body */}
+          <path
+            d="M21 15.5C21 14.67 21.67 14 22.5 14H25.5C26.33 14 27 14.67 27 15.5V21H32.5C33.33 21 34 21.67 34 22.5V25.5C34 26.33 33.33 27 32.5 27H27V32.5C27 33.33 26.33 34 25.5 34H22.5C21.67 34 21 33.33 21 32.5V27H15.5C14.67 27 14 26.33 14 25.5V22.5C14 21.67 14.67 21 15.5 21H21V15.5Z"
+            fill="url(#sakit-cross)"
+          />
+          {/* Subtle Inner Bevel */}
+          <path
+            d="M21.5 15C21.5 14.8 21.8 14.5 22.5 14.5H25.5C26.2 14.5 26.5 14.8 26.5 15V21.5H32.5C33.2 21.5 33.5 21.8 33.5 22.5V25.5C33.5 26.2 33.2 26.5 32.5 26.5H26.5V32.5C26.5 33.2 26.2 33.5 25.5 33.5H22.5C21.8 33.5 21.5 33.2 21.5 32.5V26.5H15.5C14.8 26.5 14.5 26.2 14.5 25.5V22.5C14.5 21.8 14.8 21.5 15.5 21.5H21.5V15Z"
+            stroke="#ffffff"
+            strokeWidth="0.6"
+            opacity="0.6"
+          />
+        </g>
+
+        {/* Specular Micro-Dot Highlight */}
+        <circle cx="23" cy="18" r="1" fill="#ffffff" opacity="0.8" />
       </g>
     </svg>
   )

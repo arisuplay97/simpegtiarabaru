@@ -8,7 +8,8 @@ import {
   TrendingUp, Timer, UserCheck, Thermometer,
   FileText,
   Bell, CheckCircle2, XCircle, ArrowUpRight,
-  CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2
+  CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2,
+  Briefcase, Building2
 } from "lucide-react"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
@@ -361,13 +362,15 @@ export default function MobileDashboard() {
                   )}
                 </h1>
 
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px] font-medium truncate max-w-[200px]">
-                    {jabatan}{subBidang ? ` · ${subBidang}` : ""}
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800/90 border border-zinc-700/70 text-zinc-200 text-[11px] font-medium truncate max-w-[190px] shadow-2xs">
+                    <Briefcase className="w-3 h-3 text-zinc-400 shrink-0" />
+                    <span className="truncate">{jabatan}{subBidang ? ` · ${subBidang}` : ""}</span>
                   </span>
                   {bidang && (
-                    <span className="text-zinc-400 text-[11px] font-normal truncate max-w-[150px]">
-                      {bidang}
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800/90 border border-zinc-700/70 text-zinc-300 text-[11px] font-medium truncate max-w-[160px] shadow-2xs">
+                      <Building2 className="w-3 h-3 text-zinc-400 shrink-0" />
+                      <span className="truncate">{bidang}</span>
                     </span>
                   )}
                 </div>
@@ -428,13 +431,23 @@ export default function MobileDashboard() {
 
 
 
-        {/* Kontrak Warning */}
+        {/* Kontrak Warning (Executive Clean Modern) */}
         {summary?.sisaKontrak !== undefined && summary.sisaKontrak <= 60 && (
-          <div className="rounded-2xl p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 flex items-start gap-3">
-            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-            <div className="text-xs leading-relaxed">
-              <p className="font-semibold">Masa Kontrak Segera Berakhir</p>
-              <p className="text-amber-700 dark:text-amber-300 mt-0.5">Sisa <strong>{summary.sisaKontrak} hari</strong>. Koordinasikan pembaruan dengan HRD.</p>
+          <div className="rounded-2xl p-4 bg-zinc-900 border border-zinc-800 shadow-xs text-white relative overflow-hidden flex items-start gap-3.5">
+            <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+            <div className="h-8 w-8 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-400 mt-0.5">
+              <AlertCircle className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0 text-xs">
+              <div className="flex items-center gap-2">
+                <p className="font-bold text-zinc-100 tracking-tight">Masa Kontrak Kerja</p>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Sisa {summary.sisaKontrak} Hari
+                </span>
+              </div>
+              <p className="text-zinc-400 mt-1 leading-relaxed text-[11px]">
+                Masa kontrak Anda akan segera berakhir. Koordinasikan pembaruan status kontrak dengan bagian HRD.
+              </p>
             </div>
           </div>
         )}
@@ -574,7 +587,7 @@ export default function MobileDashboard() {
               <span className="truncate"><strong>Sisa Cuti:</strong> Kuota tahunan ({pegawai?.saldoCuti ?? 12} hari)</span>
             </div>
             {cutiCount > 0 && (
-              <span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0 ml-1">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 text-zinc-700 dark:text-zinc-300 font-semibold shrink-0 ml-1">
                 Pakai bln ini: {cutiCount}
               </span>
             )}
