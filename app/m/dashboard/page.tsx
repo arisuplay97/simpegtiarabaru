@@ -243,6 +243,16 @@ export default function MobileDashboard() {
         const s = await getEmployeeAttendanceSummary(pegawaiRes.id)
         setSummary(s)
 
+        if (s && typeof window !== "undefined") {
+          try {
+            localStorage.setItem("attendance_today", JSON.stringify({
+              date: format(new Date(), "yyyy-MM-dd"),
+              sudahAbsenMasuk: Boolean(s.sudahAbsenMasuk),
+              sudahAbsenPulang: Boolean(s.sudahAbsenPulang)
+            }))
+          } catch {}
+        }
+
         // Jalankan smart reminder (non-blocking)
         checkAndSendSmartReminder({
           batasMasuk: s?.batasAbsenMasuk,

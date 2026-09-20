@@ -432,10 +432,10 @@
   <!-- Check-In / Check-Out Switcher -->
   <div class="type-switch">
     <button id="btn-in" class="type-btn active masuk" onclick="setType('CHECK_IN')">
-      <span>●</span> Masuk (Check-In)
+      <span>●</span> Absen Pagi (Masuk)
     </button>
     <button id="btn-out" class="type-btn pulang" onclick="setType('CHECK_OUT')">
-      <span>●</span> Pulang (Check-Out)
+      <span>●</span> Absen Sore (Pulang)
     </button>
   </div>
 
@@ -583,15 +583,52 @@
       if (type === "CHECK_IN") {
         btnIn.className = "type-btn active masuk";
         btnOut.className = "type-btn pulang";
-        label.textContent = "TAP MASUK";
-        actionText.textContent = "Tap pad untuk simpan Presensi Masuk";
+        label.textContent = "TAP ABSEN PAGI";
+        actionText.textContent = "Tap pad untuk simpan Absen Pagi (Masuk)";
       } else {
         btnIn.className = "type-btn masuk";
         btnOut.className = "type-btn active pulang";
-        label.textContent = "TAP PULANG";
-        actionText.textContent = "Tap pad untuk simpan Presensi Pulang";
+        label.textContent = "TAP ABSEN SORE";
+        actionText.textContent = "Tap pad untuk simpan Absen Sore (Pulang)";
       }
     }
+
+    // ─── AUTO DETECT ATTENDANCE TYPE (PAGI / SORE) ───
+    function autoDetectAttendanceType() {
+      try {
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, "0");
+        var d = String(now.getDate()).padStart(2, "0");
+        var todayStr = y + "-" + m + "-" + d;
+
+        // 1. Cek dari localStorage 'attendance_today'
+        var cached = localStorage.getItem("attendance_today");
+        if (cached) {
+          var parsed = JSON.parse(cached);
+          if (parsed.date === todayStr) {
+            if (parsed.sudahAbsenMasuk && !parsed.sudahAbsenPulang) {
+              setType("CHECK_OUT");
+              return;
+            } else if (!parsed.sudahAbsenMasuk) {
+              setType("CHECK_IN");
+              return;
+            } else if (parsed.sudahAbsenMasuk && parsed.sudahAbsenPulang) {
+              setType("CHECK_OUT");
+              return;
+            }
+          }
+        }
+
+        // 2. Default berbasis waktu jika belum ada cache (jam 12:00 ke atas = Sore/Pulang)
+        if (now.getHours() >= 12) {
+          setType("CHECK_OUT");
+        } else {
+          setType("CHECK_IN");
+        }
+      } catch (e) {}
+    }
+    autoDetectAttendanceType();
 
     // ─── GPS LOCATOR ───
     function requestGps() {
@@ -654,9 +691,10 @@
         try {
           var tx = db.transaction(STORE_NAME, "readonly");
           var store = tx.objectStore(STORE_NAME);
-          var countReq = store.count();
-          countReq.onsuccess = function() {
-            var count = countReq.result;
+          var getAllReq = store.getAll();
+          getAllReq.onsuccess = function() {
+            var items = getAllReq.result || [];
+            var count = items.length;
             var banner = document.getElementById("queue-banner");
             var desc = document.getElementById("queue-desc");
             if (count > 0) {
@@ -664,6 +702,27 @@
               banner.style.display = "flex";
             } else {
               banner.style.display = "none";
+            }
+
+            // Jika ada antrian presensi hari ini: jika sudah absen pagi (CHECK_IN), arahkan otomatis ke absen sore (CHECK_OUT)
+            var now = new Date();
+            var y = now.getFullYear();
+            var m = String(now.getMonth() + 1).padStart(2, "0");
+            var d = String(now.getDate()).padStart(2, "0");
+            var todayStr = y + "-" + m + "-" + d;
+
+            var todayItems = items.filter(function(item) {
+              var itemDate = new Date(item.timestamp);
+              var iy = itemDate.getFullYear();
+              var im = String(itemDate.getMonth() + 1).padStart(2, "0");
+              var id = String(itemDate.getDate()).padStart(2, "0");
+              return (iy + "-" + im + "-" + id) === todayStr;
+            });
+
+            var hasIn = todayItems.some(function(i) { return i.tipe === "CHECK_IN"; });
+            var hasOut = todayItems.some(function(i) { return i.tipe === "CHECK_OUT"; });
+            if (hasIn && !hasOut) {
+              setType("CHECK_OUT");
             }
           };
         } catch (e) {}
@@ -708,6 +767,18 @@
         addReq.onsuccess = function() {
           isSaving = false;
           triggerHaptic("success");
+          try {
+            var now = new Date();
+            var y = now.getFullYear();
+            var m = String(now.getMonth() + 1).padStart(2, "0");
+            var d = String(now.getDate()).padStart(2, "0");
+            var todayStr = y + "-" + m + "-" + d;
+            localStorage.setItem("attendance_today", JSON.stringify({
+              date: todayStr,
+              sudahAbsenMasuk: true,
+              sudahAbsenPulang: record.tipe === "CHECK_OUT"
+            }));
+          } catch (e) {}
           checkQueueCount();
           showReceipt(record);
         };
@@ -726,10 +797,10 @@
       var m = String(now.getMinutes()).padStart(2, "0");
 
       document.getElementById("receipt-title").textContent = 
-        record.tipe === "CHECK_IN" ? "Presensi Masuk Tersimpan" : "Presensi Pulang Tersimpan";
+        record.tipe === "CHECK_IN" ? "Presensi Masuk (Pagi) Tersimpan" : "Presensi Pulang (Sore) Tersimpan";
       document.getElementById("receipt-time").textContent = "Pukul " + h + ":" + m + " WITA";
       document.getElementById("receipt-type").textContent = 
-        record.tipe === "CHECK_IN" ? "Check-In (Masuk)" : "Check-Out (Pulang)";
+        record.tipe === "CHECK_IN" ? "Absen Pagi (Masuk)" : "Absen Sore (Pulang)";
       document.getElementById("receipt-acc").textContent = "±" + record.accuracy + " meter";
 
       document.getElementById("receipt-modal").style.display = "flex";

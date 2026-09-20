@@ -53,7 +53,22 @@ export default function MobileFingerprint() {
   const [isOfflineQueued, setIsOfflineQueued] = useState(false)
   const [pendingQueueCount, setPendingQueueCount] = useState(0)
   const [resultData, setResultData] = useState<{ status: string; tipe: string; waktu?: string } | null>(null)
-  const [isCheckout, setIsCheckout] = useState(false)
+  const [isCheckout, setIsCheckout] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false
+    try {
+      const todayStr = format(new Date(), "yyyy-MM-dd")
+      const cached = localStorage.getItem("attendance_today")
+      if (cached) {
+        const d = JSON.parse(cached)
+        if (d.date === todayStr) {
+          if (d.sudahAbsenMasuk && !d.sudahAbsenPulang) return true
+          if (!d.sudahAbsenMasuk) return false
+        }
+      }
+    } catch {}
+    // Smart default: jam 12:00 ke atas default ke Pulang (Sore), sebelum jam 12:00 default ke Masuk (Pagi)
+    return new Date().getHours() >= 12
+  })
   const [isLoadingStatus, setIsLoadingStatus] = useState(true)
 
   // Anti-Fake GPS State
@@ -76,17 +91,43 @@ export default function MobileFingerprint() {
     try {
       const q = await getMobileQueue()
       setPendingQueueCount(q.length)
+      
+      // Jika ada item antrian offline hari ini, sesuaikan status arah absen
+      const todayStr = format(new Date(), "yyyy-MM-dd")
+      const todayItems = q.filter(item => format(new Date(item.timestamp), "yyyy-MM-dd") === todayStr)
+      const hasQueuedIn = todayItems.some(i => i.tipe === "CHECK_IN")
+      const hasQueuedOut = todayItems.some(i => i.tipe === "CHECK_OUT")
+      if (hasQueuedIn && !hasQueuedOut) {
+        setIsCheckout(true)
+      }
     } catch {}
   }
 
   const checkStatus = async () => {
     try {
+      const todayStr = format(new Date(), "yyyy-MM-dd")
       const res = await fetch("/api/pegawai/me")
       if (res.ok) {
         const p = await res.json()
         const s = await getEmployeeAttendanceSummary(p.id)
-        if (s?.sudahAbsenMasuk && !s?.sudahAbsenPulang) {
-          setIsCheckout(true)
+        if (s) {
+          try {
+            localStorage.setItem("attendance_today", JSON.stringify({
+              date: todayStr,
+              sudahAbsenMasuk: Boolean(s.sudahAbsenMasuk),
+              sudahAbsenPulang: Boolean(s.sudahAbsenPulang)
+            }))
+          } catch {}
+
+          if (s.sudahAbsenMasuk && !s.sudahAbsenPulang) {
+            // Sudah absen pagi dan sekarang waktunya absen sore -> langsung arahkan ke Absen Pulang
+            setIsCheckout(true)
+          } else if (!s.sudahAbsenMasuk) {
+            // Belum absen pagi -> langsung arahkan ke Absen Pagi (Masuk)
+            setIsCheckout(false)
+          } else if (s.sudahAbsenMasuk && s.sudahAbsenPulang) {
+            setIsCheckout(true)
+          }
         }
       }
     } catch (e) {
@@ -212,6 +253,16 @@ export default function MobileFingerprint() {
         setDone(true)
         updateQueueCount()
         triggerHaptic("success")
+
+        try {
+          const todayStr = format(new Date(), "yyyy-MM-dd")
+          localStorage.setItem("attendance_today", JSON.stringify({
+            date: todayStr,
+            sudahAbsenMasuk: true,
+            sudahAbsenPulang: isCheckout
+          }))
+        } catch {}
+
         toast.success("Presensi tersimpan di antrian offline! Akan disinkronkan otomatis saat ada sinyal.")
         return
       } catch (err: any) {
@@ -253,12 +304,22 @@ export default function MobileFingerprint() {
 
       toast.dismiss("absen-error")
       triggerHaptic("success")
+      const finalTipe = data.tipe || (isCheckout ? "CHECK_OUT" : "CHECK_IN")
       setResultData({ 
         status: data.status || "HADIR", 
-        tipe: data.tipe || (isCheckout ? "CHECK_OUT" : "CHECK_IN"),
+        tipe: finalTipe,
         waktu: format(new Date(), "HH:mm")
       })
       setDone(true)
+
+      try {
+        const todayStr = format(new Date(), "yyyy-MM-dd")
+        localStorage.setItem("attendance_today", JSON.stringify({
+          date: todayStr,
+          sudahAbsenMasuk: true,
+          sudahAbsenPulang: finalTipe === "CHECK_OUT"
+        }))
+      } catch {}
     } catch (err: any) {
       // Jika fetch gagal karena koneksi tiba-tiba putus di lapangan, fallback simpan offline queue!
       if (!navigator.onLine || err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
@@ -315,8 +376,8 @@ export default function MobileFingerprint() {
 
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center tracking-tight">
             {isOfflineQueued 
-              ? (isCheckIn ? "Presensi Masuk Tersimpan" : "Presensi Pulang Tersimpan")
-              : (isCheckIn ? "Presensi Masuk Berhasil" : "Presensi Pulang Berhasil")
+              ? (isCheckIn ? "Presensi Masuk (Pagi) Tersimpan" : "Presensi Pulang (Sore) Tersimpan")
+              : (isCheckIn ? "Presensi Masuk (Pagi) Berhasil" : "Presensi Pulang (Sore) Berhasil")
             }
           </h2>
 
@@ -340,7 +401,7 @@ export default function MobileFingerprint() {
             <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
               <span className="text-zinc-500 dark:text-zinc-400">Jenis Presensi</span>
               <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                {isCheckIn ? "Check-In (Masuk)" : "Check-Out (Pulang)"}
+                {isCheckIn ? "Absen Pagi (Masuk)" : "Absen Sore (Pulang)"}
               </span>
             </div>
 
@@ -466,7 +527,7 @@ export default function MobileFingerprint() {
       {/* Watermark Clock Card */}
       <WatermarkClock />
 
-      {/* Type Switcher (Check-In Masuk / Check-Out Pulang) */}
+      {/* Type Switcher (Absen Pagi Masuk / Absen Sore Pulang) */}
       <div className="flex bg-[#18181b] border border-[#27272a] rounded-full p-1 max-w-xs w-full shadow-inner mb-4">
         <button
           type="button"
@@ -482,7 +543,7 @@ export default function MobileFingerprint() {
           )}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-current" />
-          Masuk (Check-In)
+          Absen Pagi (Masuk)
         </button>
         <button
           type="button"
@@ -498,7 +559,7 @@ export default function MobileFingerprint() {
           )}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-current" />
-          Pulang (Check-Out)
+          Absen Sore (Pulang)
         </button>
       </div>
 
@@ -560,11 +621,11 @@ export default function MobileFingerprint() {
                   Memproses Presensi...
                 </>
               ) : !isOnline ? (
-                "Tap untuk Simpan Offline"
+                isCheckout ? "Tap untuk Pulang (Offline)" : "Tap untuk Masuk (Offline)"
               ) : isCheckout ? (
-                "Tap Layar untuk Pulang"
+                "Tap Layar untuk Absen Sore (Pulang)"
               ) : (
-                "Tap Layar untuk Masuk"
+                "Tap Layar untuk Absen Pagi (Masuk)"
               )}
             </span>
           </div>
