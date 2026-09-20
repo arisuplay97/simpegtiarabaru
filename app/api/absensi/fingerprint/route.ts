@@ -80,16 +80,18 @@ export async function POST(req: Request) {
       const body = await req.json()
       const { latitude = 0, longitude = 0, accuracy = 999, offlineSync = false, offlineTimestamp } = body
 
-    if (!offlineSync) {
-      if (accuracy > MAX_ALLOWED_ACCURACY) {
-        return NextResponse.json({ error: `Akurasi GPS terlalu rendah (${Math.round(accuracy)}m). Pastikan GPS aktif.` }, { status: 400 })
-      }
-      if (latitude !== 0 && longitude !== 0 && !isCoordinateValid(latitude, longitude)) {
-        return NextResponse.json({ error: "Koordinat GPS tidak valid. Sistem mendeteksi lokasi di luar wilayah wajar." }, { status: 400 })
-      }
+      // Validasi Anti-Fake GPS Universal (Wajib berlaku baik untuk Online maupun Offline Sync)
       if (accuracy > 0 && accuracy < 3) {
         return NextResponse.json({ error: "GPS terlalu akurat, terindikasi menggunakan fake/mock GPS." }, { status: 400 })
       }
+      if (latitude !== 0 && longitude !== 0 && !isCoordinateValid(latitude, longitude)) {
+        return NextResponse.json({ error: "Koordinat GPS tidak valid. Sistem mendeteksi lokasi di luar wilayah Indonesia." }, { status: 400 })
+      }
+
+      if (!offlineSync) {
+        if (accuracy > MAX_ALLOWED_ACCURACY) {
+          return NextResponse.json({ error: `Akurasi GPS terlalu rendah (${Math.round(accuracy)}m). Pastikan GPS aktif.` }, { status: 400 })
+        }
       
       // Radius check logic (mendukung multi-titik koordinat per lokasi)
       if (!pegawai.bebasAbsensi) {

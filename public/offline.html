@@ -630,6 +630,21 @@
     }
     autoDetectAttendanceType();
 
+    // ─── ANTI FAKE GPS CHECKER ───
+    function checkFakeGps(pos) {
+      var c = pos.coords;
+      if (c.mocked === true || c.isMock === true) {
+        return "Fitur 'Mock Location' atau aplikasi Fake GPS terdeteksi aktif di HP Anda.";
+      }
+      if (c.accuracy <= 0 || (c.accuracy > 0 && c.accuracy < 3.2)) {
+        return "Tingkat akurasi tidak wajar (±" + c.accuracy + "m). GPS satelit alami memiliki variasi jitter minimal 4m–30m.";
+      }
+      if (c.latitude === Math.round(c.latitude) && c.longitude === Math.round(c.longitude)) {
+        return "Koordinat latitude & longitude bulat sempurna tanpa desimal riil satelit.";
+      }
+      return null;
+    }
+
     // ─── GPS LOCATOR ───
     function requestGps() {
       var statusEl = document.getElementById("gps-status");
@@ -644,6 +659,14 @@
 
       navigator.geolocation.getCurrentPosition(
         function(pos) {
+          var fakeReason = checkFakeGps(pos);
+          if (fakeReason) {
+            gpsCoords = null;
+            statusEl.className = "gps-bar";
+            textEl.textContent = "Fake GPS Terdeteksi!";
+            alert("Aplikasi Fake GPS Terdeteksi!\n\n" + fakeReason + "\n\nHarap matikan aplikasi Fake GPS dan nonaktifkan opsi 'Mock Location' di Pengaturan HP Anda.");
+            return;
+          }
           gpsCoords = {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
