@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
@@ -8,8 +8,10 @@ import {
   TrendingUp, Timer, UserCheck, Thermometer,
   FileText,
   Bell, CheckCircle2, XCircle, ArrowUpRight,
-  CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2
+  CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2,
+  RefreshCw, ArrowDown
 } from "lucide-react"
+import { triggerHaptic } from "@/lib/pwa/haptics"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
 import { getBannersPwa, BannerItem } from "@/lib/actions/banner"
@@ -104,6 +106,72 @@ export default function MobileDashboard() {
   const [syncError, setSyncError] = useState<string | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
 
+  // Pull to Refresh State
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isPulling, setIsPulling] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const startYRef = useRef(0)
+  const isPullingRef = useRef(false)
+  const hasTriggeredHapticRef = useRef(false)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (typeof window !== "undefined" && window.scrollY <= 0 && !isRefreshing) {
+      startYRef.current = e.touches[0].clientY
+      isPullingRef.current = true
+      setIsPulling(true)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPullingRef.current || isRefreshing) return
+    const currentY = e.touches[0].clientY
+    const diff = currentY - startYRef.current
+
+    if (diff > 0 && typeof window !== "undefined" && window.scrollY <= 0) {
+      // Damped pull distance curve
+      const dist = Math.min(Math.pow(diff, 0.82) * 1.6, 95)
+      setPullDistance(dist)
+
+      // Haptic threshold feedback at 68px
+      if (dist >= 68 && !hasTriggeredHapticRef.current) {
+        triggerHaptic("medium")
+        hasTriggeredHapticRef.current = true
+      } else if (dist < 68 && hasTriggeredHapticRef.current) {
+        hasTriggeredHapticRef.current = false
+      }
+    } else {
+      setPullDistance(0)
+    }
+  }
+
+  const handleTouchEnd = async () => {
+    if (!isPullingRef.current) return
+    isPullingRef.current = false
+    setIsPulling(false)
+
+    if (pullDistance >= 68 && !isRefreshing) {
+      triggerHaptic("success")
+      setIsRefreshing(true)
+      setPullDistance(56)
+
+      try {
+        await Promise.allSettled([
+          fetchData(),
+          checkOfflineQueue()
+        ])
+      } finally {
+        setTimeout(() => {
+          setPullDistance(0)
+          setIsRefreshing(false)
+          hasTriggeredHapticRef.current = false
+        }, 400)
+      }
+    } else {
+      setPullDistance(0)
+      hasTriggeredHapticRef.current = false
+    }
+  }
+
   useEffect(() => {
     const hour = new Date().getHours()
     if (hour < 11) setGreeting("Selamat Pagi")
@@ -170,14 +238,6 @@ export default function MobileDashboard() {
 
       if (pegawaiRes) {
         setPegawai(pegawaiRes)
-        
-        if (typeof window !== "undefined") {
-          localStorage.setItem("offlineFaceStatus", JSON.stringify({
-            faceRegistered: pegawaiRes.faceRegistered,
-            faceDescriptor: pegawaiRes.faceDescriptor,
-            id: pegawaiRes.id
-          }))
-        }
 
         // Fase 2: Ambil summary absensi (tergantung pegawaiId)
         const s = await getEmployeeAttendanceSummary(pegawaiRes.id)
@@ -264,7 +324,44 @@ export default function MobileDashboard() {
   const totalWorkdays = hadirCount + sakitCount + izinCount + cutiCount
 
   return (
-    <div className="min-h-screen pb-24 font-sans bg-zinc-50 dark:bg-[#09090b]">
+    <div 
+      className="min-h-screen pb-24 font-sans bg-zinc-50 dark:bg-[#09090b] relative overscroll-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* ===== PULL TO REFRESH INDICATOR ===== */}
+      <div 
+        className="fixed top-4 left-0 right-0 z-50 flex justify-center pointer-events-none transition-all duration-150"
+        style={{
+          transform: `translateY(${Math.max(pullDistance - 50, -60)}px)`,
+          opacity: pullDistance > 12 ? Math.min(pullDistance / 45, 1) : 0,
+        }}
+      >
+        <div className={cn(
+          "px-4 py-2 rounded-full shadow-xl border backdrop-blur-md flex items-center gap-2 text-xs font-semibold tracking-wide transition-all",
+          pullDistance >= 68 || isRefreshing
+            ? "bg-blue-600 text-white border-blue-400/50 shadow-blue-600/30 ring-2 ring-blue-500/20"
+            : "bg-white/95 dark:bg-zinc-900/95 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-800"
+        )}>
+          {isRefreshing ? (
+            <>
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-white" />
+              <span>Memperbarui data...</span>
+            </>
+          ) : pullDistance >= 68 ? (
+            <>
+              <ArrowDown className="h-3.5 w-3.5 rotate-180 transition-transform duration-200" />
+              <span>Lepas untuk perbarui</span>
+            </>
+          ) : (
+            <>
+              <ArrowDown className="h-3.5 w-3.5 transition-transform duration-200" />
+              <span>Tarik ke bawah</span>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* ===== HERO HEADER ===== */}
       <div 

@@ -75,7 +75,7 @@ export default function MobileAbsensi() {
             </div>
             <div>
               <p className="font-bold text-xs tracking-wide uppercase">Presensi Sekarang</p>
-              <p className="text-[11px] text-zinc-300 dark:text-zinc-600">Tap untuk check-in biometrik</p>
+              <p className="text-[11px] text-zinc-300 dark:text-zinc-600">Tap layar untuk check-in</p>
             </div>
           </div>
           <ChevronRight className="h-4 w-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />

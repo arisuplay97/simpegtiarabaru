@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation"
 import { Home, Wallet, Fingerprint, CalendarDays, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+import { triggerHaptic } from "@/lib/pwa/haptics"
+
 const tabs = [
   { href: "/m/dashboard", label: "Beranda", icon: Home },
   { href: "/m/slip-gaji", label: "Slip Gaji", icon: Wallet },
@@ -33,6 +35,7 @@ export function MobileBottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
+                onClick={() => triggerHaptic("medium")}
                 className="relative flex flex-col items-center justify-center w-16 group"
               >
                 <div
@@ -59,6 +62,7 @@ export function MobileBottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
+              onClick={() => triggerHaptic("light")}
               className="flex w-14 flex-col items-center justify-center py-1 gap-1 group active:scale-95 transition-transform"
             >
               <div

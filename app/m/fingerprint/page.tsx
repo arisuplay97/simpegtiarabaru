@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { detectFakeGps } from "@/lib/pwa/anti-fake-gps"
 import { FakeGpsModal } from "@/components/mobile/fake-gps-modal"
 import { queueMobileAbsensi, syncMobileOfflineQueue, getMobileQueue } from "@/lib/offline/absensi-queue"
+import { triggerHaptic } from "@/lib/pwa/haptics"
 
 function WatermarkClock() {
   const [time, setTime] = useState<Date | null>(null)
@@ -177,8 +178,12 @@ export default function MobileFingerprint() {
   }, [])
 
   const submit = useCallback(async () => {
+    // Taptic feedback saat tap dimulai
+    triggerHaptic("medium")
+
     // 1. Pastikan GPS tersedia jika online
     if (!location && isOnline) {
+      triggerHaptic("error")
       toast.error("Menunggu koordinat GPS... Pastikan GPS aktif.", { id: "absen-error", duration: 4000 })
       return
     }
@@ -202,9 +207,11 @@ export default function MobileFingerprint() {
         })
         setDone(true)
         updateQueueCount()
+        triggerHaptic("success")
         toast.success("Presensi tersimpan di antrian offline! Akan disinkronkan otomatis saat ada sinyal.")
         return
       } catch (err: any) {
+        triggerHaptic("error")
         toast.error(err.message || "Gagal menyimpan presensi offline.")
         return
       } finally {
@@ -231,6 +238,7 @@ export default function MobileFingerprint() {
 
       // Deteksi Rejection Fake GPS dari Server
       if (!response.ok) {
+        triggerHaptic("error")
         if (data.error && (data.error.toLowerCase().includes("fake") || data.error.toLowerCase().includes("mock"))) {
           setFakeGpsReason(data.error)
           setShowFakeGpsModal(true)
@@ -240,6 +248,7 @@ export default function MobileFingerprint() {
       }
 
       toast.dismiss("absen-error")
+      triggerHaptic("success")
       setResultData({ 
         status: data.status || "HADIR", 
         tipe: data.tipe || (isCheckout ? "CHECK_OUT" : "CHECK_IN"),
@@ -264,10 +273,12 @@ export default function MobileFingerprint() {
           })
           setDone(true)
           updateQueueCount()
+          triggerHaptic("success")
           toast.info("Koneksi terputus saat mengirim. Presensi telah diamankan ke antrian offline.")
           return
         } catch {}
       }
+      triggerHaptic("error")
       toast.error(err.message || "Terjadi kesalahan koneksi.", { id: "absen-error" })
     } finally {
       setIsSubmitting(false)
@@ -318,7 +329,7 @@ export default function MobileFingerprint() {
               <span className="text-zinc-500 dark:text-zinc-400">Metode</span>
               <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                Biometrik GPS & Wajah
+                Tap Layar & GPS
               </span>
             </div>
 

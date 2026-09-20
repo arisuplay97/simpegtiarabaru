@@ -1,25 +1,22 @@
 // Service Worker for ASIK Mobile PWA
-// - Caching face-api models for offline detection
+// - Full Offline Navigation Fallback Shell (/offline.html)
 // - Web Push Notifications & Attendance Reminders
 // - Background Sync for offline attendance queue
 
-const CACHE_NAME = "hris-face-models-v2";
+const CACHE_NAME = "hris-pwa-v3";
 
-const MODELS_TO_CACHE = [
-  "/models/tiny_face_detector_model-weights_manifest.json",
-  "/models/tiny_face_detector_model-shard1",
-  "/models/face_landmark_68_model-weights_manifest.json",
-  "/models/face_landmark_68_model-shard1",
-  "/models/face_recognition_model-weights_manifest.json",
-  "/models/face_recognition_model-shard1",
-  "/models/face_recognition_model-shard2"
+const PRECACHE_ASSETS = [
+  "/offline.html",
+  "/putih.png",
+  "/slip.png",
+  "/manifest.json"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return Promise.allSettled(
-        MODELS_TO_CACHE.map(url => cache.add(url))
+        PRECACHE_ASSETS.map((url) => cache.add(url))
       );
     })
   );
@@ -41,31 +38,65 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch handler for cached AI models
+// Fetch handler with full offline navigation fallback
 self.addEventListener("fetch", (event) => {
+  // 1. Navigation requests: Network-first, fallback to /offline.html
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const cachedOffline = await cache.match("/offline.html");
+        if (cachedOffline) {
+          return cachedOffline;
+        }
+        return new Response("Mode Offline ASIK Mobile - Koneksi terputus.", {
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      })
+    );
+    return;
+  }
+
   const url = new URL(event.request.url);
-  
-  if (url.pathname.startsWith('/models/')) {
+
+  // 2. Static offline shell assets cache
+  if (
+    url.pathname === "/offline.html" ||
+    url.pathname === "/putih.png" ||
+    url.pathname === "/slip.png" ||
+    url.pathname === "/manifest.json"
+  ) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
+        if (cachedResponse) return cachedResponse;
         return fetch(event.request).then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-            return networkResponse;
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           }
-
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
           return networkResponse;
         });
       })
     );
+    return;
+  }
+
+  // 3. Cached AI models if accessed
+  if (url.pathname.startsWith("/models/")) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        return fetch(event.request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
+            return networkResponse;
+          }
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return networkResponse;
+        });
+      })
+    );
+    return;
   }
 });
 
