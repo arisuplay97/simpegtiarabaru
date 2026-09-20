@@ -550,10 +550,10 @@ export function IconSlipGaji3D({ className = "w-8 h-8", size }: Icon3DProps) {
 
 /**
  * 7. ICON HADIR 3D (REKAP PRESENSI)
- * Lencana medali 3D hijau zamrud dengan centang tebal dan kilau specular
+ * Kartu ID Badge Pegawai 3D dengan tali lanyard dan lencana verified aktif hijau
  */
 export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
-  const s = size || 32
+  const s = size || 38
   return (
     <svg
       width={s}
@@ -564,43 +564,70 @@ export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="hadir-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#10b981" floodOpacity="0.3" />
+        <filter id="hadir-badge-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#059669" floodOpacity="0.28" />
           <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
         </filter>
-        <linearGradient id="hadir-body" x1="8" y1="8" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#34d399" />
-          <stop offset="50%" stopColor="#10b981" />
-          <stop offset="100%" stopColor="#047857" />
+        <linearGradient id="badge-card-bg" x1="12" y1="8" x2="36" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="60%" stopColor="#f0fdf4" />
+          <stop offset="100%" stopColor="#dcfce7" />
         </linearGradient>
-        <linearGradient id="hadir-rim" x1="10" y1="10" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#a7f3d0" />
-          <stop offset="100%" stopColor="#065f46" />
+        <linearGradient id="badge-header" x1="12" y1="8" x2="36" y2="16" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#34d399" />
+          <stop offset="100%" stopColor="#059669" />
+        </linearGradient>
+        <linearGradient id="badge-avatar-bg" x1="18" y1="16" x2="30" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#e2e8f0" />
+          <stop offset="100%" stopColor="#cbd5e1" />
+        </linearGradient>
+        <linearGradient id="hadir-verified-glow" x1="26" y1="26" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#10b981" />
+          <stop offset="60%" stopColor="#059669" />
+          <stop offset="100%" stopColor="#047857" />
         </linearGradient>
       </defs>
 
-      {/* 3D Circular Shield */}
-      <g filter="url(#hadir-shadow)">
-        <circle cx="24" cy="24" r="19" fill="url(#hadir-body)" />
-        <circle cx="24" cy="24" r="17.5" stroke="url(#hadir-rim)" strokeWidth="1.5" opacity="0.6" />
-        
-        {/* Specular Gloss Highlight */}
-        <path
-          d="M12 18C14 13 18 10 24 10"
-          stroke="#ffffff"
-          strokeWidth="2"
-          strokeLinecap="round"
-          opacity="0.6"
-        />
+      {/* Lanyard Strap & Top Clip */}
+      <path d="M22 2V6M26 2V6" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round" />
+      <rect x="20" y="5" width="8" height="4" rx="1.5" fill="#94a3b8" />
+      <rect x="22" y="6" width="4" height="2" rx="0.5" fill="#475569" />
 
-        {/* 3D Checkmark */}
+      {/* ID Badge Card Body */}
+      <g filter="url(#hadir-badge-shadow)">
+        <rect x="11" y="8" width="26" height="34" rx="5" fill="url(#badge-card-bg)" />
+        <rect x="11" y="8" width="26" height="34" rx="5" stroke="#86efac" strokeWidth="0.8" opacity="0.6" />
+        
+        {/* Card Header Stripe */}
+        <path d="M11 13C11 10.2386 13.2386 8 16 8H32C34.7614 8 37 10.2386 37 13V15H11V13Z" fill="url(#badge-header)" />
+        
+        {/* Avatar Photo Frame */}
+        <rect x="17" y="18" width="14" height="13" rx="3" fill="url(#badge-avatar-bg)" />
+        {/* Silhouette Head & Shoulders */}
+        <circle cx="24" cy="22" r="3" fill="#059669" opacity="0.85" />
+        <path d="M19.5 29C19.5 26.5 21.5 25.5 24 25.5C26.5 25.5 28.5 26.5 28.5 29V31H19.5V29Z" fill="#059669" opacity="0.85" />
+
+        {/* Text Lines */}
+        <rect x="16" y="34" width="12" height="1.8" rx="0.9" fill="#047857" opacity="0.7" />
+        <rect x="16" y="37.5" width="8" height="1.5" rx="0.75" fill="#94a3b8" />
+      </g>
+
+      {/* 3D Active Verified Checkmark Badge */}
+      <g filter="url(#hadir-badge-shadow)">
+        <circle cx="35" cy="35" r="8.5" fill="url(#hadir-verified-glow)" />
+        <circle cx="35" cy="35" r="7.8" stroke="#ffffff" strokeWidth="0.8" opacity="0.7" />
+        
+        {/* White Checkmark */}
         <path
-          d="M16 24.5L22 30.5L32.5 18.5"
+          d="M31.5 35L34 37.5L38.5 32"
           stroke="#ffffff"
-          strokeWidth="4"
+          strokeWidth="2.4"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+
+        {/* Specular Glint */}
+        <circle cx="32.5" cy="31" r="1.2" fill="#ffffff" opacity="0.8" />
       </g>
     </svg>
   )
@@ -608,10 +635,10 @@ export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
 
 /**
  * 8. ICON SAKIT 3D (REKAP PRESENSI)
- * Kapsul medis 3D miring dengan tanda palang kesehatan dan kilau kaca
+ * Karakter 3D orang sakit dengan kompres gel penurun demam di dahi dan termometer mulut
  */
 export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
-  const s = size || 32
+  const s = size || 38
   return (
     <svg
       width={s}
@@ -622,52 +649,91 @@ export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="sakit-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#f59e0b" floodOpacity="0.3" />
+        <filter id="sakit-person-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="3" stdDeviation="2.2" floodColor="#ea580c" floodOpacity="0.25" />
           <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
         </filter>
-        <linearGradient id="pill-top" x1="12" y1="12" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fbbf24" />
-          <stop offset="50%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#d97706" />
+        <radialGradient id="sick-face" cx="22" cy="20" r="19" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffedd5" />
+          <stop offset="55%" stopColor="#fed7aa" />
+          <stop offset="85%" stopColor="#fdba74" />
+          <stop offset="100%" stopColor="#fb923c" />
+        </radialGradient>
+        <linearGradient id="cooling-patch" x1="14" y1="8" x2="34" y2="16" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#93c5fd" />
+          <stop offset="50%" stopColor="#60a5fa" />
+          <stop offset="100%" stopColor="#3b82f6" />
         </linearGradient>
-        <linearGradient id="pill-bottom" x1="20" y1="20" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+        <linearGradient id="thermometer-glass" x1="24" y1="28" x2="40" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="60%" stopColor="#f8fafc" />
+          <stop offset="70%" stopColor="#f1f5f9" />
           <stop offset="100%" stopColor="#e2e8f0" />
         </linearGradient>
       </defs>
 
-      {/* Pill Capsule at 45 Degree Angle */}
-      <g filter="url(#sakit-shadow)" transform="rotate(-45 24 24)">
-        {/* Full Pill Base */}
-        <rect x="15" y="10" width="18" height="28" rx="9" fill="url(#pill-bottom)" />
-        
-        {/* Top Half (Warm Amber/Coral) */}
-        <path
-          d="M15 19C15 14.0294 19.0294 10 24 10C28.9706 10 33 14.0294 33 19V24H15V19Z"
-          fill="url(#pill-top)"
-        />
-        
-        {/* Center Divider Line */}
-        <line x1="15" y1="24" x2="33" y2="24" stroke="#d97706" strokeWidth="0.8" opacity="0.4" />
+      {/* 3D Round Face Base */}
+      <g filter="url(#sakit-person-shadow)">
+        <circle cx="24" cy="24" r="18" fill="url(#sick-face)" />
+        <circle cx="24" cy="24" r="17.2" stroke="#ffffff" strokeWidth="0.8" opacity="0.4" />
 
-        {/* Specular Pill Highlight */}
-        <path
-          d="M18 13C19.5 11.5 21.5 11 24 11"
-          stroke="#ffffff"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          opacity="0.75"
-        />
+        {/* Fever Flush Cheeks */}
+        <circle cx="14" cy="27" r="4.5" fill="#f43f5e" opacity="0.38" />
+        <circle cx="34" cy="27" r="4.5" fill="#f43f5e" opacity="0.38" />
 
-        {/* Medical Cross Sign */}
+        {/* Droopy/Sick Unwell Eyes */}
         <path
-          d="M24 16V22M21 19H27"
-          stroke="#ffffff"
+          d="M14.5 21.5C16 19 19 19 20.5 21.5"
+          stroke="#451a03"
           strokeWidth="2.2"
           strokeLinecap="round"
         />
+        <path
+          d="M27.5 21.5C29 19 32 19 33.5 21.5"
+          stroke="#451a03"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+
+        {/* Sad Downturned Mouth */}
+        <path
+          d="M20 31.5C22 29.8 26 29.8 28 31.5"
+          stroke="#7c2d12"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+
+        {/* Cooling Gel Fever Patch on Forehead 🩹 */}
+        <rect x="14" y="9.5" width="20" height="7.5" rx="3.75" fill="url(#cooling-patch)" />
+        <rect x="14" y="9.5" width="20" height="7.5" rx="3.75" stroke="#bfdbfe" strokeWidth="0.7" opacity="0.8" />
+        
+        {/* Patch Medical Cross Icon */}
+        <path d="M24 11.5V15M22.2 13.2H25.8" stroke="#ffffff" strokeWidth="1.4" strokeLinecap="round" />
+        {/* Specular sheen on patch */}
+        <path d="M16 11.5C18 10.5 22 10.5 25 10.5" stroke="#ffffff" strokeWidth="1" strokeLinecap="round" opacity="0.65" />
+
+        {/* Specular Gloss on Top Head */}
+        <path
+          d="M13 18C15 13 19 10 24 10"
+          stroke="#ffffff"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          opacity="0.4"
+        />
+      </g>
+
+      {/* Clinical Thermometer sticking out of mouth */}
+      <g filter="url(#sakit-person-shadow)">
+        {/* Thermometer Stem */}
+        <line x1="24" y1="31" x2="36" y2="40" stroke="url(#thermometer-glass)" strokeWidth="4.5" strokeLinecap="round" />
+        <line x1="24" y1="31" x2="36" y2="40" stroke="#cbd5e1" strokeWidth="4.5" strokeLinecap="round" opacity="0.4" />
+        
+        {/* Red Mercury Thread */}
+        <line x1="25" y1="32" x2="36" y2="40" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+        
+        {/* Mercury Bulb at Tip */}
+        <circle cx="37" cy="41" r="3.5" fill="#dc2626" />
+        <circle cx="37" cy="41" r="3.5" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
+        <circle cx="36" cy="40" r="1" fill="#ffffff" opacity="0.9" />
       </g>
     </svg>
   )
@@ -678,7 +744,7 @@ export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
  * Dokumen surat permohonan izin 3D dengan cap stempel biru resmi
  */
 export function IconIzin3D({ className = "w-6 h-6", size }: Icon3DProps) {
-  const s = size || 32
+  const s = size || 38
   return (
     <svg
       width={s}
@@ -744,10 +810,10 @@ export function IconIzin3D({ className = "w-6 h-6", size }: Icon3DProps) {
 
 /**
  * 10. ICON CUTI REKAP 3D (JATAH SALDO CUTI TAHUNAN)
- * Koper liburan / tropis 3D ungu-indigo dengan lencana saldo jatah tahunan
+ * Kalender Meja Liburan 3D dengan Pohon Kelapa Tropis & Matahari Pantai
  */
 export function IconCutiRekap3D({ className = "w-6 h-6", size }: Icon3DProps) {
-  const s = size || 32
+  const s = size || 38
   return (
     <svg
       width={s}
@@ -758,62 +824,60 @@ export function IconCutiRekap3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="rekap-cuti-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#8b5cf6" floodOpacity="0.3" />
+        <filter id="cuti-tropis-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#8b5cf6" floodOpacity="0.28" />
           <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
         </filter>
-        <linearGradient id="suitcase-body" x1="8" y1="14" x2="40" y2="42" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="50%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#6d28d9" />
+        <linearGradient id="cal-stand" x1="10" y1="10" x2="38" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="60%" stopColor="#faf5ff" />
+          <stop offset="100%" stopColor="#f3e8ff" />
         </linearGradient>
-        <linearGradient id="palm-accent" x1="26" y1="24" x2="42" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fb7185" />
-          <stop offset="100%" stopColor="#e11d48" />
+        <linearGradient id="cal-header-purple" x1="10" y1="8" x2="38" y2="16" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#a855f7" />
+          <stop offset="50%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+        <linearGradient id="sun-glow" x1="28" y1="18" x2="38" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="50%" stopColor="#facc15" />
+          <stop offset="100%" stopColor="#f59e0b" />
+        </linearGradient>
+        <linearGradient id="palm-trunk" x1="18" y1="24" x2="24" y2="38" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#b45309" />
+          <stop offset="100%" stopColor="#78350f" />
         </linearGradient>
       </defs>
 
-      {/* Suitcase Handle */}
-      <path
-        d="M19 14V10C19 8.34315 20.3431 7 22 7H26C27.6569 7 29 8.34315 29 10V14"
-        stroke="#64748b"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
+      {/* Top Spiral Rings */}
+      <rect x="16" y="5" width="3" height="5" rx="1.5" fill="#cbd5e1" />
+      <rect x="29" y="5" width="3" height="5" rx="1.5" fill="#cbd5e1" />
 
-      {/* Suitcase 3D Body */}
-      <g filter="url(#rekap-cuti-shadow)">
-        <rect x="8" y="14" width="32" height="26" rx="6" fill="url(#suitcase-body)" />
-        <rect x="9" y="15" width="30" height="24" rx="5" stroke="#ffffff" strokeWidth="0.8" opacity="0.4" />
+      {/* Calendar Body */}
+      <g filter="url(#cuti-tropis-shadow)">
+        <rect x="10" y="8" width="28" height="33" rx="5" fill="url(#cal-stand)" />
+        <rect x="10" y="8" width="28" height="33" rx="5" stroke="#c084fc" strokeWidth="0.8" opacity="0.5" />
         
-        {/* Horizontal Straps */}
-        <rect x="15" y="14" width="3" height="26" fill="#5b21b6" opacity="0.5" />
-        <rect x="30" y="14" width="3" height="26" fill="#5b21b6" opacity="0.5" />
+        {/* Purple Calendar Header */}
+        <path d="M10 13C10 10.2386 12.2386 8 15 8H33C35.7614 8 38 10.2386 38 13V15H10V13Z" fill="url(#cal-header-purple)" />
 
-        {/* Center Lock Metallic */}
-        <rect x="22" y="24" width="4" height="4" rx="1" fill="#fde047" />
+        {/* Tropical Sun ☀️ */}
+        <circle cx="31" cy="22" r="4.5" fill="url(#sun-glow)" />
 
-        {/* Specular Curved Highlight */}
-        <path
-          d="M11 17C13 16 16 15.5 20 15.5"
-          stroke="#ffffff"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          opacity="0.7"
-        />
-      </g>
+        {/* Palm Island Beach Mound */}
+        <path d="M13 37C17 33 26 33 35 37V38C35 39.6569 33.6569 41 32 41H16C14.3431 41 13 39.6569 13 38V37Z" fill="#fde047" opacity="0.8" />
 
-      {/* Floating Vacation Beach Umbrella / Pin */}
-      <g filter="url(#rekap-cuti-shadow)">
-        <circle cx="35" cy="33" r="7.5" fill="url(#palm-accent)" />
-        <circle cx="35" cy="33" r="6.5" stroke="#ffffff" strokeWidth="0.8" opacity="0.5" />
-        {/* Vacation Sun / Star */}
-        <path
-          d="M35 29V37M31 33H39M32 30L38 36M32 36L38 30"
-          stroke="#ffffff"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
+        {/* Palm Tree Trunk 🌴 */}
+        <path d="M22 36C21 31 23 27 25 24" stroke="url(#palm-trunk)" strokeWidth="2.2" strokeLinecap="round" />
+        
+        {/* Palm Fronds / Leaves (Green 3D arcs) */}
+        <path d="M25 24C21 23 18 25 17 28" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+        <path d="M25 24C23 21 21 20 18 20" stroke="#059669" strokeWidth="2" strokeLinecap="round" />
+        <path d="M25 24C27 21 29 20 32 21" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+        <path d="M25 24C28 24 30 26 31 29" stroke="#059669" strokeWidth="2" strokeLinecap="round" />
+
+        {/* Specular sheen on top edge */}
+        <path d="M12 10C14 9 18 8.5 22 8.5" stroke="#ffffff" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
       </g>
     </svg>
   )

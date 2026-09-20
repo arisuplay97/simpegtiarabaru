@@ -44,16 +44,20 @@ function DigitalClock() {
   }, [])
 
   if (!time) {
-    return <div className="h-9 w-20 bg-white/10 animate-pulse rounded-lg" />
+    return <div className="h-8 w-24 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-lg" />
   }
 
   return (
     <div className="flex flex-col items-end">
-      <div className="text-2xl font-bold tracking-tight text-white tabular-nums">
-        {format(time, "HH:mm")}
+      <div className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums flex items-center gap-1.5 leading-none">
+        <span>{format(time, "HH:mm")}</span>
+        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-md leading-none">
+          {format(time, "ss")}
+        </span>
       </div>
-      <div className="text-[11px] font-medium text-zinc-400 mt-0.5">
-        {format(time, "EEE, dd MMM", { locale: idLocale })}
+      <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-1 leading-none">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        WIB
       </div>
     </div>
   )
@@ -337,11 +341,10 @@ export default function MobileDashboard() {
 
           {/* User Profile Summary */}
           <div className="flex flex-col mt-2">
-            <div className="flex items-center justify-between">
+            <div>
               <span className="text-zinc-400 text-[11px] font-medium tracking-wide uppercase">
                 {greeting}
               </span>
-              <DigitalClock />
             </div>
 
             <div className="flex items-center gap-3.5 mt-2">
@@ -455,62 +458,8 @@ export default function MobileDashboard() {
               </p>
             </div>
 
-            {(() => {
-              if (!summary) return null
-              const currentHour = new Date().getHours()
-              const batasMasukH = parseInt(summary.batasAbsenMasuk?.split(":")[0]) || 14
-              const mulaiPulangH = parseInt(summary.mulaiAbsenPulang?.split(":")[0]) || 15
-              const batasPulangH = parseInt(summary.batasAbsenPulang?.split(":")[0]) || 18
-
-              if (summary.sudahAbsenPulang) {
-                return (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Selesai
-                  </div>
-                )
-              }
-
-              if (!summary.sudahAbsenMasuk) {
-                if (currentHour >= batasMasukH) {
-                  return (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 text-xs font-medium">
-                      <XCircle className="h-3.5 w-3.5" /> Sesi Tutup
-                    </div>
-                  )
-                }
-                return (
-                  <Link href="/m/fingerprint">
-                    <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold shadow-xs active:scale-95 transition-all">
-                      <Pointer className="h-3.5 w-3.5" />
-                      Check-In
-                    </button>
-                  </Link>
-                )
-              } else {
-                if (currentHour < mulaiPulangH) {
-                  return (
-                    <div className="flex items-center gap-1 px-3 py-1.5 rounded-full text-zinc-500 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium">
-                      <Clock className="h-3.5 w-3.5" /> Belum Pulang
-                    </div>
-                  )
-                }
-                if (currentHour >= batasPulangH) {
-                  return (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 text-xs font-medium">
-                      <XCircle className="h-3.5 w-3.5" /> Berakhir
-                    </div>
-                  )
-                }
-                return (
-                  <Link href="/m/fingerprint">
-                    <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold shadow-xs active:scale-95 transition-all">
-                      <Pointer className="h-3.5 w-3.5" />
-                      Check-Out
-                    </button>
-                  </Link>
-                )
-              }
-            })()}
+            {/* Jam Digital Real-time (Dipindahkan ke sini, tepat di atas kolom Jam Pulang) */}
+            <DigitalClock />
           </div>
 
           {/* Jam masuk & pulang tiles */}
@@ -539,6 +488,72 @@ export default function MobileDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Status & Tombol Presensi Hari Ini */}
+          {(() => {
+            if (!summary) return null
+            const currentHour = new Date().getHours()
+            const batasMasukH = parseInt(summary.batasAbsenMasuk?.split(":")[0]) || 14
+            const mulaiPulangH = parseInt(summary.mulaiAbsenPulang?.split(":")[0]) || 15
+            const batasPulangH = parseInt(summary.batasAbsenPulang?.split(":")[0]) || 18
+
+            if (summary.sudahAbsenPulang) {
+              return (
+                <div className="mt-3.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Presensi Hari Ini Lengkap (Sudah Masuk & Pulang)
+                </div>
+              )
+            }
+
+            if (!summary.sudahAbsenMasuk) {
+              if (currentHour >= batasMasukH) {
+                return (
+                  <div className="mt-3.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                    <XCircle className="h-4 w-4" />
+                    Sesi Presensi Masuk Telah Ditutup
+                  </div>
+                )
+              }
+              return (
+                <Link href="/m/fingerprint" className="block mt-3.5">
+                  <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-bold shadow-xs active:scale-[0.98] transition-all hover:opacity-95">
+                    <Pointer className="h-4 w-4" />
+                    Check-In Presensi Masuk
+                  </button>
+                </Link>
+              )
+            } else {
+              if (currentHour < mulaiPulangH) {
+                return (
+                  <div className="mt-3.5 flex items-center justify-between py-2 px-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Sudah Masuk ({summary?.waktuAbsen?.split(" - ")[0] || "08:00"})
+                    </span>
+                    <span className="text-[11px] text-zinc-400">
+                      Sesi pulang pukul {summary.mulaiAbsenPulang || "15:00"}
+                    </span>
+                  </div>
+                )
+              }
+              if (currentHour >= batasPulangH) {
+                return (
+                  <div className="mt-3.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                    <XCircle className="h-4 w-4" />
+                    Sesi Presensi Pulang Telah Berakhir
+                  </div>
+                )
+              }
+              return (
+                <Link href="/m/fingerprint" className="block mt-3.5">
+                  <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs active:scale-[0.98] transition-all">
+                    <Pointer className="h-4 w-4" />
+                    Check-Out Presensi Pulang
+                  </button>
+                </Link>
+              )
+            }
+          })()}
         </div>
 
         {/* ===== PENGUMUMAN TICKER ===== */}
@@ -577,7 +592,7 @@ export default function MobileDashboard() {
             </div>
           )}
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-1.5">
             {[
               { 
                 label: "Hadir", 
@@ -608,18 +623,18 @@ export default function MobileDashboard() {
               return (
                 <div 
                   key={item.label} 
-                  className="rounded-2xl p-2.5 flex flex-col items-center gap-1 bg-zinc-50/80 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800 shadow-2xs text-center group hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50 transition-all"
+                  className="flex flex-col items-center py-2 px-1 text-center group transition-all"
                 >
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-white dark:bg-zinc-850 shadow-2xs border border-zinc-200/60 dark:border-zinc-750 group-hover:scale-105 transition-transform duration-200">
-                    <Icon className="h-6 w-6" size={26} />
+                  <div className="flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform duration-200">
+                    <Icon className="w-10 h-10 drop-shadow-xs" size={38} />
                   </div>
-                  <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums leading-tight mt-0.5">
+                  <span className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums leading-tight">
                     {item.value}
                   </span>
-                  <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300 tracking-tight leading-none">
+                  <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 tracking-tight leading-none mt-1">
                     {item.label}
                   </span>
-                  <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 leading-none">
+                  <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 leading-none mt-0.5">
                     {item.desc}
                   </span>
                 </div>
