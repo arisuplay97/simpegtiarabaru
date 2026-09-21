@@ -580,33 +580,19 @@ export default function MobileDashboard() {
         <div className="rounded-2xl p-5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Presensi Hari Ini</p>
-                {summary?.sudahAbsenMasuk && (
-                  <span className={cn(
-                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border leading-none tracking-tight",
-                    summary?.statusMasukHariIni === "TERLAMBAT"
-                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                      : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                  )}>
-                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", summary?.statusMasukHariIni === "TERLAMBAT" ? "bg-amber-500" : "bg-emerald-500")} />
-                    {summary?.statusMasukHariIni === "TERLAMBAT"
-                      ? (summary?.menitTerlambatHariIni > 0 ? `Terlambat +${summary.menitTerlambatHariIni}m` : "Terlambat")
-                      : "Tepat Waktu"}
-                  </span>
-                )}
-              </div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Presensi Hari Ini</p>
               <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
                 {format(today, "EEEE, dd MMMM yyyy", { locale: idLocale })}
               </p>
             </div>
 
-            {/* Jam Digital Real-time (Dipindahkan ke sini, tepat di atas kolom Jam Pulang) */}
+            {/* Jam Digital Real-time */}
             <DigitalClock />
           </div>
 
           {/* Jam masuk & pulang tiles */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Tile Masuk */}
             <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
               <div className={cn(
                 "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
@@ -614,39 +600,66 @@ export default function MobileDashboard() {
                   ? summary?.statusMasukHariIni === "TERLAMBAT"
                     ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                     : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                  : "bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 border-zinc-300/40 dark:border-zinc-600/40"
               )}>
                 <Clock className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Jam Masuk</p>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Masuk</p>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium tabular-nums">
+                    {summary?.jamMasuk || "08:00"}
+                  </span>
+                </div>
                 <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
                   {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
                 </p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                    Jadwal: {summary?.jamMasuk || "08:00"}
+                {summary?.sudahAbsenMasuk ? (
+                  <p className={cn(
+                    "text-[10px] font-semibold mt-0.5 truncate tracking-tight",
+                    summary?.statusMasukHariIni === "TERLAMBAT"
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-emerald-600 dark:text-emerald-400"
+                  )}>
+                    {summary?.statusMasukHariIni === "TERLAMBAT"
+                      ? (summary?.menitTerlambatHariIni > 0 ? `Terlambat +${summary.menitTerlambatHariIni}m` : "Terlambat")
+                      : "Tepat Waktu"}
                   </p>
-                  {summary?.sudahAbsenMasuk && summary?.statusMasukHariIni === "TERLAMBAT" && summary?.menitTerlambatHariIni > 0 && (
-                    <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400">
-                      (+{summary.menitTerlambatHariIni}m)
-                    </span>
-                  )}
-                </div>
+                ) : (
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 truncate">
+                    Belum Absen
+                  </p>
+                )}
               </div>
             </div>
 
+            {/* Tile Pulang */}
             <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 shrink-0 border border-zinc-300/40 dark:border-zinc-600/40">
+              <div className={cn(
+                "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
+                summary?.sudahAbsenPulang
+                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                  : "bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 border-zinc-300/40 dark:border-zinc-600/40"
+              )}>
                 <Clock className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Jam Pulang</p>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Pulang</p>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium tabular-nums">
+                    {summary?.jamPulang || "17:00"}
+                  </span>
+                </div>
                 <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
                   {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
                 </p>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                  Jadwal: {summary?.jamPulang || "17:00"}
+                <p className={cn(
+                  "text-[10px] font-semibold mt-0.5 truncate tracking-tight",
+                  summary?.sudahAbsenPulang
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-zinc-400 dark:text-zinc-500 font-normal"
+                )}>
+                  {summary?.sudahAbsenPulang ? "Sudah Absen" : "Belum Absen"}
                 </p>
               </div>
             </div>

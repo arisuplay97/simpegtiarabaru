@@ -399,8 +399,7 @@ export default function MobileFingerprint() {
           <div className="w-full space-y-2.5 bg-zinc-50/80 dark:bg-zinc-800/40 p-4 rounded-2xl mb-5 border border-zinc-200/70 dark:border-zinc-800 text-xs">
             <div className="flex justify-between items-center py-1">
               <span className="text-zinc-500 dark:text-zinc-400">Metode</span>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
                 Tap Layar & GPS
               </span>
             </div>
@@ -413,20 +412,20 @@ export default function MobileFingerprint() {
             </div>
 
             <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
-              <span className="text-zinc-500 dark:text-zinc-400">Status</span>
+              <span className="text-zinc-500 dark:text-zinc-400">Status Kehadiran</span>
               <span className={cn(
-                "font-bold px-2.5 py-0.5 rounded-full text-[11px] border",
+                "font-semibold text-xs tracking-tight",
                 isOfflineQueued 
-                  ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20"
+                  ? "text-blue-600 dark:text-blue-400"
                   : resultData?.status === "TERLAMBAT"
-                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
               )}>
                 {isOfflineQueued 
-                  ? "Tersimpan Offline (Antrian)" 
+                  ? "Tersimpan Offline" 
                   : isCheckIn 
                     ? (resultData?.status === "TERLAMBAT" ? "Terlambat" : "Tepat Waktu") 
-                    : (resultData?.status || "HADIR")}
+                    : "Tepat Waktu"}
               </span>
             </div>
 
@@ -494,13 +493,12 @@ export default function MobileFingerprint() {
 
         <div className="flex items-center gap-2">
           {!isOnline ? (
-            <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/25 text-[11px] font-bold px-2.5 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/25 text-[11px] font-semibold px-2.5 py-1 rounded-full">
               Mode Offline
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[11px] font-bold px-2.5 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+              <MapPin className="w-3 h-3 text-emerald-400" />
               Online GPS
             </div>
           )}
@@ -547,13 +545,12 @@ export default function MobileFingerprint() {
             setIsCheckout(false)
           }}
           className={cn(
-            "flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5",
+            "flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all text-center",
             !isCheckout
               ? "bg-emerald-600 text-white shadow-[0_2px_12px_rgba(5,150,105,0.4)]"
               : "text-zinc-400 hover:text-zinc-200"
           )}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-current" />
           Absen Pagi (Masuk)
         </button>
         <button
@@ -563,13 +560,12 @@ export default function MobileFingerprint() {
             setIsCheckout(true)
           }}
           className={cn(
-            "flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5",
+            "flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all text-center",
             isCheckout
               ? "bg-blue-600 text-white shadow-[0_2px_12px_rgba(37,99,235,0.4)]"
               : "text-zinc-400 hover:text-zinc-200"
           )}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-current" />
           Absen Sore (Pulang)
         </button>
       </div>

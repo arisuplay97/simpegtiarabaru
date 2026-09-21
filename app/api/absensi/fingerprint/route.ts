@@ -59,13 +59,42 @@ export async function POST(req: Request) {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     const userId = (session.user as any).id
     if (!userId) return NextResponse.json({ error: "ID User tidak ditemukan" }, { status: 400 })
 
-    const pegawai = await prisma.pegawai.findUnique({ 
-      where: { userId },
-      include: { lokasiAbsensi: true, bidang: true }
-    })
+    let pegawai = null
+
+    // 1. Cari berdasarkan userId jika UUID valid
+    if (UUID_REGEX.test(userId)) {
+      pegawai = await prisma.pegawai.findUnique({ 
+        where: { userId },
+        include: { lokasiAbsensi: true, bidang: true }
+      })
+    }
+
+    // 2. Fallback berdasarkan pegawaiId di session
+    const sessionPegawaiId = (session.user as any).pegawaiId
+    if (!pegawai && sessionPegawaiId && UUID_REGEX.test(sessionPegawaiId)) {
+      pegawai = await prisma.pegawai.findUnique({
+        where: { id: sessionPegawaiId },
+        include: { lokasiAbsensi: true, bidang: true }
+      })
+    }
+
+    // 3. Fallback berdasarkan email session
+    if (!pegawai && session.user.email) {
+      pegawai = await prisma.pegawai.findFirst({
+        where: {
+          OR: [
+            { email: { equals: session.user.email, mode: "insensitive" } },
+            { user: { email: { equals: session.user.email, mode: "insensitive" } } }
+          ]
+        },
+        include: { lokasiAbsensi: true, bidang: true }
+      })
+    }
+
     if (!pegawai) return NextResponse.json({ error: "Profil pegawai tidak ditemukan. Hubungi HRD." }, { status: 400 })
 
     const pegawaiId = pegawai.id
