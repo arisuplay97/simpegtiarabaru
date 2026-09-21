@@ -40,7 +40,7 @@ import {
   Filter, X, Briefcase, Building2, ShieldCheck,
   CreditCard, GraduationCap, MapPin, Sparkles,
   FileSpreadsheet, UploadCloud, CheckCircle2, AlertCircle,
-  FileDown, Check, Info
+  FileDown, Check, Info, FileText
 } from "lucide-react"
 import { 
   getEmployees, 
@@ -186,6 +186,7 @@ export default function EmployeeListPage() {
     items: ImportPegawaiItem[]
     preview: ImportPegawaiItem[]
   } | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   const emptyForm: EmployeeForm = {
     nik: "", nama: "", email: "", telepon: "",
@@ -439,28 +440,63 @@ export default function EmployeeListPage() {
     }
   }
 
-  const handleExport = () => {
-    const headers = ["NIK", "Nama", "Jabatan", "Unit Kerja", "Golongan", "Status", "SP", "Email", "Telepon"]
-    const rows = filteredAndSorted.map(e => [
-      e.nik,
-      `"${e.nama.replace(/"/g, '""')}"`,
-      `"${e.jabatan.replace(/"/g, '""')}"`,
-      `"${(e.bidang?.nama || "-").replace(/"/g, '""')}"`,
-      e.golongan || "-",
-      e.status || "-",
-      e.sp ?? "-",
-      e.email || "-",
-      e.telepon || "-",
-    ])
-    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n")
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `data-pegawai-${new Date().toISOString().split("T")[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("Data pegawai berhasil diekspor ke CSV")
+  const handleExport = async (type: "excel-bidang" | "excel-master" | "pdf" | "csv") => {
+    if (type === "csv") {
+      const headers = ["NIK", "Nama", "Jabatan", "Unit Kerja", "Golongan", "Status", "SP", "Email", "Telepon"]
+      const rows = filteredAndSorted.map(e => [
+        e.nik,
+        `"${e.nama.replace(/"/g, '""')}"`,
+        `"${e.jabatan.replace(/"/g, '""')}"`,
+        `"${(e.bidang?.nama || "-").replace(/"/g, '""')}"`,
+        e.golongan || "-",
+        e.status || "-",
+        e.sp ?? "-",
+        e.email || "-",
+        e.telepon || "-",
+      ])
+      const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n")
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `data-pegawai-${new Date().toISOString().split("T")[0]}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Data pegawai berhasil diekspor ke CSV")
+      return
+    }
+
+    try {
+      setIsExporting(true)
+      const label = type === "pdf" ? "PDF Resmi" : type === "excel-master" ? "Excel Master" : "Excel (Format Bidang & Cabang)"
+      toast.loading(`Menyiapkan ${label}...`, { id: "export-toast" })
+
+      const res = await fetch(`/api/pegawai/export?format=${type}`)
+      if (!res.ok) throw new Error("Gagal mengunduh berkas ekspor")
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+
+      const nowStr = new Date().toISOString().split("T")[0]
+      if (type === "pdf") {
+        a.download = `DATA_PEGAWAI_PER_BIDANG_DAN_CABANG_${nowStr}.pdf`
+      } else if (type === "excel-master") {
+        a.download = `DATA_MASTER_PEGAWAI_${nowStr}.xlsx`
+      } else {
+        a.download = `DATA_PEGAWAI_PER_BIDANG_DAN_CABANG_${nowStr}.xlsx`
+      }
+
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(`Berhasil mengekspor ${label}`, { id: "export-toast" })
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Gagal mengekspor data", { id: "export-toast" })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const openAdd = () => {
@@ -1095,15 +1131,71 @@ export default function EmployeeListPage() {
                 <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 Import Excel / CSV
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-zinc-800"
-              >
-                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-                Ekspor CSV
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isExporting}
+                    className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-zinc-800"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    )}
+                    Ekspor Data
+                    <ChevronRight className="h-3 w-3 rotate-90 opacity-60 ml-0.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 p-1.5">
+                  <DropdownMenuItem
+                    onClick={() => handleExport("excel-bidang")}
+                    className="cursor-pointer py-2 px-2.5 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-xs text-foreground">Excel (Format Bidang & Cabang)</span>
+                      <span className="text-[10.5px] text-muted-foreground">Persis format asli sheet AGUSTUS</span>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => handleExport("pdf")}
+                    className="cursor-pointer py-2 px-2.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  >
+                    <FileText className="h-4 w-4 mr-2.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-xs text-foreground">PDF Resmi (A4 Landscape)</span>
+                      <span className="text-[10.5px] text-muted-foreground">Lengkap Kop Surat & Tanda Tangan</span>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1" />
+
+                  <DropdownMenuItem
+                    onClick={() => handleExport("excel-master")}
+                    className="cursor-pointer py-2 px-2.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-xs text-foreground">Excel Master (Semua Kolom)</span>
+                      <span className="text-[10.5px] text-muted-foreground">Backup komprehensif 28 atribut</span>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => handleExport("csv")}
+                    className="cursor-pointer py-2 px-2.5 rounded-md"
+                  >
+                    <Download className="h-4 w-4 mr-2.5 text-slate-500 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-xs text-foreground">Ekspor Ringkas (.CSV)</span>
+                      <span className="text-[10.5px] text-muted-foreground">Format teks cepat</span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 size="sm"
                 onClick={openAdd}
