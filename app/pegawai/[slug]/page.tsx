@@ -2208,6 +2208,7 @@ export default function EmployeeDetailPage() {
                           <>
                             <SelectItem value="kepala_cabang">Kepala Cabang</SelectItem>
                             <SelectItem value="kasubbid_cabang">Ka. Sub Seksi Cabang</SelectItem>
+                            <SelectItem value="staf_ahli">Staf Ahli</SelectItem>
                             <SelectItem value="staff_cabang">Staff Cabang</SelectItem>
                           </>
                         ) : (
@@ -2218,6 +2219,7 @@ export default function EmployeeDetailPage() {
                             <SelectItem value="direktur">🔹 Direktur (Lainnya)</SelectItem>
                             <SelectItem value="kepala_bidang">Kepala Bidang/Bagian</SelectItem>
                             <SelectItem value="kasubbid">Kasubbid / Kasi</SelectItem>
+                            <SelectItem value="staf_ahli">Staf Ahli</SelectItem>
                             <SelectItem value="staff">Staff Pusat</SelectItem>
                           </>
                         )}

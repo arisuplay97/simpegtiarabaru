@@ -280,6 +280,7 @@ enum Role {
 enum TipeJabatan {
   KEPALA_BIDANG
   KASUBBID
+  STAF_AHLI
   STAFF
   KONTRAK
   KEPALA_CABANG

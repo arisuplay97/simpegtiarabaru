@@ -750,6 +750,7 @@ export default function EmployeeListPage() {
                     <>
                       <SelectItem value="kepala_bidang" className="text-xs">Kepala Bidang</SelectItem>
                       <SelectItem value="kasubbid" className="text-xs">Kasubbid</SelectItem>
+                      <SelectItem value="staf_ahli" className="text-xs">Staf Ahli</SelectItem>
                       <SelectItem value="staff" className="text-xs">Staff</SelectItem>
                       <SelectItem value="kepala_cabang" className="text-xs">Kepala Cabang</SelectItem>
                       <SelectItem value="kasubbid_cabang" className="text-xs">Kasubbid Cabang</SelectItem>

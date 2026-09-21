@@ -11,12 +11,14 @@ import { logAudit } from "./audit-log"
 import ExcelJS from "exceljs"
 import { normalizeGolonganKey } from "@/lib/utils"
 import { daftarPangkat } from "@/lib/constants/pangkat"
+import { Readable } from "stream"
 
 // Helper: map lowercase tipeJabatan to DB enum
 const mapTipeJabatan = (val: string): string => {
   const map: Record<string, string> = {
     kepala_bidang: "KEPALA_BIDANG",
     kasubbid: "KASUBBID",
+    staf_ahli: "STAF_AHLI",
     staff: "STAFF",
     kontrak: "KONTRAK",
     kepala_cabang: "KEPALA_CABANG",
@@ -31,13 +33,83 @@ const mapTipeJabatan = (val: string): string => {
   return map[val?.toLowerCase()] || val || "STAFF"
 }
 
+// Helper: expand abbreviations in jabatan (Pjg. → Penjaga)
+function normalizeJabatanName(jabatan: string): string {
+  if (!jabatan) return ""
+  let s = jabatan.trim()
+  // Expand "Pjg." / "Pjg" → "Penjaga"
+  s = s.replace(/^Pjg\.?\s*/i, "Penjaga ")
+  // Clean double spaces
+  s = s.replace(/\s+/g, " ").trim()
+  return s
+}
+
+// Helper: auto-detect tipeJabatan from raw Excel jabatan string
+function detectTipeJabatanFromExcel(jabatan: string, bidangName: string): string {
+  const lower = (jabatan || "").toLowerCase().trim()
+  const isCabangOrPos = (bidangName || "").toLowerCase().match(/cabang|pos/)
+
+  if (lower.includes("kepala bidang") || lower.includes("kepala bagian")) return "KEPALA_BIDANG"
+  if (lower.includes("kepala cabang") || lower.includes("kepala pos")) return "KEPALA_CABANG"
+  if (lower.startsWith("kasubbid")) return isCabangOrPos ? "KASUBBID_CABANG" : "KASUBBID"
+  if (lower.includes("staf ahli") || lower.includes("staff ahli")) return isCabangOrPos ? "STAF_AHLI" : "STAF_AHLI"
+  // Default staff — cabang/pos use STAFF_CABANG
+  if (isCabangOrPos) return "STAFF_CABANG"
+  return "STAFF"
+}
+
+// Helper: smart match bidang name from Excel to database bidang list
+function smartMatchBidang(excelBidang: string, allBidang: any[]): { bidangId: string | null, subBidangId: string | null } {
+  if (!excelBidang) return { bidangId: null, subBidangId: null }
+  const rawBid = excelBidang.trim().toLowerCase()
+
+  // 1. Direct match by name/kode/id
+  let b = allBidang.find(x =>
+    x.id === rawBid ||
+    x.nama.toLowerCase() === rawBid ||
+    (x.kode && x.kode.toLowerCase() === rawBid)
+  )
+  if (b) return { bidangId: b.id, subBidangId: null }
+
+  // 2. Partial/fuzzy match ("Praya" → "Cabang Praya", "Bodak" → "Pos Bodak")
+  b = allBidang.find(x =>
+    x.nama.toLowerCase().includes(rawBid) ||
+    rawBid.includes(x.nama.toLowerCase())
+  )
+  if (b) return { bidangId: b.id, subBidangId: null }
+
+  // 3. Match cabang by kecamatan name ("Praya" → "Cabang Praya")
+  b = allBidang.find(x => {
+    const cleanName = x.nama.toLowerCase().replace(/^(cabang|pos)\s+/i, "")
+    return cleanName === rawBid || rawBid === cleanName
+  })
+  if (b) return { bidangId: b.id, subBidangId: null }
+
+  // 4. Fuzzy synonym match ("SDM & Umum" ↔ "Umum dan SDM", "Distribusi" ↔ "Transmisi & Distribusi")
+  const synonyms: Record<string, string[]> = {
+    "sdm": ["umum dan sdm", "sdm & umum", "umum & sdm"],
+    "distribusi": ["transmisi & distribusi", "transmisi dan distribusi"],
+    "pelayanan": ["hubungan langganan"],
+    "it": ["sekretariat perusahaan", "teknologi informasi"],
+  }
+  for (const [key, aliases] of Object.entries(synonyms)) {
+    if (rawBid.includes(key) || aliases.some(a => rawBid.includes(a))) {
+      const matchName = aliases[0]
+      b = allBidang.find(x => x.nama.toLowerCase() === matchName || x.nama.toLowerCase().includes(matchName))
+      if (b) return { bidangId: b.id, subBidangId: null }
+    }
+  }
+
+  return { bidangId: null, subBidangId: null }
+}
+
 // Helper: map tipeJabatan/jabatan to user role
 const mapJabatanToRole = (tipeJabatan: string, jabatan: string): string | null => {
   const tj = (tipeJabatan || "").toLowerCase()
   const jab = (jabatan || "").toLowerCase()
   if (tj === "direktur_utama" || jab.includes("direktur utama") || jab.includes("dirut")) return "DIREKSI"
-  if (tj === "direktur_operasional" || tj === "direktur_umum" || tj === "direktur" || jab.includes("direktur")) return "DIREKSI"
-  if (tj === "kepala_bidang" || tj === "kepala_cabang") return "KEPALA_BIDANG"
+  if (tj === "kepala_cabang" || jab.includes("kepala cabang") || jab.includes("kepala pos")) return "KEPALA_CABANG"
+  if (tj === "kepala_bidang" || jab.includes("kepala bidang") || jab.includes("kabid")) return "KEPALA_BIDANG"
   return null
 }
 
@@ -931,11 +1003,11 @@ export async function parsePegawaiImportFile(formData: FormData) {
         nama: rowObj.nama || rowObj.namalengkap || rowObj.namakaryawan || "Tanpa Nama",
         email: rowObj.email || rowObj.surel || null,
         telepon: rowObj.telepon || rowObj.nohp || rowObj.hp || rowObj.wa || null,
-        bidang: rowObj.bidang || rowObj.unitkerja || rowObj.unit || rowObj.divisi || null,
+        bidang: rowObj.bidang || rowObj.bidangcabangpos || rowObj.unitkerja || rowObj.unit || rowObj.cabang || rowObj.pos || rowObj.divisi || null,
         subBidang: rowObj.subbidang || null,
         jabatan: rowObj.jabatan || rowObj.posisi || "Staff",
         tipeJabatan: rowObj.tipejabatan || rowObj.eselon || "STAFF",
-        golongan: rowObj.golongan || rowObj.gol || "A/I",
+        golongan: rowObj.golongan || rowObj.golruang || rowObj.gol || "A/I",
         pangkat: rowObj.pangkat || rowObj.namapangkat || null,
         tanggalMasuk: rowObj.tanggalmasuk || rowObj.tmt || rowObj.tglmasuk || null,
         status: rowObj.status || rowObj.statuspegawai || "AKTIF",
@@ -948,7 +1020,7 @@ export async function parsePegawaiImportFile(formData: FormData) {
         statusNikah: rowObj.statusnikah || rowObj.statuskawin || null,
         alamat: rowObj.alamat || rowObj.domisili || null,
         npwp: rowObj.npwp || null,
-        pendidikanTerakhir: rowObj.pendidikanterakhir || rowObj.pendidikan || null,
+        pendidikanTerakhir: rowObj.pendidikanterakhir || rowObj.jenjangpendidikan || rowObj.pendidikan || rowObj.jenjang || null,
         jurusan: rowObj.jurusan || null,
         institusi: rowObj.institusi || rowObj.universitas || null,
         tahunLulus: rowObj.tahunlulus || null,
@@ -959,11 +1031,12 @@ export async function parsePegawaiImportFile(formData: FormData) {
       })
     }
   } else {
-    // Excel file (.xlsx / .xls)
-    const workbook = new ExcelJS.Workbook()
-    await workbook.xlsx.load(buffer as any)
-    const worksheet = workbook.worksheets[0]
-    if (!worksheet) throw new Error("Sheet Excel tidak ditemukan")
+    // Excel file (.xlsx / .xls) menggunakan streaming reader agar efisien memori
+    const stream = Readable.from(buffer)
+    const workbookReader = new (ExcelJS as any).stream.xlsx.WorkbookReader(stream, {
+      sharedStrings: "cache",
+      worksheets: "emit",
+    })
 
     const getCellValue = (val: any): string => {
       if (val === null || val === undefined) return ""
@@ -976,110 +1049,140 @@ export async function parsePegawaiImportFile(formData: FormData) {
       return String(val).trim()
     }
 
-    // Cari baris header
-    let headerRowIndex = 1
-    let colMap: Record<string, number> = {}
-
-    for (let r = 1; r <= Math.min(10, worksheet.rowCount); r++) {
-      const row = worksheet.getRow(r)
-      const potentialCols: Record<string, number> = {}
-      row.eachCell((cell, colNum) => {
-        const text = getCellValue(cell.value).toLowerCase().replace(/[^a-z0-9]/g, "")
-        if (text) potentialCols[text] = colNum
-      })
-      if (potentialCols["nik"] || potentialCols["noktp"] || potentialCols["nama"] || potentialCols["namalengkap"]) {
-        headerRowIndex = r
-        colMap = potentialCols
-        break
+    // Iterasi lembar kerja (worksheet)
+    for await (const worksheet of workbookReader) {
+      // Jika data sudah ditemukan di sheet sebelumnya, lewati sheet berikutnya
+      if (parsedItems.length > 0) {
+        for await (const _ of worksheet) {}
+        continue
       }
-    }
 
-    const findCol = (...aliases: string[]): number | undefined => {
-      for (const a of aliases) {
-        const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, "")
-        if (colMap[cleanA] !== undefined) return colMap[cleanA]
+      let headerRowIndex = -1
+      let colMap: Record<string, number> = {}
+      let emptyRowCount = 0
+      let rowNum = 0
+
+      for await (const row of worksheet) {
+        rowNum++
+
+        // Cari baris header di 15 baris pertama
+        if (headerRowIndex === -1) {
+          if (rowNum > 15) {
+            // Bukan sheet data tabel pegawai, lewati
+            break
+          }
+          const potentialCols: Record<string, number> = {}
+          row.eachCell((cell: any, colNum: number) => {
+            const text = getCellValue(cell.value).toLowerCase().replace(/[^a-z0-9]/g, "")
+            if (text) potentialCols[text] = colNum
+          })
+          if (
+            potentialCols["nik"] ||
+            potentialCols["noktp"] ||
+            potentialCols["nama"] ||
+            potentialCols["namalengkap"] ||
+            potentialCols["namapegawai"]
+          ) {
+            headerRowIndex = rowNum
+            colMap = potentialCols
+          }
+          continue
+        }
+
+        const findCol = (...aliases: string[]): number | undefined => {
+          for (const a of aliases) {
+            const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, "")
+            if (colMap[cleanA] !== undefined) return colMap[cleanA]
+          }
+          return undefined
+        }
+
+        const nikCol = findCol("nik", "no_ktp", "noktp", "ktp", "nomorinduk", "nomorindukkependudukan")
+        const namaCol = findCol("namapegawai", "nama", "namalengkap", "namakaryawan", "name")
+        const emailCol = findCol("email", "surel", "mail")
+        const telpCol = findCol("telepon", "notelp", "nohp", "hp", "whatsapp", "wa", "phone", "kontak")
+        const bidangCol = findCol("bidangcabangpos", "bidang", "cabang", "pos", "bidangcabang", "unitkerja", "unit", "divisi", "departemen", "bagian")
+        const subBidangCol = findCol("subbidang", "subbagian", "seksi")
+        const jabatanCol = findCol("jabatan", "posisi", "role", "pekerjaan")
+        const tipeJabatanCol = findCol("tipejabatan", "tipe_jabatan", "eselon", "level")
+        const golCol = findCol("golruang", "golongan", "gol", "ruang", "grade")
+        const pangkatCol = findCol("pangkat", "namapangkat")
+        const tmtCol = findCol("tanggalmasuk", "tmt", "tmtmasuk", "tmtkerja", "tglmasuk", "mulaikerja", "hiredate", "joindate")
+        const statusCol = findCol("statuspegawai", "status", "statuskerja")
+        const gapokCol = findCol("gajipokok", "gapok", "gaji", "basicsalary")
+        const tunjanganCol = findCol("tunjangan", "allowance")
+        const jkCol = findCol("jeniskelamin", "jk", "gender", "sex")
+        const tmpLahirCol = findCol("tempatlahir", "tmplahir", "kotalahir", "pob")
+        const tglLahirCol = findCol("tanggallahir", "tgllahir", "dob", "birthdate")
+        const agamaCol = findCol("agama", "religion")
+        const nikahCol = findCol("statusnikah", "statuskawin", "statuspernikahan", "maritalstatus")
+        const alamatCol = findCol("alamat", "alamattinggal", "domisili", "address")
+        const npwpCol = findCol("npwp", "nonpwp", "nomornpwp")
+        const pendCol = findCol("jenjangpendidikan", "pendidikanterakhir", "pendidikan", "tingkatpendidikan", "jenjang")
+        const jurusanCol = findCol("jurusan", "prodi", "programstudi")
+        const instCol = findCol("institusi", "sekolah", "universitas", "kampus")
+        const lulusCol = findCol("tahunlulus", "thnlulus")
+        const bankCol = findCol("bank", "namabank")
+        const norekCol = findCol("norekening", "nomorrekening", "norek")
+        const bpjsKesCol = findCol("bpjskesehatan", "nobpjs", "bpjskes")
+        const bpjsTkCol = findCol("bpjsketenagakerjaan", "kpj", "bpjstk")
+
+        const rawNikCell = nikCol ? row.getCell(nikCol).value : null
+        const rawNik = getCellValue(rawNikCell).replace(/[^0-9A-Za-z]/g, "")
+        const rawNama = namaCol ? getCellValue(row.getCell(namaCol).value) : ""
+
+        // Early break jika menemukan baris kosong berturut-turut
+        if (!rawNik && !rawNama) {
+          emptyRowCount++
+          if (emptyRowCount > 20) {
+            break // Selesai membaca baris data di sheet ini
+          }
+          continue
+        }
+        emptyRowCount = 0
+
+        // Lewati baris kosong, header berulang, atau hint/petunjuk
+        if (!rawNik || rawNik.length < 4 || getCellValue(rawNikCell).includes("[") || rawNama.toLowerCase() === "nama pegawai") continue
+        if (!rawNama || rawNama.includes("[")) continue
+
+        const rawTmt = tmtCol ? row.getCell(tmtCol).value : null
+        const parsedTmt = parseExcelDate(rawTmt)
+
+        const rawTglLahir = tglLahirCol ? row.getCell(tglLahirCol).value : null
+        const parsedTglLahir = parseExcelDate(rawTglLahir)
+
+        parsedItems.push({
+          nik: rawNik,
+          nama: rawNama,
+          email: emailCol ? getCellValue(row.getCell(emailCol).value) || null : null,
+          telepon: telpCol ? getCellValue(row.getCell(telpCol).value) || null : null,
+          bidang: bidangCol ? getCellValue(row.getCell(bidangCol).value) || null : null,
+          subBidang: subBidangCol ? getCellValue(row.getCell(subBidangCol).value) || null : null,
+          jabatan: jabatanCol ? getCellValue(row.getCell(jabatanCol).value) || "Staff" : "Staff",
+          tipeJabatan: tipeJabatanCol ? getCellValue(row.getCell(tipeJabatanCol).value) || "STAFF" : "STAFF",
+          golongan: golCol ? getCellValue(row.getCell(golCol).value) || "A/I" : "A/I",
+          pangkat: pangkatCol ? getCellValue(row.getCell(pangkatCol).value) || null : null,
+          tanggalMasuk: parsedTmt ? parsedTmt.toISOString().split("T")[0] : null,
+          status: statusCol ? getCellValue(row.getCell(statusCol).value) || "AKTIF" : "AKTIF",
+          gajiPokok: gapokCol ? parseNumber(row.getCell(gapokCol).value) : 0,
+          tunjangan: tunjanganCol ? parseNumber(row.getCell(tunjanganCol).value) : 0,
+          jenisKelamin: jkCol ? getCellValue(row.getCell(jkCol).value) || null : null,
+          tempatLahir: tmpLahirCol ? getCellValue(row.getCell(tmpLahirCol).value) || null : null,
+          tanggalLahir: parsedTglLahir ? parsedTglLahir.toISOString().split("T")[0] : null,
+          agama: agamaCol ? getCellValue(row.getCell(agamaCol).value) || null : null,
+          statusNikah: nikahCol ? getCellValue(row.getCell(nikahCol).value) || null : null,
+          alamat: alamatCol ? getCellValue(row.getCell(alamatCol).value) || null : null,
+          npwp: npwpCol ? getCellValue(row.getCell(npwpCol).value) || null : null,
+          pendidikanTerakhir: pendCol ? getCellValue(row.getCell(pendCol).value) || null : null,
+          jurusan: jurusanCol ? getCellValue(row.getCell(jurusanCol).value) || null : null,
+          institusi: instCol ? getCellValue(row.getCell(instCol).value) || null : null,
+          tahunLulus: lulusCol ? getCellValue(row.getCell(lulusCol).value) || null : null,
+          bank: bankCol ? getCellValue(row.getCell(bankCol).value) || null : null,
+          noRekening: norekCol ? getCellValue(row.getCell(norekCol).value) || null : null,
+          bpjsKesehatan: bpjsKesCol ? getCellValue(row.getCell(bpjsKesCol).value) || null : null,
+          bpjsKetenagakerjaan: bpjsTkCol ? getCellValue(row.getCell(bpjsTkCol).value) || null : null,
+        })
       }
-      return undefined
-    }
-
-    const nikCol = findCol("nik", "no_ktp", "noktp", "ktp", "nomorindukkependudukan")
-    const namaCol = findCol("nama", "namalengkap", "namakaryawan", "namapegawai", "name")
-    const emailCol = findCol("email", "surel", "mail")
-    const telpCol = findCol("telepon", "notelp", "nohp", "hp", "whatsapp", "wa", "phone", "kontak")
-    const bidangCol = findCol("bidang", "unitkerja", "unit", "divisi", "departemen", "bagian")
-    const subBidangCol = findCol("subbidang", "subbagian", "seksi")
-    const jabatanCol = findCol("jabatan", "posisi", "role", "pekerjaan")
-    const tipeJabatanCol = findCol("tipejabatan", "tipe_jabatan", "eselon", "level")
-    const golCol = findCol("golongan", "gol", "golruang", "ruang", "grade")
-    const pangkatCol = findCol("pangkat", "namapangkat")
-    const tmtCol = findCol("tanggalmasuk", "tmt", "tmtmasuk", "tmtkerja", "tglmasuk", "mulaikerja", "hiredate", "joindate")
-    const statusCol = findCol("status", "statuspegawai", "statuskerja")
-    const gapokCol = findCol("gajipokok", "gapok", "gaji", "basicsalary")
-    const tunjanganCol = findCol("tunjangan", "allowance")
-    const jkCol = findCol("jeniskelamin", "jk", "gender", "sex")
-    const tmpLahirCol = findCol("tempatlahir", "tmplahir", "kotalahir", "pob")
-    const tglLahirCol = findCol("tanggallahir", "tgllahir", "dob", "birthdate")
-    const agamaCol = findCol("agama", "religion")
-    const nikahCol = findCol("statusnikah", "statuskawin", "statuspernikahan", "maritalstatus")
-    const alamatCol = findCol("alamat", "alamattinggal", "domisili", "address")
-    const npwpCol = findCol("npwp", "nonpwp", "nomornpwp")
-    const pendCol = findCol("pendidikanterakhir", "pendidikan", "tingkatpendidikan", "jenjang")
-    const jurusanCol = findCol("jurusan", "prodi", "programstudi")
-    const instCol = findCol("institusi", "sekolah", "universitas", "kampus")
-    const lulusCol = findCol("tahunlulus", "thnlulus")
-    const bankCol = findCol("bank", "namabank")
-    const norekCol = findCol("norekening", "nomorrekening", "norek")
-    const bpjsKesCol = findCol("bpjskesehatan", "nobpjs", "bpjskes")
-    const bpjsTkCol = findCol("bpjsketenagakerjaan", "kpj", "bpjstk")
-
-    for (let r = headerRowIndex + 1; r <= worksheet.rowCount; r++) {
-      const row = worksheet.getRow(r)
-      const rawNikCell = nikCol ? row.getCell(nikCol).value : null
-      const rawNik = getCellValue(rawNikCell).replace(/[^0-9A-Za-z]/g, "")
-      
-      // Lewati baris kosong atau baris hint/petunjuk
-      if (!rawNik || rawNik.length < 4 || getCellValue(rawNikCell).includes("[")) continue
-
-      const rawNama = namaCol ? getCellValue(row.getCell(namaCol).value) : ""
-      if (!rawNama || rawNama.includes("[")) continue
-
-      const rawTmt = tmtCol ? row.getCell(tmtCol).value : null
-      const parsedTmt = parseExcelDate(rawTmt)
-
-      const rawTglLahir = tglLahirCol ? row.getCell(tglLahirCol).value : null
-      const parsedTglLahir = parseExcelDate(rawTglLahir)
-
-      parsedItems.push({
-        nik: rawNik,
-        nama: rawNama,
-        email: emailCol ? getCellValue(row.getCell(emailCol).value) || null : null,
-        telepon: telpCol ? getCellValue(row.getCell(telpCol).value) || null : null,
-        bidang: bidangCol ? getCellValue(row.getCell(bidangCol).value) || null : null,
-        subBidang: subBidangCol ? getCellValue(row.getCell(subBidangCol).value) || null : null,
-        jabatan: jabatanCol ? getCellValue(row.getCell(jabatanCol).value) || "Staff" : "Staff",
-        tipeJabatan: tipeJabatanCol ? getCellValue(row.getCell(tipeJabatanCol).value) || "STAFF" : "STAFF",
-        golongan: golCol ? getCellValue(row.getCell(golCol).value) || "A/I" : "A/I",
-        pangkat: pangkatCol ? getCellValue(row.getCell(pangkatCol).value) || null : null,
-        tanggalMasuk: parsedTmt ? parsedTmt.toISOString().split("T")[0] : null,
-        status: statusCol ? getCellValue(row.getCell(statusCol).value) || "AKTIF" : "AKTIF",
-        gajiPokok: gapokCol ? parseNumber(row.getCell(gapokCol).value) : 0,
-        tunjangan: tunjanganCol ? parseNumber(row.getCell(tunjanganCol).value) : 0,
-        jenisKelamin: jkCol ? getCellValue(row.getCell(jkCol).value) || null : null,
-        tempatLahir: tmpLahirCol ? getCellValue(row.getCell(tmpLahirCol).value) || null : null,
-        tanggalLahir: parsedTglLahir ? parsedTglLahir.toISOString().split("T")[0] : null,
-        agama: agamaCol ? getCellValue(row.getCell(agamaCol).value) || null : null,
-        statusNikah: nikahCol ? getCellValue(row.getCell(nikahCol).value) || null : null,
-        alamat: alamatCol ? getCellValue(row.getCell(alamatCol).value) || null : null,
-        npwp: npwpCol ? getCellValue(row.getCell(npwpCol).value) || null : null,
-        pendidikanTerakhir: pendCol ? getCellValue(row.getCell(pendCol).value) || null : null,
-        jurusan: jurusanCol ? getCellValue(row.getCell(jurusanCol).value) || null : null,
-        institusi: instCol ? getCellValue(row.getCell(instCol).value) || null : null,
-        tahunLulus: lulusCol ? getCellValue(row.getCell(lulusCol).value) || null : null,
-        bank: bankCol ? getCellValue(row.getCell(bankCol).value) || null : null,
-        noRekening: norekCol ? getCellValue(row.getCell(norekCol).value) || null : null,
-        bpjsKesehatan: bpjsKesCol ? getCellValue(row.getCell(bpjsKesCol).value) || null : null,
-        bpjsKetenagakerjaan: bpjsTkCol ? getCellValue(row.getCell(bpjsTkCol).value) || null : null,
-      })
     }
   }
 
@@ -1165,26 +1268,36 @@ export async function importPegawaiBatch(items: ImportPegawaiItem[]) {
 
       const targetTunjangan = typeof item.tunjangan === "number" ? item.tunjangan : parseNumber(item.tunjangan)
 
-      // Resolusi Bidang & SubBidang
-      let matchedBidangId: string | null = null
-      let matchedSubBidangId: string | null = null
+      // Normalize jabatan: expand "Pjg." → "Penjaga"
+      const normalizedJabatan = normalizeJabatanName(item.jabatan || "Staff")
 
-      if (item.bidang) {
-        const rawBid = item.bidang.trim().toLowerCase()
-        const b = allBidang.find(x => 
-          x.id === rawBid ||
-          x.nama.toLowerCase().includes(rawBid) ||
-          rawBid.includes(x.nama.toLowerCase()) ||
-          (x.kode && x.kode.toLowerCase() === rawBid)
-        )
-        if (b) {
-          matchedBidangId = b.id
-          if (item.subBidang && b.subBidang?.length > 0) {
+      // Resolusi Bidang & SubBidang — menggunakan smart matching
+      const matchResult = smartMatchBidang(item.bidang || "", allBidang)
+      let matchedBidangId = matchResult.bidangId
+      let matchedSubBidangId = matchResult.subBidangId
+
+      // Match sub bidang jika disediakan atau otomatis dari nama jabatan
+      if (matchedBidangId) {
+        const b = allBidang.find(x => x.id === matchedBidangId)
+        if (b && Array.isArray(b.subBidang) && b.subBidang.length > 0) {
+          if (item.subBidang) {
             const rawSub = item.subBidang.trim().toLowerCase()
-            const sb = b.subBidang.find(s => s.nama.toLowerCase().includes(rawSub) || rawSub.includes(s.nama.toLowerCase()))
+            const sb = b.subBidang.find((s: any) => s.nama.toLowerCase().includes(rawSub) || rawSub.includes(s.nama.toLowerCase()))
+            if (sb) matchedSubBidangId = sb.id
+          }
+          if (!matchedSubBidangId) {
+            const rawJab = normalizedJabatan.toLowerCase()
+            const sb = b.subBidang.find((s: any) => rawJab.includes(s.nama.toLowerCase()))
             if (sb) matchedSubBidangId = sb.id
           }
         }
+      }
+
+      // Auto-detect tipeJabatan from jabatan name if not explicitly set or is generic
+      const matchedBidangName = matchedBidangId ? (allBidang.find(x => x.id === matchedBidangId)?.nama || "") : ""
+      let resolvedTipeJabatan = item.tipeJabatan || ""
+      if (!resolvedTipeJabatan || resolvedTipeJabatan === "STAFF") {
+        resolvedTipeJabatan = detectTipeJabatanFromExcel(normalizedJabatan, matchedBidangName)
       }
 
       const parsedTanggalMasuk = parseExcelDate(item.tanggalMasuk) || new Date()
@@ -1199,8 +1312,8 @@ export async function importPegawaiBatch(items: ImportPegawaiItem[]) {
         // SMART UPDATE: Perbarui data tanpa menghapus riwayat atau relasi yang sudah ada
         const updatePayload: any = {
           nama: item.nama?.trim() || existing.nama,
-          jabatan: item.jabatan?.trim() || existing.jabatan,
-          tipeJabatan: mapTipeJabatan(item.tipeJabatan || existing.tipeJabatan) as any,
+          jabatan: normalizedJabatan || existing.jabatan,
+          tipeJabatan: mapTipeJabatan(resolvedTipeJabatan || existing.tipeJabatan) as any,
           golongan: normGol,
           pangkat: targetPangkat,
         }
@@ -1263,9 +1376,16 @@ export async function importPegawaiBatch(items: ImportPegawaiItem[]) {
           email = `${cleanNik}@tiara.id`
         }
 
-        // Cek jika email sudah digunakan user lain
+        // Cek jika email atau username sudah digunakan user lain
         let userId: string
-        const existingUser = await prisma.user.findUnique({ where: { email } })
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email },
+              { username: cleanNik },
+            ]
+          }
+        })
         if (existingUser) {
           userId = existingUser.id
           if (!existingUser.username) {
@@ -1275,7 +1395,7 @@ export async function importPegawaiBatch(items: ImportPegawaiItem[]) {
             })
           }
         } else {
-          const role = mapJabatanToRole(item.tipeJabatan || "STAFF", item.jabatan || "Staff") || "PEGAWAI"
+          const role = mapJabatanToRole(resolvedTipeJabatan || "STAFF", normalizedJabatan || "Staff") || "PEGAWAI"
           const newUser = await prisma.user.create({
             data: {
               email,
@@ -1293,8 +1413,8 @@ export async function importPegawaiBatch(items: ImportPegawaiItem[]) {
             nama: item.nama?.trim() || "Pegawai Baru",
             email,
             telepon: clean(item.telepon),
-            jabatan: item.jabatan?.trim() || "Staff",
-            tipeJabatan: mapTipeJabatan(item.tipeJabatan || "STAFF") as any,
+            jabatan: normalizedJabatan || "Staff",
+            tipeJabatan: mapTipeJabatan(resolvedTipeJabatan || "STAFF") as any,
             golongan: normGol,
             pangkat: targetPangkat,
             gajiPokok: targetGajiPokok,
