@@ -376,11 +376,9 @@ export default function MobileFingerprint() {
               : "bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600"
           )} />
 
-          {/* Refined Luxury Success Badge */}
-          <div className="relative my-3 flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_24px_rgba(16,185,129,0.2)]">
-              <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
-            </div>
+          {/* Lottie Success Animation */}
+          <div className="w-28 h-28 flex items-center justify-center my-1">
+            <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
           </div>
 
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center tracking-tight">
