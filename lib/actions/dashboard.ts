@@ -7,6 +7,9 @@ export async function getDashboardStats() {
     const todayStr = new Date().toLocaleDateString('en-CA')
     const checkInDateStart = new Date(`${todayStr}T00:00:00.000Z`)
     const checkInDateEnd = new Date(`${todayStr}T23:59:59.999Z`)
+    const sevenDaysAgoStart = new Date(checkInDateStart)
+    sevenDaysAgoStart.setDate(sevenDaysAgoStart.getDate() - 6)
+    sevenDaysAgoStart.setHours(0, 0, 0, 0)
 
     const [
       totalPegawai,
@@ -17,6 +20,7 @@ export async function getDashboardStats() {
       allPegawaiActive,
       // NEW: Chart Data
       attendanceRaw,
+      cuti7Days,
       payrollRaw,
       unitCounts,
       attendance30Days,
@@ -47,8 +51,17 @@ export async function getDashboardStats() {
       }),
       // Attendance 7 Days
       prisma.absensi.findMany({
-        where: { tanggal: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
-        select: { tanggal: true, status: true }
+        where: { tanggal: { gte: sevenDaysAgoStart, lte: checkInDateEnd } },
+        select: { tanggal: true, status: true, pegawaiId: true }
+      }),
+      // Approved Cuti 7 Days
+      prisma.cuti.findMany({
+        where: {
+          status: 'APPROVED',
+          tanggalMulai: { lte: checkInDateEnd },
+          tanggalSelesai: { gte: sevenDaysAgoStart }
+        },
+        select: { tanggalMulai: true, tanggalSelesai: true, jenisCuti: true, pegawaiId: true }
       }),
       // Payroll 12 Months
       prisma.payroll.findMany({
@@ -105,21 +118,71 @@ export async function getDashboardStats() {
     // Attendance Trend (7 days)
     const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
     const attendanceTrend = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date()
-      d.setDate(d.getDate() - (6 - i))
-      const dStr = d.toISOString().split('T')[0]
+      const d = new Date(sevenDaysAgoStart)
+      d.setDate(d.getDate() + i)
+      const dStr = d.toLocaleDateString('en-CA')
       const dayName = days[d.getDay()]
       
       const isDayWeekend = d.getDay() === 0 || d.getDay() === 6
+      const isToday = dStr === todayStr
       
-      const dayData = attendanceRaw.filter(a => a.tanggal.toISOString().split('T')[0] === dStr)
+      const dayData = attendanceRaw.filter(a => {
+        const aStr = a.tanggal.toLocaleDateString('en-CA')
+        return aStr === dStr
+      })
+
+      // Pegawai yang sedang Cuti/Izin resmi yang disetujui (Cuti model)
+      const activeCuti = cuti7Days.filter(c => {
+        const cStart = new Date(c.tanggalMulai).toLocaleDateString('en-CA')
+        const cEnd = new Date(c.tanggalSelesai).toLocaleDateString('en-CA')
+        return dStr >= cStart && dStr <= cEnd
+      })
+
+      const hadirCount = dayData.filter(a => a.status === 'HADIR' || a.status === 'TERLAMBAT').length
+      
+      const explicitIzinSakit = dayData.filter(a => a.status === 'IZIN' || a.status === 'SAKIT').length
+      const cutiApprovedIzin = activeCuti.filter(c => {
+        const j = (c.jenisCuti || '').toLowerCase()
+        return j.includes('izin') || j.includes('sakit')
+      }).length
+      const izinCount = explicitIzinSakit + cutiApprovedIzin
+
+      const explicitCuti = dayData.filter(a => a.status === 'CUTI').length
+      const cutiApprovedOther = activeCuti.filter(c => {
+        const j = (c.jenisCuti || '').toLowerCase()
+        return !j.includes('izin') && !j.includes('sakit')
+      }).length
+      const cutiCount = explicitCuti + cutiApprovedOther
+
+      const explicitAlpha = dayData.filter(a => a.status === 'ALPA').length
+      
+      // Hari kerja lampau: jika pegawai aktif tidak hadir dan tidak cuti/izin, terhitung ALPA
+      const recordedCount = hadirCount + izinCount + cutiCount + explicitAlpha
+      const unrecordedAlpha = (!isDayWeekend && !isToday && recordedCount > 0)
+        ? Math.max(0, totalPegawai - recordedCount)
+        : 0
+      const alphaCount = explicitAlpha + unrecordedAlpha
+
+      // Hari ini: pegawai yang belum absen terhitung Belum Absen
+      const belumAbsenCount = (!isDayWeekend && isToday)
+        ? Math.max(0, totalPegawai - (hadirCount + izinCount + cutiCount + explicitAlpha))
+        : 0
+
+      const totalHarian = hadirCount + izinCount + cutiCount + alphaCount
+      const rateHarian = totalHarian > 0 ? Number(((hadirCount / totalHarian) * 100).toFixed(1)) : 0
+
       return {
         day: dayName,
-        hadir: dayData.filter(a => a.status === 'HADIR' || a.status === 'TERLAMBAT').length,
-        izin: dayData.filter(a => a.status === 'IZIN').length,
-        cuti: dayData.filter(a => a.status === 'CUTI').length,
-        alpha: dayData.filter(a => a.status === 'ALPA').length,
-        belumAbsen: isDayWeekend ? 0 : Math.max(0, totalPegawai - dayData.filter(a => a.status !== 'ALPA').length)
+        date: dStr,
+        hadir: hadirCount,
+        izin: izinCount,
+        cuti: cutiCount,
+        alpha: alphaCount,
+        belumAbsen: belumAbsenCount,
+        total: totalHarian,
+        rate: rateHarian,
+        isWeekend: isDayWeekend,
+        isToday
       }
     })
 
@@ -405,6 +468,7 @@ export async function getDashboardStats() {
       },
       // Chart props
       analytics: {
+        totalPegawai,
         attendanceTrend,
         payrollTrend,
         unitDistribution,

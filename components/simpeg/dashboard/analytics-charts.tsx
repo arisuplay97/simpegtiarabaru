@@ -130,46 +130,117 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 
 const AttendanceTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const hadir = payload.find((p: any) => p.dataKey === 'hadir')?.value || 0
-    const izin = payload.find((p: any) => p.dataKey === 'izin')?.value || 0
-    const cuti = payload.find((p: any) => p.dataKey === 'cuti')?.value || 0
-    const alpha = payload.find((p: any) => p.dataKey === 'alpha')?.value || 0
+    const datum = payload[0]?.payload || {}
+    const hadir = Number(datum.hadir ?? (payload.find((p: any) => p.dataKey === 'hadir')?.value || 0))
+    const izin = Number(datum.izin ?? (payload.find((p: any) => p.dataKey === 'izin')?.value || 0))
+    const cuti = Number(datum.cuti ?? (payload.find((p: any) => p.dataKey === 'cuti')?.value || 0))
+    const alpha = Number(datum.alpha ?? (payload.find((p: any) => p.dataKey === 'alpha')?.value || 0))
+    const belumAbsen = Number(datum.belumAbsen || 0)
     const total = hadir + izin + cuti + alpha
-    const rate = total > 0 ? ((hadir / total) * 100).toFixed(1) : "0"
+    const rate = total > 0 ? ((hadir / total) * 100).toFixed(1) : (datum.rate ? Number(datum.rate).toFixed(1) : "0.0")
+
+    let formattedDate = label
+    if (datum.date) {
+      try {
+        const parts = datum.date.split("-")
+        if (parts.length === 3) {
+          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+          formattedDate = d.toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        }
+      } catch {
+        formattedDate = label
+      }
+    }
+
+    const isWeekend = datum.isWeekend || label === "Sab" || label === "Min"
 
     return (
-      <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3.5 shadow-xl text-xs min-w-[190px]">
+      <div className="rounded-xl border border-slate-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3.5 shadow-xl text-xs min-w-[210px] transition-all">
         <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-zinc-800">
-          <span className="font-bold text-slate-900 dark:text-zinc-100">{label}</span>
-          <span className="text-[11px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50">
-            {rate}% Hadir
-          </span>
+          <div>
+            <span className="font-bold text-slate-900 dark:text-zinc-100 block">{formattedDate}</span>
+            {isWeekend && (
+              <span className="text-[10px] text-slate-400 dark:text-zinc-500">Operasional Akhir Pekan</span>
+            )}
+          </div>
+          {total > 0 ? (
+            <span className={cn(
+              "text-[11px] font-bold font-mono px-2 py-0.5 rounded-full border",
+              Number(rate) >= 90
+                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/50"
+                : Number(rate) >= 75
+                ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/50"
+                : "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200/50 dark:border-rose-800/50"
+            )}>
+              {rate}% Hadir
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500">
+              Libur
+            </span>
+          )}
         </div>
+
+        {total > 0 && (
+          <div className="mb-2.5">
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden flex">
+              <div
+                className="h-full bg-blue-500 transition-all duration-300 rounded-full"
+                style={{ width: `${Math.min(100, Number(rate))}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
-              <span className="h-2 w-2 rounded-full bg-blue-500" /> Hadir
+            <span className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-blue-500 shadow-xs shadow-blue-500/50" /> Hadir
             </span>
-            <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{hadir.toLocaleString('id-ID')}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{hadir.toLocaleString('id-ID')}</span>
+              {total > 0 && (
+                <span className="text-[10px] text-slate-400 font-mono">({((hadir / total) * 100).toFixed(0)}%)</span>
+              )}
+            </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
-              <span className="h-2 w-2 rounded-full bg-cyan-500" /> Izin
+            <span className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-xs shadow-cyan-500/50" /> Izin & Sakit
             </span>
             <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{izin.toLocaleString('id-ID')}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
-              <span className="h-2 w-2 rounded-full bg-amber-500" /> Cuti
+            <span className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/50" /> Cuti Resmi
             </span>
             <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{cuti.toLocaleString('id-ID')}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
-              <span className="h-2 w-2 rounded-full bg-rose-500" /> Alpa
+            <span className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-rose-500 shadow-xs shadow-rose-500/50" /> Alpa (Mangkir)
             </span>
             <span className="font-bold font-mono text-slate-900 dark:text-zinc-100">{alpha.toLocaleString('id-ID')}</span>
           </div>
+          {belumAbsen > 0 && (
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-zinc-800/80">
+              <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-500">
+                <span className="h-2 w-2 rounded-full bg-slate-400" /> Belum Absen
+              </span>
+              <span className="font-mono text-slate-600 dark:text-zinc-400">{belumAbsen.toLocaleString('id-ID')}</span>
+            </div>
+          )}
+          {total > 0 && (
+            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-zinc-800 text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
+              <span>Total Terdata</span>
+              <span className="font-mono text-slate-700 dark:text-zinc-300">{total.toLocaleString('id-ID')} orang</span>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -230,6 +301,7 @@ const attendanceConfig = {
 
 export function AnalyticsCharts({ data }: { data?: any }) {
   const [mounted, setMounted] = useState(false)
+  const [attendanceViewMode, setAttendanceViewMode] = useState<"stacked" | "grouped" | "area">("stacked")
   
   useEffect(() => {
     setMounted(true)
@@ -251,8 +323,19 @@ export function AnalyticsCharts({ data }: { data?: any }) {
 
   // Calculated metrics
   const totalHadir7Hari = displayAttendance.reduce((acc: number, d: any) => acc + (d.hadir || 0), 0)
-  const totalAll7Hari = displayAttendance.reduce((acc: number, d: any) => acc + (d.hadir || 0) + (d.izin || 0) + (d.cuti || 0) + (d.alpha || 0), 0)
-  const avgAttendanceRate = totalAll7Hari > 0 ? ((totalHadir7Hari / totalAll7Hari) * 100).toFixed(1) : "96.4"
+  const sumIzin7Hari = displayAttendance.reduce((acc: number, d: any) => acc + (d.izin || 0), 0)
+  const sumCuti7Hari = displayAttendance.reduce((acc: number, d: any) => acc + (d.cuti || 0), 0)
+  const sumAlpha7Hari = displayAttendance.reduce((acc: number, d: any) => acc + (d.alpha || 0), 0)
+
+  // Hitung rerata kehadiran berdasarkan hari kerja yang memiliki data terdata
+  const workingDays = displayAttendance.filter((d: any) => !d.isWeekend && ((d.hadir || 0) + (d.izin || 0) + (d.cuti || 0) + (d.alpha || 0)) > 0)
+  const activeDays = workingDays.length > 0 ? workingDays : displayAttendance.filter((d: any) => ((d.hadir || 0) + (d.izin || 0) + (d.cuti || 0) + (d.alpha || 0)) > 0)
+  
+  const workingHadir = activeDays.reduce((acc: number, d: any) => acc + (d.hadir || 0), 0)
+  const workingTotal = activeDays.reduce((acc: number, d: any) => acc + (d.hadir || 0) + (d.izin || 0) + (d.cuti || 0) + (d.alpha || 0), 0)
+
+  const avgAttendanceRate = workingTotal > 0 ? ((workingHadir / workingTotal) * 100).toFixed(1) : "0.0"
+  const numAvg = parseFloat(avgAttendanceRate)
   const totalStaffDist = displayUnitDist.reduce((acc: number, item: any) => acc + (item.value || 0), 0)
 
   if (!mounted) {
@@ -275,18 +358,37 @@ export function AnalyticsCharts({ data }: { data?: any }) {
       <div className="flex flex-col gap-6 lg:col-span-2">
         {/* Attendance Chart */}
         <div className="bg-white dark:bg-[#111113] border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs transition-colors">
-          <div className="pb-3.5 border-b border-slate-100 dark:border-zinc-800/70 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="pb-3.5 border-b border-slate-100 dark:border-zinc-800/70 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
-                Statistik Kehadiran 7 Hari Terakhir
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                  Statistik Kehadiran 7 Hari Terakhir
+                </h3>
+              </div>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                Monitoring komparatif kehadiran, izin, cuti, dan alpa harian
+                Monitoring komparatif kehadiran, izin, cuti, dan alpa harian staf
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50 text-[11px] font-semibold">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <Tabs value={attendanceViewMode} onValueChange={(v: any) => setAttendanceViewMode(v)} className="w-auto">
+                <TabsList className="h-7 text-xs bg-slate-100 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-slate-200/40 dark:border-zinc-700/40">
+                  <TabsTrigger value="stacked" className="text-[11px] px-2.5 py-0.5 h-6 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-xs">Tumpuk</TabsTrigger>
+                  <TabsTrigger value="grouped" className="text-[11px] px-2.5 py-0.5 h-6 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-xs">Grup</TabsTrigger>
+                  <TabsTrigger value="area" className="text-[11px] px-2.5 py-0.5 h-6 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-xs">Tren</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <div className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold tracking-tight transition-all shadow-2xs",
+                numAvg >= 90
+                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/50"
+                  : numAvg >= 75
+                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/50"
+                  : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/50"
+              )}>
+                <span className={cn(
+                  "h-1.5 w-1.5 rounded-full animate-pulse",
+                  numAvg >= 90 ? "bg-emerald-500" : numAvg >= 75 ? "bg-amber-500" : "bg-rose-500"
+                )} />
                 <span>Rerata: {avgAttendanceRate}%</span>
               </div>
             </div>
@@ -294,51 +396,159 @@ export function AnalyticsCharts({ data }: { data?: any }) {
           <div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={displayAttendance} barGap={4} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
-                  <XAxis 
-                    dataKey="day" 
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
-                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
-                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
-                    tickLine={false}
-                  />
-                  <Tooltip content={<AttendanceTooltip />} />
-                  <Bar dataKey="hadir" name="Hadir" fill="#3b82f6" stackId="att" maxBarSize={32} />
-                  <Bar dataKey="izin" name="Izin" fill="#06b6d4" stackId="att" maxBarSize={32} />
-                  <Bar dataKey="cuti" name="Cuti" fill="#f59e0b" stackId="att" maxBarSize={32} />
-                  <Bar dataKey="alpha" name="Alpa" fill="#f43f5e" stackId="att" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                </BarChart>
+                {attendanceViewMode === "area" ? (
+                  <AreaChart data={displayAttendance} margin={{ top: 12, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="areaHadirGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="areaIzinGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="areaCutiGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="areaAlphaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
+                    <XAxis 
+                      dataKey="day" 
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                      tickLine={false}
+                      tickFormatter={(v) => Math.round(v).toLocaleString('id-ID')}
+                    />
+                    <Tooltip content={<AttendanceTooltip />} />
+                    <Area type="monotone" dataKey="hadir" name="Hadir" stroke="#3b82f6" strokeWidth={2.5} fill="url(#areaHadirGrad)" />
+                    <Area type="monotone" dataKey="izin" name="Izin" stroke="#06b6d4" strokeWidth={2} fill="url(#areaIzinGrad)" />
+                    <Area type="monotone" dataKey="cuti" name="Cuti" stroke="#f59e0b" strokeWidth={2} fill="url(#areaCutiGrad)" />
+                    <Area type="monotone" dataKey="alpha" name="Alpa" stroke="#f43f5e" strokeWidth={2} fill="url(#areaAlphaGrad)" />
+                  </AreaChart>
+                ) : attendanceViewMode === "grouped" ? (
+                  <BarChart data={displayAttendance} barGap={2} margin={{ top: 12, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="attHadirGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#60a5fa" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#2563eb" stopOpacity={0.9} />
+                      </linearGradient>
+                      <linearGradient id="attIzinGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#0891b2" stopOpacity={0.9} />
+                      </linearGradient>
+                      <linearGradient id="attCutiGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
+                      </linearGradient>
+                      <linearGradient id="attAlphaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#e11d48" stopOpacity={0.9} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
+                    <XAxis 
+                      dataKey="day" 
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                      tickLine={false}
+                      tickFormatter={(v) => Math.round(v).toLocaleString('id-ID')}
+                    />
+                    <Tooltip content={<AttendanceTooltip />} />
+                    <Bar dataKey="hadir" name="Hadir" fill="url(#attHadirGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                    <Bar dataKey="izin" name="Izin" fill="url(#attIzinGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                    <Bar dataKey="cuti" name="Cuti" fill="url(#attCutiGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                    <Bar dataKey="alpha" name="Alpa" fill="url(#attAlphaGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                  </BarChart>
+                ) : (
+                  <BarChart data={displayAttendance} barGap={4} margin={{ top: 12, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="attHadirGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#60a5fa" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#2563eb" stopOpacity={0.9} />
+                      </linearGradient>
+                      <linearGradient id="attIzinGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#0891b2" stopOpacity={0.9} />
+                      </linearGradient>
+                      <linearGradient id="attCutiGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
+                      </linearGradient>
+                      <linearGradient id="attAlphaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#e11d48" stopOpacity={0.9} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
+                    <XAxis 
+                      dataKey="day" 
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                      tickLine={false}
+                      tickFormatter={(v) => Math.round(v).toLocaleString('id-ID')}
+                    />
+                    <Tooltip content={<AttendanceTooltip />} />
+                    <Bar dataKey="hadir" name="Hadir" fill="url(#attHadirGrad)" stackId="att" maxBarSize={36} />
+                    <Bar dataKey="izin" name="Izin" fill="url(#attIzinGrad)" stackId="att" maxBarSize={36} />
+                    <Bar dataKey="cuti" name="Cuti" fill="url(#attCutiGrad)" stackId="att" maxBarSize={36} />
+                    <Bar dataKey="alpha" name="Alpa" fill="url(#attAlphaGrad)" stackId="att" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </div>
 
-            {/* Custom Modern Legend */}
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-xs bg-blue-500" />
-                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Hadir</span>
+            {/* Custom Modern Legend with 7-Day Counts */}
+            <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40">
+                  <span className="h-2 w-2 rounded-xs bg-blue-500 shadow-xs shadow-blue-500/50" />
+                  <span className="text-slate-700 dark:text-zinc-300 font-medium">Hadir</span>
+                  <span className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400">({totalHadir7Hari.toLocaleString('id-ID')})</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-xs bg-cyan-500" />
-                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Izin</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/50 dark:border-cyan-800/40">
+                  <span className="h-2 w-2 rounded-xs bg-cyan-500 shadow-xs shadow-cyan-500/50" />
+                  <span className="text-slate-700 dark:text-zinc-300 font-medium">Izin</span>
+                  <span className="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400">({sumIzin7Hari.toLocaleString('id-ID')})</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-xs bg-amber-500" />
-                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Cuti</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/40">
+                  <span className="h-2 w-2 rounded-xs bg-amber-500 shadow-xs shadow-amber-500/50" />
+                  <span className="text-slate-700 dark:text-zinc-300 font-medium">Cuti</span>
+                  <span className="text-[11px] font-mono font-bold text-amber-600 dark:text-amber-400">({sumCuti7Hari.toLocaleString('id-ID')})</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-xs bg-rose-500" />
-                  <span className="text-slate-600 dark:text-zinc-400 font-medium">Alpa</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/40">
+                  <span className="h-2 w-2 rounded-xs bg-rose-500 shadow-xs shadow-rose-500/50" />
+                  <span className="text-slate-700 dark:text-zinc-300 font-medium">Alpa</span>
+                  <span className="text-[11px] font-mono font-bold text-rose-600 dark:text-rose-400">({sumAlpha7Hari.toLocaleString('id-ID')})</span>
                 </div>
               </div>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500">
-                Data sinkronisasi presensi harian
-              </span>
+              <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
+                <span>Target: 95%</span>
+                <span>•</span>
+                <span>Presensi Live</span>
+              </div>
             </div>
           </div>
         </div>
