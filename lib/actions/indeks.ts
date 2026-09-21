@@ -267,16 +267,20 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
     const now = new Date()
     const b = bulan || now.getMonth() + 1
     const t = tahun || now.getFullYear()
-    const isCurrentMonth = (b === now.getMonth() + 1 && t === now.getFullYear())
 
-    // Hanya auto-recalc untuk bulan berjalan (bukan arsip bulan lalu)
-    if (isCurrentMonth) {
+    // Periksa apakah data indeks bulan ini sudah ada (baca cache, jangan recalc semua setiap load)
+    const existingCount = await prisma.indeksPegawai.count({
+      where: { bulan: b, tahun: t }
+    })
+
+    // Hanya auto-recalc jika BELUM ADA data sama sekali untuk bulan ini
+    // Untuk update rutin, gunakan hitungIndeksSemuaPegawai() secara manual/scheduled
+    if (existingCount === 0) {
       const pegawaiAktif = await prisma.pegawai.findMany({
         where: { status: 'AKTIF' },
         select: { id: true }
       })
-      // Hitung paralel (max 5 sekaligus agar tidak overload DB)
-      const chunkSize = 5
+      const chunkSize = 10
       for (let i = 0; i < pegawaiAktif.length; i += chunkSize) {
         const chunk = pegawaiAktif.slice(i, i + chunkSize)
         await Promise.all(chunk.map(p => hitungIndeksPegawai(p.id, b, t)))

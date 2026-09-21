@@ -24,7 +24,9 @@ export async function getDashboardStats() {
       payrollRaw,
       unitCounts,
       attendance30Days,
-      recentAbsensiRaw
+      recentAbsensiRaw,
+      pegawaiCutiCount,
+      pegawaiSPCount
     ] = await Promise.all([
       prisma.pegawai.count({ where: { status: 'AKTIF' } }),
       prisma.user.count(),
@@ -92,7 +94,10 @@ export async function getDashboardStats() {
             }
           }
         }
-      })
+      }),
+      // Moved here from separate Promise.all to eliminate waterfall
+      prisma.cuti.count({ where: { status: 'APPROVED', tanggalMulai: { lte: new Date() }, tanggalSelesai: { gte: new Date() } } }),
+      prisma.pegawai.count({ where: { sp: { not: null }, status: 'AKTIF' } }),
     ])
     
     const approvalPending = cuti + mutasi + kgb + pangkat
@@ -331,11 +336,7 @@ export async function getDashboardStats() {
       })
       .sort((a, b) => a.tglNum - b.tglNum)
 
-    // 5. Data Pendukung lainnya
-    const [pegawaiCutiCount, pegawaiSPCount] = await Promise.all([
-      prisma.cuti.count({ where: { status: 'APPROVED', tanggalMulai: { lte: new Date() }, tanggalSelesai: { gte: new Date() } } }),
-      prisma.pegawai.count({ where: { sp: { not: null }, status: 'AKTIF' } }),
-    ])
+    // 5. Data Pendukung lainnya (sudah dimuat dalam Promise.all utama di atas)
 
     // 6. Format Aktivitas Terakhir (Live Recent Activities Feed)
     const aktivitasTerakhir = recentAbsensiRaw && recentAbsensiRaw.length > 0
