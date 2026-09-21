@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,17 +17,39 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-  Search, Filter, Download, Plus, Briefcase, Users, AlertCircle, CheckCircle2, Building2, Edit, Trash2, Loader2, Zap
+  Search, Filter, Download, Plus, Briefcase, Users, AlertCircle, CheckCircle2, Building2, Edit, Trash2, Loader2, Zap,
+  ChevronLeft, ChevronRight
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { upsertFormasi, deleteFormasi, autoGenerateFormasi } from "@/lib/actions/formasi"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
+const ITEMS_PER_PAGE = 15
+
+function getPaginationPages(currentPage: number, totalPages: number): number[] {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+  const pages: number[] = [1]
+  let start = Math.max(2, currentPage - 1)
+  let end = Math.min(totalPages - 1, currentPage + 1)
+  if (currentPage <= 3) { start = 2; end = 5 }
+  if (currentPage >= totalPages - 2) { start = totalPages - 4; end = totalPages - 1 }
+  if (start > 2) pages.push(-1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (end < totalPages - 1) pages.push(-1)
+  pages.push(totalPages)
+  return pages
+}
+
 export function FormasiClient({ initialData, bidangList }: { initialData: any[]; bidangList: any[] }) {
   const router = useRouter()
+  const [data, setData] = useState(initialData)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Sync with server data on re-render (after router.refresh)
+  useEffect(() => { setData(initialData) }, [initialData])
   
   // Modal state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -81,13 +103,16 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
   }
 
   const handleAutoGenerate = async () => {
-    if (!confirm("Fitur ini akan menscan seluruh Pegawai aktif dan membuatkan Formasi secara otomatis berdasarkan master data yang ada. Lanjutkan?")) return
+    if (!confirm("Fitur ini akan menscan seluruh Pegawai aktif dan membuatkan/memperbarui Formasi secara otomatis berdasarkan master data yang ada. Lanjutkan?")) return
     setIsGenerating(true)
-    const res = await autoGenerateFormasi()
+    const res = await autoGenerateFormasi() as any
     setIsGenerating(false)
     if (res.success) {
-      if ((res as any).count === 0) toast.info("Semua jabatan sudah ada di tabel formasi.")
-      else toast.success(`Berhasil membuat ${(res as any).count} formasi baru berdasarkan data pegawai!`)
+      const msgs: string[] = []
+      if (res.added > 0) msgs.push(`${res.added} formasi baru dibuat`)
+      if (res.updated > 0) msgs.push(`${res.updated} kuota diperbarui`)
+      if (msgs.length === 0) toast.info("Semua jabatan sudah sesuai dengan data pegawai aktif.")
+      else toast.success(`Berhasil: ${msgs.join(", ")}!`)
       router.refresh()
     } else {
       toast.error(res.error)
@@ -95,17 +120,25 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
   }
 
   const filteredData = useMemo(() => {
-    return initialData.filter((item) => {
+    const result = data.filter((item) => {
       const matchSearch = item.jabatan.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (item.bidang?.nama || "").toLowerCase().includes(searchTerm.toLowerCase())
       const matchStatus = statusFilter === "all" || item.statusEnum === statusFilter
       return matchSearch && matchStatus
     })
-  }, [initialData, searchTerm, statusFilter])
+    return result
+  }, [data, searchTerm, statusFilter])
 
-  const totalKebutuhan = initialData.reduce((acc, item) => acc + item.kebutuhan, 0)
-  const totalTerisi = initialData.reduce((acc, item) => acc + item.terisi, 0)
-  const totalKosong = initialData.reduce((acc, item) => acc + item.kosong, 0)
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1) }, [searchTerm, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE))
+  const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const paginationPages = getPaginationPages(currentPage, totalPages)
+
+  const totalKebutuhan = data.reduce((acc, item) => acc + item.kebutuhan, 0)
+  const totalTerisi = data.reduce((acc, item) => acc + item.terisi, 0)
+  const totalKosong = data.reduce((acc, item) => acc + item.kosong, 0)
   const persentaseTerisi = totalKebutuhan ? Math.round((totalTerisi / totalKebutuhan) * 100) : 0
 
   return (
@@ -260,7 +293,7 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
                 <p className="text-xs text-slate-500 dark:text-zinc-400">Sinkronisasi ketersediaan aktual pegawai dengan kuota formasi</p>
               </div>
               <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
-                {filteredData.length} Posisi
+                {filteredData.length} Posisi{filteredData.length > ITEMS_PER_PAGE ? ` · Halaman ${currentPage}/${totalPages}` : ""}
               </span>
             </div>
             <Table>
@@ -283,7 +316,7 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
                       Tidak ada formasi jabatan yang cocok dengan kriteria pencarian.
                     </TableCell>
                   </TableRow>
-                ) : filteredData.map((item) => {
+                ) : paginatedData.map((item) => {
                   const pct = item.kebutuhan > 0 ? Math.min(100, Math.round((item.terisi / item.kebutuhan) * 100)) : 0
                   return (
                     <TableRow key={item.id} className="border-slate-100 dark:border-zinc-800/80 hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors">
@@ -350,6 +383,50 @@ export function FormasiClient({ initialData, bidangList }: { initialData: any[];
                 })}
               </TableBody>
             </Table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 dark:border-zinc-800/80 px-4 sm:px-6 py-3">
+                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                  Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} dari {filteredData.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7 border-slate-200 dark:border-zinc-700"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  {paginationPages.map((page, idx) =>
+                    page === -1 ? (
+                      <span key={`ellipsis-${idx}`} className="px-1 text-xs text-slate-400">…</span>
+                    ) : (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="icon"
+                        className={`h-7 w-7 text-xs font-mono ${currentPage === page ? "bg-blue-600 text-white hover:bg-blue-700" : "border-slate-200 dark:border-zinc-700"}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7 border-slate-200 dark:border-zinc-700"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>

@@ -17,14 +17,21 @@ const formatCurrency = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount)
 
-const bulanList = [
-  { value: "apr-2026", label: "April 2026" },
-  { value: "mar-2026", label: "Maret 2026" },
-  { value: "feb-2026", label: "Februari 2026" },
-  { value: "jan-2026", label: "Januari 2026" },
-  { value: "des-2025", label: "Desember 2025" },
-  { value: "nov-2025", label: "November 2025" },
-]
+const generatePeriods = () => {
+  const months = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "sep", "okt", "nov", "des"]
+  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+  const now = new Date()
+  const list = []
+  for (let i = 0; i < 20; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const mIdx = d.getMonth()
+    const yr = d.getFullYear()
+    list.push({ value: `${months[mIdx]}-${yr}`, label: `${monthNames[mIdx]} ${yr}` })
+  }
+  return list
+}
+
+const bulanList = generatePeriods()
 
 interface SlipData {
   pegawaiId: string
@@ -47,7 +54,7 @@ export default function MobileSlipGaji() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [slipData, setSlipData] = useState<SlipData | null>(null)
-  const [selectedPeriod, setSelectedPeriod] = useState("mar-2026")
+  const [selectedPeriod, setSelectedPeriod] = useState(() => bulanList[0]?.value || "sep-2026")
   const [showPeriodPicker, setShowPeriodPicker] = useState(false)
 
   useEffect(() => {

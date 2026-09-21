@@ -288,11 +288,24 @@ export default function EmployeeListPage() {
     return list
   }, [employees, searchQuery, statusFilter, unitFilter, golonganFilter, sortBy])
 
-  const totalPages = Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE)
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE))
   const paginated = filteredAndSorted.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   )
+
+  const getPaginationPages = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1)
+    }
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, "...", totalPages]
+    }
+    if (currentPage >= totalPages - 3) {
+      return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+    }
+    return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages]
+  }
 
   const isFilterActive = searchQuery !== "" || statusFilter !== "all" || unitFilter !== "all" || golonganFilter !== "all" || sortBy !== "nama-asc"
 
@@ -1208,19 +1221,53 @@ export default function EmployeeListPage() {
           </div>
 
           {/* SaaS Minimalist KPI Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
             {[
               {
                 label: "Total Pegawai",
                 value: stats?.total ?? employees.length,
-                subtext: "Terdaftar dalam database",
+                subtext: "Semua SDM terdaftar",
                 icon: Users,
-                dot: "bg-primary",
+                dot: "bg-blue-600",
+              },
+              {
+                label: "Pegawai Tetap",
+                value: stats?.tetap ?? employees.filter(e => {
+                  const j = (e.jabatan || "").toLowerCase()
+                  const st = (e.status || "").toLowerCase()
+                  const tj = (e.tipeJabatan || "").toLowerCase()
+                  return !j.includes("honorer") && !j.includes("capeg") && !j.includes("kontrak") && tj !== "kontrak" && st === "aktif"
+                }).length,
+                subtext: "Organik / Definitif",
+                icon: ShieldCheck,
+                dot: "bg-emerald-600",
+              },
+              {
+                label: "PKWT (Kontrak)",
+                value: stats?.pkwt ?? employees.filter(e => {
+                  const j = (e.jabatan || "").toLowerCase()
+                  const tj = (e.tipeJabatan || "").toLowerCase()
+                  return tj === "kontrak" || j.includes("capeg") || j.includes("pkwt") || j.includes("kontrak")
+                }).length,
+                subtext: "Waktu tertentu / capeg",
+                icon: Briefcase,
+                dot: "bg-indigo-500",
+              },
+              {
+                label: "Honorer",
+                value: stats?.honorer ?? employees.filter(e => {
+                  const j = (e.jabatan || "").toLowerCase()
+                  const st = (e.status || "").toLowerCase()
+                  return j.includes("honorer") || st.includes("honorer")
+                }).length,
+                subtext: "Tenaga penunjang",
+                icon: UserCheck,
+                dot: "bg-amber-500",
               },
               {
                 label: "Pegawai Aktif",
                 value: stats?.aktif ?? employees.filter(e => (e.status || "").toLowerCase() === "aktif").length,
-                subtext: "Status bertugas aktif",
+                subtext: "Bertugas aktif",
                 icon: UserCheck,
                 dot: "bg-emerald-500",
               },
@@ -1241,20 +1288,20 @@ export default function EmployeeListPage() {
             ].map(card => (
               <div
                 key={card.label}
-                className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-4 transition-all hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
+                className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-3.5 transition-all hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-500 dark:text-zinc-400">{card.label}</span>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 bg-slate-50 dark:bg-zinc-900/60">
-                    <card.icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 truncate">{card.label}</span>
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 bg-slate-50 dark:bg-zinc-900/60 shrink-0">
+                    <card.icon className="h-3 w-3" strokeWidth={1.75} />
                   </div>
                 </div>
-                <div className="mt-2 text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-slate-100">
+                <div className="mt-1.5 text-xl font-bold font-mono tracking-tight text-slate-900 dark:text-slate-100">
                   {card.value}
                 </div>
-                <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400">
-                  <span className={`h-1.5 w-1.5 rounded-full ${card.dot}`} />
-                  {card.subtext}
+                <div className="mt-1 flex items-center gap-1.5 text-[10.5px] text-slate-500 dark:text-zinc-400 truncate">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${card.dot}`} />
+                  <span className="truncate">{card.subtext}</span>
                 </div>
               </div>
             ))}
@@ -1635,18 +1682,23 @@ export default function EmployeeListPage() {
                 </Button>
 
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
-                    <Button
-                      key={p}
-                      variant={currentPage === p ? "default" : "outline"}
-                      size="sm"
-                      className="h-8 w-8 p-0 text-xs font-mono"
-                      onClick={() => setCurrentPage(p)}
-                    >
-                      {p}
-                    </Button>
-                  ))}
-                  {totalPages > 5 && <span className="text-slate-400 px-1">...</span>}
+                  {getPaginationPages().map((p, idx) =>
+                    typeof p === "number" ? (
+                      <Button
+                        key={p}
+                        variant={currentPage === p ? "default" : "outline"}
+                        size="sm"
+                        className="h-8 w-8 p-0 text-xs font-mono"
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    ) : (
+                      <span key={`ellipsis-${idx}`} className="text-slate-400 px-1 font-mono text-xs">
+                        ...
+                      </span>
+                    )
+                  )}
                 </div>
 
                 <Button

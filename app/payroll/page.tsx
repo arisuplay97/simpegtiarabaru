@@ -134,13 +134,34 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
+// Helper generate dynamic payroll periods (from current month backwards 20 months)
+const generatePayrollPeriods = () => {
+  const months = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "sep", "okt", "nov", "des"]
+  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+  
+  const now = new Date()
+  const list = []
+  for (let i = 0; i < 20; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const mIdx = d.getMonth()
+    const yr = d.getFullYear()
+    list.push({
+      value: `${months[mIdx]}-${yr}`,
+      label: `${monthNames[mIdx]} ${yr}`
+    })
+  }
+  return list
+}
+
+const payrollPeriods = generatePayrollPeriods()
+
 export default function PayrollPage() {
   const [data, setData] = useState<PayrollEmployee[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [unitFilter, setUnitFilter] = useState<string>("all")
-  const [selectedPeriod, setSelectedPeriod] = useState("mar-2026")
+  const [selectedPeriod, setSelectedPeriod] = useState(() => payrollPeriods[0]?.value || "sep-2026")
   const [activeTab, setActiveTab] = useState("daftar")
 
   // Settings State
@@ -295,6 +316,19 @@ export default function PayrollPage() {
     const startIdx = (currentPage - 1) * itemsPerPage
     return filteredData.slice(startIdx, startIdx + itemsPerPage)
   }, [filteredData, currentPage, itemsPerPage])
+
+  const getPaginationPages = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1)
+    }
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, "...", totalPages]
+    }
+    if (currentPage >= totalPages - 3) {
+      return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+    }
+    return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages]
+  }
 
   // Aggregate Stats
   const stats = useMemo(() => {
@@ -703,12 +737,12 @@ export default function PayrollPage() {
                         <CalendarDays className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="apr-2026">April 2026</SelectItem>
-                        <SelectItem value="mar-2026">Maret 2026</SelectItem>
-                        <SelectItem value="feb-2026">Februari 2026</SelectItem>
-                        <SelectItem value="jan-2026">Januari 2026</SelectItem>
-                        <SelectItem value="des-2025">Desember 2025</SelectItem>
+                      <SelectContent className="max-h-64">
+                        {payrollPeriods.map(p => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1103,20 +1137,23 @@ export default function PayrollPage() {
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    const pageNum = i + 1
-                    return (
+                  {getPaginationPages().map((p, idx) =>
+                    typeof p === "number" ? (
                       <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
+                        key={p}
+                        variant={currentPage === p ? "default" : "outline"}
                         size="sm"
-                        className="h-8 w-8 p-0 text-xs border-border/80"
-                        onClick={() => setCurrentPage(pageNum)}
+                        className="h-8 w-8 p-0 text-xs border-border/80 font-mono"
+                        onClick={() => setCurrentPage(p)}
                       >
-                        {pageNum}
+                        {p}
                       </Button>
+                    ) : (
+                      <span key={`ellipsis-${idx}`} className="text-slate-400 px-1 font-mono text-xs">
+                        ...
+                      </span>
                     )
-                  })}
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

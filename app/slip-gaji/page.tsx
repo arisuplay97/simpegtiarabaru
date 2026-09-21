@@ -42,8 +42,23 @@ interface MySlipData {
   status: string
 }
 
+const generatePeriods = () => {
+  const months = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "sep", "okt", "nov", "des"]
+  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+  const now = new Date()
+  const list = []
+  for (let i = 0; i < 20; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const mIdx = d.getMonth()
+    const yr = d.getFullYear()
+    list.push({ value: `${months[mIdx]}-${yr}`, label: `${monthNames[mIdx]} ${yr}` })
+  }
+  return list
+}
+const slipPeriods = generatePeriods()
+
 export default function SlipGajiPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState("mar-2026")
+  const [selectedPeriod, setSelectedPeriod] = useState(() => slipPeriods[0]?.value || "sep-2026")
   const [slipData, setSlipData] = useState<MySlipData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -107,11 +122,12 @@ export default function SlipGajiPage() {
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Pilih periode" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="apr-2026">April 2026</SelectItem>
-                  <SelectItem value="mar-2026">Maret 2026</SelectItem>
-                  <SelectItem value="feb-2026">Februari 2026</SelectItem>
-                  <SelectItem value="jan-2026">Januari 2026</SelectItem>
+                <SelectContent className="max-h-60">
+                  {slipPeriods.map(p => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button onClick={handleDownload} disabled={!slipData || slipData.status === "draft"}>

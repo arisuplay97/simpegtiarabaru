@@ -183,16 +183,37 @@ export async function getEmployee(id: string) {
 // ============ STATS PEGAWAI ============
 export async function getEmployeeStats() {
   const session = await auth()
-  if (!session?.user) return { total: 0, aktif: 0, cuti: 0, nonAktif: 0, sp: 0 }
+  if (!session?.user) return { total: 0, aktif: 0, cuti: 0, nonAktif: 0, sp: 0, tetap: 0, pkwt: 0, honorer: 0 }
 
-  const [total, aktif, cuti, nonAktif, sp] = await Promise.all([
+  const [total, aktif, cuti, nonAktif, sp, pkwt, honorer] = await Promise.all([
     prisma.pegawai.count(),
     prisma.pegawai.count({ where: { status: "AKTIF" } }),
     prisma.pegawai.count({ where: { status: "CUTI" } }),
     prisma.pegawai.count({ where: { status: { in: ["NON_AKTIF", "PENSIUN"] } } }),
     prisma.pegawai.count({ where: { sp: { not: null } } }),
+    prisma.pegawai.count({
+      where: {
+        status: "AKTIF",
+        OR: [
+          { tipeJabatan: "KONTRAK" },
+          { jabatan: { contains: "capeg", mode: "insensitive" } },
+          { jabatan: { contains: "pkwt", mode: "insensitive" } },
+          { kontrak: { some: { status: "AKTIF", tipe: "PKWT" } } },
+        ],
+      },
+    }),
+    prisma.pegawai.count({
+      where: {
+        status: "AKTIF",
+        OR: [
+          { jabatan: { contains: "honorer", mode: "insensitive" } },
+        ],
+      },
+    }),
   ])
-  return { total, aktif, cuti, nonAktif, sp }
+
+  const tetap = Math.max(0, aktif - pkwt - honorer)
+  return { total, aktif, cuti, nonAktif, sp, tetap, pkwt, honorer }
 }
 
 export async function getPegawaiPageData() {
