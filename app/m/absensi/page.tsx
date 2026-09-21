@@ -10,13 +10,13 @@ import { id as idLocale } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 
 const statusBadgeConfig: Record<string, { label: string; class: string }> = {
-  HADIR:     { label: "Hadir",      class: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
-  TERLAMBAT: { label: "Terlambat",  class: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" },
-  IZIN:      { label: "Izin",       class: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20" },
-  SAKIT:     { label: "Sakit",      class: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20" },
-  CUTI:      { label: "Cuti",       class: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20" },
-  ALPA:      { label: "Alpa",       class: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20" },
-  ALPHA:     { label: "Alpa",       class: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20" },
+  HADIR:     { label: "Tepat Waktu", class: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
+  TERLAMBAT: { label: "Terlambat",   class: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" },
+  IZIN:      { label: "Izin",        class: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20" },
+  SAKIT:     { label: "Sakit",       class: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20" },
+  CUTI:      { label: "Cuti",        class: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20" },
+  ALPA:      { label: "Alpa",        class: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20" },
+  ALPHA:     { label: "Alpa",        class: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20" },
 }
 
 export default function MobileAbsensi() {

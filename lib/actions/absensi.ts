@@ -619,11 +619,45 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     }
 
     let waktuAbsen = "--:-- - --:--"
+    let statusMasukHariIni: string | null = null
+    let keteranganMasukHariIni: string | null = null
+    let menitTerlambatHariIni = 0
+
     if (absensiHariIni) {
       if (absensiHariIni.status === "CUTI") {
         waktuAbsen = "CUTI - CUTI"
       } else {
         waktuAbsen = `${formatTime(absensiHariIni.jamMasuk)} - ${absensiHariIni.jamKeluar ? formatTime(absensiHariIni.jamKeluar) : "--:--"}`
+      }
+
+      if (absensiHariIni.jamMasuk) {
+        statusMasukHariIni = absensiHariIni.status
+        if (absensiHariIni.status === "TERLAMBAT") {
+          const checkIn = new Date(absensiHariIni.jamMasuk)
+          const checkInWita = new Date(checkIn.toLocaleString("en-US", { timeZone: "Asia/Makassar" }))
+          const [targetH, targetM] = jamMasukSetting.split(":").map(Number)
+          const scheduledWita = new Date(checkInWita)
+          scheduledWita.setHours(targetH, targetM, 0, 0)
+
+          const diffMins = Math.max(0, Math.floor((checkInWita.getTime() - scheduledWita.getTime()) / 60000))
+          menitTerlambatHariIni = diffMins
+          if (diffMins > 0) {
+            const hours = Math.floor(diffMins / 60)
+            const mins = diffMins % 60
+            const durStr = hours > 0 && mins > 0 
+              ? `${hours} jam ${mins} menit` 
+              : hours > 0 
+              ? `${hours} jam` 
+              : `${mins} menit`
+            keteranganMasukHariIni = `Terlambat ${durStr}`
+          } else {
+            keteranganMasukHariIni = "Terlambat"
+          }
+        } else if (absensiHariIni.status === "HADIR") {
+          keteranganMasukHariIni = "Tepat Waktu"
+        } else {
+          keteranganMasukHariIni = absensiHariIni.status
+        }
       }
     }
 
@@ -642,6 +676,9 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       waktuAbsen,
       sudahAbsenMasuk: !!absensiHariIni?.jamMasuk,
       sudahAbsenPulang: !!absensiHariIni?.jamKeluar,
+      statusMasukHariIni,
+      keteranganMasukHariIni,
+      menitTerlambatHariIni,
       jamMasuk: jamMasukSetting,
       jamPulang: jamPulangSetting,
       batasAbsenMasuk,

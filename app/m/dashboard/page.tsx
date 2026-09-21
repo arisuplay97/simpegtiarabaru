@@ -596,14 +596,33 @@ export default function MobileDashboard() {
               <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 border border-emerald-500/20">
                 <Clock className="h-4 w-4" />
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Jam Masuk</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Jam Masuk</p>
+                  {summary?.sudahAbsenMasuk && (
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded-full text-[9px] font-bold border tracking-tight leading-none shrink-0",
+                      summary?.statusMasukHariIni === "TERLAMBAT"
+                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                        : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                    )}>
+                      {summary?.statusMasukHariIni === "TERLAMBAT" ? "Terlambat" : "Tepat Waktu"}
+                    </span>
+                  )}
+                </div>
                 <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
                   {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
                 </p>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                  Jadwal: {summary?.jamMasuk || "08:00"}
-                </p>
+                <div className="flex items-center justify-between gap-1 mt-0.5">
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                    Jadwal: {summary?.jamMasuk || "08:00"}
+                  </p>
+                  {summary?.sudahAbsenMasuk && summary?.statusMasukHariIni === "TERLAMBAT" && summary?.menitTerlambatHariIni > 0 && (
+                    <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+                      +{summary.menitTerlambatHariIni}m
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

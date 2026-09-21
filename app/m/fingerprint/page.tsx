@@ -424,7 +424,11 @@ export default function MobileFingerprint() {
                   ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
                   : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
               )}>
-                {isOfflineQueued ? "Tersimpan Offline (Antrian)" : (resultData?.status || "HADIR")}
+                {isOfflineQueued 
+                  ? "Tersimpan Offline (Antrian)" 
+                  : isCheckIn 
+                    ? (resultData?.status === "TERLAMBAT" ? "Terlambat" : "Tepat Waktu") 
+                    : (resultData?.status || "HADIR")}
               </span>
             </div>
 
