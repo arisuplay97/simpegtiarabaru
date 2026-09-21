@@ -1509,7 +1509,7 @@ export default function EmployeeListPage() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <Link
-                                    href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}`}
+                                    href={`/pegawai/${emp.id}`}
                                     className="text-xs font-semibold text-slate-900 dark:text-zinc-100 hover:text-primary transition-colors truncate max-w-[170px]"
                                   >
                                     {emp.nama}
@@ -1602,7 +1602,7 @@ export default function EmployeeListPage() {
                                 className="h-7 w-7 text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
                                 title="Lihat Profil"
                               >
-                                <Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}`}>
+                                <Link href={`/pegawai/${emp.id}`}>
                                   <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 </Link>
                               </Button>
@@ -1619,7 +1619,7 @@ export default function EmployeeListPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="text-xs">
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/pegawai/${(emp.nama || "").toLowerCase().replace(/ /g, "-")}`} className="cursor-pointer">
+                                    <Link href={`/pegawai/${emp.id}`} className="cursor-pointer">
                                       <Eye className="mr-2 h-3.5 w-3.5 text-slate-400" />
                                       Lihat Profil Lengkap
                                     </Link>

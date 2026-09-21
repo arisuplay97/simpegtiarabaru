@@ -6,57 +6,69 @@ import { TingkatPendidikan } from "@prisma/client"
 import { normalizeGolonganKey } from "@/lib/utils"
 
 export async function getEmployeeProfile(slugOrId: string) {
-  let pegawai = null;
+  if (!slugOrId) return null;
 
-  // 1. Coba cari berdasarkan ID persis
-  pegawai = await prisma.pegawai.findUnique({
-    where: { id: slugOrId },
-    include: {
-      bidang: true,
-      subBidang: true,
-      user: { select: { email: true, role: true } },
-      keluarga: { orderBy: { createdAt: 'asc' } },
-      pendidikan: { orderBy: { tahunLulus: 'desc' } },
-      riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } },
-      riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
-      pelatihan: { orderBy: { tahun: 'desc' } },
-      dokumen: { orderBy: { createdAt: 'desc' } },
-      kontrak: { orderBy: { tanggalSelesai: 'desc' } },
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const includeDetail = {
+    bidang: true,
+    subBidang: true,
+    user: { select: { email: true, role: true } },
+    keluarga: { orderBy: { createdAt: 'asc' as const } },
+    pendidikan: { orderBy: { tahunLulus: 'desc' as const } },
+    riwayatJabatan: { orderBy: { tanggalMulai: 'desc' as const } },
+    riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' as const } },
+    pelatihan: { orderBy: { tahun: 'desc' as const } },
+    dokumen: { orderBy: { createdAt: 'desc' as const } },
+    kontrak: { orderBy: { tanggalSelesai: 'desc' as const } },
+  };
+
+  try {
+    let pegawai = null;
+
+    // 1. Coba cari berdasarkan ID persis (jika format UUID valid)
+    if (UUID_REGEX.test(slugOrId)) {
+      pegawai = await prisma.pegawai.findUnique({
+        where: { id: slugOrId },
+        include: includeDetail,
+      });
     }
-  });
 
-  if (!pegawai && slugOrId.includes("-")) {
     // 2. Jika slug mengandung "-", mungkin ID ada di akhir
-    const parts = slugOrId.split("-");
-    const possibleId = parts[parts.length - 1];
-    pegawai = await prisma.pegawai.findUnique({
-      where: { id: possibleId },
-      include: {
-        bidang: true, subBidang: true, user: { select: { email: true, role: true } },
-        keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
-        riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
-        pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },
-        kontrak: { orderBy: { tanggalSelesai: 'desc' } },
+    if (!pegawai && slugOrId.includes("-")) {
+      const parts = slugOrId.split("-");
+      const possibleId = parts[parts.length - 1];
+      if (UUID_REGEX.test(possibleId)) {
+        pegawai = await prisma.pegawai.findUnique({
+          where: { id: possibleId },
+          include: includeDetail,
+        });
       }
-    });
-  }
+    }
 
-  if (!pegawai) {
     // 3. Fallback: Cari menggunakan nama (replace "-" dengan spasi) mode insensitive
-    const possibleName = slugOrId.replace(/-/g, " ");
-    pegawai = await prisma.pegawai.findFirst({
-      where: { nama: { equals: possibleName, mode: 'insensitive' } },
-      include: {
-        bidang: true, subBidang: true, user: { select: { email: true, role: true } },
-        keluarga: { orderBy: { createdAt: 'asc' } }, pendidikan: { orderBy: { tahunLulus: 'desc' } },
-        riwayatJabatan: { orderBy: { tanggalMulai: 'desc' } }, riwayatPangkatDetail: { orderBy: { tanggalBerlaku: 'desc' } },
-        pelatihan: { orderBy: { tahun: 'desc' } }, dokumen: { orderBy: { createdAt: 'desc' } },
-        kontrak: { orderBy: { tanggalSelesai: 'desc' } },
-      }
-    });
-  }
+    if (!pegawai) {
+      let possibleName = slugOrId;
+      try {
+        possibleName = decodeURIComponent(slugOrId);
+      } catch {}
+      possibleName = possibleName.replace(/-/g, " ").trim();
 
-  return pegawai
+      pegawai = await prisma.pegawai.findFirst({
+        where: {
+          OR: [
+            { nama: { equals: possibleName, mode: 'insensitive' } },
+            { nama: { contains: possibleName, mode: 'insensitive' } },
+          ],
+        },
+        include: includeDetail,
+      });
+    }
+
+    return pegawai;
+  } catch (err) {
+    console.error("Error in getEmployeeProfile:", err);
+    return null;
+  }
 }
 
 /**
