@@ -77,7 +77,7 @@ export async function GET() {
 
     // Baris 2: Petunjuk Kolom
     const hintRow = sheet1.addRow([
-      "[WAJIB] 16 digit KTP",
+      "[WAJIB] NIK Karyawan (7-8 digit) / KTP",
       "[WAJIB] Nama & Gelar",
       "[Opsional] nik@tiara.id jika kosong",
       "08xxxxxxxxxx",

@@ -306,7 +306,7 @@ export default function EmployeeListPage() {
   const validate = () => {
     const errors: Record<string, string> = {}
     if (!form.nama.trim()) errors.nama = "Nama lengkap wajib diisi"
-    if (!form.nik || form.nik.length !== 8) errors.nik = "NIK harus 8 digit angka"
+    if (!form.nik || form.nik.length < 6 || form.nik.length > 18) errors.nik = "NIK harus 7 - 18 digit angka (contoh: 2002136)"
     if (!form.bidangId) errors.bidangId = "Unit kerja / Bidang wajib dipilih"
     if (!form.golongan && form.tipeKepegawaian !== "kontrak" && form.tipeKepegawaian !== "magang") {
       errors.golongan = "Golongan wajib dipilih"
@@ -641,9 +641,9 @@ export default function EmployeeListPage() {
             <F label="NIK (Nomor Induk Karyawan)" error={formErrors.nik} required>
               <Input
                 value={form.nik}
-                onChange={e => setForm({ ...form, nik: e.target.value.replace(/\D/g, "").slice(0, 8) })}
-                placeholder="8 digit angka (contoh: 20240101)"
-                maxLength={8}
+                onChange={e => setForm({ ...form, nik: e.target.value.replace(/\D/g, "").slice(0, 18) })}
+                placeholder="7 - 8 digit angka (contoh: 2002136)"
+                maxLength={18}
                 className="h-9 text-xs font-mono"
               />
             </F>
