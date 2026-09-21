@@ -601,6 +601,9 @@ export default function MobileDashboard() {
                 <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
                   {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
                 </p>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                  Jadwal: {summary?.jamMasuk || "08:00"}
+                </p>
               </div>
             </div>
 
@@ -612,6 +615,9 @@ export default function MobileDashboard() {
                 <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Jam Pulang</p>
                 <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
                   {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
+                </p>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                  Jadwal: {summary?.jamPulang || "17:00"}
                 </p>
               </div>
             </div>

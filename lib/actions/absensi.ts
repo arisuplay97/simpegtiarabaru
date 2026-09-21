@@ -26,6 +26,44 @@ const formatLocal = (d: Date) => {
   return `${y}-${m}-${dd}`
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+async function getSessionPegawai(session: any): Promise<any> {
+  if (!session?.user) return null
+  
+  if (session.user.id && UUID_REGEX.test(session.user.id)) {
+    const p = await prisma.pegawai.findUnique({
+      where: { userId: session.user.id },
+      include: { lokasiAbsensi: true, bidang: true } as any
+    })
+    if (p) return p
+  }
+
+  const sessionPegawaiId = (session.user as any).pegawaiId
+  if (sessionPegawaiId && UUID_REGEX.test(sessionPegawaiId)) {
+    const p = await prisma.pegawai.findUnique({
+      where: { id: sessionPegawaiId },
+      include: { lokasiAbsensi: true, bidang: true } as any
+    })
+    if (p) return p
+  }
+
+  if (session.user.email) {
+    const p = await prisma.pegawai.findFirst({
+      where: {
+        OR: [
+          { email: { equals: session.user.email, mode: "insensitive" } },
+          { user: { email: { equals: session.user.email, mode: "insensitive" } } }
+        ]
+      },
+      include: { lokasiAbsensi: true, bidang: true } as any
+    })
+    if (p) return p
+  }
+
+  return null
+}
+
 export async function checkDeviceAndAbsen(
   checkType: "checkin" | "checkout",
   clientDeviceId: string,
@@ -36,10 +74,7 @@ export async function checkDeviceAndAbsen(
     const session = await auth()
     if (!session?.user?.id) return { error: "Anda belum login." }
 
-    const pegawai = await prisma.pegawai.findUnique({
-      where: { userId: session.user.id },
-      include: { lokasiAbsensi: true, bidang: true } as any
-    })
+    const pegawai = await getSessionPegawai(session)
 
     if (!pegawai) return { error: "Profil Pegawai tidak ditemukan. Hubungi HRD." }
 
@@ -218,9 +253,7 @@ export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
 
     // ROLE-BASED FILTERING — PEGAWAI hanya lihat miliknya sendiri
     if (session.user.role === "PEGAWAI") {
-      const pegawai = await prisma.pegawai.findUnique({
-        where: { userId: session.user.id }
-      })
+      const pegawai = await getSessionPegawai(session)
       if (pegawai) {
         whereClause.pegawaiId = pegawai.id
       }
@@ -243,11 +276,9 @@ export async function getAbsensiList(dateStart?: Date, dateEnd?: Date) {
 export async function getAbsensiSaya(bulan?: number, tahun?: number) {
   try {
     const session = await auth()
-    if (!session?.user?.id) return []
+    if (!session?.user?.id && !session?.user?.email) return []
 
-    const pegawai = await prisma.pegawai.findUnique({
-      where: { userId: session.user.id }
-    })
+    const pegawai = await getSessionPegawai(session)
     if (!pegawai) return []
 
     const now = new Date()
@@ -274,11 +305,9 @@ export async function getAbsensiSaya(bulan?: number, tahun?: number) {
 export async function getAbsensiSayaAndSummary(bulan?: number, tahun?: number) {
   try {
     const session = await auth()
-    if (!session?.user?.id) return { records: [], summary: null }
+    if (!session?.user?.id && !session?.user?.email) return { records: [], summary: null }
 
-    const pegawai = await prisma.pegawai.findUnique({
-      where: { userId: session.user.id }
-    })
+    const pegawai = await getSessionPegawai(session)
     if (!pegawai) return { records: [], summary: null }
 
     const records = await getAbsensiSaya(bulan, tahun)
@@ -295,12 +324,9 @@ export async function getAbsensiSayaAndSummary(bulan?: number, tahun?: number) {
 export async function getStatusAbsensiHariIni() {
   try {
     const session = await auth()
-    if (!session?.user?.id) return null
+    if (!session?.user?.id && !session?.user?.email) return null
 
-    const pegawai = await prisma.pegawai.findUnique({
-      where: { userId: session.user.id },
-      include: { bidang: true, lokasiAbsensi: true }
-    })
+    const pegawai = await getSessionPegawai(session)
     if (!pegawai) return null
 
     const { startOfDay, endOfDay } = getTodayRange()
@@ -483,6 +509,17 @@ export async function updateAbsensi(
 
 export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: number, year?: number) {
   try {
+    if (!pegawaiId || !UUID_REGEX.test(pegawaiId)) {
+      return {
+        isCabang: false,
+        isSabtuCabang: false,
+        hariKerjaAktif: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0,
+        waktuAbsen: "--:-- - --:--", sudahAbsenMasuk: false, sudahAbsenPulang: false,
+        jamMasuk: "08:00", jamPulang: "17:00",
+        batasAbsenMasuk: "14:00", mulaiAbsenPulang: "15:00", batasAbsenPulang: "18:00"
+      }
+    }
+
     const now = new Date()
     const m = month ?? now.getMonth() + 1
     const y = year ?? now.getFullYear()
@@ -547,22 +584,38 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
 
     const [pjh, pjm] = jamPulangSetting.split(":").map(Number)
 
+    // Rentang hari ini (sinkron baik server UTC maupun zona waktu WITA)
     const _todayStart = new Date(now)
     _todayStart.setHours(0, 0, 0, 0)
     const _todayEnd = new Date(now)
     _todayEnd.setHours(23, 59, 59, 999)
 
+    const witaOffset = 8 * 60 // UTC+8
+    const nowUtc = now.getTime() + (now.getTimezoneOffset() * 60000)
+    const witaNow = new Date(nowUtc + (witaOffset * 60000))
+    const witaStart = new Date(witaNow)
+    witaStart.setHours(0, 0, 0, 0)
+    const witaEnd = new Date(witaNow)
+    witaEnd.setHours(23, 59, 59, 999)
+
     const absensiHariIni = await prisma.absensi.findFirst({
       where: {
         pegawaiId,
-        tanggal: { gte: _todayStart, lte: _todayEnd }
-      }
+        OR: [
+          { tanggal: { gte: _todayStart, lte: _todayEnd } },
+          { tanggal: { gte: witaStart, lte: witaEnd } },
+          { jamMasuk: { gte: _todayStart, lte: _todayEnd } },
+          { jamMasuk: { gte: witaStart, lte: witaEnd } }
+        ]
+      },
+      orderBy: { tanggal: 'desc' }
     })
 
     const formatTime = (d: Date | string | null | undefined) => {
       if (!d) return "--:--"
       const dt = typeof d === "string" ? new Date(d) : d
-      return dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" })
+      const timeStr = dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" })
+      return timeStr.replace(".", ":")
     }
 
     let waktuAbsen = "--:-- - --:--"

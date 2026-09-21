@@ -255,13 +255,26 @@ const attendanceData: AttendanceRecord[] = [
 
 
 
+function formatDuration(minutes: number): string {
+  if (!minutes || minutes <= 0) return "-"
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  if (hours > 0 && remainingMinutes > 0) {
+    return `${hours} jam ${remainingMinutes} menit`
+  } else if (hours > 0) {
+    return `${hours} jam`
+  } else {
+    return `${remainingMinutes} menit`
+  }
+}
+
 const statusConfig = {
-  hadir: { label: "Hadir", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  izin: { label: "Izin", className: "bg-blue-100 text-blue-700 border-blue-200" },
-  sakit: { label: "Sakit", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  cuti: { label: "Cuti", className: "bg-purple-100 text-purple-700 border-purple-200" },
-  alpha: { label: "Alpha", className: "bg-red-100 text-red-700 border-red-200" },
-  dinas: { label: "Dinas Luar", className: "bg-cyan-100 text-cyan-700 border-cyan-200" },
+  hadir: { label: "Hadir", className: "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50 font-semibold shadow-2xs" },
+  izin: { label: "Izin", className: "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/50 font-semibold shadow-2xs" },
+  sakit: { label: "Sakit", className: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50 font-semibold shadow-2xs" },
+  cuti: { label: "Cuti", className: "bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50 font-semibold shadow-2xs" },
+  alpha: { label: "Alpha", className: "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50 font-semibold shadow-2xs" },
+  dinas: { label: "Dinas Luar", className: "bg-teal-50 text-teal-700 border-teal-200/80 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/50 font-semibold shadow-2xs" },
 }
 
 const methodConfig = {
@@ -385,7 +398,7 @@ export default function AttendancePage() {
           const diffMs = scheduledOut.getTime() - checkOutDt.getTime()
           const diffMins = Math.floor(diffMs / 60000)
           
-          if (diffMins > 0) return `Pulang cepat ${diffMins}m`
+          if (diffMins > 0) return `Pulang cepat ${formatDuration(diffMins)}`
           return "Tepat Waktu"
         })()
       }
@@ -442,48 +455,48 @@ export default function AttendancePage() {
       title: isAdmin ? "Total Pegawai" : "Hari Kerja",
       value: hKerja,
       icon: Users,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-blue-500/10 border border-blue-500/20",
     },
     {
       title: "Hadir",
       value: hHadir,
       icon: UserCheck,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-100",
+      color: "text-emerald-600 dark:text-emerald-400",
+      bgColor: "bg-emerald-500/10 border border-emerald-500/20",
     },
     {
       title: "Terlambat",
       value: hLate,
       icon: Timer,
-      color: "text-amber-600",
-      bgColor: "bg-amber-100",
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-500/10 border border-amber-500/20",
     },
     {
-      title: "Izin/Sakit",
+      title: "Izin / Sakit",
       value: hIzin,
       icon: AlertCircle,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
+      color: "text-sky-600 dark:text-sky-400",
+      bgColor: "bg-sky-500/10 border border-sky-500/20",
     },
     {
       title: "Cuti",
       value: hCuti,
       icon: Plane,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      color: "text-purple-600 dark:text-purple-400",
+      bgColor: "bg-purple-500/10 border border-purple-500/20",
     },
     {
       title: "Alpha",
       value: hAlpha,
       icon: UserX,
-      color: "text-red-600",
-      bgColor: "bg-red-100",
+      color: "text-rose-600 dark:text-rose-400",
+      bgColor: "bg-rose-500/10 border border-rose-500/20",
     },
   ]
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  const [itemsPerPage, setItemsPerPage] = useState<number>(15)
 
   const handleOpenEdit = (record: AttendanceRecord) => {
     setSelectedRecord(record)
@@ -659,14 +672,14 @@ export default function AttendancePage() {
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
 
   const renderTable = () => (
-    <Card className="card-premium">
+    <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md shadow-xs overflow-hidden">
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
+              <TableRow className="bg-slate-50/80 dark:bg-zinc-800/50 border-b border-slate-200/80 dark:border-zinc-800">
                 {isAdmin && (
-                  <TableHead className="w-[40px]">
+                  <TableHead className="w-[40px] pl-4">
                     <Checkbox
                       checked={selectedIds.length === paginatedData.length && paginatedData.length > 0}
                       onCheckedChange={(checked: boolean) => {
@@ -679,17 +692,43 @@ export default function AttendancePage() {
                     />
                   </TableHead>
                 )}
-                <TableHead className="w-[180px]">{isAdmin ? "Pegawai" : "Tanggal"}</TableHead>
-                {isAdmin && <TableHead>Unit Kerja</TableHead>}
-                <TableHead className="text-center">Check In</TableHead>
-                <TableHead className="text-center">Check Out</TableHead>
-                <TableHead className="text-center">Jam Kerja</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-center">Keterlambatan</TableHead>
-                <TableHead className="text-center">Status Pulang</TableHead>
-                <TableHead>Metode</TableHead>
-                <TableHead>Lokasi</TableHead>
-                {isAdmin && <TableHead className="w-[100px] text-center">Aksi</TableHead>}
+                <TableHead className="w-[190px] text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  {isAdmin ? "Pegawai" : "Tanggal"}
+                </TableHead>
+                {isAdmin && (
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                    Unit Kerja
+                  </TableHead>
+                )}
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Check In
+                </TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Check Out
+                </TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Jam Kerja
+                </TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Status
+                </TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Keterlambatan
+                </TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Status Pulang
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Metode
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5">
+                  Lokasi
+                </TableHead>
+                {isAdmin && (
+                  <TableHead className="w-[100px] text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-300 py-3.5 pr-4">
+                    Aksi
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -699,9 +738,15 @@ export default function AttendancePage() {
                   const MethodIcon = methodInfo.icon
                   const isSelected = selectedIds.includes(record.id)
                   return (
-                    <TableRow key={record.id} className={cn("hover:bg-muted/30", isSelected && "bg-primary/5")}>
+                    <TableRow 
+                      key={record.id} 
+                      className={cn(
+                        "hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors border-b border-slate-100 dark:border-zinc-800/60",
+                        isSelected && "bg-primary/5 dark:bg-primary/10"
+                      )}
+                    >
                       {isAdmin && (
-                        <TableCell>
+                        <TableCell className="pl-4 py-3">
                           <Checkbox 
                             checked={isSelected}
                             onCheckedChange={(checked: boolean) => {
@@ -714,81 +759,83 @@ export default function AttendancePage() {
                           />
                         </TableCell>
                       )}
-                      <TableCell>
+                      <TableCell className="py-3">
                         {isAdmin ? (
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9">
-                              <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="h-8 w-8 rounded-xl border border-primary/20">
+                              <AvatarFallback className="bg-primary/10 text-primary text-[11px] font-bold">
                                 {record.employeeInitials}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">{record.employeeName}</span>
+                            <span className="font-semibold text-xs text-slate-900 dark:text-zinc-100 truncate max-w-[170px]" title={record.employeeName}>
+                              {record.employeeName}
+                            </span>
                           </div>
                         ) : (
-                          <span className="font-medium">{record.date}</span>
+                          <span className="font-medium text-xs">{record.date}</span>
                         )}
                       </TableCell>
                       {isAdmin && (
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-xs text-muted-foreground py-3 max-w-[160px] truncate" title={record.employeeUnit}>
                           {record.employeeUnit}
                         </TableCell>
                       )}
-                      <TableCell className="text-center font-mono">
+                      <TableCell className="text-center font-mono text-xs tabular-nums font-semibold py-3 text-slate-800 dark:text-zinc-200">
                         {record.checkIn
                           ? record.checkIn
                           : record.status === "cuti"
-                          ? <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">Cuti</span>
+                          ? <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200/60 dark:border-purple-800/50">Cuti</span>
                           : "-"}
                       </TableCell>
-                      <TableCell className="text-center font-mono">
+                      <TableCell className="text-center font-mono text-xs tabular-nums font-semibold py-3 text-slate-800 dark:text-zinc-200">
                         {record.checkOut
                           ? record.checkOut
                           : record.status === "cuti"
-                          ? <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">Cuti</span>
+                          ? <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200/60 dark:border-purple-800/50">Cuti</span>
                           : "-"}
                       </TableCell>
-                      <TableCell className="text-center font-mono text-sm">
+                      <TableCell className="text-center font-mono text-xs font-semibold py-3 text-slate-700 dark:text-zinc-300">
                         {record.workHours}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-3">
                         <Badge
                           variant="outline"
-                          className={(statusConfig as any)[record.status].className}
+                          className={cn("text-[11px] px-2.5 py-0.5 rounded-lg whitespace-nowrap", (statusConfig as any)[record.status]?.className)}
                         >
-                          {(statusConfig as any)[record.status].label}
+                          {(statusConfig as any)[record.status]?.label || record.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-3">
                         {record.lateMinutes > 0 ? (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 font-mono">
-                            {record.lateMinutes}m
+                          <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50 font-medium text-xs px-2.5 py-0.5 rounded-lg whitespace-nowrap shadow-2xs">
+                            {formatDuration(record.lateMinutes)}
                           </Badge>
                         ) : (
-                          <span className="text-emerald-600 font-mono">-</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium text-xs">Tepat Waktu</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-3">
                          {record.statusPulang === "-" ? (
-                           <span className="text-muted-foreground font-mono">-</span>
+                           <span className="text-muted-foreground font-mono text-xs">-</span>
                          ) : record.statusPulang === "Tepat Waktu" ? (
-                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 font-mono">
+                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50 font-medium text-xs px-2.5 py-0.5 rounded-lg whitespace-nowrap shadow-2xs">
                              Tepat Waktu
                            </Badge>
                          ) : (
-                           <Badge variant="outline" className="bg-amber-50 text-amber-700 font-mono">
+                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50 font-medium text-xs px-2.5 py-0.5 rounded-lg whitespace-nowrap shadow-2xs">
                              {record.statusPulang}
                            </Badge>
                          )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         <div className="flex items-center gap-1.5">
-                          <MethodIcon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs uppercase font-medium">{methodInfo.label}</span>
+                          <MethodIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-[11px] uppercase font-medium">{methodInfo.label}</span>
                           {record.method === "selfie" && (record.photoIn || record.photoOut) && (
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-6 w-6 ml-1 text-primary hover:text-primary/80 hover:bg-primary/10"
+                              className="h-6 w-6 ml-0.5 text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setViewerPhotoUrl(record.photoIn || record.photoOut)
@@ -802,23 +849,29 @@ export default function AttendancePage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]">
+                      <TableCell className="text-xs text-muted-foreground truncate max-w-[140px] py-3" title={record.location}>
                         {record.location}
                       </TableCell>
                       {isAdmin && (
-                        <TableCell>
+                        <TableCell className="py-3 pr-4">
                           <div className="flex items-center justify-center gap-1">
                             <Button
-                              variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg"
                               onClick={() => handleOpenEdit(record)}
+                              title="Edit Absensi"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
-                              variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
                               onClick={() => handleDelete(record.id)}
+                              title="Hapus Absensi"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>
@@ -828,7 +881,7 @@ export default function AttendancePage() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 11 : 8} className="h-24 text-center text-muted-foreground italic">
+                  <TableCell colSpan={isAdmin ? 12 : 9} className="h-24 text-center text-muted-foreground italic text-xs">
                     Belum ada data absensi untuk periode ini.
                   </TableCell>
                 </TableRow>
@@ -839,36 +892,77 @@ export default function AttendancePage() {
       </CardContent>
       
       {/* Pagination Container inside Card */}
-      <div className="border-t p-4 flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Hal {currentPage} dari {totalPages || 1}
-        </p>
+      <div className="border-t border-slate-200/80 dark:border-zinc-800 p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/40 dark:bg-zinc-900/40">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span>
+            Menampilkan{" "}
+            <strong className="text-foreground">
+              {filteredData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+            </strong>
+            {" "}-{" "}
+            <strong className="text-foreground">
+              {Math.min(currentPage * itemsPerPage, filteredData.length)}
+            </strong>
+            {" "}dari{" "}
+            <strong className="text-foreground">{filteredData.length}</strong> data
+          </span>
+          <span className="text-slate-300 dark:text-zinc-700">|</span>
+          <div className="flex items-center gap-1.5">
+            <span>Baris per halaman:</span>
+            <Select
+              value={String(itemsPerPage)}
+              onValueChange={(val) => {
+                setItemsPerPage(Number(val))
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="h-7 w-[70px] text-xs rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent side="top">
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground mr-2 font-medium">
+            Hal {currentPage} dari {totalPages || 1}
+          </span>
           <Button 
-            variant="outline" size="icon" className="h-7 w-7" 
+            variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(1)}
+            title="Halaman Pertama"
           >
             <ChevronsLeft className="h-3.5 w-3.5" />
           </Button>
           <Button 
-            variant="outline" size="icon" className="h-7 w-7" 
+            variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((prev: number) => prev - 1)}
+            title="Halaman Sebelumnya"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
           <Button 
-            variant="outline" size="icon" className="h-7 w-7" 
+            variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
             disabled={currentPage === totalPages || totalPages === 0}
             onClick={() => setCurrentPage((prev: number) => prev + 1)}
+            title="Halaman Berikutnya"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
           <Button 
-            variant="outline" size="icon" className="h-7 w-7" 
+            variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
             disabled={currentPage === totalPages || totalPages === 0}
             onClick={() => setCurrentPage(totalPages)}
+            title="Halaman Terakhir"
           >
             <ChevronsRight className="h-3.5 w-3.5" />
           </Button>
@@ -943,16 +1037,16 @@ export default function AttendancePage() {
           </div>
 
           {/* Stats Bar */}
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
             {statsCards.map((card) => (
-              <Card key={card.title} className="card-premium">
-                <CardContent className="flex items-center gap-4 p-4 text-center sm:text-left">
-                  <div className={cn("hidden sm:flex h-10 w-10 items-center justify-center rounded-xl", card.bgColor)}>
+              <Card key={card.title} className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-[#111113]/80 backdrop-blur-md shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-200">
+                <CardContent className="flex items-center gap-3.5 p-4">
+                  <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl shrink-0", card.bgColor)}>
                     <card.icon className={cn("h-5 w-5", card.color)} />
                   </div>
-                  <div>
-                    <p className="text-lg font-bold">{card.value}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{card.title}</p>
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">{card.value}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold truncate mt-0.5">{card.title}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -960,7 +1054,7 @@ export default function AttendancePage() {
           </div>
 
           {/* Filters & Actions */}
-          <Card className="card-premium mb-6">
+          <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-[#111113]/80 backdrop-blur-md shadow-xs mb-6">
             <CardContent className="p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-1 flex-wrap items-center gap-3">
@@ -1094,7 +1188,7 @@ export default function AttendancePage() {
               </TabsContent>
               <TabsContent value="bulanan">
                 {/* Filter Rekap Bulanan */}
-                <Card className="card-premium mb-4">
+                <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-[#111113]/80 backdrop-blur-md shadow-xs mb-4">
                   <CardContent className="p-4">
                     <div className="flex flex-wrap items-center gap-3">
                       <Select value={String(rekapBulan)} onValueChange={(v) => setRekapBulan(Number(v))}>
@@ -1165,14 +1259,14 @@ export default function AttendancePage() {
                 </Card>
 
                 {rekapBulanan.length === 0 ? (
-                  <Card className="card-premium">
+                  <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-[#111113]/80 backdrop-blur-md shadow-xs">
                     <CardContent className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
                       <TrendingUp className="h-10 w-10 opacity-20" />
                       <p className="text-sm">Pilih bulan & tahun, lalu klik <strong>Tampilkan Rekap</strong></p>
                     </CardContent>
                   </Card>
                 ) : (
-                  <Card className="card-premium">
+                  <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-[#111113]/80 backdrop-blur-md shadow-xs overflow-hidden">
                     <CardHeader className="pb-2 pt-4 px-5">
                       <CardTitle className="text-base">
                         Rekap Kehadiran — {format(new Date(rekapTahun, rekapBulan - 1, 1), "MMMM yyyy", { locale: id })}
@@ -1263,13 +1357,13 @@ export default function AttendancePage() {
               </TabsContent>
 
               <TabsContent value="anomali">
-               <Card className="card-premium h-40 flex items-center justify-center text-muted-foreground">
-                   Analisis anomali sedang dalam pemrosesan data
+                <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-[#111113]/80 backdrop-blur-md shadow-xs h-40 flex items-center justify-center text-muted-foreground text-sm font-medium">
+                  Analisis anomali sedang dalam pemrosesan data
                 </Card>
               </TabsContent>
               <TabsContent value="shift">
-                 <Card className="card-premium h-40 flex items-center justify-center text-muted-foreground">
-                   Manajemen shift akan tersedia pada pembaruan berikutnya
+                <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white/70 dark:bg-[#111113]/80 backdrop-blur-md shadow-xs h-40 flex items-center justify-center text-muted-foreground text-sm font-medium">
+                  Manajemen shift akan tersedia pada pembaruan berikutnya
                 </Card>
               </TabsContent>
             </Tabs>
