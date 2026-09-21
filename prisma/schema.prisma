@@ -11,7 +11,7 @@ datasource db {
 
 // ============ USER & AUTH ============
 model User {
-  id                 String   @id @default(cuid())
+  id                 String   @id @default(uuid(7)) @db.Uuid
   email              String   @unique
   username           String?  @unique
   password           String
@@ -26,7 +26,7 @@ model User {
 
 // ============ BIDANG / UNIT KERJA ============
 model Bidang {
-  id              String      @id @default(cuid())
+  id              String      @id @default(uuid(7)) @db.Uuid
   nama            String      @unique
   kode            String      @unique
   kepalaBidang    String
@@ -41,9 +41,9 @@ model Bidang {
 
 // ============ FORMASI JABATAN ============
 model FormasiJabatan {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7)) @db.Uuid
   jabatan   String
-  bidangId  String?
+  bidangId  String? @db.Uuid
   bidang    Bidang?  @relation(fields: [bidangId], references: [id])
   kebutuhan Int      @default(1)
   createdAt DateTime @default(now())
@@ -52,9 +52,9 @@ model FormasiJabatan {
 
 // ============ SUB BIDANG ============
 model SubBidang {
-  id        String    @id @default(cuid())
+  id        String    @id @default(uuid(7)) @db.Uuid
   nama      String
-  bidangId  String
+  bidangId  String @db.Uuid
   bidang    Bidang    @relation(fields: [bidangId], references: [id], onDelete: Cascade)
   pegawai   Pegawai[]
   createdAt DateTime  @default(now())
@@ -65,7 +65,7 @@ model SubBidang {
 
 // ============ PEGAWAI ============
 model Pegawai {
-  id                    String    @id @default(cuid())
+  id                    String    @id @default(uuid(7)) @db.Uuid
   nik                   String    @unique  // NIK KTP 16 digit
   nama                  String
   email                 String    @unique
@@ -73,9 +73,9 @@ model Pegawai {
   fotoUrl               String?   // URL foto dari Vercel Blob
 
   // Kepegawaian
-  bidangId              String?
+  bidangId              String? @db.Uuid
   bidang                Bidang?     @relation(fields: [bidangId], references: [id])
-  subBidangId           String?
+  subBidangId           String? @db.Uuid
   subBidang             SubBidang?  @relation(fields: [subBidangId], references: [id])
   jabatan               String
   saldoCuti             Int         @default(12)
@@ -91,7 +91,7 @@ model Pegawai {
 
   // Toggle bebas absensi & Binding lokasi
   bebasAbsensi          Boolean   @default(false)
-  lokasiAbsensiId       String?
+  lokasiAbsensiId       String? @db.Uuid
   lokasiAbsensi         LokasiAbsensi? @relation(fields: [lokasiAbsensiId], references: [id])
 
   // Data Pribadi
@@ -116,7 +116,7 @@ model Pegawai {
   bpjsKetenagakerjaan   String?
 
   // Relasi ke User auth
-  userId                String    @unique
+  userId                String @unique @db.Uuid    
   user                  User      @relation(fields: [userId], references: [id])
 
   // Relasi ke modul lain
@@ -165,10 +165,10 @@ model Pegawai {
 
 // ============ MUTASI ============
 model Mutasi {
-  id              String        @id @default(cuid())
-  pegawaiId       String
+  id              String        @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   pegawai         Pegawai       @relation("MutasiDari", fields: [pegawaiId], references: [id])
-  approvedById    String?
+  approvedById    String? @db.Uuid
   approvedBy      Pegawai?      @relation("MutasiKe", fields: [approvedById], references: [id])
 
   type            TipeMutasi
@@ -188,12 +188,12 @@ model Mutasi {
 
 // ============ ABSENSI ============
 model Absensi {
-  id        String          @id @default(cuid())
-  pegawaiId String
+  id        String          @id @default(uuid(7)) @db.Uuid
+  pegawaiId String @db.Uuid
   tanggal   DateTime
   status    StatusAbsensi
   metode    MetodeAbsensi   @default(SELFIE)
-  importId  String?
+  importId  String? @db.Uuid
   jamMasuk  DateTime?
   jamKeluar DateTime?
   fotoMasukUrl  String?     // URL foto selfie masuk
@@ -202,7 +202,7 @@ model Absensi {
   lokasiKeluar  String?     // "lat,lng" dari GPS saat keluar
   faceVerified  Boolean   @default(false)  // wajah lolos verifikasi
   pendingApproval Boolean  @default(false)  // perlu approve HRD (face gagal 6x)
-  approvedById  String?     // HRD yang approve
+  approvedById  String?   @db.Uuid  // HRD yang approve
   approvedAt    DateTime?   // waktu approve
   offlineSync   Boolean   @default(false)  // di-submit saat offline
   pegawai   Pegawai         @relation(fields: [pegawaiId], references: [id])
@@ -217,8 +217,8 @@ model Absensi {
 
 // ============ CUTI ============
 model Cuti {
-  id             String     @id @default(cuid())
-  pegawaiId      String
+  id             String     @id @default(uuid(7)) @db.Uuid
+  pegawaiId      String @db.Uuid
   tanggalMulai   DateTime
   tanggalSelesai DateTime
   jenisCuti      String
@@ -235,8 +235,8 @@ model Cuti {
 
 // ============ PAYROLL ============
 model Payroll {
-  id        String   @id @default(cuid())
-  pegawaiId String
+  id        String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId String @db.Uuid
   bulan     DateTime
   gajiPokok Decimal
   tunjangan Decimal
@@ -248,8 +248,8 @@ model Payroll {
 
 // ============ KPI ============
 model KPI {
-  id        String   @id @default(cuid())
-  pegawaiId String
+  id        String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId String @db.Uuid
   tahun     String
   nilai     Decimal
   pegawai   Pegawai  @relation(fields: [pegawaiId], references: [id])
@@ -258,8 +258,8 @@ model KPI {
 
 // ============ SLIP GAJI ============
 model SlipGaji {
-  id        String   @id @default(cuid())
-  pegawaiId String
+  id        String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId String @db.Uuid
   bulan     DateTime
   fileUrl   String
   pegawai   Pegawai  @relation(fields: [pegawaiId], references: [id])
@@ -370,7 +370,7 @@ enum StatusPengajuan {
 
 // ============ LOKASI ABSENSI (GEO-FENCING) ============
 model LokasiAbsensi {
-  id              String    @id @default(cuid())
+  id              String    @id @default(uuid(7)) @db.Uuid
   nama            String
   tipe            String    // kantor_pusat, kantor_cabang, acara
   alamat          String
@@ -453,7 +453,7 @@ model Pengaturan {
 
 // ============ STANDAR GAJI PANGKAT & GOLONGAN ============
 model StandarGajiPangkat {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid(7)) @db.Uuid
   golongan    String   @unique // Format: A/I, B/I, C/II, D/III, dst
   pangkat     String   // Contoh: Juru Muda, Penata, Pembina, dst
   gajiPokok   Decimal  @default(0)
@@ -465,8 +465,8 @@ model StandarGajiPangkat {
 
 // ============ KGB (Kenaikan Gaji Berkala) ============
 model KGB {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   tanggalBerlaku  DateTime
   gajiPokokLama   Decimal
   gajiPokokBaru   Decimal
@@ -479,8 +479,8 @@ model KGB {
 
 // ============ KENAIKAN PANGKAT ============
 model KenaikanPangkat {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   pangkatLama     String
   pangkatBaru     String
   golonganLama    String
@@ -495,8 +495,8 @@ model KenaikanPangkat {
 
 // ============ SURAT PERINGATAN (SP) ============
 model SuratPeringatan {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   jenis           StatusSP
   alasan          String
   tanggalDiberikan DateTime
@@ -508,8 +508,8 @@ model SuratPeringatan {
 
 // ============ PROFIL: KELUARGA ============
 model PegawaiKeluarga {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   nama            String
   hubungan        String
   pekerjaan       String?
@@ -521,8 +521,8 @@ model PegawaiKeluarga {
 
 // ============ PROFIL: PENDIDIKAN ============
 model PegawaiPendidikan {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   tingkat         TingkatPendidikan
   institusi       String
   jurusan         String?
@@ -534,8 +534,8 @@ model PegawaiPendidikan {
 
 // ============ PROFIL: JABATAN ============
 model PegawaiJabatan {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   jabatan         String
   unitDefinitif   String
   tanggalMulai    DateTime
@@ -547,8 +547,8 @@ model PegawaiJabatan {
 
 // ============ PROFIL: PANGKAT ============
 model PegawaiPangkat {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   pangkat         String
   golongan        String
   tanggalBerlaku  DateTime
@@ -560,8 +560,8 @@ model PegawaiPangkat {
 
 // ============ PROFIL: PELATIHAN ============
 model PegawaiPelatihan {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   namaPelatihan   String
   penyelenggara   String
   tahun           String
@@ -572,8 +572,8 @@ model PegawaiPelatihan {
 
 // ============ PROFIL: DOKUMEN ============
 model PegawaiDokumen {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   namaDokumen     String
   jenisDokumen    String   // KTP, Ijazah, SK, dl
   fileUrl         String
@@ -584,8 +584,8 @@ model PegawaiDokumen {
 
 // ============ NOTIFIKASI ============
 model Notifikasi {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String @db.Uuid
   title     String
   message   String
   isRead    Boolean  @default(false)
@@ -597,8 +597,8 @@ model Notifikasi {
 
 // ============ PUSH NOTIFICATION SUBSCRIPTION ============
 model PushSubscription {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String @db.Uuid
   endpoint  String   @unique
   p256dh    String
   auth      String
@@ -609,7 +609,7 @@ model PushSubscription {
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid(7)) @db.Uuid
   userId      String
   userEmail   String
   userRole    String
@@ -631,7 +631,7 @@ model AuditLog {
 
 // ============ SHIFT KERJA ============
 model Shift {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid(7)) @db.Uuid
   nama        String   // "Shift Pagi", "Shift Siang", "Shift Malam"
   kode        String   @unique // "A", "B", "C"
   jamMasuk    String   // "06:00"
@@ -645,9 +645,9 @@ model Shift {
 }
 
 model JadwalShift {
-  id          String   @id @default(cuid())
-  pegawaiId   String
-  shiftId     String
+  id          String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId   String @db.Uuid
+  shiftId     String @db.Uuid
   tanggal     DateTime // Tanggal spesifik jadwal ini berlaku
   pegawai     Pegawai  @relation(fields: [pegawaiId], references: [id])
   shift       Shift    @relation(fields: [shiftId], references: [id])
@@ -659,8 +659,8 @@ model JadwalShift {
 
 // ============ LEMBUR ============
 model Lembur {
-  id              String        @id @default(cuid())
-  pegawaiId       String
+  id              String        @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   tanggal         DateTime
   jamMulai        String        // "17:00"
   jamSelesai      String        // "20:00"
@@ -695,8 +695,8 @@ enum StatusLembur {
 
 // ============ PPH 21 ============
 model PPh21 {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   periode         DateTime // Bulan dan tahun (simpan sbg tanggal-1 bulan tsb)
   gajiPokok       Decimal
   tunjangan       Decimal
@@ -727,7 +727,7 @@ enum MetodePPh21 {
 
 // ============ IMPORT FINGERPRINT ============
 model ImportFingerprint {
-  id            String              @id @default(cuid())
+  id            String              @id @default(uuid(7)) @db.Uuid
   namaFile      String
   totalRecord   Int
   berhasil      Int                 @default(0)
@@ -748,8 +748,8 @@ enum StatusImport {
 
 // ============ KONTRAK PEGAWAI (NEW) ============
 model Kontrak {
-  id              String        @id @default(cuid())
-  pegawaiId       String
+  id              String        @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   tipe            TipeKontrak   // PKWT | MAGANG
   nomorKontrak    String?       // Nomor dokumen kontrak
   tanggalMulai    DateTime
@@ -795,13 +795,13 @@ enum MetodeAbsensi {
 
 // ============ PENUKARAN POIN (REWARD) ============
 model PenukaranPoin {
-  id              String          @id @default(cuid())
-  pegawaiId       String
+  id              String          @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   tanggal         DateTime        @default(now())
   jumlahPoin      Int             // Jumlah poin yang dipotong
   keteranganItem  String          // "Voucher Belanja Rp 100.000"
   status          StatusPenukaran @default(PENDING)
-  approvedById    String?
+  approvedById    String? @db.Uuid
   pegawai         Pegawai         @relation(fields: [pegawaiId], references: [id])
   approvedBy      Pegawai?        @relation("PoinApprovedBy", fields: [approvedById], references: [id])
   createdAt       DateTime        @default(now())
@@ -819,7 +819,7 @@ enum StatusPenukaran {
 
 // ============ ARSIP SURAT ============
 model ArsipSurat {
-  id                  String   @id @default(cuid())
+  id                  String   @id @default(uuid(7)) @db.Uuid
   nomorSurat          String
   jenisSurat          String   // UNDANGAN | SK_MUTASI | SURAT_PERINGATAN
   perihal             String
@@ -838,8 +838,8 @@ model ArsipSurat {
 
 // ============ INDEKS PEGAWAI (SKOR BULANAN) ============
 model IndeksPegawai {
-  id              String   @id @default(cuid())
-  pegawaiId       String
+  id              String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String @db.Uuid
   bulan           Int      // 1-12
   tahun           Int
   // Komponen Skor
@@ -870,8 +870,8 @@ model IndeksPegawai {
 
 // ============ BADGE PEGAWAI BULANAN ============
 model BadgePegawai {
-  id          String     @id @default(cuid())
-  pegawaiId   String
+  id          String     @id @default(uuid(7)) @db.Uuid
+  pegawaiId   String @db.Uuid
   jenis       JenisBadge
   bulan       Int
   tahun       Int
@@ -894,10 +894,10 @@ enum JenisBadge {
 
 // ============ PENILAIAN ATASAN ============
 model PenilaianAtasan {
-  id                  String              @id @default(cuid())
-  pegawaiId           String
-  penilaiId           String
-  indeksPegawaiId     String?
+  id                  String              @id @default(uuid(7)) @db.Uuid
+  pegawaiId           String @db.Uuid
+  penilaiId           String @db.Uuid
+  indeksPegawaiId     String? @db.Uuid
   bulan               Int                 // 1–12
   tahun               Int
 
@@ -959,7 +959,7 @@ model AiConfig {
 
 // ============ BANNER PWA MOBILE ============
 model BannerPwa {
-  id              String    @id @default(cuid())
+  id              String    @id @default(uuid(7)) @db.Uuid
   judul           String?
   imageUrl        String
   tampilkanSampai DateTime? // null = berlaku selamanya

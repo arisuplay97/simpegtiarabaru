@@ -11,7 +11,7 @@ datasource db {
 
 // ============ USER & AUTH ============
 model User {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7)) @db.Uuid
   email     String   @unique
   password  String
   role      Role     @default(PEGAWAI)
@@ -22,7 +22,7 @@ model User {
 
 // ============ BIDANG / UNIT KERJA ============
 model Bidang {
-  id              String    @id @default(cuid())
+  id              String    @id @default(uuid(7)) @db.Uuid
   nama            String    @unique
   kode            String    @unique
   kepalaBidang    String
@@ -35,7 +35,7 @@ model Bidang {
 
 // ============ PEGAWAI ============
 model Pegawai {
-  id                    String    @id @default(cuid())
+  id                    String    @id @default(uuid(7)) @db.Uuid
   nik                   String    @unique  // NIK KTP 16 digit
   nama                  String
   email                 String    @unique
@@ -94,7 +94,7 @@ model Pegawai {
 
 // ============ MUTASI ============
 model Mutasi {
-  id              String        @id @default(cuid())
+  id              String        @id @default(uuid(7)) @db.Uuid
   pegawaiId       String
   pegawai         Pegawai       @relation("MutasiDari", fields: [pegawaiId], references: [id])
   approvedById    String?
@@ -117,7 +117,7 @@ model Mutasi {
 
 // ============ ABSENSI ============
 model Absensi {
-  id        String        @id @default(cuid())
+  id        String        @id @default(uuid(7)) @db.Uuid
   pegawaiId String
   tanggal   DateTime
   status    StatusAbsensi
@@ -129,7 +129,7 @@ model Absensi {
 
 // ============ CUTI ============
 model Cuti {
-  id             String     @id @default(cuid())
+  id             String     @id @default(uuid(7)) @db.Uuid
   pegawaiId      String
   tanggalMulai   DateTime
   tanggalSelesai DateTime
@@ -142,7 +142,7 @@ model Cuti {
 
 // ============ PAYROLL ============
 model Payroll {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7)) @db.Uuid
   pegawaiId String
   bulan     DateTime
   gajiPokok Decimal
@@ -155,7 +155,7 @@ model Payroll {
 
 // ============ KPI ============
 model KPI {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7)) @db.Uuid
   pegawaiId String
   tahun     String
   nilai     Decimal
@@ -165,7 +165,7 @@ model KPI {
 
 // ============ SLIP GAJI ============
 model SlipGaji {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7)) @db.Uuid
   pegawaiId String
   bulan     DateTime
   fileUrl   String
