@@ -61,6 +61,7 @@ export default function PengaturanSistemPage() {
     batasTerlambatDenda: 5,
     dendaAlpa: 7500,
     dendaTidakAbsenSiang: 10000,
+    tanggalMulaiDendaSiang: "2026-09-23",
     tunjanganTransport: 120000,
     batasAlpaDendaTransport: 3,
   })
@@ -524,10 +525,17 @@ export default function PengaturanSistemPage() {
                     <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda per hari jika status ALPA (Tanpa Keterangan). (Misal: 7.500)</p>
                   </div>
 
-                  <div className="space-y-2 border-t pt-4">
-                    <Label htmlFor="dendaTidakAbsenSiang">Denda Tidak Absen Siang - Pusat (Rp per Kejadian)</Label>
-                    <Input type="number" id="dendaTidakAbsenSiang" name="dendaTidakAbsenSiang" value={formData.dendaTidakAbsenSiang ?? 10000} onChange={handleChange} />
-                    <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda per hari jika pegawai kantor pusat masuk kerja tapi tidak melakukan presensi siang. (Misal: 10.000)</p>
+                  <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="dendaTidakAbsenSiang">Denda Tidak Absen Siang - Pusat (Rp per Kejadian)</Label>
+                      <Input type="number" id="dendaTidakAbsenSiang" name="dendaTidakAbsenSiang" value={formData.dendaTidakAbsenSiang ?? 10000} onChange={handleChange} />
+                      <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda per hari jika pegawai kantor pusat masuk kerja tapi tidak absen siang.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tanggalMulaiDendaSiang">Tanggal Mulai Berlaku Aturan Denda Siang</Label>
+                      <Input type="date" id="tanggalMulaiDendaSiang" name="tanggalMulaiDendaSiang" value={formData.tanggalMulaiDendaSiang || "2026-09-23"} onChange={handleChange} />
+                      <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Hari-hari sebelum tanggal ini tidak akan dikenai denda absen siang.</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

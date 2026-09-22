@@ -34,6 +34,7 @@ export default function MobileSettingsAbsensi() {
     batasAbsenPulang: "18:00",
     batasTerlambat: 15,
     dendaTidakAbsenSiang: 10000,
+    tanggalMulaiDendaSiang: "2026-09-23",
 
     // Cabang (Senin - Jumat)
     jamMasukCabang: "08:00",
@@ -366,6 +367,20 @@ export default function MobileSettingsAbsensi() {
                       className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100"
                     />
                   </div>
+                </div>
+                <div className="pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
+                  <label className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                    Tanggal Mulai Berlaku Denda Siang
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.tanggalMulaiDendaSiang || "2026-09-23"}
+                    onChange={(e) => handleChange("tanggalMulaiDendaSiang", e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100"
+                  />
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Hari sebelum tanggal ini tidak akan dihitung denda absen siang.
+                  </p>
                 </div>
                 <p className="text-[10px] text-zinc-500 italic">
                   Pegawai kantor pusat yang tidak absen siang akan dikenai potongan denda pada penggajian.

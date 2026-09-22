@@ -442,6 +442,7 @@ model Pengaturan {
   dendaTerlambat          Int      @default(5000)
   batasTerlambatDenda     Int      @default(5)
   dendaTidakAbsenSiang    Int      @default(5000)
+  tanggalMulaiDendaSiang  String?  @default("2026-09-23")
   dendaAlpa               Int      @default(7500)
   tunjanganTransport      Int      @default(120000)
   batasAlpaDendaTransport Int      @default(3)

@@ -153,10 +153,16 @@ function calculateAttendancePenalty({
   const [bsH, bsM = 0] = batasAbsenSiangStr.split(":").map(Number)
   const currentHourWita = nowWita.getUTCHours()
   const currentMinWita = nowWita.getUTCMinutes()
+  const tanggalMulaiDendaSiang = (pengaturan as any)?.tanggalMulaiDendaSiang || "2026-09-23"
 
   if (!isCabang) {
     for (const abs of absensiList) {
       const dateKey = formatLocal(new Date(abs.tanggal))
+      // Safeguard: Hari-hari lampau sebelum fitur/aturan absen siang resmi diberlakukan tidak boleh dikenakan denda
+      if (dateKey < tanggalMulaiDendaSiang) {
+        continue
+      }
+
       if (abs.jamMasuk && abs.status !== "ALPA" && abs.status !== "CUTI" && abs.status !== "SAKIT" && abs.status !== "IZIN") {
         if (!abs.jamSiang) {
           if (dateKey < todayStr) {
