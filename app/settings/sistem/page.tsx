@@ -23,8 +23,11 @@ export default function PengaturanSistemPage() {
   const [formData, setFormData] = useState<any>({
     jamMasuk: "08:00",
     jamPulang: "17:00",
+    jamSiangPusat: "12:00",
     mulaiAbsenMasuk: "06:30",
     batasAbsenMasuk: "14:00",
+    mulaiAbsenSiang: "11:30",
+    batasAbsenSiang: "13:30",
     mulaiAbsenPulang: "15:00",
     batasAbsenPulang: "18:00",
     batasTerlambat: 15,
@@ -57,6 +60,7 @@ export default function PengaturanSistemPage() {
     dendaTerlambat: 5000,
     batasTerlambatDenda: 5,
     dendaAlpa: 7500,
+    dendaTidakAbsenSiang: 10000,
     tunjanganTransport: 120000,
     batasAlpaDendaTransport: 3,
   })
@@ -98,6 +102,7 @@ export default function PengaturanSistemPage() {
       dendaTerlambat: parseInt(formData.dendaTerlambat) || 0,
       batasTerlambatDenda: parseInt(formData.batasTerlambatDenda) || 0,
       dendaAlpa: parseInt(formData.dendaAlpa) || 0,
+      dendaTidakAbsenSiang: parseInt(formData.dendaTidakAbsenSiang) || 0,
       tunjanganTransport: parseInt(formData.tunjanganTransport) || 0,
       batasAlpaDendaTransport: parseInt(formData.batasAlpaDendaTransport) || 0,
     }
@@ -517,6 +522,12 @@ export default function PengaturanSistemPage() {
                     <Label htmlFor="dendaAlpa">Denda Alpa Harian (Rp)</Label>
                     <Input type="number" id="dendaAlpa" name="dendaAlpa" value={formData.dendaAlpa} onChange={handleChange} />
                     <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda per hari jika status ALPA (Tanpa Keterangan). (Misal: 7.500)</p>
+                  </div>
+
+                  <div className="space-y-2 border-t pt-4">
+                    <Label htmlFor="dendaTidakAbsenSiang">Denda Tidak Absen Siang - Pusat (Rp per Kejadian)</Label>
+                    <Input type="number" id="dendaTidakAbsenSiang" name="dendaTidakAbsenSiang" value={formData.dendaTidakAbsenSiang ?? 10000} onChange={handleChange} />
+                    <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight italic">Denda per hari jika pegawai kantor pusat masuk kerja tapi tidak melakukan presensi siang. (Misal: 10.000)</p>
                   </div>
                 </CardContent>
               </Card>

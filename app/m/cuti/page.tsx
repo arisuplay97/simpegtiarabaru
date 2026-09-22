@@ -275,6 +275,12 @@ export default function MobileCuti() {
                     <option key={j} value={j}>{j}</option>
                   ))}
                 </select>
+                {form.jenisCuti === "Cuti Sakit" && (
+                  <p className="mt-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    Cuti Sakit bebas kuota (tidak memotong jatah cuti tahunan). Silakan lampirkan surat keterangan dokter.
+                  </p>
+                )}
               </div>
 
               {/* Tanggal Mulai & Selesai */}

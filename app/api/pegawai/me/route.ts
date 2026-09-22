@@ -12,15 +12,25 @@ export async function GET() {
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     let pegawai = null
 
+    const includeObj = {
+      bidang: true,
+      subBidang: true,
+      lokasiAbsensi: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          role: true,
+        }
+      }
+    }
+
     // 1. Coba cari berdasarkan userId jika UUID valid
     if (session.user.id && UUID_REGEX.test(session.user.id)) {
       pegawai = await prisma.pegawai.findUnique({
         where: { userId: session.user.id },
-        include: {
-          bidang: true,
-          subBidang: true,
-          lokasiAbsensi: true
-        }
+        include: includeObj
       })
     }
 
@@ -29,11 +39,7 @@ export async function GET() {
     if (!pegawai && sessionPegawaiId && UUID_REGEX.test(sessionPegawaiId)) {
       pegawai = await prisma.pegawai.findUnique({
         where: { id: sessionPegawaiId },
-        include: {
-          bidang: true,
-          subBidang: true,
-          lokasiAbsensi: true
-        }
+        include: includeObj
       })
     }
 
@@ -46,11 +52,7 @@ export async function GET() {
             { user: { email: { equals: session.user.email, mode: "insensitive" } } }
           ]
         },
-        include: {
-          bidang: true,
-          subBidang: true,
-          lokasiAbsensi: true
-        }
+        include: includeObj
       })
     }
 
@@ -58,7 +60,12 @@ export async function GET() {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
-    return NextResponse.json(pegawai)
+    const role = (pegawai as any).user?.role || (session.user as any)?.role || "PEGAWAI"
+
+    return NextResponse.json({
+      ...pegawai,
+      role
+    })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

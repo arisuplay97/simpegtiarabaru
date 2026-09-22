@@ -37,8 +37,19 @@ export async function getSystemUsers() {
 export async function updateSystemUser(id: string, data: any) {
   try {
     const session = await auth()
-    if (!session?.user || session.user.role !== "SUPERADMIN") {
-      return { error: "Hanya Superadmin yang dapat mengedit role/akses user" }
+    if (!session?.user || (session.user.role !== "SUPERADMIN" && session.user.role !== "HRD")) {
+      return { error: "Akses ditolak. Hanya Superadmin dan HRD yang dapat mengelola data user." }
+    }
+
+    // Jika yang mengedit adalah HRD, cegah pengeditan akun SUPERADMIN atau promosi ke SUPERADMIN
+    const targetUser = await prisma.user.findUnique({ where: { id } })
+    if (session.user.role === "HRD") {
+      if (targetUser?.role === "SUPERADMIN") {
+        return { error: "HRD tidak diizinkan mengubah akun Superadmin." }
+      }
+      if (data.role === "SUPERADMIN") {
+        return { error: "HRD tidak dapat menetapkan role Superadmin." }
+      }
     }
 
     const updateData: any = {

@@ -512,11 +512,15 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     if (!pegawaiId || !UUID_REGEX.test(pegawaiId)) {
       return {
         isCabang: false,
+        isPusat: true,
         isSabtuCabang: false,
+        wajibAbsenSiang: true,
         hariKerjaAktif: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0, cuti: 0, pulangCepat: 0, totalRecord: 0,
-        waktuAbsen: "--:-- - --:--", sudahAbsenMasuk: false, sudahAbsenPulang: false,
-        jamMasuk: "08:00", jamPulang: "17:00",
-        batasAbsenMasuk: "14:00", mulaiAbsenPulang: "15:00", batasAbsenPulang: "18:00"
+        waktuAbsen: "--:-- - --:--", sudahAbsenMasuk: false, sudahAbsenSiang: false, sudahAbsenPulang: false,
+        waktuAbsenSiang: "--:--",
+        jamMasuk: "08:00", jamSiang: "12:00", jamPulang: "17:00",
+        batasAbsenMasuk: "14:00", mulaiAbsenSiang: "11:30", batasAbsenSiang: "14:00", mulaiAbsenPulang: "15:00", batasAbsenPulang: "18:00",
+        dendaTidakAbsenSiang: 5000
       }
     }
 
@@ -663,7 +667,9 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
 
     const summary = {
       isCabang,
+      isPusat: !isCabang,
       isSabtuCabang: isCabang && isTodaySaturday,
+      wajibAbsenSiang: !isCabang,
       hariKerjaAktif,
       hadir: 0,
       izin: 0,
@@ -675,15 +681,21 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       totalRecord: absensi.length,
       waktuAbsen,
       sudahAbsenMasuk: !!absensiHariIni?.jamMasuk,
+      sudahAbsenSiang: !!absensiHariIni?.jamSiang,
       sudahAbsenPulang: !!absensiHariIni?.jamKeluar,
+      waktuAbsenSiang: absensiHariIni?.jamSiang ? formatTime(absensiHariIni.jamSiang) : "--:--",
       statusMasukHariIni,
       keteranganMasukHariIni,
       menitTerlambatHariIni,
       jamMasuk: jamMasukSetting,
       jamPulang: jamPulangSetting,
+      jamSiang: pengaturan?.jamSiangPusat || "12:00",
       batasAbsenMasuk,
+      mulaiAbsenSiang: pengaturan?.mulaiAbsenSiang || "11:30",
+      batasAbsenSiang: pengaturan?.batasAbsenSiang || "14:00",
       mulaiAbsenPulang,
       batasAbsenPulang,
+      dendaTidakAbsenSiang: Number(pengaturan?.dendaTidakAbsenSiang ?? 5000),
     }
 
     const recordedDays = new Set<string>()

@@ -195,10 +195,13 @@ model Absensi {
   metode    MetodeAbsensi   @default(SELFIE)
   importId  String? @db.Uuid
   jamMasuk  DateTime?
+  jamSiang  DateTime?
   jamKeluar DateTime?
   fotoMasukUrl  String?     // URL foto selfie masuk
+  fotoSiangUrl  String?     // URL foto selfie siang
   fotoKeluarUrl String?     // URL foto selfie keluar
   lokasiMasuk   String?     // "lat,lng" dari GPS
+  lokasiSiang   String?     // "lat,lng" dari GPS saat siang
   lokasiKeluar  String?     // "lat,lng" dari GPS saat keluar
   faceVerified  Boolean   @default(false)  // wajah lolos verifikasi
   pendingApproval Boolean  @default(false)  // perlu approve HRD (face gagal 6x)
@@ -400,9 +403,12 @@ model Pengaturan {
     
     // Absensi Kantor Pusat (Senin - Jumat)
     jamMasuk          String   @default("08:00")
+    jamSiangPusat     String   @default("12:00")
     jamPulang         String   @default("17:00")
     mulaiAbsenMasuk   String   @default("06:30")
     batasAbsenMasuk   String   @default("14:00")
+    mulaiAbsenSiang   String   @default("11:30")
+    batasAbsenSiang   String   @default("14:00")
     mulaiAbsenPulang  String   @default("15:00")
     batasAbsenPulang  String   @default("18:00")
     batasTerlambat    Int      @default(15)
@@ -435,6 +441,7 @@ model Pengaturan {
   bpjsTkPcs               Float    @default(2.0)
   dendaTerlambat          Int      @default(5000)
   batasTerlambatDenda     Int      @default(5)
+  dendaTidakAbsenSiang    Int      @default(5000)
   dendaAlpa               Int      @default(7500)
   tunjanganTransport      Int      @default(120000)
   batasAlpaDendaTransport Int      @default(3)

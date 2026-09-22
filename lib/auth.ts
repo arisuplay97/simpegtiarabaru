@@ -101,7 +101,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     })
   ],
   callbacks: {
-    jwt: ({ token, user, trigger, session }) => {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.role = (user as any).role
         token.jabatan = (user as any).jabatan
@@ -111,9 +111,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.picture = (user as any).image || null
         token.pegawaiId = (user as any).pegawaiId || null
       }
+
+      // Re-query role & pegawai terkini dari database agar perubahan role (misal: HRD) langsung aktif di PWA
+      if (token.sub) {
+        try {
+          const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          if (UUID_REGEX.test(token.sub)) {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.sub },
+              select: {
+                role: true,
+                mustChangePassword: true,
+                pegawai: { select: { id: true, jabatan: true, fotoUrl: true } }
+              }
+            })
+            if (dbUser) {
+              token.role = dbUser.role
+              token.mustChangePassword = dbUser.mustChangePassword
+              if (dbUser.pegawai) {
+                token.pegawaiId = dbUser.pegawai.id
+                token.jabatan = dbUser.pegawai.jabatan
+                if (dbUser.pegawai.fotoUrl) token.picture = dbUser.pegawai.fotoUrl
+              }
+            }
+          }
+        } catch {}
+      }
+
       if (trigger === "update" && session !== undefined) {
         token.mustChangePassword = session.mustChangePassword
         if (session.picture !== undefined) token.picture = session.picture
+        if (session.role !== undefined) token.role = session.role
       }
       return token
     },

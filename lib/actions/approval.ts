@@ -309,11 +309,18 @@ export async function processUnifiedApproval(
               }
             })
 
+            let targetStatus: "CUTI" | "SAKIT" | "IZIN" = "CUTI"
+            if (cuti.jenisCuti.toLowerCase().includes("sakit")) {
+              targetStatus = "SAKIT"
+            } else if (cuti.jenisCuti.toLowerCase().includes("izin")) {
+              targetStatus = "IZIN"
+            }
+
             if (absensiExist) {
-              await prisma.absensi.update({ where: { id: absensiExist.id }, data: { status: "CUTI" } })
+              await prisma.absensi.update({ where: { id: absensiExist.id }, data: { status: targetStatus } })
             } else {
               await prisma.absensi.create({
-                data: { pegawaiId: cuti.pegawaiId, tanggal: new Date(current), status: "CUTI" }
+                data: { pegawaiId: cuti.pegawaiId, tanggal: new Date(current), status: targetStatus }
               })
             }
           }
@@ -321,8 +328,8 @@ export async function processUnifiedApproval(
           current.setHours(0, 0, 0, 0)
         }
 
-        // Kurangi saldo cuti pegawai
-        if (workingDays > 0) {
+        // Kurangi saldo cuti pegawai HANYA jika Cuti Tahunan (Cuti Sakit tidak mengurangi saldo)
+        if (workingDays > 0 && cuti.jenisCuti === "Cuti Tahunan") {
           await prisma.pegawai.update({
             where: { id: cuti.pegawaiId },
             data: { saldoCuti: { decrement: workingDays } }

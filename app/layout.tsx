@@ -55,8 +55,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </AuthGuard>
             </SidebarProvider>
           </AuthProvider>
-          <Analytics />
-          <Toaster position="top-right" richColors />
+          <Toaster 
+            position="top-center" 
+            richColors 
+            closeButton
+            toastOptions={{
+              className: "rounded-2xl shadow-xl border border-zinc-200/80 dark:border-zinc-800 text-sm font-semibold p-4 max-w-sm mx-auto",
+              style: {
+                marginTop: "max(48px, calc(env(safe-area-inset-top) + 32px))",
+                fontSize: "13.5px",
+                lineHeight: "1.4"
+              }
+            }}
+          />
           <PWARegister />
         </ThemeProvider>
       </body>

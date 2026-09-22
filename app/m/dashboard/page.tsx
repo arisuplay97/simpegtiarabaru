@@ -9,7 +9,7 @@ import {
   FileText,
   Bell, CheckCircle2, XCircle, ArrowUpRight,
   CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2,
-  RefreshCw, ArrowDown
+  RefreshCw, ArrowDown, Shield, Radio, MapPin
 } from "lucide-react"
 import { triggerHaptic } from "@/lib/pwa/haptics"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
@@ -590,81 +590,217 @@ export default function MobileDashboard() {
             <DigitalClock />
           </div>
 
-          {/* Jam masuk & pulang tiles */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Tile Masuk */}
-            <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
-              <div className={cn(
-                "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
-                summary?.sudahAbsenMasuk
-                  ? summary?.statusMasukHariIni === "TERLAMBAT"
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                  : "bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 border-zinc-300/40 dark:border-zinc-600/40"
-              )}>
-                <Clock className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
+          {/* Jam masuk, siang & pulang tiles */}
+          {summary?.wajibAbsenSiang ? (
+            <div className="grid grid-cols-3 gap-2">
+              {/* Tile Masuk */}
+              <div className="rounded-xl p-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-1">
-                  <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Masuk</p>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium tabular-nums">
-                    {summary?.jamMasuk || "08:00"}
-                  </span>
+                  <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Masuk</span>
+                  <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums">{summary?.jamMasuk || "08:00"}</span>
                 </div>
-                <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-1 tabular-nums">
                   {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
                 </p>
-                {summary?.sudahAbsenMasuk ? (
-                  <p className={cn(
-                    "text-[10px] font-semibold mt-0.5 truncate tracking-tight",
-                    summary?.statusMasukHariIni === "TERLAMBAT"
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-emerald-600 dark:text-emerald-400"
-                  )}>
-                    {summary?.statusMasukHariIni === "TERLAMBAT"
-                      ? (summary?.menitTerlambatHariIni > 0 ? `Terlambat +${summary.menitTerlambatHariIni}m` : "Terlambat")
-                      : "Tepat Waktu"}
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 truncate">
-                    Belum Absen
-                  </p>
-                )}
+                <p className={cn(
+                  "text-[9px] font-semibold mt-0.5 truncate",
+                  summary?.sudahAbsenMasuk
+                    ? (summary?.statusMasukHariIni === "TERLAMBAT" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")
+                    : "text-zinc-400 dark:text-zinc-500"
+                )}>
+                  {summary?.sudahAbsenMasuk ? (summary?.statusMasukHariIni === "TERLAMBAT" ? "Terlambat" : "Hadir") : "Belum"}
+                </p>
               </div>
-            </div>
 
-            {/* Tile Pulang */}
-            <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
-              <div className={cn(
-                "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
-                summary?.sudahAbsenPulang
-                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-                  : "bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 border-zinc-300/40 dark:border-zinc-600/40"
-              )}>
-                <Clock className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
+              {/* Tile Siang (Pusat) */}
+              <div className="rounded-xl p-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-1">
-                  <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Pulang</p>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium tabular-nums">
-                    {summary?.jamPulang || "17:00"}
-                  </span>
+                  <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Siang</span>
+                  <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums">{summary?.jamSiang || "12:00"}</span>
                 </div>
-                <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-1 tabular-nums">
+                  {summary?.waktuAbsenSiang || "--:--"}
+                </p>
+                <p className={cn(
+                  "text-[9px] font-semibold mt-0.5 truncate",
+                  summary?.sudahAbsenSiang ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                )}>
+                  {summary?.sudahAbsenSiang ? "Hadir" : "Belum"}
+                </p>
+              </div>
+
+              {/* Tile Pulang */}
+              <div className="rounded-xl p-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Pulang</span>
+                  <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums">{summary?.jamPulang || "17:00"}</span>
+                </div>
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-1 tabular-nums">
                   {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
                 </p>
                 <p className={cn(
-                  "text-[10px] font-semibold mt-0.5 truncate tracking-tight",
-                  summary?.sudahAbsenPulang
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-zinc-400 dark:text-zinc-500 font-normal"
+                  "text-[9px] font-semibold mt-0.5 truncate",
+                  summary?.sudahAbsenPulang ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500"
                 )}>
-                  {summary?.sudahAbsenPulang ? "Sudah Absen" : "Belum Absen"}
+                  {summary?.sudahAbsenPulang ? "Hadir" : "Belum"}
                 </p>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {/* Tile Masuk */}
+              <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
+                <div className={cn(
+                  "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
+                  summary?.sudahAbsenMasuk
+                    ? summary?.statusMasukHariIni === "TERLAMBAT"
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                      : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : "bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 border-zinc-300/40 dark:border-zinc-600/40"
+                )}>
+                  <Clock className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Masuk</p>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium tabular-nums">
+                      {summary?.jamMasuk || "08:00"}
+                    </span>
+                  </div>
+                  <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                    {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
+                  </p>
+                  {summary?.sudahAbsenMasuk ? (
+                    <p className={cn(
+                      "text-[10px] font-semibold mt-0.5 truncate tracking-tight",
+                      summary?.statusMasukHariIni === "TERLAMBAT"
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                    )}>
+                      {summary?.statusMasukHariIni === "TERLAMBAT"
+                        ? (summary?.menitTerlambatHariIni > 0 ? `Terlambat +${summary.menitTerlambatHariIni}m` : "Terlambat")
+                        : "Tepat Waktu"}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 truncate">
+                      Belum Absen
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Tile Pulang */}
+              <div className="rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-3">
+                <div className={cn(
+                  "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
+                  summary?.sudahAbsenPulang
+                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                    : "bg-zinc-200/70 dark:bg-zinc-700/50 text-zinc-700 dark:text-zinc-300 border-zinc-300/40 dark:border-zinc-600/40"
+                )}>
+                  <Clock className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Pulang</p>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium tabular-nums">
+                      {summary?.jamPulang || "17:00"}
+                    </span>
+                  </div>
+                  <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                    {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
+                  </p>
+                  <p className={cn(
+                    "text-[10px] font-semibold mt-0.5 truncate tracking-tight",
+                    summary?.sudahAbsenPulang
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-zinc-400 dark:text-zinc-500 font-normal"
+                  )}>
+                    {summary?.sudahAbsenPulang ? "Sudah Absen" : "Belum Absen"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* ===== PANEL KHUSUS HRD & ADMINISTRATOR ===== */}
+        {(() => {
+          const userRole = (pegawai?.role || (session?.user as any)?.role || "").toUpperCase()
+          const isHrdOrAdmin = ["SUPERADMIN", "ADMIN", "HRD", "DIREKSI"].includes(userRole) || 
+                               (session?.user?.name || "").toLowerCase().includes("admin")
+          if (!isHrdOrAdmin) return null
+
+          return (
+            <div className="rounded-2xl p-4 bg-gradient-to-br from-blue-900/15 via-indigo-900/10 to-transparent border border-blue-500/20 shadow-xs relative overflow-hidden">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                    <Shield className="h-3.5 w-3.5" />
+                  </div>
+                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                    Panel Khusus HRD & Admin
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                  {userRole || "HRD"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/m/radar"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Radio className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Radar Monitoring</p>
+                    <p className="text-[10px] text-zinc-500 truncate">Pantau live pegawai</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/approval"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Approval Izin/Cuti</p>
+                    <p className="text-[10px] text-zinc-500 truncate">Persetujuan berkas</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/m/settings/absensi"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Jam Absensi</p>
+                    <p className="text-[10px] text-zinc-500 truncate">Pusat & Cabang</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/m/settings/lokasi"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Lokasi & Radius</p>
+                    <p className="text-[10px] text-zinc-500 truncate">GPS Geofencing</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ===== PENGUMUMAN TICKER ===== */}
         {pengumuman.length > 0 && <PengumumanTicker items={pengumuman} />}

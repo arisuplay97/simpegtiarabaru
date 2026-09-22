@@ -256,7 +256,7 @@ export default function MobileProfil() {
 
       {/* Pengaturan Khusus Admin / HRD */}
       {(() => {
-        const userRole = ((session?.user as any)?.role || "").toUpperCase()
+        const userRole = (pegawai?.role || (session?.user as any)?.role || "").toUpperCase()
         const isHrdOrAdmin = ["SUPERADMIN", "ADMIN", "HRD", "DIREKSI"].includes(userRole) || 
                              (session?.user?.name || "").toLowerCase().includes("admin")
         if (!isHrdOrAdmin) return null

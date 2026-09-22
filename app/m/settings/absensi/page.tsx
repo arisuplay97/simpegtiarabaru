@@ -25,11 +25,15 @@ export default function MobileSettingsAbsensi() {
     // Pusat (Senin - Jumat)
     jamMasuk: "08:00",
     jamPulang: "17:00",
+    jamSiangPusat: "12:00",
     mulaiAbsenMasuk: "06:30",
     batasAbsenMasuk: "14:00",
+    mulaiAbsenSiang: "11:30",
+    batasAbsenSiang: "13:30",
     mulaiAbsenPulang: "15:00",
     batasAbsenPulang: "18:00",
     batasTerlambat: 15,
+    dendaTidakAbsenSiang: 10000,
 
     // Cabang (Senin - Jumat)
     jamMasukCabang: "08:00",
@@ -94,6 +98,7 @@ export default function MobileSettingsAbsensi() {
       const payload = {
         ...formData,
         batasTerlambat: parseInt(formData.batasTerlambat) || 15,
+        dendaTidakAbsenSiang: parseInt(formData.dendaTidakAbsenSiang) || 0,
       }
 
       const res = await updatePengaturan(payload)
@@ -300,6 +305,71 @@ export default function MobileSettingsAbsensi() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Sesi Siang Kantor Pusat (3x Absen) */}
+              <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 border border-amber-200/80 dark:border-amber-900/50 space-y-3.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    Sesi Absensi Siang (Khusus Pusat)
+                  </p>
+                  <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-semibold px-2 py-0.5 rounded-full">
+                    Sesi Siang
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                      Jam Siang / Istirahat
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.jamSiangPusat || "12:00"}
+                      onChange={(e) => handleChange("jamSiangPusat", e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                      Denda Tdk Absen Siang
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.dendaTidakAbsenSiang ?? 10000}
+                      onChange={(e) => handleChange("dendaTidakAbsenSiang", e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                      Buka Absen Siang
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.mulaiAbsenSiang || "11:30"}
+                      onChange={(e) => handleChange("mulaiAbsenSiang", e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">
+                      Batas Absen Siang
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.batasAbsenSiang || "13:30"}
+                      onChange={(e) => handleChange("batasAbsenSiang", e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-zinc-500 italic">
+                  Pegawai kantor pusat yang tidak absen siang akan dikenai potongan denda pada penggajian.
+                </p>
               </div>
             </div>
           )}

@@ -624,6 +624,12 @@ export default function CutiPage() {
                       <SelectItem value="Izin Tidak Masuk" className="text-xs">Izin Tidak Masuk</SelectItem>
                     </SelectContent>
                   </Select>
+                  {leaveType === "Cuti Sakit" && (
+                    <p className="mt-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                      Cuti Sakit bebas kuota (tidak mengurangi jatah cuti tahunan). Silakan lampirkan surat keterangan dokter.
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

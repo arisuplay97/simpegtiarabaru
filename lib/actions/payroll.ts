@@ -146,18 +146,47 @@ function calculateAttendancePenalty({
     }
   }
 
+  // 4. Evaluasi Denda Tidak Absen Siang (Khusus Pegawai Kantor Pusat)
+  let countTidakAbsenSiang = 0
+  const dendaTidakAbsenSiangPerKejadian = Number(pengaturan?.dendaTidakAbsenSiang ?? 5000)
+  const batasAbsenSiangStr = pengaturan?.batasAbsenSiang || "14:00"
+  const [bsH, bsM = 0] = batasAbsenSiangStr.split(":").map(Number)
+  const currentHourWita = nowWita.getUTCHours()
+  const currentMinWita = nowWita.getUTCMinutes()
+
+  if (!isCabang) {
+    for (const abs of absensiList) {
+      const dateKey = formatLocal(new Date(abs.tanggal))
+      if (abs.jamMasuk && abs.status !== "ALPA" && abs.status !== "CUTI" && abs.status !== "SAKIT" && abs.status !== "IZIN") {
+        if (!abs.jamSiang) {
+          if (dateKey < todayStr) {
+            countTidakAbsenSiang++
+          } else if (dateKey === todayStr) {
+            const isAfterMidday = currentHourWita > bsH || (currentHourWita === bsH && currentMinWita >= bsM)
+            if (isAfterMidday) {
+              countTidakAbsenSiang++
+            }
+          }
+        }
+      }
+    }
+  }
+
   const countAlpa = explicitAlpaDates.size + unrecordedAlpaCount
   const totalDendaTerlambat = countTerlambatDenda * dendaTerlambatPerKejadian
   const totalDendaAlpa = countAlpa * dendaAlpaPerHari
+  const totalDendaTidakAbsenSiang = countTidakAbsenSiang * dendaTidakAbsenSiangPerKejadian
   const penaltiTransport = countAlpa >= batasAlpaLenyapTransport ? tunjanganTransportLocked : 0
 
-  const totalPotongan = totalDendaTerlambat + totalDendaAlpa + penaltiTransport
+  const totalPotongan = totalDendaTerlambat + totalDendaAlpa + penaltiTransport + totalDendaTidakAbsenSiang
 
   return {
     countAlpa,
     countTerlambatDenda,
+    countTidakAbsenSiang,
     totalDendaTerlambat,
     totalDendaAlpa,
+    totalDendaTidakAbsenSiang,
     penaltiTransport,
     totalPotongan
   }
@@ -311,6 +340,8 @@ export async function getPayrollList(periodStr: string) {
       dendaAlpa: penaltyInfo?.totalDendaAlpa,
       countTerlambatDenda: penaltyInfo?.countTerlambatDenda,
       dendaTerlambat: penaltyInfo?.totalDendaTerlambat,
+      countTidakAbsenSiang: penaltyInfo?.countTidakAbsenSiang,
+      dendaTidakAbsenSiang: penaltyInfo?.totalDendaTidakAbsenSiang,
       penaltiTransport: penaltyInfo?.penaltiTransport,
       bpjsKes,
       bpjsTk,
@@ -397,6 +428,7 @@ export async function getPayrollSettings() {
     tunjanganTransport: Number(pengaturan?.tunjanganTransport ?? 120000),
     dendaTerlambat: Number(pengaturan?.dendaTerlambat ?? 5000),
     batasTerlambatDenda: Number(pengaturan?.batasTerlambatDenda ?? 5),
+    dendaTidakAbsenSiang: Number(pengaturan?.dendaTidakAbsenSiang ?? 5000),
     bpjsKesehatanPcs: Number(pengaturan?.bpjsKesehatanPcs ?? 1.0),
     bpjsTkPcs: Number(pengaturan?.bpjsTkPcs ?? 2.0),
     tanggalGajian: Number(pengaturan?.tanggalGajian ?? 25),
@@ -410,6 +442,7 @@ export async function updatePayrollSettings(data: {
   tunjanganTransport: number
   dendaTerlambat: number
   batasTerlambatDenda: number
+  dendaTidakAbsenSiang?: number
   bpjsKesehatanPcs: number
   bpjsTkPcs: number
   tanggalGajian: number
@@ -423,6 +456,7 @@ export async function updatePayrollSettings(data: {
         tunjanganTransport: Number(data.tunjanganTransport),
         dendaTerlambat: Number(data.dendaTerlambat),
         batasTerlambatDenda: Number(data.batasTerlambatDenda),
+        dendaTidakAbsenSiang: data.dendaTidakAbsenSiang !== undefined ? Number(data.dendaTidakAbsenSiang) : undefined,
         bpjsKesehatanPcs: Number(data.bpjsKesehatanPcs),
         bpjsTkPcs: Number(data.bpjsTkPcs),
         tanggalGajian: Number(data.tanggalGajian),
@@ -434,6 +468,7 @@ export async function updatePayrollSettings(data: {
         tunjanganTransport: Number(data.tunjanganTransport),
         dendaTerlambat: Number(data.dendaTerlambat),
         batasTerlambatDenda: Number(data.batasTerlambatDenda),
+        dendaTidakAbsenSiang: Number(data.dendaTidakAbsenSiang ?? 5000),
         bpjsKesehatanPcs: Number(data.bpjsKesehatanPcs),
         bpjsTkPcs: Number(data.bpjsTkPcs),
         tanggalGajian: Number(data.tanggalGajian),

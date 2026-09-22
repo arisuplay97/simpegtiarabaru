@@ -98,15 +98,15 @@ export default function MobileNotifikasi() {
 
               <div className="flex-1 min-w-0">
                 <p className={cn(
-                  "text-xs font-bold leading-snug",
+                  "text-sm font-bold leading-snug",
                   !n.isRead ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400"
                 )}>
                   {n.title}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed break-words">
                   {n.message}
                 </p>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 tabular-nums">
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1.5 tabular-nums">
                   {format(new Date(n.createdAt), "d MMM yyyy · HH:mm", { locale: idLocale })}
                 </p>
               </div>

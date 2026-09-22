@@ -107,7 +107,7 @@ export async function POST(req: Request) {
 
     try {
       const body = await req.json()
-      const { latitude = 0, longitude = 0, accuracy = 999, offlineSync = false, offlineTimestamp } = body
+      const { latitude = 0, longitude = 0, accuracy = 999, offlineSync = false, offlineTimestamp, tipe } = body
 
       // Validasi Anti-Fake GPS Universal (Wajib berlaku baik untuk Online maupun Offline Sync)
       if (accuracy > 0 && accuracy < 3) {
@@ -122,29 +122,29 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: `Akurasi GPS terlalu rendah (${Math.round(accuracy)}m). Pastikan GPS aktif.` }, { status: 400 })
         }
       
-      // Radius check logic (mendukung multi-titik koordinat per lokasi)
+      // Radius check logic dengan toleransi akurasi GPS wajar
+      const gpsTolerance = Math.min(Math.max(0, accuracy), 25)
+
       if (!pegawai.bebasAbsensi) {
         if (pegawai.lokasiAbsensi) {
           // Jika pegawai terikat pada satu Lokasi spesifik
           const allPoints = parseTitikKoordinat(pegawai.lokasiAbsensi as any)
           let isWithinRadius = false
           let closestDistance = Infinity
-          let matchedPointName = ""
 
           for (const pt of allPoints) {
             const distance = hitungJarak(latitude, longitude, pt.latitude, pt.longitude)
             if (distance < closestDistance) closestDistance = distance
-            const effectiveRadius = pt.radius ?? pegawai.lokasiAbsensi.radius
+            const effectiveRadius = (pt.radius ?? pegawai.lokasiAbsensi.radius) + gpsTolerance
             if (distance <= effectiveRadius) {
               isWithinRadius = true
-              matchedPointName = pt.nama
               break
             }
           }
 
           if (!isWithinRadius) {
             return NextResponse.json({ 
-              error: `Anda berada di luar jangkauan area absen (${pegawai.lokasiAbsensi.nama}). Jarak terdekat: ${Math.round(closestDistance)}m (Maks: ${pegawai.lokasiAbsensi.radius}m).` 
+              error: `Anda berada di luar jangkauan area absen (${pegawai.lokasiAbsensi.nama}). Jarak Anda: ${Math.round(closestDistance)}m (Maks: ${pegawai.lokasiAbsensi.radius}m).` 
             }, { status: 400 })
           }
         } else {
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
               for (const pt of allPoints) {
                 const distance = hitungJarak(latitude, longitude, pt.latitude, pt.longitude)
                 if (distance < closestDistance) closestDistance = distance
-                const effectiveRadius = pt.radius ?? loc.radius
+                const effectiveRadius = (pt.radius ?? loc.radius) + gpsTolerance
                 if (distance <= effectiveRadius) {
                   isValidLocation = true
                   break
@@ -171,7 +171,7 @@ export async function POST(req: Request) {
 
             if (!isValidLocation) {
               return NextResponse.json({ 
-                error: `Anda berada di luar jangkauan area absen manapun. Jarak terdekat ke lokasi kantor/titik absensi: ${Math.round(closestDistance)}m.` 
+                error: `Anda berada di luar jangkauan area absen manapun. Jarak terdekat ke titik absensi: ${Math.round(closestDistance)}m.` 
               }, { status: 400 })
             }
           }
@@ -186,10 +186,6 @@ export async function POST(req: Request) {
     const existing = await prisma.absensi.findFirst({
       where: { pegawaiId, tanggal: { gte: todayStart, lte: todayEnd } }
     }) as any
-
-    if (existing && existing.jamMasuk && existing.jamKeluar) {
-      return NextResponse.json({ error: "Anda sudah check-in dan check-out hari ini" }, { status: 400 })
-    }
 
     const pengaturan: any = await getCachedPengaturan()
     const isCabang = isCabangEmployee(pegawai)
@@ -213,20 +209,20 @@ export async function POST(req: Request) {
 
     let mulaiMasukStr = pengaturan?.mulaiAbsenMasuk || "06:30"
     let batasMasukStr = pengaturan?.batasAbsenMasuk || "14:00"
+    let mulaiSiangStr = pengaturan?.mulaiAbsenSiang || "11:30"
+    let batasSiangStr = pengaturan?.batasAbsenSiang || "14:00"
     let mulaiPulangStr = pengaturan?.mulaiAbsenPulang || "15:00"
     let batasPulangStr = pengaturan?.batasAbsenPulang || "18:00"
     let jamMasukSetting = pengaturan?.jamMasuk || "08:00"
 
     if (isCabang || (dayOfWeek === 6 && pegawai.bebasAbsensi)) {
       if (dayOfWeek === 6) {
-        // Khusus Hari Sabtu Kantor Cabang / Bebas Absensi
         mulaiMasukStr = pengaturan?.mulaiMasukSabtuCabang || "06:30"
         batasMasukStr = pengaturan?.batasMasukSabtuCabang || "11:00"
         mulaiPulangStr = pengaturan?.mulaiPulangSabtuCabang || "12:00"
         batasPulangStr = pengaturan?.batasPulangSabtuCabang || "15:00"
         jamMasukSetting = pengaturan?.jamMasukSabtuCabang || "08:00"
       } else {
-        // Hari Biasa Kantor Cabang (Senin - Jumat)
         mulaiMasukStr = pengaturan?.mulaiAbsenMasukCabang || pengaturan?.mulaiAbsenMasuk || "06:30"
         batasMasukStr = pengaturan?.batasAbsenMasukCabang || pengaturan?.batasAbsenMasuk || "14:00"
         mulaiPulangStr = pengaturan?.mulaiAbsenPulangCabang || pengaturan?.mulaiAbsenPulang || "15:00"
@@ -237,46 +233,122 @@ export async function POST(req: Request) {
 
     const [mulaiMasukH, mulaiMasukM = 0] = mulaiMasukStr.split(":").map(Number)
     const [batasMasukH, batasMasukM = 0] = batasMasukStr.split(":").map(Number)
+    const [mulaiSiangH, mulaiSiangM = 0] = mulaiSiangStr.split(":").map(Number)
+    const [batasSiangH, batasSiangM = 0] = batasSiangStr.split(":").map(Number)
     const [mulaiPulangH, mulaiPulangM = 0] = mulaiPulangStr.split(":").map(Number)
     const [batasPulangH, batasPulangM = 0] = batasPulangStr.split(":").map(Number)
 
     const mulaiMasukTotalM = mulaiMasukH * 60 + mulaiMasukM
     const batasMasukTotalM = batasMasukH * 60 + batasMasukM
+    const mulaiSiangTotalM = mulaiSiangH * 60 + mulaiSiangM
+    const batasSiangTotalM = batasSiangH * 60 + batasSiangM
     const mulaiPulangTotalM = mulaiPulangH * 60 + mulaiPulangM
     const batasPulangTotalM = batasPulangH * 60 + batasPulangM
 
-    const isCheckOut = existing && existing.jamMasuk && !existing.jamKeluar
-
-    if (!isCheckOut) {
-      // Validasi jam buka & batas check-in
-      if (currentTotalM < mulaiMasukTotalM) {
-        return NextResponse.json({ error: `Sesi check-in belum dibuka. Absensi baru bisa dilakukan mulai pukul ${mulaiMasukStr}.` }, { status: 400 })
-      }
-      if (currentTotalM > batasMasukTotalM) {
-        return NextResponse.json({ error: `Sesi check-in hari ini sudah ditutup sejak pukul ${batasMasukStr}.` }, { status: 400 })
-      }
-    } else {
-      if (currentTotalM < mulaiPulangTotalM) {
-        return NextResponse.json({ error: `Maaf, belum waktunya pulang. Sesi check-out baru akan dibuka pukul ${mulaiPulangStr}.` }, { status: 400 })
-      }
-      if (currentTotalM > batasPulangTotalM) {
-        return NextResponse.json({ error: `Sesi check-out sudah berakhir pada pukul ${batasPulangStr}.` }, { status: 400 })
+    // Menentukan target sesi (Pagi, Siang, atau Sore)
+    let requestedType = tipe
+    if (!requestedType) {
+      if (!isCabang && currentTotalM >= mulaiSiangTotalM && currentTotalM <= batasSiangTotalM && !existing?.jamSiang) {
+        requestedType = "CHECK_MIDDAY"
+      } else if (existing?.jamMasuk && !existing?.jamKeluar) {
+        requestedType = "CHECK_OUT"
+      } else {
+        requestedType = "CHECK_IN"
       }
     }
 
-    if (isCheckOut) {
-      const updated = await prisma.absensi.update({
-        where: { id: existing.id },
-        data: {
-          jamKeluar: now,
-          lokasiKeluar: `${latitude},${longitude}`,
-        } as any
-      })
-      // Asynchronous non-blocking: jalankan kalkulasi indeks di background agar respon ke HP instan (< 100ms)
-      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(err => {
-        console.error("[BG_INDEX] Error hitungIndeksPegawai checkout:", err)
-      })
-      return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_OUT" })
+    // ================== SESI SIANG (KHUSUS KANTOR PUSAT) ==================
+    if (requestedType === "CHECK_MIDDAY") {
+      if (isCabang) {
+        return NextResponse.json({ error: "Sesi absen siang hanya diberlakukan untuk pegawai Kantor Pusat." }, { status: 400 })
+      }
+      if (currentTotalM < mulaiSiangTotalM) {
+        return NextResponse.json({ error: `Sesi absen siang belum dibuka. Absen siang dimulai pukul ${mulaiSiangStr} WITA.` }, { status: 400 })
+      }
+      if (currentTotalM > batasSiangTotalM) {
+        return NextResponse.json({ error: `Sesi absen siang sudah berakhir pada pukul ${batasSiangStr} WITA.` }, { status: 400 })
+      }
+      if (existing?.jamSiang) {
+        return NextResponse.json({ error: "Anda sudah melakukan absen siang hari ini." }, { status: 400 })
+      }
+
+      if (existing) {
+        const updated = await prisma.absensi.update({
+          where: { id: existing.id },
+          data: {
+            jamSiang: now,
+            lokasiSiang: `${latitude},${longitude}`,
+          } as any
+        })
+        hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
+        return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_MIDDAY" })
+      } else {
+        const created = await prisma.absensi.create({
+          data: {
+            pegawaiId,
+            tanggal: new Date(todayStart),
+            status: "HADIR",
+            metode: "FINGERPRINT",
+            jamSiang: now,
+            lokasiSiang: `${latitude},${longitude}`,
+            faceVerified: true,
+            offlineSync,
+          } as any
+        })
+        hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
+        return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_MIDDAY" })
+      }
+    }
+
+    // ================== SESI SORE (CHECK OUT / PULANG) ==================
+    if (requestedType === "CHECK_OUT") {
+      if (existing?.jamKeluar) {
+        return NextResponse.json({ error: "Anda sudah melakukan absen pulang hari ini." }, { status: 400 })
+      }
+      if (currentTotalM < mulaiPulangTotalM) {
+        return NextResponse.json({ error: `Maaf, belum waktunya pulang. Sesi check-out baru akan dibuka pukul ${mulaiPulangStr} WITA.` }, { status: 400 })
+      }
+      if (currentTotalM > batasPulangTotalM) {
+        return NextResponse.json({ error: `Sesi check-out sudah berakhir pada pukul ${batasPulangStr} WITA.` }, { status: 400 })
+      }
+
+      if (existing) {
+        const updated = await prisma.absensi.update({
+          where: { id: existing.id },
+          data: {
+            jamKeluar: now,
+            lokasiKeluar: `${latitude},${longitude}`,
+          } as any
+        })
+        hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
+        return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_OUT" })
+      } else {
+        const created = await prisma.absensi.create({
+          data: {
+            pegawaiId,
+            tanggal: new Date(todayStart),
+            status: "HADIR",
+            metode: "FINGERPRINT",
+            jamKeluar: now,
+            lokasiKeluar: `${latitude},${longitude}`,
+            faceVerified: true,
+            offlineSync,
+          } as any
+        })
+        hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
+        return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_OUT" })
+      }
+    }
+
+    // ================== SESI PAGI (CHECK IN / MASUK) ==================
+    if (existing?.jamMasuk) {
+      return NextResponse.json({ error: "Anda sudah melakukan absen masuk (pagi) hari ini." }, { status: 400 })
+    }
+    if (currentTotalM < mulaiMasukTotalM) {
+      return NextResponse.json({ error: `Sesi check-in belum dibuka. Absensi masuk baru bisa dilakukan mulai pukul ${mulaiMasukStr} WITA.` }, { status: 400 })
+    }
+    if (currentTotalM > batasMasukTotalM) {
+      return NextResponse.json({ error: `Sesi check-in hari ini sudah ditutup sejak pukul ${batasMasukStr} WITA.` }, { status: 400 })
     }
 
     const batasTerlambat = pengaturan?.batasTerlambat || 0
@@ -286,8 +358,7 @@ export async function POST(req: Request) {
 
     const statusAbsen = now > limitMasuk ? "TERLAMBAT" : "HADIR"
 
-    if (existing && !existing.jamMasuk) {
-      // Overwrite cron empty record
+    if (existing) {
       const updated = await prisma.absensi.update({
         where: { id: existing.id },
         data: {
@@ -299,10 +370,7 @@ export async function POST(req: Request) {
           lokasiMasuk: `${latitude},${longitude}`,
         } as any
       })
-      // Asynchronous non-blocking
-      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(err => {
-        console.error("[BG_INDEX] Error hitungIndeksPegawai checkin update:", err)
-      })
+      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
       return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_IN" })
     } else {
       const created = await prisma.absensi.create({
@@ -317,10 +385,7 @@ export async function POST(req: Request) {
           lokasiMasuk: `${latitude},${longitude}`,
         } as any
       })
-      // Asynchronous non-blocking
-      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(err => {
-        console.error("[BG_INDEX] Error hitungIndeksPegawai checkin create:", err)
-      })
+      hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
       return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_IN" })
     }
 
