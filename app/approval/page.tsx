@@ -291,12 +291,12 @@ export default function ApprovalDashboardPage() {
           {/* ============================================================
              2. EXECUTIVE KPI RIBBON (Interactive Category Cards)
              ============================================================ */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {/* 1. Total */}
             <button
               onClick={() => { setActiveTab("all"); setUrgentOnly(false); }}
               className={cn(
-                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                "p-3 sm:p-3.5 rounded-xl border text-left transition-all relative overflow-hidden",
                 activeTab === "all" && !urgentOnly
                   ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
                   : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
@@ -304,24 +304,24 @@ export default function ApprovalDashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider",
+                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider",
                   activeTab === "all" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
                 )}>
                   Semua Berkas
                 </span>
                 <Layers className={cn(
-                  "w-4 h-4",
+                  "w-3.5 h-3.5",
                   activeTab === "all" && !urgentOnly ? "text-white" : "text-slate-400"
                 )} />
               </div>
               <p className={cn(
-                "text-2xl font-black mt-2 tracking-tight",
+                "text-xl sm:text-2xl font-black mt-1.5 tracking-tight",
                 activeTab === "all" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
               )}>
                 {stats.all}
               </p>
               <p className={cn(
-                "text-[11px] mt-0.5 truncate",
+                "text-[10px] mt-0.5 truncate",
                 activeTab === "all" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
               )}>
                 Menunggu keputusan
@@ -332,7 +332,7 @@ export default function ApprovalDashboardPage() {
             <button
               onClick={() => { setActiveTab("cuti"); setUrgentOnly(false); }}
               className={cn(
-                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                "p-3 sm:p-3.5 rounded-xl border text-left transition-all relative overflow-hidden",
                 activeTab === "cuti" && !urgentOnly
                   ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
                   : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
@@ -340,24 +340,24 @@ export default function ApprovalDashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider",
+                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider",
                   activeTab === "cuti" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
                 )}>
                   Cuti & Izin
                 </span>
                 <CalendarDays className={cn(
-                  "w-4 h-4",
+                  "w-3.5 h-3.5",
                   activeTab === "cuti" && !urgentOnly ? "text-white" : "text-blue-500"
                 )} />
               </div>
               <p className={cn(
-                "text-2xl font-black mt-2 tracking-tight",
+                "text-xl sm:text-2xl font-black mt-1.5 tracking-tight",
                 activeTab === "cuti" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
               )}>
                 {stats.cuti}
               </p>
               <p className={cn(
-                "text-[11px] mt-0.5 truncate",
+                "text-[10px] mt-0.5 truncate",
                 activeTab === "cuti" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
               )}>
                 Izin & cuti sakit
@@ -368,7 +368,7 @@ export default function ApprovalDashboardPage() {
             <button
               onClick={() => { setActiveTab("koreksi_absensi"); setUrgentOnly(false); }}
               className={cn(
-                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                "p-3 sm:p-3.5 rounded-xl border text-left transition-all relative overflow-hidden",
                 activeTab === "koreksi_absensi" && !urgentOnly
                   ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
                   : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
@@ -376,35 +376,35 @@ export default function ApprovalDashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider",
+                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider",
                   activeTab === "koreksi_absensi" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
                 )}>
                   Koreksi Absen
                 </span>
                 <Clock className={cn(
-                  "w-4 h-4",
+                  "w-3.5 h-3.5",
                   activeTab === "koreksi_absensi" && !urgentOnly ? "text-white" : "text-indigo-500"
                 )} />
               </div>
               <p className={cn(
-                "text-2xl font-black mt-2 tracking-tight",
+                "text-xl sm:text-2xl font-black mt-1.5 tracking-tight",
                 activeTab === "koreksi_absensi" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
               )}>
                 {stats.koreksi}
               </p>
               <p className={cn(
-                "text-[11px] mt-0.5 truncate",
+                "text-[10px] mt-0.5 truncate",
                 activeTab === "koreksi_absensi" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
               )}>
                 Per sesi kerja
               </p>
             </button>
 
-            {/* 3. Mutasi */}
+            {/* 4. Mutasi */}
             <button
               onClick={() => { setActiveTab("mutasi"); setUrgentOnly(false); }}
               className={cn(
-                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                "p-3 sm:p-3.5 rounded-xl border text-left transition-all relative overflow-hidden",
                 activeTab === "mutasi" && !urgentOnly
                   ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
                   : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
@@ -412,35 +412,35 @@ export default function ApprovalDashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider",
+                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider",
                   activeTab === "mutasi" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
                 )}>
                   Mutasi & Rotasi
                 </span>
                 <ArrowRightLeft className={cn(
-                  "w-4 h-4",
+                  "w-3.5 h-3.5",
                   activeTab === "mutasi" && !urgentOnly ? "text-white" : "text-amber-500"
                 )} />
               </div>
               <p className={cn(
-                "text-2xl font-black mt-2 tracking-tight",
+                "text-xl sm:text-2xl font-black mt-1.5 tracking-tight",
                 activeTab === "mutasi" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
               )}>
                 {stats.mutasi}
               </p>
               <p className={cn(
-                "text-[11px] mt-0.5 truncate",
+                "text-[10px] mt-0.5 truncate",
                 activeTab === "mutasi" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
               )}>
                 Perpindahan tugas
               </p>
             </button>
 
-            {/* 4. KGB & Pangkat */}
+            {/* 5. KGB & Pangkat */}
             <button
               onClick={() => { setActiveTab("pangkat"); setUrgentOnly(false); }}
               className={cn(
-                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                "p-3 sm:p-3.5 rounded-xl border text-left transition-all relative overflow-hidden",
                 (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly
                   ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
                   : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
@@ -448,35 +448,35 @@ export default function ApprovalDashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider",
+                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider",
                   (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
                 )}>
                   Karier & Gaji
                 </span>
                 <Star className={cn(
-                  "w-4 h-4",
+                  "w-3.5 h-3.5",
                   (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-white" : "text-emerald-500"
                 )} />
               </div>
               <p className={cn(
-                "text-2xl font-black mt-2 tracking-tight",
+                "text-xl sm:text-2xl font-black mt-1.5 tracking-tight",
                 (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
               )}>
                 {stats.pangkat + stats.kgb}
               </p>
               <p className={cn(
-                "text-[11px] mt-0.5 truncate",
+                "text-[10px] mt-0.5 truncate",
                 (activeTab === "pangkat" || activeTab === "kgb") && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
               )}>
                 Pangkat & KGB
               </p>
             </button>
 
-            {/* 5. Butuh Tindakan Segera (> 3 Hari) */}
+            {/* 6. Butuh Tindakan Segera (> 3 Hari) */}
             <button
               onClick={() => setUrgentOnly(!urgentOnly)}
               className={cn(
-                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden col-span-2 sm:col-span-1",
+                "p-3 sm:p-3.5 rounded-xl border text-left transition-all relative overflow-hidden col-span-2 sm:col-span-1",
                 urgentOnly
                   ? "bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-500/10"
                   : stats.urgent > 0
@@ -486,27 +486,27 @@ export default function ApprovalDashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider",
+                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider",
                   urgentOnly ? "text-rose-100" : stats.urgent > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-400 dark:text-zinc-500"
                 )}>
                   Prioritas / SLA
                 </span>
                 <AlertCircle className={cn(
-                  "w-4 h-4",
+                  "w-3.5 h-3.5",
                   urgentOnly ? "text-white" : stats.urgent > 0 ? "text-rose-600" : "text-slate-400"
                 )} />
               </div>
               <p className={cn(
-                "text-2xl font-black mt-2 tracking-tight",
+                "text-xl sm:text-2xl font-black mt-1.5 tracking-tight",
                 urgentOnly ? "text-white" : stats.urgent > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-zinc-50"
               )}>
                 {stats.urgent}
               </p>
               <p className={cn(
-                "text-[11px] mt-0.5 truncate font-medium",
+                "text-[10px] mt-0.5 truncate font-medium",
                 urgentOnly ? "text-rose-100" : stats.urgent > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-zinc-400"
               )}>
-                {urgentOnly ? "Filter aktif (klik lepas)" : stats.urgent > 0 ? "Menunggu > 3 hari" : "Semua dalam batas SLA"}
+                {urgentOnly ? "Filter aktif" : stats.urgent > 0 ? "Menunggu > 3 hari" : "Dalam SLA"}
               </p>
             </button>
           </div>
@@ -514,7 +514,7 @@ export default function ApprovalDashboardPage() {
           {/* ============================================================
              3. TOOLBAR (Search & Category Pills)
              ============================================================ */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-[#111113] p-3 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-[#111113] p-2.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -610,7 +610,7 @@ export default function ApprovalDashboardPage() {
               )}
             </div>
           ) : (
-            <div className="space-y-3.5">
+            <div className="space-y-2.5">
               {filteredItems.map((item) => {
                 const typeStyle = getTypeStyle(item.type)
                 const TypeIcon = typeStyle.icon
@@ -618,114 +618,111 @@ export default function ApprovalDashboardPage() {
                 return (
                   <div
                     key={item.id}
-                    className="group rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-blue-500/40 transition-all duration-200"
+                    className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-[#111113] p-3 sm:px-4 sm:py-3 hover:border-blue-400/50 hover:shadow-xs transition-all duration-150"
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                       
-                      {/* Section 1: Employee Avatar & Identity */}
-                      <div className="flex items-start sm:items-center gap-3.5 min-w-[260px] lg:max-w-[320px] shrink-0">
-                        <Avatar className="h-12 w-12 rounded-2xl border-2 border-slate-100 dark:border-zinc-800 shadow-xs shrink-0 ring-1 ring-slate-200/60 dark:ring-zinc-700/60">
+                      {/* Left: Avatar + Employee identity & details */}
+                      <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                        <Avatar className="h-10 w-10 rounded-xl border border-slate-200/80 dark:border-zinc-700 shadow-2xs shrink-0">
                           <AvatarImage src={item.employeeAvatar || undefined} className="object-cover" />
-                          <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+                          <AvatarFallback className="text-xs font-bold bg-blue-600 text-white">
                             {item.employeeInitials}
                           </AvatarFallback>
                         </Avatar>
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 truncate">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          {/* Row 1: Employee Name, NIK, Type Badge, SLA */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-zinc-100 truncate">
                               {item.employeeName}
-                            </h3>
-                            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-semibold">
+                            </span>
+                            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-semibold shrink-0">
                               {item.employeeNik}
                             </span>
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border shrink-0",
+                              typeStyle.badgeBg
+                            )}>
+                              <TypeIcon className="w-3 h-3" />
+                              {item.badgeLabel || item.type}
+                            </span>
+                            {item.priority === "overdue" && (
+                              <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400 text-[10px] font-bold px-1.5 py-0.5 shrink-0">
+                                Lewat SLA ({item.waitingDays} hari)
+                              </Badge>
+                            )}
+                            {item.priority === "urgent" && (
+                              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400 text-[10px] font-bold px-1.5 py-0.5 shrink-0">
+                                Prioritas ({item.waitingDays} hari)
+                              </Badge>
+                            )}
                           </div>
 
-                          <p className="text-xs font-medium text-slate-500 dark:text-zinc-400 truncate mt-0.5">
-                            {item.jabatan}
-                          </p>
-                          <p className="text-[11px] text-slate-400 dark:text-zinc-500 truncate flex items-center gap-1 mt-0.5">
-                            <Building2 className="w-3 h-3" />
-                            {item.unit}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Section 2: Request Details & Alasan */}
-                      <div className="flex-1 min-w-0 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-zinc-800/80 pt-3 lg:pt-0 lg:pl-5">
-                        {/* Type & Priority Header */}
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className={cn(
-                            "flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border",
-                            typeStyle.badgeBg
-                          )}>
-                            <TypeIcon className="w-3.5 h-3.5" />
-                            {item.badgeLabel || item.type}
-                          </span>
-
-                          {item.priority === "overdue" && (
-                            <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400 text-[10px] font-bold px-2 py-0.5">
-                              Lewat SLA ({item.waitingDays} hari)
-                            </Badge>
-                          )}
-                          {item.priority === "urgent" && (
-                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5">
-                              Prioritas Tinggi ({item.waitingDays} hari)
-                            </Badge>
-                          )}
-
-                          <span className="text-[11px] text-slate-400 dark:text-zinc-500 ml-auto hidden sm:inline-block">
-                            Diajukan: <span className="font-semibold text-slate-600 dark:text-zinc-300">{item.submittedDate}</span>
-                          </span>
-                        </div>
-
-                        {/* Reason quote */}
-                        <div className="rounded-xl bg-slate-50/80 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60 px-3.5 py-2 text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">
-                          <span className="font-bold text-slate-900 dark:text-zinc-100">Keterangan:</span> “{item.description}”
-                        </div>
-
-                        {/* Metadata chips */}
-                        <div className="flex items-center gap-2 flex-wrap mt-2.5 text-xs">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium text-[11px]">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            {item.date}
-                          </span>
-
-                          {item.dokumenUrl && (
-                            <button
-                              onClick={() => setPreviewImageUrl(item.dokumenUrl || null)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/60 font-semibold text-[11px] hover:bg-blue-100 transition-colors"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              Lihat Surat Dokter / Bukti
-                            </button>
-                          )}
-
-                          {item.type === "cuti" && item.details?.["Sisa Saldo Cuti"] && (
-                            <span className="text-[11px] text-slate-500 dark:text-zinc-400">
-                              Saldo: <strong className="text-slate-800 dark:text-zinc-200">{item.details["Sisa Saldo Cuti"]}</strong>
+                          {/* Row 2: Jabatan, Unit, Periode, Meta Tags */}
+                          <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-500 dark:text-zinc-400">
+                            <span className="truncate max-w-[200px]">{item.jabatan || "Staff"}</span>
+                            <span className="text-slate-300 dark:text-zinc-700">•</span>
+                            <span className="truncate max-w-[200px]">{item.unit || "Umum"}</span>
+                            <span className="text-slate-300 dark:text-zinc-700">•</span>
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-700 dark:text-zinc-300">
+                              <Calendar className="w-3 h-3 text-slate-400" />
+                              {item.date}
                             </span>
-                          )}
 
-                          {item.type === "mutasi" && item.details?.["Unit Kerja Tujuan"] && (
-                            <span className="text-[11px] text-slate-500 dark:text-zinc-400">
-                              Tujuan: <strong className="text-amber-600 dark:text-amber-400">{item.details["Unit Kerja Tujuan"]}</strong>
-                            </span>
+                            {item.type === "cuti" && item.details?.["Sisa Saldo Cuti"] && (
+                              <>
+                                <span className="text-slate-300 dark:text-zinc-700">•</span>
+                                <span>Saldo: <strong className="text-slate-700 dark:text-zinc-200">{item.details["Sisa Saldo Cuti"]}</strong></span>
+                              </>
+                            )}
+
+                            {item.type === "mutasi" && item.details?.["Unit Kerja Tujuan"] && (
+                              <>
+                                <span className="text-slate-300 dark:text-zinc-700">•</span>
+                                <span>Tujuan: <strong className="text-amber-600 dark:text-amber-400">{item.details["Unit Kerja Tujuan"]}</strong></span>
+                              </>
+                            )}
+
+                            {item.dokumenUrl && (
+                              <>
+                                <span className="text-slate-300 dark:text-zinc-700">•</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewImageUrl(item.dokumenUrl || null)}
+                                  className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                  Lampiran
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Row 3: Inline Keterangan */}
+                          {item.description && (
+                            <p className="text-[11px] text-slate-600 dark:text-zinc-400 line-clamp-1 truncate max-w-3xl">
+                              <span className="font-semibold text-slate-700 dark:text-zinc-300">Keterangan:</span> “{item.description}”
+                            </p>
                           )}
                         </div>
                       </div>
 
-                      {/* Section 3: Executive Action Buttons */}
-                      <div className="flex sm:flex-row lg:flex-col items-center lg:items-end justify-end gap-2 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-zinc-800/80 pt-3 lg:pt-0 lg:pl-5">
-                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                      {/* Right: Submission date & Action Buttons */}
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0 self-end lg:self-center pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-zinc-800/80 w-full lg:w-auto justify-between lg:justify-end">
+                        <span className="text-[10px] text-slate-400 dark:text-zinc-500 hidden xl:inline-block">
+                          Diajukan {item.submittedDate}
+                        </span>
+
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => viewDetails(item)}
-                            className="h-8.5 px-3 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:border-slate-400 w-full sm:w-auto"
+                            className="h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:border-slate-400"
                           >
-                            <Eye className="w-3.5 h-3.5 mr-1.5" />
-                            Detail Data
+                            <Eye className="w-3.5 h-3.5 mr-1" />
+                            Detail
                           </Button>
 
                           <Button
@@ -735,7 +732,7 @@ export default function ApprovalDashboardPage() {
                               setSelectedItem(item)
                               setIsRejectOpen(true)
                             }}
-                            className="h-8.5 px-3 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/50 dark:hover:bg-rose-950/30 w-full sm:w-auto"
+                            className="h-8 px-2.5 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/50 dark:hover:bg-rose-950/30"
                           >
                             <X className="w-3.5 h-3.5 mr-1" />
                             Tolak
@@ -745,7 +742,7 @@ export default function ApprovalDashboardPage() {
                             size="sm"
                             onClick={() => handleApprove(item)}
                             disabled={isSubmitting}
-                            className="h-8.5 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs w-full sm:w-auto"
+                            className="h-8 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                           >
                             <Check className="w-3.5 h-3.5 mr-1" />
                             Setujui
@@ -768,85 +765,87 @@ export default function ApprovalDashboardPage() {
          ============================================================ */}
       {selectedItem && (
         <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-          <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
+          <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/60">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-xs">
-                    {getTypeStyle(selectedItem.type).icon({ className: "w-5 h-5" })}
+            <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/60 flex flex-row items-center gap-3 text-left">
+              {(() => {
+                const style = getTypeStyle(selectedItem.type)
+                const IconComponent = style.icon
+                return (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs shrink-0">
+                    <IconComponent className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
-                        {selectedItem.title}
-                      </h3>
-                      <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 text-[10px] uppercase font-bold">
-                        {selectedItem.badgeLabel || selectedItem.type}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                      Diajukan pada {selectedItem.submittedDate} (Menunggu {selectedItem.waitingDays} hari kerja)
-                    </p>
-                  </div>
+                )
+              })()}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <DialogTitle className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                    {selectedItem.title}
+                  </DialogTitle>
+                  <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 text-[10px] uppercase font-bold">
+                    {selectedItem.badgeLabel || selectedItem.type}
+                  </Badge>
                 </div>
+                <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                  Diajukan pada {selectedItem.submittedDate} (Menunggu {selectedItem.waitingDays} hari kerja)
+                </DialogDescription>
               </div>
-            </div>
+            </DialogHeader>
 
             {/* Modal Content */}
-            <ScrollArea className="max-h-[65vh] p-6 space-y-5 text-xs">
+            <ScrollArea className="max-h-[60vh] p-5 space-y-4 text-xs">
               {/* Pegawai Box */}
-              <div className="p-4 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50 flex items-center gap-4">
-                <Avatar className="h-14 w-14 rounded-2xl border-2 border-white dark:border-zinc-700 shadow-sm shrink-0">
+              <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50 flex items-center gap-3">
+                <Avatar className="h-11 w-11 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-2xs shrink-0">
                   <AvatarImage src={selectedItem.employeeAvatar || undefined} className="object-cover" />
-                  <AvatarFallback className="font-bold text-base bg-blue-600 text-white">
+                  <AvatarFallback className="font-bold text-sm bg-blue-600 text-white">
                     {selectedItem.employeeInitials}
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 flex-1">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 flex-1 min-w-0">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Nama Pegawai</span>
-                    <p className="text-xs font-bold text-slate-900 dark:text-zinc-100">{selectedItem.employeeName}</p>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Nama Pegawai</span>
+                    <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate">{selectedItem.employeeName}</p>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">NIK / No. Induk</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">NIK / No. Induk</span>
                     <p className="text-xs font-mono font-bold text-slate-900 dark:text-zinc-100">{selectedItem.employeeNik}</p>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Jabatan</span>
-                    <p className="text-xs font-medium text-slate-700 dark:text-zinc-300">{selectedItem.jabatan}</p>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Jabatan</span>
+                    <p className="text-xs text-slate-700 dark:text-zinc-300 truncate">{selectedItem.jabatan || "-"}</p>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Unit Kerja / Bidang</span>
-                    <p className="text-xs font-medium text-slate-700 dark:text-zinc-300">{selectedItem.unit}</p>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Unit Kerja / Bidang</span>
+                    <p className="text-xs text-slate-700 dark:text-zinc-300 truncate">{selectedItem.unit || "-"}</p>
                   </div>
                 </div>
               </div>
 
               {/* Detail Table */}
-              <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden mt-4">
-                <div className="px-4 py-2.5 bg-slate-100/70 dark:bg-zinc-800/70 font-bold text-slate-800 dark:text-zinc-200 text-xs">
+              <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
+                <div className="px-3.5 py-2 bg-slate-100/70 dark:bg-zinc-800/70 font-bold text-slate-800 dark:text-zinc-200 text-xs">
                   Rincian Parameter Pengajuan
                 </div>
                 <div className="divide-y divide-slate-100 dark:divide-zinc-800 text-xs">
-                  <div className="p-3.5 bg-white dark:bg-zinc-900 flex justify-between">
-                    <span className="text-slate-500 font-medium">Alasan / Dasar Pengajuan</span>
-                    <span className="font-bold text-slate-900 dark:text-zinc-100 text-right max-w-[65%]">
-                      "{selectedItem.description}"
+                  <div className="p-3 bg-white dark:bg-zinc-900 flex justify-between gap-4">
+                    <span className="text-slate-500 font-medium shrink-0">Alasan / Dasar Pengajuan</span>
+                    <span className="font-bold text-slate-900 dark:text-zinc-100 text-right">
+                      "{selectedItem.description || "-"}"
                     </span>
                   </div>
-                  <div className="p-3.5 bg-white dark:bg-zinc-900 flex justify-between">
-                    <span className="text-slate-500 font-medium">Periode / Tanggal Efektif</span>
-                    <span className="font-semibold text-blue-600 dark:text-blue-400">
-                      {selectedItem.date}
+                  <div className="p-3 bg-white dark:bg-zinc-900 flex justify-between gap-4">
+                    <span className="text-slate-500 font-medium shrink-0">Periode / Tanggal Efektif</span>
+                    <span className="font-semibold text-blue-600 dark:text-blue-400 text-right">
+                      {selectedItem.date || "-"}
                     </span>
                   </div>
                   {Object.entries(selectedItem.details || {}).map(([k, v]) => (
-                    <div key={k} className="p-3.5 bg-white dark:bg-zinc-900 flex justify-between">
-                      <span className="text-slate-500 font-medium">{k}</span>
-                      <span className="font-bold text-slate-900 dark:text-zinc-100 text-right max-w-[65%]">
-                        {String(v)}
+                    <div key={k} className="p-3 bg-white dark:bg-zinc-900 flex justify-between gap-4">
+                      <span className="text-slate-500 font-medium shrink-0">{k}</span>
+                      <span className="font-bold text-slate-900 dark:text-zinc-100 text-right">
+                        {String(v ?? "-")}
                       </span>
                     </div>
                   ))}
@@ -855,7 +854,7 @@ export default function ApprovalDashboardPage() {
 
               {/* Preview Lampiran */}
               {selectedItem.dokumenUrl && (
-                <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 p-4 bg-slate-50/50 dark:bg-zinc-900/40 space-y-2 mt-4">
+                <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 p-3.5 bg-slate-50/50 dark:bg-zinc-900/40 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5 text-xs">
                       <FileText className="h-4 w-4 text-blue-600" />
@@ -870,11 +869,11 @@ export default function ApprovalDashboardPage() {
                       Buka Dokumen Asli <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </div>
-                  <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-2 flex justify-center">
+                  <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-2 flex justify-center">
                     <img
                       src={selectedItem.dokumenUrl}
                       alt="Lampiran Surat Dokter"
-                      className="max-h-72 object-contain rounded-lg"
+                      className="max-h-64 object-contain rounded-lg"
                     />
                   </div>
                 </div>
@@ -882,20 +881,21 @@ export default function ApprovalDashboardPage() {
             </ScrollArea>
 
             {/* Modal Footer */}
-            <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/60 flex flex-row items-center justify-between gap-3">
+            <DialogFooter className="px-5 py-3 border-t border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/60 flex flex-row items-center justify-between gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsDetailOpen(false)}
                 disabled={isSubmitting}
+                className="h-8 text-xs font-semibold"
               >
                 Tutup Review
               </Button>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  className="bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+                  className="h-8 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/50"
                   onClick={() => setIsRejectOpen(true)}
                   disabled={isSubmitting}
                 >
@@ -904,7 +904,7 @@ export default function ApprovalDashboardPage() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                   onClick={() => handleApprove(selectedItem)}
                   disabled={isSubmitting}
                 >
