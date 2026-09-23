@@ -22,13 +22,22 @@ export async function POST(req: Request) {
     const latitude = formData.get("latitude") as string | null
     const longitude = formData.get("longitude") as string | null
 
-    // Cek sudah absen hari ini belum
+    // Cek sudah absen hari ini belum (berbasis WITA UTC+8)
     const now = new Date()
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+    const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
+    const todayStart = new Date(`${dateStr}T00:00:00+08:00`)
+    const todayEnd = new Date(`${dateStr}T23:59:59.999+08:00`)
+    const targetDateDb = new Date(`${dateStr}T00:00:00.000Z`)
 
     const existing = await prisma.absensi.findFirst({
-      where: { pegawaiId, tanggal: { gte: todayStart, lte: todayEnd } }
+      where: {
+        pegawaiId,
+        OR: [
+          { tanggal: { gte: todayStart, lte: todayEnd } },
+          { tanggal: targetDateDb },
+          { jamMasuk: { gte: todayStart, lte: todayEnd } }
+        ]
+      }
     })
 
     // Jika sudah check-in tapi belum check-out, proses sebagai check-out
@@ -84,16 +93,17 @@ export async function POST(req: Request) {
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
     const jamMasukSetting = pengaturan?.jamMasuk || "08:00"
     const batasTerlambat = pengaturan?.batasTerlambat || 0
-    const [jh, jm] = jamMasukSetting.split(":").map(Number)
-    const limitMasuk = new Date(now)
-    limitMasuk.setHours(jh, jm + batasTerlambat, 0, 0)
+    const [jh, jm = 0] = jamMasukSetting.split(":").map(Number)
+    const witaNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Makassar" }))
+    const currentWitaMinutes = witaNow.getHours() * 60 + witaNow.getMinutes()
+    const limitMasukMinutes = jh * 60 + jm + batasTerlambat
 
-    const status = now > limitMasuk ? "TERLAMBAT" : "HADIR"
+    const status = currentWitaMinutes > limitMasukMinutes ? "TERLAMBAT" : "HADIR"
 
     const created = await prisma.absensi.create({
       data: {
         pegawaiId,
-        tanggal: new Date(todayStart),
+        tanggal: targetDateDb,
         status: status as any,
         metode: "SELFIE",
         jamMasuk: now,

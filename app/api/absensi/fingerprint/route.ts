@@ -180,11 +180,20 @@ export async function POST(req: Request) {
     }
 
     const now = offlineSync && offlineTimestamp ? new Date(offlineTimestamp) : new Date()
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+    const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
+    const todayStart = new Date(`${dateStr}T00:00:00+08:00`)
+    const todayEnd = new Date(`${dateStr}T23:59:59.999+08:00`)
+    const targetDateDb = new Date(`${dateStr}T00:00:00.000Z`)
 
     const existing = await prisma.absensi.findFirst({
-      where: { pegawaiId, tanggal: { gte: todayStart, lte: todayEnd } }
+      where: {
+        pegawaiId,
+        OR: [
+          { tanggal: { gte: todayStart, lte: todayEnd } },
+          { tanggal: targetDateDb },
+          { jamMasuk: { gte: todayStart, lte: todayEnd } }
+        ]
+      }
     }) as any
 
     const pengaturan: any = await getCachedPengaturan()
@@ -286,7 +295,7 @@ export async function POST(req: Request) {
         const created = await prisma.absensi.create({
           data: {
             pegawaiId,
-            tanggal: new Date(todayStart),
+            tanggal: targetDateDb,
             status: "HADIR",
             metode: "FINGERPRINT",
             jamSiang: now,
@@ -326,7 +335,7 @@ export async function POST(req: Request) {
         const created = await prisma.absensi.create({
           data: {
             pegawaiId,
-            tanggal: new Date(todayStart),
+            tanggal: targetDateDb,
             status: "HADIR",
             metode: "FINGERPRINT",
             jamKeluar: now,
@@ -353,10 +362,9 @@ export async function POST(req: Request) {
 
     const batasTerlambat = pengaturan?.batasTerlambat || 0
     const [jh, jm] = jamMasukSetting.split(":").map(Number)
-    const limitMasuk = new Date(now)
-    limitMasuk.setHours(jh, jm + batasTerlambat, 0, 0)
+    const limitMasukTotalM = jh * 60 + jm + batasTerlambat
 
-    const statusAbsen = now > limitMasuk ? "TERLAMBAT" : "HADIR"
+    const statusAbsen = currentTotalM > limitMasukTotalM ? "TERLAMBAT" : "HADIR"
 
     if (existing) {
       const updated = await prisma.absensi.update({
@@ -376,7 +384,7 @@ export async function POST(req: Request) {
       const created = await prisma.absensi.create({
         data: {
           pegawaiId,
-          tanggal: new Date(todayStart),
+          tanggal: targetDateDb,
           status: statusAbsen as any,
           metode: "FINGERPRINT",
           jamMasuk: now,

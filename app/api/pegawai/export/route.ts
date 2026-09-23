@@ -108,15 +108,46 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const format = searchParams.get("format") || "excel-bidang"
+    const filterSearch = searchParams.get("search")?.toLowerCase().trim() || ""
+    const filterStatus = searchParams.get("status") || ""
+    const filterBidang = searchParams.get("bidang") || ""
+    const filterGolongan = searchParams.get("golongan") || ""
 
-    // Ambil seluruh data pegawai dengan relasi
-    const employees = await prisma.pegawai.findMany({
+    // Bangun where clause berdasarkan filter aktif
+    const where: any = {}
+    if (filterStatus) {
+      where.status = filterStatus
+    }
+    if (filterBidang && filterBidang !== "pusat" && filterBidang !== "cabang") {
+      where.bidangId = filterBidang
+    }
+    if (filterGolongan) {
+      where.golongan = filterGolongan
+    }
+    if (filterSearch) {
+      where.OR = [
+        { nama: { contains: filterSearch, mode: 'insensitive' } },
+        { nik: { contains: filterSearch } },
+        { jabatan: { contains: filterSearch, mode: 'insensitive' } },
+      ]
+    }
+
+    // Ambil data pegawai dengan filter yang diterapkan
+    let employees = await prisma.pegawai.findMany({
+      where,
       include: {
         bidang: true,
         subBidang: true,
         user: { select: { email: true, username: true, role: true } },
       },
     })
+
+    // Filter tambahan untuk "pusat" / "cabang" yang tidak bisa di-query langsung
+    if (filterBidang === "pusat") {
+      employees = employees.filter(e => e.bidangId && !e.bidang?.nama?.toLowerCase().includes("cabang"))
+    } else if (filterBidang === "cabang") {
+      employees = employees.filter(e => e.bidang?.nama?.toLowerCase().includes("cabang"))
+    }
 
     // Kelompokkan dan urutkan pegawai per Unit Kerja
     const groupedMap = new Map<string, typeof employees>()

@@ -9,7 +9,7 @@ import {
   FileText,
   Bell, CheckCircle2, XCircle, ArrowUpRight,
   CloudUpload, AlarmClockCheck, AlarmClockOff, AlarmClock, Trash2,
-  RefreshCw, ArrowDown, Shield, Radio, MapPin
+  RefreshCw, ArrowDown
 } from "lucide-react"
 import { triggerHaptic } from "@/lib/pwa/haptics"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
@@ -722,85 +722,6 @@ export default function MobileDashboard() {
             </div>
           )}
         </div>
-
-        {/* ===== PANEL KHUSUS HRD & ADMINISTRATOR ===== */}
-        {(() => {
-          const userRole = (pegawai?.role || (session?.user as any)?.role || "").toUpperCase()
-          const isHrdOrAdmin = ["SUPERADMIN", "ADMIN", "HRD", "DIREKSI"].includes(userRole) || 
-                               (session?.user?.name || "").toLowerCase().includes("admin")
-          if (!isHrdOrAdmin) return null
-
-          return (
-            <div className="rounded-2xl p-4 bg-gradient-to-br from-blue-900/15 via-indigo-900/10 to-transparent border border-blue-500/20 shadow-xs relative overflow-hidden">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-lg bg-blue-600 text-white flex items-center justify-center">
-                    <Shield className="h-3.5 w-3.5" />
-                  </div>
-                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                    Panel Khusus HRD & Admin
-                  </p>
-                </div>
-                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                  {userRole || "HRD"}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Link
-                  href="/m/radar"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
-                >
-                  <div className="h-8 w-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <Radio className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Radar Monitoring</p>
-                    <p className="text-[10px] text-zinc-500 truncate">Pantau live pegawai</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/approval"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
-                >
-                  <div className="h-8 w-8 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Approval Izin/Cuti</p>
-                    <p className="text-[10px] text-zinc-500 truncate">Persetujuan berkas</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/m/settings/absensi"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
-                >
-                  <div className="h-8 w-8 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                    <Clock className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Jam Absensi</p>
-                    <p className="text-[10px] text-zinc-500 truncate">Pusat & Cabang</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/m/settings/lokasi"
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-blue-400 active:scale-95 transition-all shadow-2xs"
-                >
-                  <div className="h-8 w-8 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Lokasi & Radius</p>
-                    <p className="text-[10px] text-zinc-500 truncate">GPS Geofencing</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          )
-        })()}
 
         {/* ===== PENGUMUMAN TICKER ===== */}
         {pengumuman.length > 0 && <PengumumanTicker items={pengumuman} />}

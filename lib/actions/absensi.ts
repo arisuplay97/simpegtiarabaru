@@ -6,17 +6,25 @@ import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/audit-log"
 import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
 
-// Format YYYY-MM-DD to get start and end of day
-function getTodayRange(date?: Date) {
-  const targetDate = date || new Date()
+// Format YYYY-MM-DD dan rentang hari ini berbasis zona waktu WITA (Asia/Makassar, UTC+8)
+// Menjamin reset jam absen tepat pukul 00:00 WITA, bukan mengikuti UTC server (08:00 WITA)
+export function getTodayRange(date?: Date) {
+  const now = date || new Date()
+  const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" }) // "YYYY-MM-DD"
   
-  const startOfDay = new Date(targetDate)
-  startOfDay.setHours(0, 0, 0, 0)
+  // Awal hari di WITA dalam representasi Date UTC (00:00:00.000 WITA = 16:00:00Z hari sebelumnya)
+  const startOfDay = new Date(`${dateStr}T00:00:00+08:00`)
+  // Akhir hari di WITA dalam representasi Date UTC (23:59:59.999 WITA = 15:59:59.999Z hari ini)
+  const endOfDay = new Date(`${dateStr}T23:59:59.999+08:00`)
   
-  const endOfDay = new Date(targetDate)
-  endOfDay.setHours(23, 59, 59, 999)
+  // Tanggal yang disimpan di kolom tanggal database (standard UTC midnight tanggal WITA tersebut)
+  const targetDateDb = new Date(`${dateStr}T00:00:00.000Z`)
+
+  const witaNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Makassar" }))
+  const dayOfWeek = witaNow.getDay()
+  const currentWitaMinutes = witaNow.getHours() * 60 + witaNow.getMinutes()
   
-  return { startOfDay, endOfDay, now: new Date() }
+  return { startOfDay, endOfDay, targetDateDb, dateStr, now, witaNow, dayOfWeek, currentWitaMinutes }
 }
 
 const formatLocal = (d: Date) => {
@@ -79,8 +87,7 @@ export async function checkDeviceAndAbsen(
     if (!pegawai) return { error: "Profil Pegawai tidak ditemukan. Hubungi HRD." }
 
     const isCabang = isCabangEmployee(pegawai)
-    const { startOfDay, endOfDay, now } = getTodayRange()
-    const dayOfWeek = now.getDay() // 0 = Minggu, 6 = Sabtu
+    const { startOfDay, endOfDay, targetDateDb, now, dayOfWeek, currentWitaMinutes } = getTodayRange()
 
     // Validasi hari libur operasional
     if (dayOfWeek === 0) {
@@ -154,7 +161,11 @@ export async function checkDeviceAndAbsen(
     const absensiHariIni = await prisma.absensi.findFirst({
       where: {
         pegawaiId: pegawai.id,
-        tanggal: { gte: startOfDay, lte: endOfDay }
+        OR: [
+          { tanggal: { gte: startOfDay, lte: endOfDay } },
+          { tanggal: targetDateDb },
+          { jamMasuk: { gte: startOfDay, lte: endOfDay } }
+        ]
       }
     })
 
@@ -166,31 +177,30 @@ export async function checkDeviceAndAbsen(
         return { error: "Anda sudah melakukan Check-in hari ini." }
       }
 
-      // FITUR 1: BATAS JAM CHECKIN
-      const [batasJam, batasMenit] = batasCheckin.split(":").map(Number)
-      const batasCheckinTime = new Date(now)
-      batasCheckinTime.setHours(batasJam, batasMenit, 0, 0)
+      // FITUR 1: BATAS JAM CHECKIN (menggunakan menit WITA)
+      const [batasJam, batasMenit = 0] = batasCheckin.split(":").map(Number)
+      const batasCheckinMinutes = batasJam * 60 + batasMenit
 
-      if (now > batasCheckinTime) {
+      if (currentWitaMinutes > batasCheckinMinutes) {
         return {
-          error: `Sudah melewati batas waktu check-in (${batasCheckin}). Silakan absen besok hari kerja.`
+          error: `Sudah melewati batas waktu check-in (${batasCheckin} WITA). Silakan absen besok hari kerja.`
         }
       }
 
-      // Hitung status: HADIR atau TERLAMBAT
-      const [jamMasukH, jamMasukM] = jamMasukSetting.split(":").map(Number)
-      const batasTerlambatTime = new Date(now)
-      batasTerlambatTime.setHours(jamMasukH, jamMasukM + batasTerlambat, 0, 0)
+      // Hitung status: HADIR atau TERLAMBAT (berbasis menit WITA)
+      const [jamMasukH, jamMasukM = 0] = jamMasukSetting.split(":").map(Number)
+      const batasTerlambatMinutes = jamMasukH * 60 + jamMasukM + batasTerlambat
 
-      const statusAbsensi = now > batasTerlambatTime ? "TERLAMBAT" : "HADIR"
+      const statusAbsensi = currentWitaMinutes > batasTerlambatMinutes ? "TERLAMBAT" : "HADIR"
+      const diffMinutes = Math.max(0, currentWitaMinutes - (jamMasukH * 60 + jamMasukM))
       const pesanTerlambat = statusAbsensi === "TERLAMBAT"
-        ? ` (Terlambat ${Math.round((now.getTime() - batasTerlambatTime.getTime()) / 60000)} menit)`
+        ? ` (Terlambat ${diffMinutes} menit)`
         : ""
 
       await prisma.absensi.create({
         data: {
           pegawaiId: pegawai.id,
-          tanggal: now,
+          tanggal: targetDateDb,
           status: statusAbsensi,
           jamMasuk: now,
         }
@@ -209,13 +219,12 @@ export async function checkDeviceAndAbsen(
         return { error: "Anda sudah melakukan Check-out hari ini." }
       }
 
-      // Tetap gunakan validasi jam pulang minimal jika ada
-      const [jamMin, menitMin] = jamPulangSetting.split(":").map(Number)
-      const batasMinCheckout = new Date(now)
-      batasMinCheckout.setHours(jamMin, menitMin, 0, 0)
+      // Validasi jam pulang minimal (berbasis menit WITA)
+      const [jamMin, menitMin = 0] = jamPulangSetting.split(":").map(Number)
+      const jamPulangMinutes = jamMin * 60 + menitMin
 
-      if (now < batasMinCheckout) {
-        return { error: `Check-out belum diizinkan. Anda baru bisa checkout pukul ${jamPulangSetting}.` }
+      if (currentWitaMinutes < jamPulangMinutes) {
+        return { error: `Check-out belum diizinkan. Anda baru bisa checkout pukul ${jamPulangSetting} WITA.` }
       }
 
       await prisma.absensi.update({
@@ -329,19 +338,21 @@ export async function getStatusAbsensiHariIni() {
     const pegawai = await getSessionPegawai(session)
     if (!pegawai) return null
 
-    const { startOfDay, endOfDay } = getTodayRange()
+    const { startOfDay, endOfDay, targetDateDb, dayOfWeek } = getTodayRange()
     const absensiHariIni = await prisma.absensi.findFirst({
       where: {
         pegawaiId: pegawai.id,
-        tanggal: { gte: startOfDay, lte: endOfDay }
+        OR: [
+          { tanggal: { gte: startOfDay, lte: endOfDay } },
+          { tanggal: targetDateDb },
+          { jamMasuk: { gte: startOfDay, lte: endOfDay } }
+        ]
       }
     })
 
     // Ambil jam kerja dari pengaturan
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
     const isCabang = isCabangEmployee(pegawai)
-    const { now } = getTodayRange()
-    const dayOfWeek = now.getDay()
     const isSaturday = dayOfWeek === 6
 
     let jamMasukShift = pengaturan?.jamMasuk || "08:00"
@@ -588,28 +599,16 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
 
     const [pjh, pjm] = jamPulangSetting.split(":").map(Number)
 
-    // Rentang hari ini (sinkron baik server UTC maupun zona waktu WITA)
-    const _todayStart = new Date(now)
-    _todayStart.setHours(0, 0, 0, 0)
-    const _todayEnd = new Date(now)
-    _todayEnd.setHours(23, 59, 59, 999)
-
-    const witaOffset = 8 * 60 // UTC+8
-    const nowUtc = now.getTime() + (now.getTimezoneOffset() * 60000)
-    const witaNow = new Date(nowUtc + (witaOffset * 60000))
-    const witaStart = new Date(witaNow)
-    witaStart.setHours(0, 0, 0, 0)
-    const witaEnd = new Date(witaNow)
-    witaEnd.setHours(23, 59, 59, 999)
+    // Rentang hari ini berbasis zona waktu WITA (Asia/Makassar UTC+8)
+    const { startOfDay, endOfDay, targetDateDb } = getTodayRange(now)
 
     const absensiHariIni = await prisma.absensi.findFirst({
       where: {
         pegawaiId,
         OR: [
-          { tanggal: { gte: _todayStart, lte: _todayEnd } },
-          { tanggal: { gte: witaStart, lte: witaEnd } },
-          { jamMasuk: { gte: _todayStart, lte: _todayEnd } },
-          { jamMasuk: { gte: witaStart, lte: witaEnd } }
+          { tanggal: { gte: startOfDay, lte: endOfDay } },
+          { tanggal: targetDateDb },
+          { jamMasuk: { gte: startOfDay, lte: endOfDay } }
         ]
       },
       orderBy: { tanggal: 'desc' }

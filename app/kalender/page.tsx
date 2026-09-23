@@ -6,6 +6,8 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Download,
   Search,
   Filter,
@@ -201,6 +203,24 @@ function KalenderContent() {
 
     return list
   }, [matrixData, searchQuery, selectedBidang, selectedCabang, sortBy])
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
+
+  // Reset ke halaman 1 saat filter atau periode berubah
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedBidang, selectedCabang, sortBy, bulan, tahun])
+
+  const totalItems = filteredRows.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages)
+
+  const paginatedRows = useMemo(() => {
+    const start = (validCurrentPage - 1) * pageSize
+    return filteredRows.slice(start, start + pageSize)
+  }, [filteredRows, validCurrentPage, pageSize])
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -577,7 +597,7 @@ function KalenderContent() {
               </div>
 
               <div className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
-                {filteredRows.length} dari {matrixData?.summary?.totalPegawai || 0} Pegawai
+                {filteredRows.length > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0}-{Math.min(validCurrentPage * pageSize, filteredRows.length)} dari {filteredRows.length} Pegawai
               </div>
             </div>
 
@@ -667,7 +687,7 @@ function KalenderContent() {
 
                   {/* Table Body */}
                   <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60 font-medium">
-                    {filteredRows.map((row, rowIdx) => (
+                    {paginatedRows.map((row, rowIdx) => (
                       <tr
                         key={row.id}
                         className={cn(
@@ -750,21 +770,88 @@ function KalenderContent() {
               </div>
             )}
 
-            {/* Table Footer Summary */}
-            <div className="p-3 bg-slate-50/70 dark:bg-zinc-900/50 border-t border-slate-200/80 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-500 dark:text-zinc-400">
-              <div className="flex items-center gap-2">
+            {/* Table Footer Summary & Pagination */}
+            <div className="p-3 bg-slate-50/70 dark:bg-zinc-900/50 border-t border-slate-200/80 dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-zinc-400">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-slate-700 dark:text-zinc-300">
-                  Menampilkan {filteredRows.length} dari {matrixData?.rows?.length || 0} karyawan
+                  Menampilkan {filteredRows.length > 0 ? (validCurrentPage - 1) * pageSize + 1 : 0} - {Math.min(validCurrentPage * pageSize, filteredRows.length)} dari {filteredRows.length} pegawai
                 </span>
                 <span className="text-slate-300 dark:text-zinc-700">·</span>
                 <span>Periode: {BULAN_NAMES[bulan - 1]} {tahun}</span>
               </div>
 
-              <div className="flex items-center gap-3 text-[11px]">
-                <span className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
-                  <Info className="w-3.5 h-3.5 text-slate-400" />
-                  Klik sel tanggal untuk melihat rincian presensi & jam kerja
-                </span>
+              {/* Pagination Controls */}
+              <div className="flex items-center gap-3 flex-wrap justify-end">
+                {/* Page Size Selector */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-500 dark:text-zinc-400">Per hal:</span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={(val) => {
+                      setPageSize(Number(val))
+                      setCurrentPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="h-7 w-[70px] text-xs bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700">
+                      <SelectValue placeholder="15" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="15">15</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 w-7 p-0 bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={validCurrentPage <= 1}
+                    title="Halaman Pertama"
+                  >
+                    <ChevronsLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 flex items-center gap-1"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={validCurrentPage <= 1}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Sebelumnya</span>
+                  </Button>
+
+                  <div className="px-2 text-xs font-semibold text-slate-700 dark:text-zinc-200">
+                    {validCurrentPage} / {totalPages}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 flex items-center gap-1"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={validCurrentPage >= totalPages}
+                  >
+                    <span className="hidden sm:inline">Selanjutnya</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 w-7 p-0 bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={validCurrentPage >= totalPages}
+                    title="Halaman Terakhir"
+                  >
+                    <ChevronsRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

@@ -484,7 +484,14 @@ export default function EmployeeListPage() {
       const label = type === "pdf" ? "PDF Resmi" : type === "excel-master" ? "Excel Master" : "Excel (Format Bidang & Cabang)"
       toast.loading(`Menyiapkan ${label}...`, { id: "export-toast" })
 
-      const res = await fetch(`/api/pegawai/export?format=${type}`)
+      // Kirim filter aktif ke API agar export sesuai data yang sedang ditampilkan
+      const params = new URLSearchParams({ format: type })
+      if (searchQuery) params.set("search", searchQuery)
+      if (statusFilter !== "all") params.set("status", statusFilter)
+      if (unitFilter !== "all") params.set("bidang", unitFilter)
+      if (golonganFilter !== "all") params.set("golongan", golonganFilter)
+
+      const res = await fetch(`/api/pegawai/export?${params.toString()}`)
       if (!res.ok) throw new Error("Gagal mengunduh berkas ekspor")
 
       const blob = await res.blob()

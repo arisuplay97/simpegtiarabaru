@@ -30,15 +30,24 @@ export async function GET(req: Request) {
     const startDate = new Date(y, m - 1, 1, 0, 0, 0)
     const endDate = new Date(y, m, 0, 23, 59, 59)
 
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+    const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
+    const todayStart = new Date(`${dateStr}T00:00:00+08:00`)
+    const todayEnd = new Date(`${dateStr}T23:59:59.999+08:00`)
+    const targetDateDb = new Date(`${dateStr}T00:00:00.000Z`)
 
     const [absensiList, absensiHariIni, pegawai] = await Promise.all([
       prisma.absensi.findMany({
         where: { pegawaiId, tanggal: { gte: startDate, lte: endDate } }
       }),
       prisma.absensi.findFirst({
-        where: { pegawaiId, tanggal: { gte: todayStart, lte: todayEnd } }
+        where: {
+          pegawaiId,
+          OR: [
+            { tanggal: { gte: todayStart, lte: todayEnd } },
+            { tanggal: targetDateDb },
+            { jamMasuk: { gte: todayStart, lte: todayEnd } }
+          ]
+        }
       }),
       prisma.pegawai.findUnique({
         where: { id: pegawaiId },
