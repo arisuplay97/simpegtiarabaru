@@ -8,7 +8,7 @@ import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
 
 // Format YYYY-MM-DD dan rentang hari ini berbasis zona waktu WITA (Asia/Makassar, UTC+8)
 // Menjamin reset jam absen tepat pukul 00:00 WITA, bukan mengikuti UTC server (08:00 WITA)
-export function getTodayRange(date?: Date) {
+function getTodayRange(date?: Date) {
   const now = date || new Date()
   const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" }) // "YYYY-MM-DD"
   
