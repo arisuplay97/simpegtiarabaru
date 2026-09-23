@@ -36,6 +36,7 @@ import {
   Menu,
   CalendarDays,
   PanelLeft,
+  Smartphone,
 } from "lucide-react"
 import { useSidebar } from "@/components/simpeg/sidebar-nav"
 
@@ -324,6 +325,16 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
             <DropdownMenuItem className="rounded-xl text-[#64748B] dark:text-[#a1a1aa] hover:text-[#1E293B] dark:hover:text-[#f4f4f5] focus:bg-[#F3F4F6] dark:focus:bg-[#27272a]">
               <HelpCircle className="mr-2 h-4 w-4" />
               Bantuan
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="rounded-xl text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 focus:bg-blue-50 dark:focus:bg-blue-950/30 cursor-pointer"
+              onClick={() => {
+                document.cookie = "simpeg_view=mobile; path=/; max-age=604800; SameSite=Lax"
+                window.location.href = "/m/dashboard?view=mobile"
+              }}
+            >
+              <Smartphone className="mr-2 h-4 w-4" />
+              Buka Versi Mobile (PWA)
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-[#E5E7EB] dark:bg-[#27272a]" />
             <DropdownMenuItem className="rounded-xl text-red-500 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-600" onClick={handleLogout}>

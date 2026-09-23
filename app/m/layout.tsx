@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import "../globals.css"
 import { MobileBottomNav } from "@/components/mobile/bottom-nav"
 import { MobileOfflineSyncWatcher } from "@/components/mobile/offline-sync-watcher"
+import { DesktopRedirectWatcher } from "@/components/mobile/desktop-redirect-watcher"
 
 export const metadata: Metadata = {
   title: "ASIK Mobile",
@@ -30,6 +31,7 @@ export const viewport: Viewport = {
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-900 dark:text-zinc-100 selection:bg-zinc-900 selection:text-white dark:selection:bg-white dark:selection:text-zinc-900">
+      <DesktopRedirectWatcher />
       <MobileOfflineSyncWatcher />
       <div className="flex min-h-screen flex-col max-w-md mx-auto relative shadow-sm border-x border-zinc-200/50 dark:border-zinc-800/50 bg-[#09090b]">
         {/* Content — padded bottom for nav */}

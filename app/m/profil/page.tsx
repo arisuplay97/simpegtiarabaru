@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft, ChevronRight, Clock, Radio, ChevronDown, HelpCircle } from "lucide-react"
+import { Loader2, LogOut, Camera, User, Building2, Briefcase, Mail, Phone, Calendar, Edit3, X, MapPin, Lock, ArrowLeft, ChevronRight, Clock, Radio, ChevronDown, HelpCircle, Monitor } from "lucide-react"
 import { getMobileProfile, updateMobileProfile } from "@/lib/actions/pegawai-detail"
 import { changePasswordWithVerification } from "@/lib/actions/auth-actions"
 import { format } from "date-fns"
@@ -397,6 +397,16 @@ export default function MobileProfil() {
         >
           <Lock className="h-3.5 w-3.5" />
           Ganti Kata Sandi
+        </button>
+        <button
+          onClick={() => {
+            document.cookie = "simpeg_view=desktop; path=/; max-age=604800; SameSite=Lax"
+            window.location.href = "/dashboard?view=desktop"
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 py-3 text-xs font-semibold text-blue-600 dark:text-blue-400 shadow-2xs active:scale-98 transition-all hover:bg-blue-100/60 dark:hover:bg-blue-900/40"
+        >
+          <Monitor className="h-3.5 w-3.5" />
+          Buka Tampilan Desktop
         </button>
       </div>
 
