@@ -1,47 +1,53 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-function detectIsMobile(request: NextRequest): boolean {
-  // 1. User manual override cookie (simpeg_view)
-  const viewCookie = request.cookies.get('simpeg_view')?.value
-  if (viewCookie === 'desktop') return false
-  if (viewCookie === 'mobile') return true
-
-  // 2. Client Hints header (Chromium: Chrome, Edge, Samsung Internet, Opera)
-  // ?0 explicitly means Desktop mode (or "Request Desktop Site" enabled on mobile)
-  // ?1 means Mobile mode
-  const secChUaMobile = request.headers.get('sec-ch-ua-mobile')
-  if (secChUaMobile === '?0') return false
-  if (secChUaMobile === '?1') return true
-
-  // 3. User-Agent parsing
+function detectIsMobile(request: NextRequest): { isMobile: boolean; shouldClearCookie: boolean } {
   const ua = request.headers.get('user-agent') || ''
+  const secChUaMobile = request.headers.get('sec-ch-ua-mobile')
+  const viewCookie = request.cookies.get('simpeg_view')?.value
 
-  // Android: When "Desktop site" is requested in mobile browsers (Chrome / Samsung Internet),
-  // the "Mobile" token is removed, but "Android" remains.
-  // Standard phone mobile UA has BOTH "Android" AND "Mobile".
-  if (/Android/i.test(ua)) {
-    return /Mobile/i.test(ua)
+  // 1. Explicit native browser mobile signals
+  // - Chromium mobile sends sec-ch-ua-mobile: ?1
+  // - Safari iOS mobile sends iPhone/iPod
+  // - Android mobile sends Android WITH Mobile token
+  const isNativeMobile =
+    secChUaMobile === '?1' ||
+    /iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone/i.test(ua) ||
+    (/Android/i.test(ua) && /Mobile/i.test(ua))
+
+  // 2. Explicit native browser desktop signals
+  // - Chromium desktop / "Desktop site" mode sends sec-ch-ua-mobile: ?0
+  // - Android "Desktop site" mode strips "Mobile" token
+  // - Safari iOS "Request Desktop Website" sends "Macintosh" without iPhone
+  // - Standard desktop OS (Windows NT, Linux x86_64, Mac)
+  const isNativeDesktop =
+    secChUaMobile === '?0' ||
+    (/Android/i.test(ua) && !/Mobile/i.test(ua)) ||
+    (/Macintosh/i.test(ua) && !/iPhone|iPad/i.test(ua)) ||
+    /Windows NT|X11; Linux x86_64/i.test(ua)
+
+  // Native browser state ALWAYS takes precedence over stale cookies!
+  // When user switches back to mobile site in browser:
+  if (isNativeMobile) {
+    return { isMobile: true, shouldClearCookie: viewCookie === 'desktop' }
   }
 
-  // iOS Safari:
-  // When "Request Desktop Website" is requested, Safari sends "Macintosh; Intel Mac OS X..." without "iPhone".
-  // Normal iPhone sends "iPhone".
-  if (/iPhone|iPod/i.test(ua)) {
-    return true
+  // When user switches to desktop site in browser:
+  if (isNativeDesktop) {
+    return { isMobile: false, shouldClearCookie: viewCookie === 'mobile' }
   }
 
-  // iPad (iPadOS sends Macintosh or iPad) -> treat as desktop/tablet mode
+  // iPad: treat as tablet/desktop
   if (/iPad/i.test(ua)) {
-    return false
+    return { isMobile: false, shouldClearCookie: false }
   }
 
-  // Other mobile platforms
-  if (/BlackBerry|IEMobile|Opera Mini|Windows Phone/i.test(ua)) {
-    return true
-  }
+  // 3. Fallback to manual override cookie if browser headers are neutral
+  if (viewCookie === 'desktop') return { isMobile: false, shouldClearCookie: false }
+  if (viewCookie === 'mobile') return { isMobile: true, shouldClearCookie: false }
 
-  return false
+  const fallbackMobile = Boolean(ua.match(/Android.*Mobile|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i))
+  return { isMobile: fallbackMobile, shouldClearCookie: false }
 }
 
 function mapMobileToDesktop(pathname: string): string {
@@ -59,6 +65,19 @@ function mapMobileToDesktop(pathname: string): string {
   return '/dashboard'
 }
 
+const desktopToMobileMap: Record<string, string> = {
+  '/': '/m/dashboard',
+  '/dashboard': '/m/dashboard',
+  '/absensi': '/m/fingerprint',
+  '/kalender': '/m/kalender',
+  '/cuti': '/m/cuti',
+  '/lembur': '/m/lembur',
+  '/slip-gaji': '/m/slip-gaji',
+  '/notifikasi': '/m/notifikasi',
+  '/indeks': '/m/indeks',
+  '/pegawai/profil': '/m/profil',
+}
+
 export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone()
 
@@ -68,7 +87,7 @@ export function middleware(request: NextRequest) {
     url.searchParams.delete('view')
     const targetPath = viewQuery === 'desktop'
       ? (url.pathname.startsWith('/m') ? mapMobileToDesktop(url.pathname) : url.pathname)
-      : (url.pathname.startsWith('/m') ? url.pathname : '/m/dashboard')
+      : (url.pathname.startsWith('/m') ? url.pathname : (desktopToMobileMap[url.pathname] || '/m/dashboard'))
 
     url.pathname = targetPath
     const response = NextResponse.redirect(url)
@@ -80,29 +99,52 @@ export function middleware(request: NextRequest) {
     return response
   }
 
-  const isMobile = detectIsMobile(request)
+  const { isMobile, shouldClearCookie } = detectIsMobile(request)
 
-  // Redirect root to mobile or desktop dashboard based on device
-  if (url.pathname === '/') {
-    url.pathname = isMobile ? '/m/dashboard' : '/dashboard'
-    return NextResponse.redirect(url)
+  let response: NextResponse | null = null
+
+  if (isMobile) {
+    // If on mobile mode, redirect desktop routes to mobile equivalent
+    const targetMobile = desktopToMobileMap[url.pathname]
+    if (targetMobile) {
+      url.pathname = targetMobile
+      response = NextResponse.redirect(url)
+    }
+  } else {
+    // If on desktop mode, redirect /m/* routes to desktop equivalent
+    if (url.pathname === '/m' || url.pathname.startsWith('/m/')) {
+      url.pathname = mapMobileToDesktop(url.pathname)
+      response = NextResponse.redirect(url)
+    }
   }
 
-  // Redirect /dashboard to /m/dashboard if on mobile (and not forced desktop)
-  if (url.pathname === '/dashboard' && isMobile) {
-    url.pathname = '/m/dashboard'
-    return NextResponse.redirect(url)
+  if (response) {
+    if (shouldClearCookie) {
+      response.cookies.delete('simpeg_view')
+    }
+    return response
   }
 
-  // Redirect /m/* (PWA routes) to desktop equivalent if desktop browser or desktop mode
-  if ((url.pathname === '/m' || url.pathname.startsWith('/m/')) && !isMobile) {
-    url.pathname = mapMobileToDesktop(url.pathname)
-    return NextResponse.redirect(url)
+  const res = NextResponse.next()
+  if (shouldClearCookie) {
+    res.cookies.delete('simpeg_view')
   }
-
-  return NextResponse.next()
+  return res
 }
 
 export const config = {
-  matcher: ['/', '/dashboard', '/m', '/m/:path*'],
+  matcher: [
+    '/',
+    '/dashboard',
+    '/absensi',
+    '/kalender',
+    '/cuti',
+    '/lembur',
+    '/slip-gaji',
+    '/notifikasi',
+    '/indeks',
+    '/pegawai/profil',
+    '/m',
+    '/m/:path*',
+  ],
 }

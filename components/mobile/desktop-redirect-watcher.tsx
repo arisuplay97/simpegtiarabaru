@@ -33,9 +33,6 @@ export function DesktopRedirectWatcher() {
     const isSafariDesktop = /Macintosh/i.test(navigator.userAgent) && !/iPhone|iPad/i.test(navigator.userAgent)
 
     if (isWideViewport || isUaDataDesktop || isAndroidDesktop || isSafariDesktop) {
-      // Set cookie so middleware also remembers desktop view
-      document.cookie = "simpeg_view=desktop; path=/; max-age=604800; SameSite=Lax"
-
       const currentPath = window.location.pathname
       let target = "/dashboard"
       if (currentPath === "/m" || currentPath === "/m/dashboard") target = "/dashboard"
@@ -51,6 +48,9 @@ export function DesktopRedirectWatcher() {
       else if (currentPath.startsWith("/m/settings")) target = "/settings/sistem"
 
       window.location.replace(target)
+    } else {
+      // If currently in regular mobile viewport, clear any stale desktop cookie
+      document.cookie = "simpeg_view=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT"
     }
   }, [router])
 

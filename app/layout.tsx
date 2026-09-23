@@ -9,6 +9,7 @@ import { AuthProvider } from "@/components/auth/auth-provider"
 import { AuthGuard } from "@/components/auth/guard"
 import { SidebarProvider } from "@/components/simpeg/sidebar-nav"
 import { PWARegister } from "@/components/pwa-register"
+import { MobileRedirectWatcher } from "@/components/simpeg/mobile-redirect-watcher"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             }}
           />
           <PWARegister />
+          <MobileRedirectWatcher />
         </ThemeProvider>
       </body>
     </html>
