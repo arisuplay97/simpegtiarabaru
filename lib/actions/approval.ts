@@ -441,6 +441,7 @@ export async function processUnifiedApproval(
       await updateStatusPangkat(originalId, isApprove)
     } else if (type === "koreksi_absensi") {
       const { processKoreksiAbsensi } = await import("@/lib/actions/koreksi-absensi")
+      // processKoreksiAbsensi throws on failure, caught by outer try-catch
       await processKoreksiAbsensi(originalId, isApprove, approverId, catatan)
     }
 

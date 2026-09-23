@@ -225,18 +225,21 @@ export async function processKoreksiAbsensi(
   approverId: string,
   catatan?: string
 ) {
-  try {
-    const koreksi = await (prisma as any).koreksiAbsensi.findUnique({
-      where: { id },
-      include: { pegawai: true }
-    })
+  // Fetch koreksi data outside transaction for validation
+  const koreksi = await (prisma as any).koreksiAbsensi.findUnique({
+    where: { id },
+    include: { pegawai: true }
+  })
 
-    if (!koreksi) throw new Error("Data koreksi absensi tidak ditemukan")
-    if (koreksi.status !== "PENDING") throw new Error("Koreksi ini sudah diproses sebelumnya")
+  if (!koreksi) throw new Error("Data koreksi absensi tidak ditemukan")
+  if (koreksi.status !== "PENDING") throw new Error("Koreksi ini sudah diproses sebelumnya")
 
-    if (isApprove) {
-      // Update status koreksi
-      await (prisma as any).koreksiAbsensi.update({
+  if (isApprove) {
+    // Gunakan $transaction agar status koreksi dan update absensi ATOMIK
+    // Jika salah satu gagal, semua di-rollback
+    await prisma.$transaction(async (tx) => {
+      // 1. Update status koreksi -> APPROVED
+      await (tx as any).koreksiAbsensi.update({
         where: { id },
         data: {
           status: "APPROVED",
@@ -246,23 +249,26 @@ export async function processKoreksiAbsensi(
         }
       })
 
-      // Update record Absensi
-      // Tanggal absensi dalam format YYYY-MM-DD (WITA)
+      // 2. Update record Absensi
       const tanggalStr = new Date(koreksi.tanggal).toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
       const startOfDay = new Date(`${tanggalStr}T00:00:00+08:00`)
       const endOfDay = new Date(`${tanggalStr}T23:59:59.999+08:00`)
+      // Also check exact UTC midnight match (how absensi.ts stores tanggal)
+      const targetDateDb = new Date(`${tanggalStr}T00:00:00.000Z`)
 
-      let absensi = await prisma.absensi.findFirst({
+      let absensi = await tx.absensi.findFirst({
         where: {
           pegawaiId: koreksi.pegawaiId,
-          tanggal: { gte: startOfDay, lte: endOfDay }
+          OR: [
+            { tanggal: { gte: startOfDay, lte: endOfDay } },
+            { tanggal: targetDateDb },
+          ]
         }
       })
 
       const sesiList: string[] = Array.isArray(koreksi.sesi) ? koreksi.sesi : [koreksi.sesi]
 
       // Jam default tepat waktu pada tanggal absensi yang dikoreksi (WITA UTC+8)
-      // Masuk 07:45 (sebelum 08:00, sehingga dihitung HADIR / Tepat Waktu bebas denda)
       const jamMasukTepatWaktu = new Date(`${tanggalStr}T07:45:00+08:00`)
       const jamSiangStandar = new Date(`${tanggalStr}T12:15:00+08:00`)
       const jamPulangStandar = new Date(`${tanggalStr}T17:05:00+08:00`)
@@ -275,12 +281,11 @@ export async function processKoreksiAbsensi(
       if (absensi) {
         // Update sesi yang dikoreksi pada record yang sudah ada
         const updateData: any = {
-          status: targetStatus, // Diubah menjadi HADIR (Tepat Waktu) atau IZIN
+          status: targetStatus,
         }
         
         for (const sesi of sesiList) {
           if (sesi === "MASUK") {
-            // Jika dikoreksi, pastikan jam masuk tepat waktu
             updateData.jamMasuk = absensi.jamMasuk && absensi.status === "HADIR" ? absensi.jamMasuk : jamMasukTepatWaktu
           }
           if (sesi === "SIANG") {
@@ -291,7 +296,7 @@ export async function processKoreksiAbsensi(
           }
         }
 
-        await prisma.absensi.update({
+        await tx.absensi.update({
           where: { id: absensi.id },
           data: updateData
         })
@@ -299,8 +304,8 @@ export async function processKoreksiAbsensi(
         // Buat record absensi baru dengan sesi yang dikoreksi
         const createData: any = {
           pegawaiId: koreksi.pegawaiId,
-          tanggal: new Date(`${tanggalStr}T00:00:00.000Z`),
-          status: targetStatus, // HADIR (Tepat Waktu) atau IZIN
+          tanggal: targetDateDb,
+          status: targetStatus,
           metode: "MANUAL",
         }
 
@@ -310,62 +315,63 @@ export async function processKoreksiAbsensi(
           if (sesi === "PULANG") createData.jamKeluar = jamPulangStandar
         }
 
-        await prisma.absensi.create({ data: createData })
+        await tx.absensi.create({ data: createData })
       }
+    })
 
-      // Notifikasi ke pegawai
-      try {
-        if (koreksi.pegawai.userId) {
-          const sesiLabel = sesiList.map((s: string) => 
-            s === "MASUK" ? "Pagi" : s === "SIANG" ? "Siang" : "Pulang"
-          ).join(", ")
+    // Notifikasi ke pegawai (di luar transaction, boleh gagal tanpa rollback)
+    try {
+      if (koreksi.pegawai.userId) {
+        const sesiList: string[] = Array.isArray(koreksi.sesi) ? koreksi.sesi : [koreksi.sesi]
+        const tanggalStr = new Date(koreksi.tanggal).toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
+        const sesiLabel = sesiList.map((s: string) => 
+          s === "MASUK" ? "Pagi" : s === "SIANG" ? "Siang" : "Pulang"
+        ).join(", ")
 
-          await prisma.notifikasi.create({
-            data: {
-              userId: koreksi.pegawai.userId,
-              title: "Koreksi Absensi Disetujui ✅",
-              message: `Pengajuan koreksi absensi sesi ${sesiLabel} untuk tanggal ${tanggalStr} telah disetujui.`,
-              link: "/m/koreksi-absensi"
-            }
-          })
-        }
-      } catch (_) {}
+        await prisma.notifikasi.create({
+          data: {
+            userId: koreksi.pegawai.userId,
+            title: "Koreksi Absensi Disetujui ✅",
+            message: `Pengajuan koreksi absensi sesi ${sesiLabel} untuk tanggal ${tanggalStr} telah disetujui.`,
+            link: "/m/koreksi-absensi"
+          }
+        })
+      }
+    } catch (_) {}
 
-    } else {
-      // REJECT
-      await (prisma as any).koreksiAbsensi.update({
-        where: { id },
-        data: {
-          status: "REJECTED",
-          approvedById: approverId,
-          approvedAt: new Date(),
-          catatanApprover: catatan || null,
-        }
-      })
+  } else {
+    // REJECT
+    await (prisma as any).koreksiAbsensi.update({
+      where: { id },
+      data: {
+        status: "REJECTED",
+        approvedById: approverId,
+        approvedAt: new Date(),
+        catatanApprover: catatan || null,
+      }
+    })
 
-      // Notifikasi penolakan
-      try {
-        if (koreksi.pegawai.userId) {
-          const tanggalStr = koreksi.tanggal.toISOString().split("T")[0]
-          await prisma.notifikasi.create({
-            data: {
-              userId: koreksi.pegawai.userId,
-              title: "Koreksi Absensi Ditolak ❌",
-              message: `Pengajuan koreksi absensi tanggal ${tanggalStr} ditolak.${catatan ? ` Catatan: ${catatan}` : ""}`,
-              link: "/m/koreksi-absensi"
-            }
-          })
-        }
-      } catch (_) {}
-    }
-
-    revalidatePath("/approval")
-    revalidatePath("/absensi")
-    revalidatePath("/m/koreksi-absensi")
-
-    return { success: true }
-  } catch (error: any) {
-    console.error("Error processKoreksiAbsensi:", error)
-    return { error: error.message || "Gagal memproses koreksi absensi." }
+    // Notifikasi penolakan
+    try {
+      if (koreksi.pegawai.userId) {
+        const tanggalStr = koreksi.tanggal.toISOString().split("T")[0]
+        await prisma.notifikasi.create({
+          data: {
+            userId: koreksi.pegawai.userId,
+            title: "Koreksi Absensi Ditolak ❌",
+            message: `Pengajuan koreksi absensi tanggal ${tanggalStr} ditolak.${catatan ? ` Catatan: ${catatan}` : ""}`,
+            link: "/m/koreksi-absensi"
+          }
+        })
+      }
+    } catch (_) {}
   }
+
+  revalidatePath("/approval")
+  revalidatePath("/absensi")
+  revalidatePath("/m/koreksi-absensi")
+  revalidatePath("/m/dashboard")
+  revalidatePath("/dashboard")
+
+  return { success: true }
 }
