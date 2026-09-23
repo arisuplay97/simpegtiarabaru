@@ -2,7 +2,7 @@
   "name": "SIMPEG PDAM Tirta Ardhia Rinjani",
   "short_name": "SIMPEG",
   "description": "Sistem Informasi Manajemen Kepegawaian PDAM Tirta Ardhia Rinjani",
-  "start_url": "/m/dashboard",
+  "start_url": "/m/dashboard?mode=pwa",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",
@@ -35,21 +35,21 @@
       "name": "Presensi Cepat",
       "short_name": "Absen",
       "description": "Check-in absensi hari ini",
-      "url": "/m/fingerprint",
+      "url": "/m/fingerprint?mode=pwa",
       "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
     },
     {
       "name": "Kalender Kerja",
       "short_name": "Kalender",
       "description": "Kalender kehadiran",
-      "url": "/m/kalender",
+      "url": "/m/kalender?mode=pwa",
       "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
     },
     {
       "name": "Cuti & Izin",
       "short_name": "Cuti",
       "description": "Ajukan cuti atau izin",
-      "url": "/m/cuti",
+      "url": "/m/cuti?mode=pwa",
       "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
     }
   ]

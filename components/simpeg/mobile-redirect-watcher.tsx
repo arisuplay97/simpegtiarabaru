@@ -13,6 +13,18 @@ export function MobileRedirectWatcher() {
     // Do not run on mobile routes, API, or login
     if (pathname.startsWith("/m") || pathname.startsWith("/api") || pathname === "/login") return
 
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true ||
+      window.location.search.includes("mode=pwa") ||
+      window.location.search.includes("pwa=1")
+
+    // If running inside the installed standalone PWA app, ALWAYS force PWA mobile mode!
+    if (isStandalone) {
+      window.location.replace("/m/dashboard?mode=pwa")
+      return
+    }
+
     // If query explicitly requests desktop view, do not redirect
     const searchParams = new URLSearchParams(window.location.search)
     if (searchParams.get("view") === "desktop") return

@@ -101,6 +101,12 @@ export function middleware(request: NextRequest) {
 
   const { isMobile, shouldClearCookie } = detectIsMobile(request)
 
+  // If route is /m/* (ASIK Mobile PWA), NEVER force redirect to desktop on server
+  // This guarantees the installed PWA app always stays in Mobile PWA mode!
+  if (url.pathname === '/m' || url.pathname.startsWith('/m/')) {
+    return NextResponse.next()
+  }
+
   let response: NextResponse | null = null
 
   if (isMobile) {
@@ -108,12 +114,6 @@ export function middleware(request: NextRequest) {
     const targetMobile = desktopToMobileMap[url.pathname]
     if (targetMobile) {
       url.pathname = targetMobile
-      response = NextResponse.redirect(url)
-    }
-  } else {
-    // If on desktop mode, redirect /m/* routes to desktop equivalent
-    if (url.pathname === '/m' || url.pathname.startsWith('/m/')) {
-      url.pathname = mapMobileToDesktop(url.pathname)
       response = NextResponse.redirect(url)
     }
   }
