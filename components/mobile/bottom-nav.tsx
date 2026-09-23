@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Wallet, Fingerprint, CalendarDays, User } from "lucide-react"
+import { Home, Wallet, Fingerprint, CalendarCheck, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { triggerHaptic } from "@/lib/pwa/haptics"
@@ -10,7 +10,7 @@ const tabs = [
   { href: "/m/dashboard", label: "Beranda", icon: Home },
   { href: "/m/slip-gaji", label: "Slip Gaji", icon: Wallet },
   { href: "/m/fingerprint", label: "Absen", icon: Fingerprint, isFab: true },
-  { href: "/m/cuti", label: "Cuti & Izin", icon: CalendarDays },
+  { href: "/m/koreksi-absensi", label: "Koreksi", icon: CalendarCheck },
   { href: "/m/profil", label: "Profil", icon: User },
 ]
 

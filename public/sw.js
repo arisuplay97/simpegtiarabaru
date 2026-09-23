@@ -3,13 +3,16 @@
 // - Web Push Notifications & Attendance Reminders
 // - Background Sync for offline attendance queue
 
-const CACHE_NAME = "hris-pwa-v6";
+const CACHE_NAME = "hris-pwa-v7";
 
 const PRECACHE_ASSETS = [
   "/offline.html",
   "/favicon.PNG",
+  "/icon-192x192.png",
+  "/icon-512x512.png",
+  "/icon-maskable-512x512.png",
+  "/apple-touch-icon.png",
   "/putih.png",
-  "/slip.png",
   "/manifest.json",
   "/m/dashboard",
   "/m/fingerprint"
@@ -124,8 +127,11 @@ self.addEventListener("fetch", (event) => {
   if (
     url.pathname === "/offline.html" ||
     url.pathname === "/favicon.PNG" ||
+    url.pathname === "/icon-192x192.png" ||
+    url.pathname === "/icon-512x512.png" ||
+    url.pathname === "/icon-maskable-512x512.png" ||
+    url.pathname === "/apple-touch-icon.png" ||
     url.pathname === "/putih.png" ||
-    url.pathname === "/slip.png" ||
     url.pathname === "/manifest.json"
   ) {
     event.respondWith(

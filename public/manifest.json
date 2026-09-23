@@ -9,22 +9,22 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/slip.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
-      "src": "/slip.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
-      "src": "/slip.png",
-      "sizes": "180x180",
+      "src": "/icon-maskable-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     }
   ],
   "categories": ["business", "productivity"],
@@ -36,21 +36,21 @@
       "short_name": "Absen",
       "description": "Check-in absensi hari ini",
       "url": "/m/fingerprint?mode=pwa",
-      "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Kalender Kerja",
       "short_name": "Kalender",
       "description": "Kalender kehadiran",
       "url": "/m/kalender?mode=pwa",
-      "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Cuti & Izin",
-      "short_name": "Cuti",
-      "description": "Ajukan cuti atau izin",
-      "url": "/m/cuti?mode=pwa",
-      "icons": [{ "src": "/slip.png", "sizes": "192x192" }]
+      "name": "Koreksi Absensi",
+      "short_name": "Koreksi",
+      "description": "Ajukan koreksi presensi per sesi",
+      "url": "/m/koreksi-absensi?mode=pwa",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

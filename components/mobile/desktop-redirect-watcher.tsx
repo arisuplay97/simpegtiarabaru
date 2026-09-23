@@ -39,6 +39,7 @@ export function DesktopRedirectWatcher() {
       else if (currentPath === "/m/absensi" || currentPath === "/m/fingerprint" || currentPath === "/m/radar") target = "/absensi"
       else if (currentPath === "/m/kalender") target = "/kalender"
       else if (currentPath === "/m/cuti") target = "/cuti"
+      else if (currentPath === "/m/koreksi-absensi") target = "/absensi"
       else if (currentPath === "/m/profil") target = "/pegawai/profil"
       else if (currentPath === "/m/lembur") target = "/lembur"
       else if (currentPath === "/m/slip-gaji") target = "/slip-gaji"

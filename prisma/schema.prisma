@@ -158,6 +158,7 @@ model Pegawai {
   badgePegawai          BadgePegawai[]
   penilaianAtasan       PenilaianAtasan[] @relation("PenilaianPegawai")
   penilaianDibuat       PenilaianAtasan[] @relation("PenilaianPenilai")
+  koreksiAbsensi        KoreksiAbsensi[]
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -978,4 +979,43 @@ model BannerPwa {
 
   @@index([aktif])
   @@index([tampilkanSampai])
+}
+
+// ============ KOREKSI ABSENSI (PER SESI) ============
+model KoreksiAbsensi {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  pegawaiId       String              @db.Uuid
+  absensiId       String?             @db.Uuid   // link ke record Absensi yg ingin dikoreksi
+  tanggal         DateTime                        // tanggal absensi yang dikoreksi
+  sesi            SesiAbsensi[]                    // MASUK, SIANG, PULANG (bisa multi-sesi)
+  jenis           JenisKoreksi                     // LUPA_ABSEN | IZIN_SESI | DINAS_LUAR | ERROR_SISTEM | LAINNYA
+  alasan          String                           // keterangan detail
+  fotoUrl         String?                          // bukti foto langsung dari kamera
+  status          StatusPengajuan     @default(PENDING)
+  approvedById    String?             @db.Uuid
+  approvedAt      DateTime?
+  catatanApprover String?                          // catatan HRD saat approve/reject
+
+  pegawai         Pegawai             @relation(fields: [pegawaiId], references: [id])
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([pegawaiId])
+  @@index([tanggal])
+  @@index([status])
+  @@unique([pegawaiId, tanggal])                   // 1 pegawai hanya 1 koreksi per hari
+}
+
+enum SesiAbsensi {
+  MASUK
+  SIANG
+  PULANG
+}
+
+enum JenisKoreksi {
+  LUPA_ABSEN
+  IZIN_SESI
+  DINAS_LUAR
+  ERROR_SISTEM
+  LAINNYA
 }

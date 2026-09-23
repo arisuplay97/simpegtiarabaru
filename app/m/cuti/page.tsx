@@ -420,7 +420,7 @@ export default function MobileCuti() {
                     <span>Memproses Pengajuan...</span>
                   </>
                 ) : (
-                  <span>Kirim Permohonan Cuti</span>
+                  <span>Kirim Permohonan</span>
                 )}
               </button>
             </div>

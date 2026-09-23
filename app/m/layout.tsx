@@ -10,9 +10,15 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black", title: "ASIK" },
   icons: {
-    icon: "/favicon.PNG",
-    shortcut: "/favicon.PNG",
-    apple: "/favicon.PNG",
+    icon: [
+      { url: "/favicon.PNG", sizes: "any" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/icon-192x192.png",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   other: {
     "mobile-web-app-capable": "yes",

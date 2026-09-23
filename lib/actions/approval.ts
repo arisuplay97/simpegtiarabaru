@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
 
-export type ApprovalType = "cuti" | "lembur" | "mutasi" | "kgb" | "pangkat"
+export type ApprovalType = "cuti" | "lembur" | "mutasi" | "kgb" | "pangkat" | "koreksi_absensi"
 
 export interface UnifiedApprovalItem {
   id: string
@@ -38,14 +38,15 @@ export async function getPendingApprovalCount(): Promise<number> {
     const allowedRoles = ["HRD", "SUPERADMIN", "DIREKSI"]
     if (!allowedRoles.includes(session.user.role ?? "")) return 0
 
-    const [cuti, mutasi, kgb, pangkat] = await Promise.all([
+    const [cuti, mutasi, kgb, pangkat, koreksi] = await Promise.all([
       prisma.cuti.count({ where: { status: "PENDING" } }),
       prisma.mutasi.count({ where: { status: "PENDING" } }),
       prisma.kGB.count({ where: { status: "PENDING" } }),
       prisma.kenaikanPangkat.count({ where: { status: "PENDING" } }),
+      (prisma as any).koreksiAbsensi.count({ where: { status: "PENDING" } }),
     ])
 
-    return cuti + mutasi + kgb + pangkat
+    return cuti + mutasi + kgb + pangkat + koreksi
   } catch (error) {
     console.error("Error getPendingApprovalCount:", error)
     return 0
@@ -241,6 +242,59 @@ export async function getPendingApprovals(): Promise<UnifiedApprovalItem[]> {
     })
   })
 
+  // 5. KOREKSI ABSENSI
+  const pendingKoreksi = await (prisma as any).koreksiAbsensi.findMany({
+    where: { status: "PENDING" },
+    include: { pegawai: { include: { bidang: true } } },
+    orderBy: { createdAt: 'desc' }
+  })
+  pendingKoreksi.forEach((k: any) => {
+    const subDate = new Date(k.createdAt)
+    const diffDays = Math.max(0, Math.floor((now.getTime() - subDate.getTime()) / (1000 * 60 * 60 * 24)))
+    let priority: "normal" | "urgent" | "overdue" = "normal"
+    if (diffDays >= 7) priority = "overdue"
+    else if (diffDays >= 3) priority = "urgent"
+
+    const koreksiDate = new Date(k.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    const sesiList = Array.isArray(k.sesi) ? k.sesi : [k.sesi]
+    const sesiLabels = sesiList.map((s: string) => s === "MASUK" ? "Pagi" : s === "SIANG" ? "Siang" : "Pulang").join(", ")
+    const jenisLabelMap: Record<string, string> = {
+      LUPA_ABSEN: "Lupa Absen",
+      IZIN_SESI: "Izin Sesi",
+      DINAS_LUAR: "Dinas Luar",
+      ERROR_SISTEM: "Kendala Sistem",
+      LAINNYA: "Lainnya"
+    }
+
+    items.push({
+      id: `koreksi-${k.id}`,
+      originalId: k.id,
+      employeeName: k.pegawai.nama,
+      employeeNik: k.pegawai.nik,
+      employeeAvatar: k.pegawai.fotoUrl,
+      employeeInitials: (k.pegawai.nama || "U").substring(0, 2).toUpperCase(),
+      unit: k.pegawai.bidang?.nama || "Umum",
+      jabatan: k.pegawai.jabatan,
+      type: "koreksi_absensi",
+      title: `Koreksi Absensi (${sesiLabels})`,
+      badgeLabel: "KOREKSI",
+      date: `Tanggal: ${koreksiDate}`,
+      submittedDate: subDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      createdAtISO: k.createdAt.toISOString(),
+      waitingDays: diffDays,
+      status: "pending",
+      priority,
+      description: k.alasan || `Koreksi absensi untuk sesi ${sesiLabels}`,
+      details: {
+        "Tanggal Absensi": koreksiDate,
+        "Sesi Dikoreksi": sesiLabels,
+        "Jenis Pengajuan": jenisLabelMap[k.jenis] || k.jenis,
+        "Keterangan": k.alasan
+      },
+      dokumenUrl: k.fotoUrl || null
+    })
+  })
+
   // Urutkan: overdue / urgent di atas, lalu berdasarkan tanggal pengajuan terbaru
   items.sort((a, b) => {
     if (a.priority === "overdue" && b.priority !== "overdue") return -1
@@ -385,6 +439,9 @@ export async function processUnifiedApproval(
     } else if (type === "pangkat") {
       const { updateStatusPangkat } = await import("@/lib/actions/pangkat")
       await updateStatusPangkat(originalId, isApprove)
+    } else if (type === "koreksi_absensi") {
+      const { processKoreksiAbsensi } = await import("@/lib/actions/koreksi-absensi")
+      await processKoreksiAbsensi(originalId, isApprove, approverId, catatan)
     }
 
     revalidatePath("/approval")

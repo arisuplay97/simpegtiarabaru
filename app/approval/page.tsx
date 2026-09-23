@@ -110,6 +110,7 @@ export default function ApprovalDashboardPage() {
       mutasi: items.filter((i) => i.type === "mutasi").length,
       pangkat: items.filter((i) => i.type === "pangkat").length,
       kgb: items.filter((i) => i.type === "kgb").length,
+      koreksi: items.filter((i) => i.type === "koreksi_absensi").length,
       urgent: items.filter((i) => i.priority === "urgent" || i.priority === "overdue").length,
     }
   }, [items])
@@ -213,6 +214,12 @@ export default function ApprovalDashboardPage() {
           icon: TrendingUp,
           label: "KGB Reguler",
         }
+      case "koreksi_absensi":
+        return {
+          badgeBg: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-800/60",
+          icon: Clock,
+          label: "Koreksi Absen",
+        }
       default:
         return {
           badgeBg: "bg-slate-50 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 border-slate-200 dark:border-zinc-700",
@@ -284,7 +291,7 @@ export default function ApprovalDashboardPage() {
           {/* ============================================================
              2. EXECUTIVE KPI RIBBON (Interactive Category Cards)
              ============================================================ */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {/* 1. Total */}
             <button
               onClick={() => { setActiveTab("all"); setUrgentOnly(false); }}
@@ -354,6 +361,42 @@ export default function ApprovalDashboardPage() {
                 activeTab === "cuti" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
               )}>
                 Izin & cuti sakit
+              </p>
+            </button>
+
+            {/* 3. Koreksi Absensi */}
+            <button
+              onClick={() => { setActiveTab("koreksi_absensi"); setUrgentOnly(false); }}
+              className={cn(
+                "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
+                activeTab === "koreksi_absensi" && !urgentOnly
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                  : "bg-white dark:bg-[#111113] border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 shadow-xs"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider",
+                  activeTab === "koreksi_absensi" && !urgentOnly ? "text-blue-100" : "text-slate-400 dark:text-zinc-500"
+                )}>
+                  Koreksi Absen
+                </span>
+                <Clock className={cn(
+                  "w-4 h-4",
+                  activeTab === "koreksi_absensi" && !urgentOnly ? "text-white" : "text-indigo-500"
+                )} />
+              </div>
+              <p className={cn(
+                "text-2xl font-black mt-2 tracking-tight",
+                activeTab === "koreksi_absensi" && !urgentOnly ? "text-white" : "text-slate-900 dark:text-zinc-50"
+              )}>
+                {stats.koreksi}
+              </p>
+              <p className={cn(
+                "text-[11px] mt-0.5 truncate",
+                activeTab === "koreksi_absensi" && !urgentOnly ? "text-blue-100" : "text-slate-500 dark:text-zinc-400"
+              )}>
+                Per sesi kerja
               </p>
             </button>
 
@@ -496,6 +539,7 @@ export default function ApprovalDashboardPage() {
               {[
                 { key: "all", label: "Semua", count: stats.all },
                 { key: "cuti", label: "Cuti & Izin", count: stats.cuti },
+                { key: "koreksi_absensi", label: "Koreksi Absen", count: stats.koreksi },
                 { key: "mutasi", label: "Mutasi", count: stats.mutasi },
                 { key: "pangkat", label: "Pangkat", count: stats.pangkat },
                 { key: "kgb", label: "KGB", count: stats.kgb },
