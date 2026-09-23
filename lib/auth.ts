@@ -9,10 +9,10 @@ class DeviceMismatchError extends CredentialsSignin {
 
 // Demo users dengan username (bukan email)
 const demoUsers: Record<string, any> = {
-  "superadmin": { id: "demo-1", name: "Dwiky Firmansyah", email: "superadmin@tiara.com", username: "superadmin", role: "SUPERADMIN", jabatan: "Super Admin HRIS", unitKerja: "IT & Sistem", mustChangePassword: false },
-  "hrd":        { id: "demo-2", name: "Fitri Handayani",  email: "hrd@tiara.com",        username: "hrd",        role: "HRD",        jabatan: "Staff HRD",        unitKerja: "SDM & Umum", mustChangePassword: false },
-  "direktur":   { id: "demo-3", name: "Ir. Gunawan Wibowo", email: "direktur@tiara.com", username: "direktur",   role: "DIREKSI",    jabatan: "Direktur Utama",   unitKerja: "Direksi", mustChangePassword: false },
-  "pegawai":    { id: "demo-4", name: "Ahmad Rizki Pratama", email: "pegawai@tiara.com", username: "pegawai",    role: "PEGAWAI",    jabatan: "Kepala Bagian IT", unitKerja: "IT & Sistem", mustChangePassword: false },
+  "superadmin": { id: "00000000-0000-4000-8000-000000000001", name: "Dwiky Firmansyah", email: "superadmin@tiara.com", username: "superadmin", role: "SUPERADMIN", jabatan: "Super Admin HRIS", unitKerja: "IT & Sistem", mustChangePassword: false },
+  "hrd":        { id: "00000000-0000-4000-8000-000000000002", name: "Fitri Handayani",  email: "hrd@tiara.com",        username: "hrd",        role: "HRD",        jabatan: "Staff HRD",        unitKerja: "SDM & Umum", mustChangePassword: false },
+  "direktur":   { id: "00000000-0000-4000-8000-000000000003", name: "Ir. Gunawan Wibowo", email: "direktur@tiara.com", username: "direktur",   role: "DIREKSI",    jabatan: "Direktur Utama",   unitKerja: "Direksi", mustChangePassword: false },
+  "pegawai":    { id: "00000000-0000-4000-8000-000000000004", name: "Ahmad Rizki Pratama", email: "pegawai@tiara.com", username: "pegawai",    role: "PEGAWAI",    jabatan: "Kepala Bagian IT", unitKerja: "IT & Sistem", mustChangePassword: false },
 }
 
 const demoPasswords: Record<string, string> = {

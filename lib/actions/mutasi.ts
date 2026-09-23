@@ -93,12 +93,14 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
 
     // Resolve approver pegawai ID safely (if User.id or Pegawai.id is passed)
     let actualApproverId: string | null = null
-    if (approverId) {
-      const pDirect = await prisma.pegawai.findUnique({ where: { id: approverId }, select: { id: true } })
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (approverId && uuidRegex.test(approverId.trim())) {
+      const cleanId = approverId.trim()
+      const pDirect = await prisma.pegawai.findUnique({ where: { id: cleanId }, select: { id: true } })
       if (pDirect) {
         actualApproverId = pDirect.id
       } else {
-        const pByUser = await prisma.pegawai.findUnique({ where: { userId: approverId }, select: { id: true } })
+        const pByUser = await prisma.pegawai.findUnique({ where: { userId: cleanId }, select: { id: true } })
         if (pByUser) {
           actualApproverId = pByUser.id
         }

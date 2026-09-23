@@ -218,6 +218,13 @@ export async function getKoreksiAbsensiList() {
   }
 }
 
+// Helper validasi UUID agar tidak error Prisma jika approverId bukan UUID (e.g. akun demo 'demo-1'/'demo-2')
+function toValidUUID(val?: string | null): string | null {
+  if (!val || typeof val !== "string") return null
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(val.trim()) ? val.trim() : null
+}
+
 // ============ PROCESS KOREKSI (approve/reject) — dipanggil dari approval.ts ============
 export async function processKoreksiAbsensi(
   id: string, 
@@ -234,6 +241,25 @@ export async function processKoreksiAbsensi(
   if (!koreksi) throw new Error("Data koreksi absensi tidak ditemukan")
   if (koreksi.status !== "PENDING") throw new Error("Koreksi ini sudah diproses sebelumnya")
 
+  // Resolve approver ID: valid UUID string atau null jika non-UUID (e.g. demo account)
+  let validApproverId: string | null = toValidUUID(approverId)
+  if (!validApproverId && approverId) {
+    try {
+      const u = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { username: approverId },
+            { email: approverId },
+          ]
+        },
+        select: { id: true }
+      })
+      if (u?.id && toValidUUID(u.id)) {
+        validApproverId = u.id
+      }
+    } catch (_) {}
+  }
+
   if (isApprove) {
     // Gunakan $transaction agar status koreksi dan update absensi ATOMIK
     // Jika salah satu gagal, semua di-rollback
@@ -243,7 +269,7 @@ export async function processKoreksiAbsensi(
         where: { id },
         data: {
           status: "APPROVED",
-          approvedById: approverId,
+          approvedById: validApproverId,
           approvedAt: new Date(),
           catatanApprover: catatan || null,
         }
@@ -345,7 +371,7 @@ export async function processKoreksiAbsensi(
       where: { id },
       data: {
         status: "REJECTED",
-        approvedById: approverId,
+        approvedById: validApproverId,
         approvedAt: new Date(),
         catatanApprover: catatan || null,
       }

@@ -432,7 +432,8 @@ export async function processUnifiedApproval(
     } else if (type === "mutasi") {
       // Import from mutasi module logic to safely handle unit assignments
       const { processMutasi } = await import("@/lib/actions/mutasi")
-      await processMutasi(originalId, isApprove, approverId, catatan)
+      const effectiveApprover = approverId || session.user.id || ""
+      await processMutasi(originalId, isApprove, effectiveApprover, catatan)
     } else if (type === "kgb") {
       const { updateStatusKGB } = await import("@/lib/actions/kgb")
       await updateStatusKGB(originalId, isApprove)
@@ -442,7 +443,8 @@ export async function processUnifiedApproval(
     } else if (type === "koreksi_absensi") {
       const { processKoreksiAbsensi } = await import("@/lib/actions/koreksi-absensi")
       // processKoreksiAbsensi throws on failure, caught by outer try-catch
-      await processKoreksiAbsensi(originalId, isApprove, approverId, catatan)
+      const effectiveApprover = approverId || session.user.id || ""
+      await processKoreksiAbsensi(originalId, isApprove, effectiveApprover, catatan)
     }
 
     revalidatePath("/approval")
