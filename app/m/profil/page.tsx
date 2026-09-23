@@ -398,16 +398,6 @@ export default function MobileProfil() {
           <Lock className="h-3.5 w-3.5" />
           Ganti Kata Sandi
         </button>
-        <button
-          onClick={() => {
-            document.cookie = "simpeg_view=desktop; path=/; max-age=604800; SameSite=Lax"
-            window.location.href = "/dashboard?view=desktop"
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 py-3 text-xs font-semibold text-blue-600 dark:text-blue-400 shadow-2xs active:scale-98 transition-all hover:bg-blue-100/60 dark:hover:bg-blue-900/40"
-        >
-          <Monitor className="h-3.5 w-3.5" />
-          Buka Tampilan Desktop
-        </button>
       </div>
 
       {/* Logout */}

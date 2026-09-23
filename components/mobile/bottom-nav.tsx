@@ -1,4 +1,5 @@
 "use client"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Wallet, Fingerprint, CalendarCheck, User } from "lucide-react"
@@ -16,8 +17,18 @@ const tabs = [
 
 export function MobileBottomNav() {
   const pathname = usePathname()
+  const [isNavHidden, setIsNavHidden] = useState(false)
 
-  if (pathname === "/m/selfie" || pathname === "/m/fingerprint") return null
+  useEffect(() => {
+    const handleNavVisibility = (e: Event) => {
+      const customEvent = e as CustomEvent<{ hide: boolean }>
+      setIsNavHidden(!!customEvent.detail?.hide)
+    }
+    window.addEventListener("mobile-nav-visibility", handleNavVisibility)
+    return () => window.removeEventListener("mobile-nav-visibility", handleNavVisibility)
+  }, [])
+
+  if (pathname === "/m/selfie" || pathname === "/m/fingerprint" || isNavHidden) return null
 
   return (
     <nav

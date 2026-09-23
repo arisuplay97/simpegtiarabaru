@@ -669,10 +669,13 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
         tanggal: key,
         status: a.status,
         jamMasuk: a.jamMasuk,
+        jamSiang: a.jamSiang,
         jamKeluar: a.jamKeluar,
         fotoMasukUrl: a.fotoMasukUrl,
+        fotoSiangUrl: a.fotoSiangUrl,
         fotoKeluarUrl: a.fotoKeluarUrl,
         lokasiMasuk: a.lokasiMasuk,
+        lokasiSiang: a.lokasiSiang,
         lokasiKeluar: a.lokasiKeluar,
         keterangan: a.status === 'TERLAMBAT' ? 'Terlambat Masuk' : a.status === 'HADIR' ? 'Hadir Tepat Waktu' : a.status,
         source: "absensi"

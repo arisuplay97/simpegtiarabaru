@@ -75,6 +75,17 @@ export default function MobileKoreksiAbsensiPage() {
     }
   }, [status, router])
 
+  // URL Query Param pre-fill (e.g. from Kalender)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const tglParam = params.get("tanggal")
+      if (tglParam && /^\d{4}-\d{2}-\d{2}$/.test(tglParam)) {
+        setTanggal(tglParam)
+      }
+    }
+  }, [])
+
   // Fetch absensi status for selected date
   useEffect(() => {
     if (status === "authenticated" && tanggal) {
@@ -89,13 +100,35 @@ export default function MobileKoreksiAbsensiPage() {
     }
   }, [activeTab, status])
 
-  // Stop camera when modal closes
+  // Stop camera and hide mobile bottom bar when camera modal is open
   useEffect(() => {
-    if (!isCameraOpen && cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop())
-      setCameraStream(null)
+    if (isCameraOpen) {
+      window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hide: true } }))
+      document.body.style.overflow = "hidden"
+    } else {
+      window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hide: false } }))
+      document.body.style.overflow = ""
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop())
+        setCameraStream(null)
+      }
     }
-  }, [isCameraOpen])
+    return () => {
+      window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hide: false } }))
+      document.body.style.overflow = ""
+    }
+  }, [isCameraOpen, cameraStream])
+
+  // Hide mobile bottom bar when full photo preview is open
+  useEffect(() => {
+    if (viewingPhotoUrl) {
+      window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hide: true } }))
+      document.body.style.overflow = "hidden"
+    } else if (!isCameraOpen) {
+      window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hide: false } }))
+      document.body.style.overflow = ""
+    }
+  }, [viewingPhotoUrl, isCameraOpen])
 
   const loadDateStatus = async (dateStr: string) => {
     setCheckingDate(true)
@@ -769,7 +802,7 @@ export default function MobileKoreksiAbsensiPage() {
 
       {/* MODAL FULLSCREEN KAMERA LANGSUNG */}
       {isCameraOpen && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between animate-in fade-in-50">
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between animate-in fade-in-50">
           {/* Top Bar Camera */}
           <div className="flex items-center justify-between p-4 z-10 bg-gradient-to-b from-black/80 to-transparent">
             <button
@@ -833,7 +866,7 @@ export default function MobileKoreksiAbsensiPage() {
 
       {/* MODAL PREVIEW FOTO FULLSCREEN */}
       {viewingPhotoUrl && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-in fade-in-50">
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-in fade-in-50">
           <div className="w-full max-w-md flex justify-end pb-3">
             <button
               type="button"

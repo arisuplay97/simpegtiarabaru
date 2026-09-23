@@ -736,12 +736,6 @@ export default function MobileDashboard() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Rekap Bulanan</p>
               <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">Bulan {monthName}</p>
             </div>
-            <Link 
-              href="/m/absensi" 
-              className="flex items-center gap-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              Lihat Detail <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
           </div>
 
           {totalWorkdays > 0 && (

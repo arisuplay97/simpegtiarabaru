@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns"
 import { id } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Loader2, ArrowLeft } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2, ArrowLeft, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getKalenderPegawai } from "@/lib/actions/indeks"
 import Link from "next/link"
@@ -177,19 +177,68 @@ export default function MobileKalender() {
         </div>
 
         {/* Detail Hari Terpilih */}
-        {selectedDay && dayMap[selectedDay] && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-2xs border border-zinc-200/80 dark:border-zinc-800">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-2">
-              Detail {format(new Date(selectedDay), "dd MMMM yyyy", { locale: id })}
-            </h3>
-            <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
-              <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.dot || "bg-zinc-400")} />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.label || dayMap[selectedDay].status}</p>
-                {dayMap[selectedDay].jamMasuk && <p className="text-xs text-zinc-500 mt-0.5 tabular-nums">Masuk: {format(new Date(dayMap[selectedDay].jamMasuk), "HH:mm")}</p>}
-                {dayMap[selectedDay].jamKeluar && <p className="text-xs text-zinc-500 tabular-nums">Keluar: {format(new Date(dayMap[selectedDay].jamKeluar), "HH:mm")}</p>}
+        {selectedDay && (
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-2xs border border-zinc-200/80 dark:border-zinc-800 space-y-3 animate-in fade-in-50">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
+                Detail {format(new Date(selectedDay), "dd MMMM yyyy", { locale: id })}
+              </h3>
+              {dayMap[selectedDay]?.status ? (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                  STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.bg || "bg-zinc-100",
+                  STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.text || "text-zinc-600"
+                )}>
+                  {STATUS_CONFIG_EXT[dayMap[selectedDay].status]?.label || dayMap[selectedDay].status}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                  Tidak Ada Presensi
+                </span>
+              )}
+            </div>
+
+            {/* 3 Sesi Jam: Pagi, Siang, Sore */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Pagi */}
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Pagi</span>
+                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                  {dayMap[selectedDay]?.jamMasuk 
+                    ? format(new Date(dayMap[selectedDay].jamMasuk), "HH:mm")
+                    : "-"}
+                </span>
+              </div>
+
+              {/* Siang */}
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Siang</span>
+                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                  {dayMap[selectedDay]?.jamSiang 
+                    ? format(new Date(dayMap[selectedDay].jamSiang), "HH:mm")
+                    : "-"}
+                </span>
+              </div>
+
+              {/* Sore / Pulang */}
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Sore</span>
+                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                  {dayMap[selectedDay]?.jamKeluar 
+                    ? format(new Date(dayMap[selectedDay].jamKeluar), "HH:mm")
+                    : "-"}
+                </span>
               </div>
             </div>
+
+            {/* Tombol Ajukan Koreksi */}
+            <Link
+              href={`/m/koreksi-absensi?tanggal=${selectedDay}`}
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs shadow-xs transition-all"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Ajukan Koreksi Presensi</span>
+            </Link>
           </div>
         )}
       </div>
