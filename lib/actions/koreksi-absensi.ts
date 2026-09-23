@@ -247,7 +247,8 @@ export async function processKoreksiAbsensi(
       })
 
       // Update record Absensi
-      const tanggalStr = koreksi.tanggal.toISOString().split("T")[0]
+      // Tanggal absensi dalam format YYYY-MM-DD (WITA)
+      const tanggalStr = new Date(koreksi.tanggal).toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
       const startOfDay = new Date(`${tanggalStr}T00:00:00+08:00`)
       const endOfDay = new Date(`${tanggalStr}T23:59:59.999+08:00`)
 
@@ -258,55 +259,55 @@ export async function processKoreksiAbsensi(
         }
       })
 
-      const now = new Date()
-      const sesiList: string[] = koreksi.sesi
+      const sesiList: string[] = Array.isArray(koreksi.sesi) ? koreksi.sesi : [koreksi.sesi]
 
-      // Tentukan status absensi berdasarkan jenis koreksi
-      let targetStatus: "HADIR" | "IZIN" = "HADIR"
-      if (koreksi.jenis === "IZIN_SESI") {
-        targetStatus = "IZIN"
-      }
+      // Jam default tepat waktu pada tanggal absensi yang dikoreksi (WITA UTC+8)
+      // Masuk 07:45 (sebelum 08:00, sehingga dihitung HADIR / Tepat Waktu bebas denda)
+      const jamMasukTepatWaktu = new Date(`${tanggalStr}T07:45:00+08:00`)
+      const jamSiangStandar = new Date(`${tanggalStr}T12:15:00+08:00`)
+      const jamPulangStandar = new Date(`${tanggalStr}T17:05:00+08:00`)
+
+      // Tentukan status kehadiran:
+      // - IZIN_SESI: status IZIN
+      // - LUPA_ABSEN / DINAS_LUAR / ERROR_SISTEM / LAINNYA: status HADIR ("Tepat Waktu")
+      const targetStatus: "HADIR" | "IZIN" = koreksi.jenis === "IZIN_SESI" ? "IZIN" : "HADIR"
 
       if (absensi) {
         // Update sesi yang dikoreksi pada record yang sudah ada
-        const updateData: any = {}
+        const updateData: any = {
+          status: targetStatus, // Diubah menjadi HADIR (Tepat Waktu) atau IZIN
+        }
         
         for (const sesi of sesiList) {
-          if (sesi === "MASUK" && !absensi.jamMasuk) {
-            updateData.jamMasuk = now
+          if (sesi === "MASUK") {
+            // Jika dikoreksi, pastikan jam masuk tepat waktu
+            updateData.jamMasuk = absensi.jamMasuk && absensi.status === "HADIR" ? absensi.jamMasuk : jamMasukTepatWaktu
           }
-          if (sesi === "SIANG" && !absensi.jamSiang) {
-            updateData.jamSiang = now
+          if (sesi === "SIANG") {
+            updateData.jamSiang = absensi.jamSiang || jamSiangStandar
           }
-          if (sesi === "PULANG" && !absensi.jamKeluar) {
-            updateData.jamKeluar = now
+          if (sesi === "PULANG") {
+            updateData.jamKeluar = absensi.jamKeluar || jamPulangStandar
           }
         }
 
-        // Jika IZIN_SESI, ubah status ke IZIN
-        if (koreksi.jenis === "IZIN_SESI") {
-          updateData.status = "IZIN"
-        }
-
-        if (Object.keys(updateData).length > 0) {
-          await prisma.absensi.update({
-            where: { id: absensi.id },
-            data: updateData
-          })
-        }
+        await prisma.absensi.update({
+          where: { id: absensi.id },
+          data: updateData
+        })
       } else {
         // Buat record absensi baru dengan sesi yang dikoreksi
         const createData: any = {
           pegawaiId: koreksi.pegawaiId,
           tanggal: new Date(`${tanggalStr}T00:00:00.000Z`),
-          status: targetStatus,
+          status: targetStatus, // HADIR (Tepat Waktu) atau IZIN
           metode: "MANUAL",
         }
 
         for (const sesi of sesiList) {
-          if (sesi === "MASUK") createData.jamMasuk = now
-          if (sesi === "SIANG") createData.jamSiang = now
-          if (sesi === "PULANG") createData.jamKeluar = now
+          if (sesi === "MASUK") createData.jamMasuk = jamMasukTepatWaktu
+          if (sesi === "SIANG") createData.jamSiang = jamSiangStandar
+          if (sesi === "PULANG") createData.jamKeluar = jamPulangStandar
         }
 
         await prisma.absensi.create({ data: createData })
