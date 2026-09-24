@@ -3,6 +3,7 @@ import ExcelJS from "exceljs"
 import { jsPDF } from "jspdf"
 import { auth } from "@/lib/auth"
 import { getKalenderMatrix, PegawaiMatrixRow } from "@/lib/actions/kalender-matrix"
+import { getSystemSettings } from "@/lib/actions/absensi"
 
 const BULAN_NAMES = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -33,6 +34,11 @@ export async function GET(req: NextRequest) {
     }
 
     let rows: PegawaiMatrixRow[] = [...matrixRes.rows]
+
+    // Ambil pengaturan jam kerja untuk deteksi telat
+    const settings = await getSystemSettings()
+    const [jamMasukH, jamMasukM] = (settings.jamMasuk || "08:00").split(":").map(Number)
+    const batasTerlambatMenit = settings.batasTerlambat || 0 // toleransi menit
 
     // Terapkan filter pencarian
     if (filterSearch) {
@@ -408,6 +414,239 @@ export async function GET(req: NextRequest) {
       const sigNameRow = ws.addRow(["", "", "( Bambang Supratomo, S.T., M.T. )", "", "", ...Array.from({ length: Math.max(0, totalDays - 8) }, () => ""), "( H. Lalu M. Syarif, S.E. )"])
       sigNameRow.font = { name: "Arial", size: 9, bold: true }
 
+      // =====================================================================
+      // SHEET 2: DETAIL PRESENSI PER SESI
+      // =====================================================================
+      const ws2 = wb.addWorksheet(`Detail ${bulanNama} ${tahun}`, {
+        views: [{ showGridLines: true }],
+      })
+
+      // Kop Sheet 2
+      const d2Title1 = ws2.addRow(["PERUMDA AIR MINUM TIRTA ARDHIA RINJANI"])
+      const d2Title2 = ws2.addRow([`DETAIL PRESENSI PER SESI — ${bulanNama.toUpperCase()} ${tahun}`])
+      const d2Title3 = ws2.addRow([`Filter: ${filterInfoText}  |  Dicetak: ${printDateWita} (${printTimeWita} WITA)  |  Jam Masuk Standar: ${settings.jamMasuk} WITA`])
+      ws2.addRow([]) // spacer
+
+      d2Title1.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF1E3A8A" } }
+      d2Title2.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF0F172A" } }
+      d2Title3.font = { name: "Arial", size: 8.5, italic: true, color: { argb: "FF64748B" } }
+
+      // Setup columns
+      ws2.columns = [
+        { key: "no", width: 5 },
+        { key: "nik", width: 14 },
+        { key: "nama", width: 28 },
+        { key: "jabatan", width: 22 },
+        { key: "unit", width: 20 },
+        { key: "tanggal", width: 12 },
+        { key: "hari", width: 8 },
+        { key: "jam_masuk", width: 10 },
+        { key: "status_pagi", width: 14 },
+        { key: "jam_siang", width: 10 },
+        { key: "status_siang", width: 14 },
+        { key: "jam_pulang", width: 10 },
+        { key: "status_pulang", width: 14 },
+        { key: "sesi_hadir", width: 12 },
+        { key: "kode", width: 6 },
+        { key: "keterangan", width: 24 },
+      ]
+
+      // Header
+      const d2HeaderVals = [
+        "NO", "NIK", "NAMA PEGAWAI", "JABATAN", "BIDANG/CABANG",
+        "TANGGAL", "HARI",
+        "JAM MASUK", "STATUS PAGI",
+        "JAM SIANG", "STATUS SIANG",
+        "JAM PULANG", "STATUS SORE",
+        "SESI HADIR", "KODE", "KETERANGAN"
+      ]
+      const d2Header = ws2.addRow(d2HeaderVals)
+      d2Header.height = 22
+
+      d2Header.eachCell((cell) => {
+        cell.font = { name: "Arial", size: 8, bold: true, color: { argb: "FFFFFFFF" } }
+        cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true }
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } }
+        cell.border = {
+          top: { style: "thin", color: { argb: "FF94A3B8" } },
+          left: { style: "thin", color: { argb: "FF94A3B8" } },
+          bottom: { style: "thin", color: { argb: "FF94A3B8" } },
+          right: { style: "thin", color: { argb: "FF94A3B8" } },
+        }
+      })
+
+      const hariNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"]
+      // Hitung batas waktu telat dalam menit dari 00:00
+      const batasTelatTotalMenit = jamMasukH * 60 + jamMasukM + batasTerlambatMenit
+      let d2No = 0
+
+      for (const r of rows) {
+        for (let day = 1; day <= totalDays; day++) {
+          const st = r.days[day]
+          if (!st) continue
+
+          // Skip weekend & hari mendatang tanpa data
+          if (st.isWeekend && st.code === "L") continue
+          if (st.code === "-") continue
+
+          d2No++
+
+          const curDate = new Date(`${st.dateStr}T12:00:00+08:00`)
+          const hariNama = hariNames[curDate.getDay()]
+
+          // Determine pagi status
+          let statusPagi = "-"
+          let statusPagiBg = "FFFFFFFF"
+          let statusPagiColor = "FF94A3B8"
+          if (st.jamMasuk) {
+            // Parse jam masuk untuk cek telat
+            const [mH, mM] = st.jamMasuk.split(":").map(Number)
+            const masukTotalMenit = mH * 60 + mM
+            if (masukTotalMenit > batasTelatTotalMenit) {
+              const telatMenit = masukTotalMenit - batasTelatTotalMenit
+              statusPagi = `TELAT ${telatMenit} mnt`
+              statusPagiBg = "FFFEF3C7"
+              statusPagiColor = "FF92400E"
+            } else {
+              statusPagi = "TEPAT WAKTU"
+              statusPagiBg = "FFDCFCE7"
+              statusPagiColor = "FF166534"
+            }
+          } else if (st.code === "H" || st.code === "T") {
+            statusPagi = "TIDAK ABSEN"
+            statusPagiBg = "FFFFE4E6"
+            statusPagiColor = "FF9F1239"
+          }
+
+          // Determine siang status
+          let statusSiang = "-"
+          let statusSiangBg = "FFFFFFFF"
+          let statusSiangColor = "FF94A3B8"
+          if (st.jamSiang) {
+            statusSiang = "HADIR"
+            statusSiangBg = "FFDCFCE7"
+            statusSiangColor = "FF166534"
+          } else if (st.code === "H" || st.code === "T") {
+            statusSiang = "TIDAK ABSEN"
+            statusSiangBg = "FFFFE4E6"
+            statusSiangColor = "FF9F1239"
+          }
+
+          // Determine pulang status
+          let statusPulang = "-"
+          let statusPulangBg = "FFFFFFFF"
+          let statusPulangColor = "FF94A3B8"
+          if (st.jamKeluar) {
+            statusPulang = "HADIR"
+            statusPulangBg = "FFDCFCE7"
+            statusPulangColor = "FF166534"
+          } else if (st.code === "H" || st.code === "T") {
+            statusPulang = "TIDAK ABSEN"
+            statusPulangBg = "FFFFE4E6"
+            statusPulangColor = "FF9F1239"
+          }
+
+          // Hitung sesi yang hadir
+          let sesiCount = 0
+          if (st.jamMasuk) sesiCount++
+          if (st.jamSiang) sesiCount++
+          if (st.jamKeluar) sesiCount++
+          const sesiLabel = st.code === "H" || st.code === "T" ? `${sesiCount}/3 sesi` : "-"
+
+          // Kode warna mapping
+          const kodeColorMap: Record<string, string> = {
+            H: "FF166534", T: "FF92400E", C: "FF1E40AF",
+            I: "FF9A3412", S: "FF6B21A8", A: "FF9F1239"
+          }
+
+          const rowVals = [
+            d2No,
+            r.nik,
+            r.nama,
+            r.jabatan,
+            r.cabang || r.departemen,
+            st.dateStr.split("-").reverse().join("/"), // DD/MM/YYYY
+            hariNama,
+            st.jamMasuk || "-",
+            statusPagi,
+            st.jamSiang || "-",
+            statusSiang,
+            st.jamKeluar || "-",
+            statusPulang,
+            sesiLabel,
+            st.code,
+            st.keterangan || st.statusLabel,
+          ]
+
+          const dataRow = ws2.addRow(rowVals)
+          dataRow.height = 18
+
+          const isEven = d2No % 2 === 0
+          const zebraBg = isEven ? "FFF8FAFC" : "FFFFFFFF"
+
+          dataRow.eachCell((cell, colNum) => {
+            cell.font = { name: "Arial", size: 8 }
+            cell.border = {
+              top: { style: "thin", color: { argb: "FFE2E8F0" } },
+              left: { style: "thin", color: { argb: "FFE2E8F0" } },
+              bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+              right: { style: "thin", color: { argb: "FFE2E8F0" } },
+            }
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: zebraBg } }
+            cell.alignment = { vertical: "middle", horizontal: colNum <= 5 ? "left" : "center" }
+
+            // Status Pagi coloring (col 9)
+            if (colNum === 9 && statusPagi !== "-") {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: statusPagiBg } }
+              cell.font = { name: "Arial", size: 8, bold: true, color: { argb: statusPagiColor } }
+            }
+            // Status Siang coloring (col 11)
+            if (colNum === 11 && statusSiang !== "-") {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: statusSiangBg } }
+              cell.font = { name: "Arial", size: 8, bold: true, color: { argb: statusSiangColor } }
+            }
+            // Status Pulang coloring (col 13)
+            if (colNum === 13 && statusPulang !== "-") {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: statusPulangBg } }
+              cell.font = { name: "Arial", size: 8, bold: true, color: { argb: statusPulangColor } }
+            }
+            // Sesi count coloring (col 14)
+            if (colNum === 14 && sesiLabel !== "-") {
+              if (sesiCount === 3) {
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCFCE7" } }
+                cell.font = { name: "Arial", size: 8, bold: true, color: { argb: "FF166534" } }
+              } else if (sesiCount >= 1) {
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } }
+                cell.font = { name: "Arial", size: 8, bold: true, color: { argb: "FF92400E" } }
+              } else {
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE4E6" } }
+                cell.font = { name: "Arial", size: 8, bold: true, color: { argb: "FF9F1239" } }
+              }
+            }
+            // Kode coloring (col 15)
+            if (colNum === 15) {
+              const codeColor = kodeColorMap[String(cell.value)] || "FF94A3B8"
+              cell.font = { name: "Arial", size: 8, bold: true, color: { argb: codeColor } }
+            }
+          })
+        }
+      }
+
+      // Legend di Sheet 2
+      ws2.addRow([])
+      const d2LegTitle = ws2.addRow(["KETERANGAN:"])
+      d2LegTitle.font = { name: "Arial", size: 8.5, bold: true }
+      const d2Legends = [
+        `Jam Masuk Standar: ${settings.jamMasuk} WITA  |  Toleransi Telat: ${batasTerlambatMenit} menit`,
+        "STATUS PAGI: TEPAT WAKTU (hijau) = masuk sebelum/tepat batas  |  TELAT (kuning) = masuk setelah batas",
+        "STATUS SIANG/SORE: HADIR (hijau) = sudah absen  |  TIDAK ABSEN (merah) = belum/tidak absen sesi tersebut",
+        "SESI HADIR: 3/3 = lengkap semua sesi  |  2/3 atau 1/3 = tidak lengkap  |  0/3 = tidak absen sama sekali",
+      ]
+      d2Legends.forEach((leg) => {
+        const lr = ws2.addRow([leg])
+        lr.font = { name: "Arial", size: 8, color: { argb: "FF475569" } }
+      })
+
       const buffer = await wb.xlsx.writeBuffer()
       const filename = `MATRIKS_KEHADIRAN_${bulanNama.toUpperCase()}_${tahun}.xlsx`
 
@@ -769,6 +1008,278 @@ export async function GET(req: NextRequest) {
       doc.text("( H. Lalu M. Syarif, S.E. )", sigCol2X, y)
 
       printFooter(currentPage)
+
+      // =======================================================================
+      // HALAMAN DETAIL PRESENSI PER SESI (PDF)
+      // =======================================================================
+      const hariNamesPdf = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"]
+      const batasTelatTotalMenitPdf = jamMasukH * 60 + jamMasukM + batasTerlambatMenit
+
+      // Collect detail rows
+      const detailRows: Array<{
+        no: number; nik: string; nama: string; unit: string; tanggal: string; hari: string;
+        jamMasuk: string; statusPagi: string; statusPagiIsOk: boolean; statusPagiIsTelat: boolean;
+        jamSiang: string; statusSiang: string; statusSiangIsOk: boolean;
+        jamPulang: string; statusPulang: string; statusPulangIsOk: boolean;
+        sesi: string; sesiCount: number; kode: string; ket: string;
+      }> = []
+
+      let pdfDetailNo = 0
+      for (const r of rows) {
+        for (let day = 1; day <= totalDays; day++) {
+          const st = r.days[day]
+          if (!st) continue
+          if (st.isWeekend && st.code === "L") continue
+          if (st.code === "-") continue
+
+          pdfDetailNo++
+          const curDate = new Date(`${st.dateStr}T12:00:00+08:00`)
+          const hariNama = hariNamesPdf[curDate.getDay()]
+
+          let statusPagi = "-"
+          let statusPagiIsOk = false
+          let statusPagiIsTelat = false
+          if (st.jamMasuk) {
+            const [mH, mM] = st.jamMasuk.split(":").map(Number)
+            const masukTotalMenit = mH * 60 + mM
+            if (masukTotalMenit > batasTelatTotalMenitPdf) {
+              const telatMenit = masukTotalMenit - batasTelatTotalMenitPdf
+              statusPagi = `TELAT ${telatMenit}m`
+              statusPagiIsTelat = true
+            } else {
+              statusPagi = "TEPAT"
+              statusPagiIsOk = true
+            }
+          } else if (st.code === "H" || st.code === "T") {
+            statusPagi = "KOSONG"
+          }
+
+          let statusSiang = "-"
+          let statusSiangIsOk = false
+          if (st.jamSiang) { statusSiang = "HADIR"; statusSiangIsOk = true }
+          else if (st.code === "H" || st.code === "T") { statusSiang = "KOSONG" }
+
+          let statusPulang = "-"
+          let statusPulangIsOk = false
+          if (st.jamKeluar) { statusPulang = "HADIR"; statusPulangIsOk = true }
+          else if (st.code === "H" || st.code === "T") { statusPulang = "KOSONG" }
+
+          let sesiCount = 0
+          if (st.jamMasuk) sesiCount++
+          if (st.jamSiang) sesiCount++
+          if (st.jamKeluar) sesiCount++
+          const sesiLabel = (st.code === "H" || st.code === "T") ? `${sesiCount}/3` : "-"
+
+          detailRows.push({
+            no: pdfDetailNo, nik: r.nik, nama: r.nama,
+            unit: r.cabang || r.departemen,
+            tanggal: st.dateStr.split("-").reverse().join("/"),
+            hari: hariNama,
+            jamMasuk: st.jamMasuk || "-", statusPagi, statusPagiIsOk, statusPagiIsTelat,
+            jamSiang: st.jamSiang || "-", statusSiang, statusSiangIsOk,
+            jamPulang: st.jamKeluar || "-", statusPulang, statusPulangIsOk,
+            sesi: sesiLabel, sesiCount, kode: st.code, ket: st.keterangan || st.statusLabel,
+          })
+        }
+      }
+
+      if (detailRows.length > 0) {
+        // New page for detail
+        doc.addPage()
+        currentPage++
+        y = 10
+
+        // Detail header
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(11)
+        doc.setTextColor(30, 58, 138)
+        doc.text("DETAIL PRESENSI PER SESI", pageWidth / 2, y, { align: "center" })
+        y += 4
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(7.5)
+        doc.setTextColor(71, 85, 105)
+        doc.text(`${bulanNama} ${tahun}  |  Jam Masuk Standar: ${settings.jamMasuk} WITA  |  Toleransi: ${batasTerlambatMenit} menit`, pageWidth / 2, y, { align: "center" })
+        y += 5
+
+        // Detail table columns: No(5), NIK(14), Nama(30), Unit(20), Tgl(12), Hari(10), JamMasuk(10), StPagi(14), JamSiang(10), StSiang(10), JamPlg(10), StSore(10), Sesi(8), Kode(6), Ket(remaining)
+        const dColW = [5, 14, 30, 20, 12, 10, 10, 14, 10, 10, 10, 10, 8, 6, 0]
+        const dContentW = contentWidth
+        const usedW = dColW.slice(0, -1).reduce((a, b) => a + b, 0)
+        dColW[dColW.length - 1] = dContentW - usedW // Keterangan gets remaining
+
+        const dHeaders = ["No", "NIK", "Nama", "Unit", "Tanggal", "Hari", "Masuk", "St.Pagi", "Siang", "St.Siang", "Pulang", "St.Sore", "Sesi", "Kode", "Keterangan"]
+        const dRowH = 4.2
+
+        const printDetailHeader = () => {
+          doc.setFillColor(30, 58, 138)
+          doc.rect(marginX, y, dContentW, 6, "F")
+          doc.setFont("helvetica", "bold")
+          doc.setFontSize(5.5)
+          doc.setTextColor(255, 255, 255)
+          let cx = marginX
+          for (let i = 0; i < dHeaders.length; i++) {
+            doc.text(dHeaders[i], cx + dColW[i] / 2, y + 4, { align: "center" })
+            cx += dColW[i]
+          }
+          y += 6
+        }
+
+        printDetailHeader()
+
+        for (const dr of detailRows) {
+          if (y + dRowH > pageHeight - 14) {
+            printFooter(currentPage)
+            doc.addPage()
+            currentPage++
+            y = 10
+            printDetailHeader()
+          }
+
+          const isEven = dr.no % 2 === 0
+          if (isEven) {
+            doc.setFillColor(248, 250, 252)
+            doc.rect(marginX, y, dContentW, dRowH, "F")
+          }
+
+          doc.setDrawColor(226, 232, 240)
+          doc.setLineWidth(0.1)
+          doc.rect(marginX, y, dContentW, dRowH, "S")
+
+          let cx = marginX
+          const textY = y + 3
+
+          // No
+          doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(100, 116, 139)
+          doc.text(String(dr.no), cx + dColW[0] / 2, textY, { align: "center" })
+          cx += dColW[0]
+
+          // NIK
+          doc.text(dr.nik.replace(/\s+/g, ""), cx + dColW[1] / 2, textY, { align: "center" })
+          cx += dColW[1]
+
+          // Nama
+          doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(15, 23, 42)
+          const tName = doc.splitTextToSize(dr.nama, dColW[2] - 2)[0] || dr.nama
+          doc.text(tName, cx + 1, textY)
+          cx += dColW[2]
+
+          // Unit
+          doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(100, 116, 139)
+          const tUnit = doc.splitTextToSize(dr.unit, dColW[3] - 2)[0] || dr.unit
+          doc.text(tUnit, cx + 1, textY)
+          cx += dColW[3]
+
+          // Tanggal
+          doc.text(dr.tanggal, cx + dColW[4] / 2, textY, { align: "center" })
+          cx += dColW[4]
+
+          // Hari
+          doc.text(dr.hari, cx + dColW[5] / 2, textY, { align: "center" })
+          cx += dColW[5]
+
+          // Jam Masuk
+          doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(30, 41, 59)
+          doc.text(dr.jamMasuk, cx + dColW[6] / 2, textY, { align: "center" })
+          cx += dColW[6]
+
+          // Status Pagi - with color
+          if (dr.statusPagiIsOk) {
+            doc.setFillColor(220, 252, 231); doc.rect(cx, y, dColW[7], dRowH, "F")
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(22, 101, 52)
+          } else if (dr.statusPagiIsTelat) {
+            doc.setFillColor(254, 243, 199); doc.rect(cx, y, dColW[7], dRowH, "F")
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(146, 64, 14)
+          } else if (dr.statusPagi === "KOSONG") {
+            doc.setFillColor(255, 228, 230); doc.rect(cx, y, dColW[7], dRowH, "F")
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(159, 18, 57)
+          } else {
+            doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(148, 163, 184)
+          }
+          doc.text(dr.statusPagi, cx + dColW[7] / 2, textY, { align: "center" })
+          cx += dColW[7]
+
+          // Jam Siang
+          doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(30, 41, 59)
+          doc.text(dr.jamSiang, cx + dColW[8] / 2, textY, { align: "center" })
+          cx += dColW[8]
+
+          // Status Siang
+          if (dr.statusSiangIsOk) {
+            doc.setFillColor(220, 252, 231); doc.rect(cx, y, dColW[9], dRowH, "F")
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(22, 101, 52)
+          } else if (dr.statusSiang === "KOSONG") {
+            doc.setFillColor(255, 228, 230); doc.rect(cx, y, dColW[9], dRowH, "F")
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(159, 18, 57)
+          } else {
+            doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(148, 163, 184)
+          }
+          doc.text(dr.statusSiang, cx + dColW[9] / 2, textY, { align: "center" })
+          cx += dColW[9]
+
+          // Jam Pulang
+          doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(30, 41, 59)
+          doc.text(dr.jamPulang, cx + dColW[10] / 2, textY, { align: "center" })
+          cx += dColW[10]
+
+          // Status Sore
+          if (dr.statusPulangIsOk) {
+            doc.setFillColor(220, 252, 231); doc.rect(cx, y, dColW[11], dRowH, "F")
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(22, 101, 52)
+          } else if (dr.statusPulang === "KOSONG") {
+            doc.setFillColor(255, 228, 230); doc.rect(cx, y, dColW[11], dRowH, "F")
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(159, 18, 57)
+          } else {
+            doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(148, 163, 184)
+          }
+          doc.text(dr.statusPulang, cx + dColW[11] / 2, textY, { align: "center" })
+          cx += dColW[11]
+
+          // Sesi
+          if (dr.sesiCount === 3) {
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(22, 101, 52)
+          } else if (dr.sesiCount >= 1) {
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(146, 64, 14)
+          } else {
+            doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(159, 18, 57)
+          }
+          doc.text(dr.sesi, cx + dColW[12] / 2, textY, { align: "center" })
+          cx += dColW[12]
+
+          // Kode
+          const kodeColorsPdf: Record<string, [number, number, number]> = {
+            H: [22, 101, 52], T: [146, 64, 14], C: [30, 64, 175],
+            I: [154, 52, 18], S: [107, 33, 168], A: [159, 18, 57],
+          }
+          const kc = kodeColorsPdf[dr.kode] || [148, 163, 184]
+          doc.setFont("helvetica", "bold"); doc.setFontSize(5); doc.setTextColor(kc[0], kc[1], kc[2])
+          doc.text(dr.kode, cx + dColW[13] / 2, textY, { align: "center" })
+          cx += dColW[13]
+
+          // Keterangan
+          doc.setFont("helvetica", "normal"); doc.setFontSize(4.5); doc.setTextColor(100, 116, 139)
+          const tKet = doc.splitTextToSize(dr.ket, dColW[14] - 2)[0] || dr.ket
+          doc.text(tKet, cx + 1, textY)
+
+          y += dRowH
+        }
+
+        // Legend for detail
+        y += 3
+        if (y + 12 > pageHeight - 14) {
+          printFooter(currentPage)
+          doc.addPage()
+          currentPage++
+          y = 10
+        }
+        doc.setFont("helvetica", "bold"); doc.setFontSize(6); doc.setTextColor(15, 23, 42)
+        doc.text("KETERANGAN DETAIL:", marginX, y); y += 3
+        doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(71, 85, 105)
+        doc.text(`Jam Masuk Standar: ${settings.jamMasuk} WITA  |  Toleransi: ${batasTerlambatMenit} menit  |  TEPAT = Tepat Waktu (hijau)  |  TELAT = Lewat Batas (kuning)  |  KOSONG = Tidak Absen Sesi Tersebut (merah)`, marginX, y)
+        y += 3
+        doc.text("SESI HADIR: 3/3 = Lengkap  |  2/3 atau 1/3 = Tidak Lengkap  |  0/3 = Tidak Hadir Sama Sekali", marginX, y)
+
+        printFooter(currentPage)
+      }
 
       const pdfOutput = doc.output("arraybuffer")
       const filename = `MATRIKS_KEHADIRAN_${bulanNama.toUpperCase()}_${tahun}.pdf`
