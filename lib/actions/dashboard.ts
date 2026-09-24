@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma"
 
 export async function getDashboardStats() {
   try {
-    const todayStr = new Date().toLocaleDateString('en-CA')
-    const checkInDateStart = new Date(`${todayStr}T00:00:00.000Z`)
-    const checkInDateEnd = new Date(`${todayStr}T23:59:59.999Z`)
+    const now = new Date()
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
+    const checkInDateStart = new Date(`${todayStr}T00:00:00+08:00`)
+    const checkInDateEnd = new Date(`${todayStr}T23:59:59.999+08:00`)
+    const targetDateDb = new Date(`${todayStr}T00:00:00.000Z`)
     const sevenDaysAgoStart = new Date(checkInDateStart)
     sevenDaysAgoStart.setDate(sevenDaysAgoStart.getDate() - 6)
     sevenDaysAgoStart.setHours(0, 0, 0, 0)
@@ -35,7 +37,13 @@ export async function getDashboardStats() {
       prisma.kGB.count({ where: { status: 'PENDING' } }),
       prisma.kenaikanPangkat.count({ where: { status: 'PENDING' } }),
       prisma.absensi.findMany({
-        where: { tanggal: { gte: checkInDateStart, lte: checkInDateEnd } }
+        where: {
+          OR: [
+            { tanggal: { gte: checkInDateStart, lte: checkInDateEnd } },
+            { tanggal: targetDateDb },
+            { jamMasuk: { gte: checkInDateStart, lte: checkInDateEnd } }
+          ]
+        }
       }),
       (prisma as any).kontrak.findMany({
         where: { status: 'AKTIF' },
@@ -81,8 +89,8 @@ export async function getDashboardStats() {
       }),
       // Aktivitas Terakhir (Recent Attendance / Activity Logs)
       prisma.absensi.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
+        take: 35,
+        orderBy: [{ tanggal: 'desc' }, { createdAt: 'desc' }],
         include: {
           pegawai: {
             select: {
@@ -125,21 +133,21 @@ export async function getDashboardStats() {
     const attendanceTrend = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(sevenDaysAgoStart)
       d.setDate(d.getDate() + i)
-      const dStr = d.toLocaleDateString('en-CA')
+      const dStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
       const dayName = days[d.getDay()]
       
       const isDayWeekend = d.getDay() === 0 || d.getDay() === 6
       const isToday = dStr === todayStr
       
       const dayData = attendanceRaw.filter(a => {
-        const aStr = a.tanggal.toLocaleDateString('en-CA')
+        const aStr = a.tanggal.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
         return aStr === dStr
       })
 
       // Pegawai yang sedang Cuti/Izin resmi yang disetujui (Cuti model)
       const activeCuti = cuti7Days.filter(c => {
-        const cStart = new Date(c.tanggalMulai).toLocaleDateString('en-CA')
-        const cEnd = new Date(c.tanggalSelesai).toLocaleDateString('en-CA')
+        const cStart = new Date(c.tanggalMulai).toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
+        const cEnd = new Date(c.tanggalSelesai).toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
         return dStr >= cStart && dStr <= cEnd
       })
 
@@ -338,58 +346,116 @@ export async function getDashboardStats() {
 
     // 5. Data Pendukung lainnya (sudah dimuat dalam Promise.all utama di atas)
 
-    // 6. Format Aktivitas Terakhir (Live Recent Activities Feed)
-    const aktivitasTerakhir = recentAbsensiRaw && recentAbsensiRaw.length > 0
-      ? recentAbsensiRaw.map((a: any) => {
-          const isCheckout = Boolean(a.jamKeluar && !a.jamMasuk) || (Boolean(a.jamKeluar) && a.jamKeluar > (a.jamMasuk || 0))
-          const eventTime = isCheckout ? a.jamKeluar : (a.jamMasuk || a.createdAt)
-          const timeFormatted = eventTime
-            ? new Date(eventTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-            : 'Baru saja'
+    // 6. Format Aktivitas Terakhir (Live Recent Activities Feed dengan Absen Siang & Zona WITA)
+    const formatTimeWita = (d: Date | string | null | undefined) => {
+      if (!d) return null
+      const dt = typeof d === 'string' ? new Date(d) : d
+      if (isNaN(dt.getTime())) return null
+      return dt.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Makassar',
+        hour12: false
+      }).replace('.', ':')
+    }
 
-          let tipe: 'MASUK' | 'PULANG' | 'IZIN' | 'CUTI' | 'TERLAMBAT' = 'MASUK'
-          let label = 'Presensi Masuk'
-          let statusBadge = 'Tepat Waktu'
-          let variant: 'success' | 'warning' | 'info' | 'neutral' = 'success'
+    const activityEvents: any[] = []
 
-          if (isCheckout) {
-            tipe = 'PULANG'
-            label = 'Presensi Pulang'
-            statusBadge = 'Selesai Tugas'
-            variant = 'info'
-          } else if (a.status === 'TERLAMBAT') {
-            tipe = 'TERLAMBAT'
-            label = 'Presensi Masuk'
-            statusBadge = 'Terlambat'
-            variant = 'warning'
-          } else if (a.status === 'IZIN' || a.status === 'SAKIT') {
-            tipe = 'IZIN'
-            label = `Izin / ${a.status === 'SAKIT' ? 'Sakit' : 'Dispensasi'}`
-            statusBadge = 'Tercatat'
-            variant = 'neutral'
-          } else if (a.status === 'CUTI') {
-            tipe = 'CUTI'
+    if (recentAbsensiRaw && recentAbsensiRaw.length > 0) {
+      recentAbsensiRaw.forEach((a: any) => {
+        const pegawai = a.pegawai
+        if (!pegawai) return
+
+        const baseItem = {
+          pegawaiId: a.pegawaiId,
+          nama: pegawai.nama || 'Pegawai',
+          jabatan: pegawai.jabatan || 'Staf',
+          bidang: pegawai.bidang?.nama || 'Operasional',
+          fotoUrl: pegawai.fotoUrl || null,
+          metode: a.metode || 'SELFIE',
+        }
+
+        // 1. Event Check-out / Pulang
+        if (a.jamKeluar) {
+          const t = new Date(a.jamKeluar).getTime()
+          activityEvents.push({
+            ...baseItem,
+            id: `${a.id}_pulang`,
+            tipe: 'PULANG',
+            label: 'Presensi Pulang',
+            statusBadge: 'Presensi Pulang',
+            variant: 'info' as const,
+            waktu: formatTimeWita(a.jamKeluar),
+            timestamp: t
+          })
+        }
+
+        // 2. Event Absen Siang
+        if (a.jamSiang) {
+          const t = new Date(a.jamSiang).getTime()
+          activityEvents.push({
+            ...baseItem,
+            id: `${a.id}_siang`,
+            tipe: 'SIANG',
+            label: 'Presensi Siang',
+            statusBadge: 'Presensi Siang',
+            variant: 'purple' as const,
+            waktu: formatTimeWita(a.jamSiang),
+            timestamp: t
+          })
+        }
+
+        // 3. Event Check-in Pagi
+        if (a.jamMasuk) {
+          const t = new Date(a.jamMasuk).getTime()
+          const isTerlambat = a.status === 'TERLAMBAT'
+          activityEvents.push({
+            ...baseItem,
+            id: `${a.id}_masuk`,
+            tipe: isTerlambat ? 'TERLAMBAT' : 'MASUK',
+            label: 'Presensi Masuk',
+            statusBadge: isTerlambat ? 'Terlambat' : 'Tepat Waktu',
+            variant: isTerlambat ? ('warning' as const) : ('success' as const),
+            waktu: formatTimeWita(a.jamMasuk),
+            timestamp: t
+          })
+        }
+
+        // 4. Jika status IZIN/SAKIT/CUTI tanpa jam punch
+        if (!a.jamMasuk && !a.jamSiang && !a.jamKeluar) {
+          const eventTime = a.createdAt || a.tanggal
+          const t = new Date(eventTime).getTime()
+          let label = 'Presensi Tercatat'
+          let statusBadge = a.status
+          let variant: 'success' | 'warning' | 'info' | 'purple' | 'neutral' = 'neutral'
+
+          if (a.status === 'CUTI') {
             label = 'Pengajuan Cuti'
             statusBadge = 'Cuti Aktif'
-            variant = 'neutral'
+          } else if (a.status === 'IZIN' || a.status === 'SAKIT') {
+            label = `Izin / ${a.status === 'SAKIT' ? 'Sakit' : 'Dispensasi'}`
+            statusBadge = 'Tercatat'
           }
 
-          return {
-            id: a.id,
-            pegawaiId: a.pegawaiId,
-            nama: a.pegawai?.nama || 'Pegawai',
-            jabatan: a.pegawai?.jabatan || 'Staf',
-            bidang: a.pegawai?.bidang?.nama || 'Operasional',
-            fotoUrl: a.pegawai?.fotoUrl || null,
-            tipe,
+          activityEvents.push({
+            ...baseItem,
+            id: `${a.id}_status`,
+            tipe: a.status,
             label,
             statusBadge,
             variant,
-            metode: a.metode || 'SELFIE',
-            waktu: timeFormatted,
-            timestamp: eventTime ? new Date(eventTime).getTime() : Date.now()
-          }
-        })
+            waktu: formatTimeWita(eventTime),
+            timestamp: t
+          })
+        }
+      })
+    }
+
+    // Urutkan berdasarkan waktu terkini secara descending (paling baru di atas)
+    activityEvents.sort((a, b) => b.timestamp - a.timestamp)
+
+    const aktivitasTerakhir = activityEvents.length > 0
+      ? activityEvents
       : [
           {
             id: 'mock-1',
@@ -514,13 +580,21 @@ export async function getPegawaiDashboardStats(userId: string) {
     if (!pegawai) throw new Error("Pegawai not found")
     const pegawaiId = pegawai.id
 
-    const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD local time
-    const checkInDateStart = new Date(`${todayStr}T00:00:00.000Z`)
-    const checkInDateEnd = new Date(`${todayStr}T23:59:59.999Z`)
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' }) // YYYY-MM-DD WITA
+    const checkInDateStart = new Date(`${todayStr}T00:00:00+08:00`)
+    const checkInDateEnd = new Date(`${todayStr}T23:59:59.999+08:00`)
+    const targetDateDb = new Date(`${todayStr}T00:00:00.000Z`)
 
     const [absensiToday, latestPayroll, cuti, mutasi, kgb, pangkat, sp] = await Promise.all([
       prisma.absensi.findFirst({
-        where: { pegawaiId, tanggal: { gte: checkInDateStart, lte: checkInDateEnd } }
+        where: {
+          pegawaiId,
+          OR: [
+            { tanggal: { gte: checkInDateStart, lte: checkInDateEnd } },
+            { tanggal: targetDateDb },
+            { jamMasuk: { gte: checkInDateStart, lte: checkInDateEnd } }
+          ]
+        }
       }),
       prisma.payroll.findFirst({
         where: { pegawaiId }, orderBy: { bulan: 'desc' }
@@ -534,12 +608,18 @@ export async function getPegawaiDashboardStats(userId: string) {
 
     const totalPending = cuti + mutasi + kgb + pangkat + sp
 
+    const formatWitaTime = (d: Date | string | null | undefined) => {
+      if (!d) return null
+      const dt = typeof d === 'string' ? new Date(d) : d
+      return dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }).replace('.', ':')
+    }
+
     return {
       sisaCuti: (pegawai as any).saldoCuti ?? 12,
       statusAbsensi: absensiToday ? absensiToday.status : "Belum Absen",
-      waktuAbsen: absensiToday ? (absensiToday.jamMasuk ? new Date(absensiToday.jamMasuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null) : null,
+      waktuAbsen: absensiToday ? (absensiToday.jamMasuk ? formatWitaTime(absensiToday.jamMasuk) : null) : null,
       gajiTerbaru: latestPayroll ? Number(latestPayroll.total) : (Number((pegawai as any).gajiPokok || 0) + Number((pegawai as any).tunjangan || 0)),
-      periodeGaji: latestPayroll ? new Date(latestPayroll.bulan).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : "Bulan Ini",
+      periodeGaji: latestPayroll ? new Date(latestPayroll.bulan).toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Makassar' }) : "Bulan Ini",
       pengajuanPending: totalPending
     }
   } catch (error) {

@@ -12,6 +12,7 @@ export interface MatrixDayStatus {
   code: "H" | "T" | "C" | "I" | "S" | "L" | "A" | "-"
   statusLabel: string
   jamMasuk?: string | null
+  jamSiang?: string | null
   jamKeluar?: string | null
   keterangan?: string | null
   isWeekend: boolean
@@ -65,12 +66,21 @@ export interface KalenderMatrixResponse {
   }
 }
 
-function formatLocal(d: Date) {
-  const dWita = new Date(d.getTime() + 8 * 60 * 60 * 1000) // WITA (UTC+8)
-  const y = dWita.getUTCFullYear()
-  const m = String(dWita.getUTCMonth() + 1).padStart(2, "0")
-  const dd = String(dWita.getUTCDate()).padStart(2, "0")
-  return `${y}-${m}-${dd}`
+function formatLocal(d: Date | string) {
+  const dt = typeof d === "string" ? new Date(d) : d
+  return dt.toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
+}
+
+function formatTimeWita(d: Date | string | null | undefined): string | null {
+  if (!d) return null
+  const dt = typeof d === "string" ? new Date(d) : d
+  if (isNaN(dt.getTime())) return null
+  return dt.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Makassar",
+    hour12: false
+  }).replace(".", ":")
 }
 
 export async function getKalenderMatrix(
@@ -101,25 +111,26 @@ export async function getKalenderMatrix(
       }
     }
 
-    const startDate = new Date(tahun, bulan - 1, 1, 0, 0, 0)
-    const endDate = new Date(tahun, bulan, 0, 23, 59, 59)
     const totalDaysInMonth = new Date(tahun, bulan, 0).getDate()
+    // Toleransi rentang agar menangkap baik record berformat UTC midnight maupun WITA
+    const startDate = new Date(Date.UTC(tahun, bulan - 1, 1, 0, 0, 0) - 24 * 60 * 60 * 1000)
+    const endDate = new Date(Date.UTC(tahun, bulan, 0, 23, 59, 59, 999) + 24 * 60 * 60 * 1000)
 
     const now = new Date()
-    const nowWita = new Date(now.getTime() + 8 * 60 * 60 * 1000)
     const todayStr = formatLocal(now)
+    const curWitaDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Makassar" }))
     const isCurrentMonth =
-      bulan === nowWita.getUTCMonth() + 1 && tahun === nowWita.getUTCFullYear()
+      bulan === curWitaDate.getMonth() + 1 && tahun === curWitaDate.getFullYear()
 
     // Day names in Indonesian
     const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 
     const daysInfo = []
     for (let day = 1; day <= totalDaysInMonth; day++) {
-      const curDate = new Date(tahun, bulan - 1, day)
+      const dateStr = `${tahun}-${String(bulan).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+      const curDate = new Date(`${dateStr}T12:00:00+08:00`)
       const dayOfWeek = curDate.getDay() // 0 = Sunday, 6 = Saturday
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-      const dateStr = `${tahun}-${String(bulan).padStart(2, "0")}-${String(day).padStart(2, "0")}`
       daysInfo.push({
         day,
         dayName: dayNames[dayOfWeek],
@@ -157,8 +168,10 @@ export async function getKalenderMatrix(
             tanggal: true,
             status: true,
             jamMasuk: true,
+            jamSiang: true,
             jamKeluar: true,
             lokasiMasuk: true,
+            lokasiSiang: true,
             lokasiKeluar: true,
           },
         }),
@@ -246,18 +259,14 @@ export async function getKalenderMatrix(
         let code: "H" | "T" | "C" | "I" | "S" | "L" | "A" | "-" = "-"
         let statusLabel = "Hari Belum Berjalan"
         let jamMasukStr: string | null = null
+        let jamSiangStr: string | null = null
         let jamKeluarStr: string | null = null
         let keterangan: string | null = null
 
         if (absRecord) {
-          if (absRecord.jamMasuk) {
-            const jm = new Date(absRecord.jamMasuk)
-            jamMasukStr = `${String(jm.getHours()).padStart(2, "0")}:${String(jm.getMinutes()).padStart(2, "0")}`
-          }
-          if (absRecord.jamKeluar) {
-            const jk = new Date(absRecord.jamKeluar)
-            jamKeluarStr = `${String(jk.getHours()).padStart(2, "0")}:${String(jk.getMinutes()).padStart(2, "0")}`
-          }
+          if (absRecord.jamMasuk) jamMasukStr = formatTimeWita(absRecord.jamMasuk)
+          if (absRecord.jamSiang) jamSiangStr = formatTimeWita(absRecord.jamSiang)
+          if (absRecord.jamKeluar) jamKeluarStr = formatTimeWita(absRecord.jamKeluar)
 
           if (absRecord.status === "HADIR") {
             code = "H"
@@ -332,6 +341,7 @@ export async function getKalenderMatrix(
           code,
           statusLabel,
           jamMasuk: jamMasukStr,
+          jamSiang: jamSiangStr,
           jamKeluar: jamKeluarStr,
           keterangan,
           isWeekend,
@@ -473,13 +483,14 @@ export async function isiOtomatisSisaHariMatrix(bulan: number, tahun: number) {
       status: "HADIR"
       metode: "MANUAL"
       jamMasuk: Date
+      jamSiang?: Date | null
       jamKeluar: Date
     }> = []
 
     for (let day = startDay; day <= totalDaysInMonth; day++) {
-      const curDate = new Date(tahun, bulan - 1, day, 12, 0, 0)
+      const dateStr = `${tahun}-${String(bulan).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+      const curDate = new Date(`${dateStr}T12:00:00+08:00`)
       const dayOfWeek = curDate.getDay()
-      const dateStr = formatLocal(curDate)
 
       for (const p of pegawais) {
         const isCabang = isCabangEmployee(p)
@@ -488,14 +499,18 @@ export async function isiOtomatisSisaHariMatrix(bulan: number, tahun: number) {
 
         const key = `${p.id}_${dateStr}`
         if (!existingSet.has(key)) {
-          const tMasuk = new Date(tahun, bulan - 1, day, hMasuk, mMasuk, 0)
-          const tPulang = new Date(tahun, bulan - 1, day, hPulang, mPulang, 0)
+          const tMasuk = new Date(`${dateStr}T${String(hMasuk).padStart(2, "0")}:${String(mMasuk).padStart(2, "0")}:00+08:00`)
+          const tSiang = new Date(`${dateStr}T12:15:00+08:00`)
+          const tPulang = new Date(`${dateStr}T${String(hPulang).padStart(2, "0")}:${String(mPulang).padStart(2, "0")}:00+08:00`)
+          const targetTanggalDb = new Date(`${dateStr}T00:00:00.000Z`)
+
           toInsert.push({
             pegawaiId: p.id,
-            tanggal: curDate,
+            tanggal: targetTanggalDb,
             status: "HADIR",
             metode: "MANUAL",
             jamMasuk: tMasuk,
+            jamSiang: isCabang ? null : tSiang,
             jamKeluar: tPulang,
           })
           existingSet.add(key)

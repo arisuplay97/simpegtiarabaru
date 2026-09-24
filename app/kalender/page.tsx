@@ -29,6 +29,9 @@ import {
   Info,
   Layers,
   HelpCircle,
+  FileText,
+  ChevronDown,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,6 +51,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { SidebarNav } from "@/components/simpeg/sidebar-nav"
 import { TopBar } from "@/components/simpeg/top-bar"
@@ -222,6 +231,50 @@ function KalenderContent() {
     return filteredRows.slice(start, start + pageSize)
   }, [filteredRows, validCurrentPage, pageSize])
 
+  // Export State
+  const [isExporting, setIsExporting] = useState<string | null>(null)
+
+  // Export to Excel or PDF via API Route
+  const handleExport = async (formatType: "excel" | "pdf") => {
+    setIsExporting(formatType)
+    const label = formatType === "excel" ? "Excel (.xlsx)" : "PDF (.pdf)"
+    const toastId = toast.loading(`Mempersiapkan berkas ${label}...`)
+
+    try {
+      const params = new URLSearchParams()
+      params.set("bulan", String(bulan))
+      params.set("tahun", String(tahun))
+      params.set("format", formatType)
+      if (selectedBidang !== "ALL") params.set("bidang", selectedBidang)
+      if (selectedCabang !== "ALL") params.set("cabang", selectedCabang)
+      if (searchQuery.trim()) params.set("search", searchQuery.trim())
+
+      const res = await fetch(`/api/kalender/export?${params.toString()}`)
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null)
+        throw new Error(errorData?.error || "Gagal mengunduh berkas ekspor")
+      }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      const ext = formatType === "excel" ? "xlsx" : "pdf"
+      a.download = `Matriks_Kehadiran_${BULAN_NAMES[bulan - 1]}_${tahun}.${ext}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast.success(`Matriks kehadiran berhasil diunduh dalam format ${label}`, { id: toastId })
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Gagal mengekspor data kalender", { id: toastId })
+    } finally {
+      setIsExporting(null)
+    }
+  }
+
   // Export to CSV
   const handleExportCSV = () => {
     if (!matrixData || !filteredRows.length) {
@@ -314,7 +367,7 @@ function KalenderContent() {
       <button
         type="button"
         onClick={() => setSelectedCell({ pegawai: row, dayStatus: st })}
-        title={`${row.nama} · Tgl ${st.day}: ${st.statusLabel}${st.jamMasuk ? ` (${st.jamMasuk})` : ""}`}
+        title={`${row.nama} · Tgl ${st.day}: ${st.statusLabel}${st.jamMasuk ? ` | Pagi: ${st.jamMasuk}` : ""}${st.jamSiang ? ` | Siang: ${st.jamSiang}` : ""}${st.jamKeluar ? ` | Sore: ${st.jamKeluar}` : ""} (WITA)`}
         className={cn(
           "w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-[4px] font-mono text-[11px] flex items-center justify-center transition-all cursor-pointer select-none shrink-0 hover:scale-105 active:scale-95",
           style
@@ -337,16 +390,19 @@ function KalenderContent() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
                   Kalender & Matriks Kehadiran
                 </h1>
+                <Badge variant="outline" className="text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-900/60 font-mono">
+                  WITA (UTC+8)
+                </Badge>
                 <Badge variant="outline" className="text-xs font-normal text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800">
                   {BULAN_NAMES[bulan - 1]} {tahun}
                 </Badge>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1">
-                Matriks absensi seluruh pegawai PDAM TIARA dengan indikator presensi harian, filter bidang & cabang, serta pemantauan disiplin.
+                Matriks absensi seluruh pegawai PDAM TIARA dengan indikator presensi harian (Pagi, Siang, Pulang), filter bidang & cabang, serta ekspor resmi Excel dan PDF.
               </p>
             </div>
 
@@ -389,15 +445,62 @@ function KalenderContent() {
                 Muat Ulang
               </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCSV}
-                className="h-9 text-xs rounded-lg border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 font-medium text-slate-700 dark:text-zinc-300 shadow-2xs"
-              >
-                <Download className="h-3.5 w-3.5 mr-1.5 text-slate-500 dark:text-zinc-400" />
-                Ekspor CSV
-              </Button>
+              {/* Ekspor Dropdown Menu (Excel & PDF) */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isExporting !== null || loading}
+                    className="h-9 text-xs rounded-lg border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 font-medium text-slate-700 dark:text-zinc-300 shadow-2xs gap-1.5 cursor-pointer"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                    )}
+                    <span>Ekspor Kalender</span>
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60 rounded-xl p-1.5 bg-white dark:bg-[#111113] border-slate-200 dark:border-zinc-800 shadow-xl z-50">
+                  <DropdownMenuItem
+                    onClick={() => handleExport("excel")}
+                    disabled={isExporting !== null}
+                    className="gap-2.5 text-xs py-2.5 cursor-pointer font-medium text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40 rounded-lg transition-colors"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <div className="flex flex-col text-left">
+                      <span className="font-semibold text-slate-900 dark:text-zinc-100">Format Excel (.xlsx)</span>
+                      <span className="text-[10px] text-slate-500 dark:text-zinc-400">Warna kode, rumus & rekap resmi</span>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => handleExport("pdf")}
+                    disabled={isExporting !== null}
+                    className="gap-2.5 text-xs py-2.5 cursor-pointer font-medium text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40 rounded-lg transition-colors"
+                  >
+                    <FileText className="h-4 w-4 text-rose-600 shrink-0" />
+                    <div className="flex flex-col text-left">
+                      <span className="font-semibold text-slate-900 dark:text-zinc-100">Format PDF (.pdf)</span>
+                      <span className="text-[10px] text-slate-500 dark:text-zinc-400">Siap cetak landscape A4 ber-Kop</span>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={handleExportCSV}
+                    disabled={isExporting !== null}
+                    className="gap-2.5 text-xs py-2 cursor-pointer font-medium text-slate-700 dark:text-zinc-300 focus:bg-slate-100 dark:focus:bg-zinc-800 rounded-lg transition-colors"
+                  >
+                    <Download className="h-4 w-4 text-slate-400 shrink-0" />
+                    <div className="flex flex-col text-left">
+                      <span>Format CSV (.csv)</span>
+                      <span className="text-[10px] text-slate-400">Data teks mentah terpisah koma</span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -918,23 +1021,32 @@ function KalenderContent() {
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
-                        Jam Tercatat
-                      </span>
-                      <div className="mt-1 text-xs font-mono font-semibold text-slate-800 dark:text-zinc-200">
-                        {selectedCell.dayStatus.jamMasuk ? (
-                          <span>
-                            {selectedCell.dayStatus.jamMasuk}
-                            {selectedCell.dayStatus.jamKeluar ? ` – ${selectedCell.dayStatus.jamKeluar}` : " (Belum Checkout)"}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 font-sans font-normal italic">
-                            Tidak ada waktu absen
-                          </span>
-                        )}
+                  {/* Sesi Jam Presensi 3 Sesi (Pagi, Absen Siang, Sore) */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider block">
+                      Catatan Jam Presensi (WITA)
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 text-center">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Pagi (Masuk)</span>
+                        <span className="text-xs font-bold font-mono text-slate-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                          {selectedCell.dayStatus.jamMasuk ? `${selectedCell.dayStatus.jamMasuk} WITA` : "—"}
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 text-center">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Absen Siang</span>
+                        <span className="text-xs font-bold font-mono text-slate-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                          {selectedCell.dayStatus.jamSiang ? `${selectedCell.dayStatus.jamSiang} WITA` : "—"}
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 text-center">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Sore (Pulang)</span>
+                        <span className="text-xs font-bold font-mono text-slate-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                          {selectedCell.dayStatus.jamKeluar ? `${selectedCell.dayStatus.jamKeluar} WITA` : "—"}
+                        </span>
                       </div>
                     </div>
+                  </div>
                   </div>
 
                   {/* Keterangan */}

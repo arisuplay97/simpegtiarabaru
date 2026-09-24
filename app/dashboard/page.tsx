@@ -465,11 +465,16 @@ export default function DashboardPage() {
                         <Activity className="w-3.5 h-3.5" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
-                          Aktivitas Terakhir Pegawai
-                        </h2>
+                        <div className="flex items-center gap-1.5">
+                          <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                            Aktivitas Terakhir Pegawai
+                          </h2>
+                          <span className="text-[10px] font-semibold font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
+                            WITA
+                          </span>
+                        </div>
                         <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                          Log presensi live
+                          Log presensi live (Masuk, Siang, Pulang)
                         </p>
                       </div>
                     </div>
@@ -498,7 +503,7 @@ export default function DashboardPage() {
                                   {act.nama}
                                 </p>
                                 <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">
-                                  {act.jabatan}
+                                  <span className="font-medium text-slate-700 dark:text-zinc-300">{act.label || act.jabatan}</span> · {act.bidang || act.jabatan}
                                 </p>
                               </div>
                             </div>
@@ -509,12 +514,13 @@ export default function DashboardPage() {
                                 act.variant === 'success' && "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60",
                                 act.variant === 'warning' && "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60",
                                 act.variant === 'info' && "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/60",
+                                act.variant === 'purple' && "bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/60",
                                 act.variant === 'neutral' && "bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
                               )}>
                                 {act.statusBadge}
                               </span>
-                              <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">
-                                {act.waktu}
+                              <span className="text-[10px] font-mono text-slate-500 dark:text-zinc-400">
+                                {act.waktu} WITA
                               </span>
                             </div>
                           </div>

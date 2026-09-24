@@ -48,7 +48,19 @@ export default function MobileKalender() {
   const daysInMonth = eachDayOfInterval({ start: firstDayOfMonth, end: lastDayOfMonth })
   const firstDayIndex = (getDay(firstDayOfMonth) + 6) % 7
   const weekDays = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
+
+  const formatTimeWita = (d: string | Date | null | undefined) => {
+    if (!d) return "-"
+    const dt = typeof d === "string" ? new Date(d) : d
+    if (isNaN(dt.getTime())) return "-"
+    return dt.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Makassar",
+      hour12: false
+    }).replace(".", ":") + " WITA"
+  }
 
   const isWeekend = (date: Date) => date.getDay() === 0 || date.getDay() === 6
 
@@ -198,35 +210,29 @@ export default function MobileKalender() {
               )}
             </div>
 
-            {/* 3 Sesi Jam: Pagi, Siang, Sore */}
+            {/* 3 Sesi Jam: Pagi, Siang, Sore (Zona WITA) */}
             <div className="grid grid-cols-3 gap-2">
               {/* Pagi */}
               <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
                 <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Pagi</span>
-                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
-                  {dayMap[selectedDay]?.jamMasuk 
-                    ? format(new Date(dayMap[selectedDay].jamMasuk), "HH:mm")
-                    : "-"}
+                <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                  {formatTimeWita(dayMap[selectedDay]?.jamMasuk)}
                 </span>
               </div>
 
               {/* Siang */}
               <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
                 <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Siang</span>
-                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
-                  {dayMap[selectedDay]?.jamSiang 
-                    ? format(new Date(dayMap[selectedDay].jamSiang), "HH:mm")
-                    : "-"}
+                <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                  {formatTimeWita(dayMap[selectedDay]?.jamSiang)}
                 </span>
               </div>
 
               {/* Sore / Pulang */}
               <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
                 <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Sore</span>
-                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
-                  {dayMap[selectedDay]?.jamKeluar 
-                    ? format(new Date(dayMap[selectedDay].jamKeluar), "HH:mm")
-                    : "-"}
+                <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                  {formatTimeWita(dayMap[selectedDay]?.jamKeluar)}
                 </span>
               </div>
             </div>
