@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, MapPin, X, Clock, WifiOff, RefreshCw, CheckCircle2, CloudUpload, ShieldAlert, AlertTriangle } from "lucide-react"
+import { Loader2, MapPin, X, Clock, WifiOff, RefreshCw, CheckCircle2, CloudUpload, ShieldAlert, AlertTriangle, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
@@ -10,6 +10,11 @@ import { id as idLocale } from "date-fns/locale"
 import Lottie from "lottie-react"
 import fingerprintAnimation from "@/public/animations/fingerprint.json"
 import successAnimation from "@/public/animations/success.json"
+import happyAnimation from "@/public/animations/mood/happy.json"
+import neutralAnimation from "@/public/animations/mood/neutral.json"
+import tiredAnimation from "@/public/animations/mood/tired.json"
+import sadAnimation from "@/public/animations/mood/sad.json"
+import angryAnimation from "@/public/animations/mood/angry.json"
 import { cn } from "@/lib/utils"
 import { detectFakeGps } from "@/lib/pwa/anti-fake-gps"
 import { FakeGpsModal } from "@/components/mobile/fake-gps-modal"
@@ -94,6 +99,7 @@ export default function MobileFingerprint() {
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null)
   const [moodSubmitted, setMoodSubmitted] = useState(false)
   const [isSavingMood, setIsSavingMood] = useState(false)
+  const [showMoodPopup, setShowMoodPopup] = useState(false)
   
   // Data Pegawai & Summary
   const [pegawaiData, setPegawaiData] = useState<any>(null)
@@ -367,6 +373,7 @@ export default function MobileFingerprint() {
           waktu: format(new Date(), "HH:mm")
         })
         setDone(true)
+        setShowMoodPopup(true)
         updateQueueCount()
         triggerHaptic("success")
 
@@ -429,6 +436,7 @@ export default function MobileFingerprint() {
         menitTerlambat: data.menitTerlambat || 0
       })
       setDone(true)
+      setShowMoodPopup(true)
 
       try {
         const todayStr = format(new Date(), "yyyy-MM-dd")
@@ -455,6 +463,7 @@ export default function MobileFingerprint() {
             waktu: format(new Date(), "HH:mm")
           })
           setDone(true)
+          setShowMoodPopup(true)
           updateQueueCount()
           triggerHaptic("success")
           toast.info("Koneksi terputus saat mengirim. Presensi telah diamankan ke antrian offline.")
@@ -507,6 +516,7 @@ export default function MobileFingerprint() {
     const MOODS: Array<{
       type: MoodType
       emoji: string
+      animation: any
       label: string
       title: string
       subtitle: string
@@ -514,6 +524,7 @@ export default function MobileFingerprint() {
       {
         type: "HAPPY",
         emoji: "😊",
+        animation: happyAnimation,
         label: "Senang",
         title: "Yeay! Kamu pulang dengan perasaan senang! 🥳",
         subtitle: "Aku ikut happy 😆 Sampai jumpa besok!",
@@ -521,27 +532,31 @@ export default function MobileFingerprint() {
       {
         type: "NEUTRAL",
         emoji: "😐",
-        label: "Biasa saja",
+        animation: neutralAnimation,
+        label: "Biasa",
         title: "Hari ini biasa saja ya? 😌",
         subtitle: "Semoga besok ada lebih banyak hal yang bikin kamu tersenyum!",
       },
       {
-        type: "SAD",
-        emoji: "😔",
-        label: "Sedih",
-        title: "Hari ini terasa berat ya? 🥺",
-        subtitle: "Istirahat yang cukup. Semoga besok jadi hari yang lebih baik.",
-      },
-      {
         type: "TIRED",
         emoji: "😫",
+        animation: tiredAnimation,
         label: "Capek",
         title: "Capek ya hari ini? 🥹",
         subtitle: "Kamu sudah melakukan yang terbaik. Sekarang waktunya istirahat.",
       },
       {
+        type: "SAD",
+        emoji: "😔",
+        animation: sadAnimation,
+        label: "Sedih",
+        title: "Hari ini terasa berat ya? 🥺",
+        subtitle: "Istirahat yang cukup. Semoga besok jadi hari yang lebih baik.",
+      },
+      {
         type: "ANGRY",
         emoji: "😡",
+        animation: angryAnimation,
         label: "Kesal",
         title: "Hari ini cukup melelahkan ya? 😮‍💨",
         subtitle: "Tinggalkan dulu urusan kantor, waktunya pulang dan istirahat.",
@@ -565,7 +580,8 @@ export default function MobileFingerprint() {
     }
 
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center p-4 bg-zinc-100/90 dark:bg-[#09090b] select-none">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center p-4 bg-zinc-100/90 dark:bg-[#09090b] select-none relative">
+        {/* CARD HASIL PRESENSI (BERSIH & TERPISAH DARI EMOJI) */}
         <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[32px] p-6 flex flex-col items-center border border-zinc-200/90 dark:border-zinc-800 shadow-2xl relative overflow-hidden">
           
           {/* Accent Line */}
@@ -584,7 +600,7 @@ export default function MobileFingerprint() {
               : "bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500"
           )} />
 
-          {/* Close button X (Opsional & Cepat kembali) */}
+          {/* Close button X (Cepat kembali) */}
           <button
             onClick={() => router.push("/m/dashboard")}
             className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-90 transition-all"
@@ -617,60 +633,18 @@ export default function MobileFingerprint() {
             </div>
           )}
 
-          {/* 2. KONDISI ABSEN PULANG (SORE & MOOD TRACKER) */}
+          {/* 2. KONDISI ABSEN PULANG (SORE) */}
           {isCheckOut && (
             <div className="w-full flex flex-col items-center text-center mt-1">
-              {!moodSubmitted ? (
-                <>
-                  <div className="w-16 h-16 flex items-center justify-center mb-1">
-                    <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
-                  </div>
-                  <h2 className="text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
-                    Presensi Pulang Berhasil! ✨
-                  </h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 mb-4">
-                    Gimana perasaanmu hari ini?
-                  </p>
-
-                  {/* 5 Tombol Pilihan Mood (Touch Friendly) */}
-                  <div className="grid grid-cols-5 gap-2 w-full mb-3">
-                    {MOODS.map((m) => (
-                      <button
-                        key={m.type}
-                        onClick={() => handleSelectMood(m.type)}
-                        className={cn(
-                          "flex flex-col items-center justify-center py-3 px-1 rounded-2xl border transition-all active:scale-95 shadow-xs",
-                          selectedMood === m.type
-                            ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/30"
-                            : "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700/60"
-                        )}
-                      >
-                        <span className="text-2xl">{m.emoji}</span>
-                        <span className="text-[10px] font-semibold mt-1 text-zinc-700 dark:text-zinc-300 truncate w-full text-center">
-                          {m.label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-3 italic">
-                    *Pilihan perasaan bersifat opsional & dijaga kerahasiaannya
-                  </p>
-                </>
-              ) : (
-                /* Respons Personal Setelah Memilih Mood */
-                <div className="w-full flex flex-col items-center text-center my-3 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="text-5xl my-2">
-                    {activeMoodConfig?.emoji || "😊"}
-                  </div>
-                  <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2">
-                    {activeMoodConfig?.title}
-                  </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 px-3 leading-relaxed">
-                    {activeMoodConfig?.subtitle}
-                  </p>
-                </div>
-              )}
+              <div className="w-16 h-16 flex items-center justify-center mb-1">
+                <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
+              </div>
+              <h2 className="text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+                Presensi Pulang Berhasil! ✨
+              </h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                Terima kasih atas kerja keras & dedikasimu hari ini. Selamat beristirahat!
+              </p>
             </div>
           )}
 
@@ -687,6 +661,31 @@ export default function MobileFingerprint() {
                 Selamat beristirahat dan makan siang. Tetap semangat untuk sesi sore nanti!
               </p>
             </div>
+          )}
+
+          {/* Status Mood pada Card (Jika Sudah Dipilih) atau Tombol Buka Popup */}
+          {selectedMood && activeMoodConfig ? (
+            <div className="mt-3.5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold animate-in fade-in">
+              <div className="w-5 h-5 flex items-center justify-center pointer-events-none">
+                <Lottie animationData={activeMoodConfig.animation} loop={false} className="w-full h-full" />
+              </div>
+              <span>Suasana Hati: <strong>{activeMoodConfig.label}</strong></span>
+              <button 
+                onClick={() => setShowMoodPopup(true)} 
+                className="text-[10px] text-purple-600 dark:text-purple-400 underline ml-1 font-normal"
+              >
+                Ubah
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowMoodPopup(true)}
+              className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-purple-600 dark:hover:text-purple-400 text-xs font-semibold transition-all active:scale-95 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+              <span>Gimana perasaanmu hari ini?</span>
+            </button>
           )}
 
           {/* Rincian Tiket / Bukti Kehadiran */}
@@ -722,12 +721,126 @@ export default function MobileFingerprint() {
               onClick={() => router.push("/m/dashboard")} 
               className="w-full rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3.5 font-bold text-sm shadow-md active:scale-95 transition-all"
             >
-              {isCheckOut && !moodSubmitted 
-                ? "Lewati & Kembali ke Beranda" 
-                : "Selesai & Kembali ke Beranda"}
+              Selesai & Kembali ke Beranda
             </button>
           </div>
         </div>
+
+        {/* ===== POPUP EMOTICON DI TENGAH (MODAL EMPLOYEE EXPERIENCE) ===== */}
+        {showMoodPopup && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div 
+              className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[28px] p-5 sm:p-6 shadow-2xl border border-zinc-200/90 dark:border-zinc-800 flex flex-col items-center relative animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button X */}
+              <button
+                onClick={() => setShowMoodPopup(false)}
+                className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+                aria-label="Tutup"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {!moodSubmitted ? (
+                <>
+                  {/* Badge */}
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[11px] font-bold tracking-tight mb-2">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Employee Experience</span>
+                  </div>
+
+                  <h3 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight text-center">
+                    Gimana perasaanmu hari ini?
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 text-center leading-relaxed px-2">
+                    Ekspresikan suasana hatimu setelah beraktivitas. Jawabanmu terjaga anonim & rahasia.
+                  </p>
+
+                  {/* 5 Animasi Emojis Lottie (.json internal) - Ukuran Lebih Besar */}
+                  <div className="grid grid-cols-5 gap-1.5 sm:gap-2 w-full my-5">
+                    {MOODS.map((m) => (
+                      <button
+                        key={m.type}
+                        onClick={() => handleSelectMood(m.type)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-2xl border transition-all active:scale-90 shadow-xs",
+                          selectedMood === m.type
+                            ? "bg-purple-500/15 border-purple-500 ring-2 ring-purple-500/30"
+                            : "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700/60"
+                        )}
+                      >
+                        {/* Lottie Animation: 52px - 56px (lebih dari 2x lebih besar dari 24px) */}
+                        <div className="w-13 h-13 sm:w-14 sm:h-14 flex items-center justify-center pointer-events-none">
+                          <Lottie 
+                            animationData={m.animation} 
+                            loop={true} 
+                            autoplay={true}
+                            className="w-full h-full"
+                          />
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] font-bold mt-1 text-zinc-800 dark:text-zinc-200 truncate w-full text-center">
+                          {m.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Action Link: Lewati */}
+                  <button
+                    onClick={() => setShowMoodPopup(false)}
+                    className="text-xs font-medium text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 py-1 transition-colors active:scale-95"
+                  >
+                    Lewati untuk sekarang
+                  </button>
+                </>
+              ) : (
+                /* Konfirmasi Setelah Memilih Mood */
+                <div className="w-full flex flex-col items-center text-center py-2 animate-in fade-in zoom-in-95 duration-200">
+                  {/* Animasi Lottie Terpilih: Sangat Besar (w-28 h-28 / 112px!) */}
+                  <div className="w-28 h-28 my-2 flex items-center justify-center pointer-events-none">
+                    {activeMoodConfig?.animation ? (
+                      <Lottie 
+                        animationData={activeMoodConfig.animation} 
+                        loop={true} 
+                        autoplay={true}
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <span className="text-6xl">{activeMoodConfig?.emoji}</span>
+                    )}
+                  </div>
+
+                  <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2 mt-1">
+                    {activeMoodConfig?.title}
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 px-3 leading-relaxed">
+                    {activeMoodConfig?.subtitle}
+                  </p>
+
+                  <div className="w-full mt-6 space-y-2">
+                    <button
+                      onClick={() => router.push("/m/dashboard")}
+                      className="w-full rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3 font-bold text-sm shadow-md active:scale-95 transition-all"
+                    >
+                      Selesai
+                    </button>
+                    <button
+                      onClick={() => setShowMoodPopup(false)}
+                      className="w-full text-xs font-semibold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 py-1 transition-colors"
+                    >
+                      Lihat Bukti Presensi
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
