@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2, MapPin, X, Clock, WifiOff, RefreshCw, CheckCircle2, CloudUpload, ShieldAlert, AlertTriangle, Sparkles } from "lucide-react"
+import { Loader2, MapPin, X, Clock, WifiOff, RefreshCw, CheckCircle2, CloudUpload, ShieldAlert, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
 import { format } from "date-fns"
@@ -100,6 +100,17 @@ export default function MobileFingerprint() {
   const [moodSubmitted, setMoodSubmitted] = useState(false)
   const [isSavingMood, setIsSavingMood] = useState(false)
   const [showMoodPopup, setShowMoodPopup] = useState(false)
+
+  // Auto-close popup mood setelah 10 detik jika tidak ada respon
+  useEffect(() => {
+    if (!showMoodPopup || moodSubmitted) return
+
+    const timer = setTimeout(() => {
+      setShowMoodPopup(false)
+    }, 10000)
+
+    return () => clearTimeout(timer)
+  }, [showMoodPopup, moodSubmitted])
   
   // Data Pegawai & Summary
   const [pegawaiData, setPegawaiData] = useState<any>(null)
@@ -651,11 +662,8 @@ export default function MobileFingerprint() {
           {isMidday && (
             <div className="w-full flex flex-col items-center text-center mt-1">
               <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2">
-                Presensi Siang Berhasil! 🍽️
+                Presensi Siang Berhasil!
               </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 px-3 leading-relaxed">
-                Selamat beristirahat dan makan siang. Tetap semangat untuk sesi sore nanti!
-              </p>
             </div>
           )}
 
@@ -677,9 +685,8 @@ export default function MobileFingerprint() {
             <button
               type="button"
               onClick={() => setShowMoodPopup(true)}
-              className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-purple-600 dark:hover:text-purple-400 text-xs font-semibold transition-all active:scale-95 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs"
+              className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-semibold transition-all active:scale-95 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs"
             >
-              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
               <span>Gimana perasaanmu hari ini?</span>
             </button>
           )}
@@ -744,13 +751,7 @@ export default function MobileFingerprint() {
 
               {!moodSubmitted ? (
                 <>
-                  {/* Badge */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[11px] font-bold tracking-tight mb-2">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Employee Experience</span>
-                  </div>
-
-                  <h3 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight text-center">
+                  <h3 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight text-center mt-2">
                     Gimana perasaanmu hari ini?
                   </h3>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 text-center leading-relaxed px-2">
