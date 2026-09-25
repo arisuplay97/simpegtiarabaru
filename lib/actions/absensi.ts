@@ -795,6 +795,8 @@ export async function getSystemSettings() {
       dendaAlpa: pengaturan?.dendaAlpa || 7500,
       tunjanganTransport: pengaturan?.tunjanganTransport || 120000,
       batasAlpaDendaTransport: pengaturan?.batasAlpaDendaTransport || 3,
+      namaPerusahaan: pengaturan?.namaPerusahaan || "Tirta Ardhia Rinjani",
+      alamatPerusahaan: pengaturan?.alamatPerusahaan || "Jl. Ahmad Yani No. 11, Praya, Lombok Tengah",
     }
   } catch (error) {
     console.error("Error getSystemSettings:", error)

@@ -394,9 +394,6 @@ function KalenderContent() {
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
                   Kalender & Matriks Kehadiran
                 </h1>
-                <Badge variant="outline" className="text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-900/60 font-mono">
-                  WITA (UTC+8)
-                </Badge>
                 <Badge variant="outline" className="text-xs font-normal text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800">
                   {BULAN_NAMES[bulan - 1]} {tahun}
                 </Badge>
@@ -509,38 +506,38 @@ function KalenderContent() {
             {[
               {
                 title: "Total Pegawai",
-                value: matrixData?.summary?.totalPegawai || 0,
-                sub: "Pegawai aktif",
+                value: (matrixData?.summary?.totalPegawai || 0).toLocaleString("id-ID"),
+                sub: "Pegawai aktif terdaftar",
                 icon: Users,
               },
               {
                 title: "Hadir Tepat Waktu",
-                value: matrixData?.summary?.totalHadir || 0,
-                sub: "Presensi normal",
+                value: (matrixData?.summary?.totalHadir || 0).toLocaleString("id-ID"),
+                sub: "Akumulasi presensi sebulan",
                 icon: CheckCircle2,
               },
               {
                 title: "Terlambat (T)",
-                value: matrixData?.summary?.totalTerlambat || 0,
-                sub: "Lewat toleransi",
+                value: (matrixData?.summary?.totalTerlambat || 0).toLocaleString("id-ID"),
+                sub: "Akumulasi presensi sebulan",
                 icon: Clock3,
               },
               {
                 title: "Izin & Sakit (I/S)",
-                value: matrixData?.summary?.totalIzinSakit || 0,
-                sub: "Izin dinas & medis",
+                value: (matrixData?.summary?.totalIzinSakit || 0).toLocaleString("id-ID"),
+                sub: "Akumulasi hari izin & dinas",
                 icon: AlertTriangle,
               },
               {
                 title: "Cuti Resmi (C)",
-                value: matrixData?.summary?.totalCuti || 0,
-                sub: "Pengajuan disetujui",
+                value: (matrixData?.summary?.totalCuti || 0).toLocaleString("id-ID"),
+                sub: "Akumulasi hari cuti disetujui",
                 icon: Calendar,
               },
               {
                 title: "Alpha (A)",
-                value: matrixData?.summary?.totalAlpha || 0,
-                sub: "Tanpa keterangan",
+                value: (matrixData?.summary?.totalAlpha || 0).toLocaleString("id-ID"),
+                sub: "Akumulasi hari tanpa presensi",
                 icon: AlertCircle,
               },
             ].map((c, idx) => (

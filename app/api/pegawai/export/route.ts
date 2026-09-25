@@ -132,15 +132,19 @@ export async function GET(req: NextRequest) {
       ]
     }
 
-    // Ambil data pegawai dengan filter yang diterapkan
-    let employees = await prisma.pegawai.findMany({
-      where,
-      include: {
-        bidang: true,
-        subBidang: true,
-        user: { select: { email: true, username: true, role: true } },
-      },
-    })
+    // Ambil data pegawai dengan filter yang diterapkan beserta pengaturan sistem
+    const [rawEmployees, pengaturan] = await Promise.all([
+      prisma.pegawai.findMany({
+        where,
+        include: {
+          bidang: true,
+          subBidang: true,
+          user: { select: { email: true, username: true, role: true } },
+        },
+      }),
+      prisma.pengaturan.findFirst(),
+    ])
+    let employees = rawEmployees
 
     // Filter tambahan untuk "pusat" / "cabang" yang tidak bisa di-query langsung
     if (filterBidang === "pusat") {
@@ -460,15 +464,18 @@ export async function GET(req: NextRequest) {
         doc.text("PEMERINTAH KABUPATEN LOMBOK TENGAH", pageWidth / 2, y, { align: "center" })
         y += 4.5
 
+        const companyName = pengaturan?.namaPerusahaan ? `PERUMDA AIR MINUM ${pengaturan.namaPerusahaan.toUpperCase()}` : "PERUMDA AIR MINUM TIRTA ARDHIA RINJANI"
+        const companyAddress = (pengaturan?.alamatPerusahaan || "Jl. Ahmad Yani No. 11, Praya, Lombok Tengah").trim()
+
         doc.setFontSize(13)
         doc.setTextColor(30, 58, 138) // Deep Blue
-        doc.text("PERUMDA AIR MINUM TIRTA ARDHIA RINJANI", pageWidth / 2, y, { align: "center" })
+        doc.text(companyName, pageWidth / 2, y, { align: "center" })
         y += 4.2
 
         doc.setFont("helvetica", "normal")
         doc.setFontSize(8)
         doc.setTextColor(100, 116, 139)
-        doc.text("Jl. Gajah Mada No. 10, Praya, Kabupaten Lombok Tengah, NTB | Telepon: (0370) 654321 | SIMPEG TIARA", pageWidth / 2, y, { align: "center" })
+        doc.text(`${companyAddress} | SIMPEG TIARA`, pageWidth / 2, y, { align: "center" })
         y += 3.5
 
         // Garis Pembatas Kop Ganda

@@ -1256,7 +1256,7 @@ export default function EmployeeListPage() {
                   const tj = (e.tipeJabatan || "").toLowerCase()
                   return tj === "kontrak" || j.includes("capeg") || j.includes("pkwt") || j.includes("kontrak")
                 }).length,
-                subtext: "Waktu tertentu / capeg",
+                subtext: "Waktu tertentu",
                 icon: Briefcase,
                 dot: "bg-indigo-500",
               },

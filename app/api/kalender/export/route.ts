@@ -705,15 +705,18 @@ export async function GET(req: NextRequest) {
         doc.text("PEMERINTAH KABUPATEN LOMBOK TENGAH", pageWidth / 2, y, { align: "center" })
         y += 4
 
+        const companyName = (settings as any).namaPerusahaan ? `PERUMDA AIR MINUM ${(settings as any).namaPerusahaan.toUpperCase()}` : "PERUMDA AIR MINUM TIRTA ARDHIA RINJANI"
+        const companyAddress = ((settings as any).alamatPerusahaan || "Jl. Ahmad Yani No. 11, Praya, Lombok Tengah").trim()
+
         doc.setFontSize(12.5)
         doc.setTextColor(30, 58, 138) // Deep Blue
-        doc.text("PERUMDA AIR MINUM TIRTA ARDHIA RINJANI", pageWidth / 2, y, { align: "center" })
+        doc.text(companyName, pageWidth / 2, y, { align: "center" })
         y += 3.8
 
         doc.setFont("helvetica", "normal")
         doc.setFontSize(7.5)
         doc.setTextColor(100, 116, 139)
-        doc.text("Jl. Gajah Mada No. 10, Praya, Kabupaten Lombok Tengah, NTB | Telepon: (0370) 654321 | SIMPEG TIARA", pageWidth / 2, y, { align: "center" })
+        doc.text(`${companyAddress} | SIMPEG TIARA`, pageWidth / 2, y, { align: "center" })
         y += 3
 
         // Garis Pembatas Kop Ganda

@@ -322,6 +322,10 @@ export async function getKalenderMatrix(
           code = "L"
           statusLabel = "Libur Akhir Pekan"
           totalLibur++
+        } else if (p.bebasAbsensi) {
+          // Pegawai dengan status bebas absensi (direksi/khusus) tidak diakumulasi sebagai Alpha
+          code = "-"
+          statusLabel = "Bebas Absensi"
         } else if (isPast) {
           code = "A"
           statusLabel = "Alpha (Tidak Hadir)"

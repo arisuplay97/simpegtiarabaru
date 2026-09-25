@@ -315,31 +315,7 @@ export function SidebarNav() {
             <X className="h-4 w-4" strokeWidth={1.75} />
           </button>
         )}
-        {!isMobileMode && !collapsed && (
-          <button
-            onClick={() => setCollapsed(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100/90 hover:bg-slate-200/80 dark:bg-zinc-800/90 dark:hover:bg-zinc-700/80 border border-slate-200/70 dark:border-zinc-700/70 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all shadow-2xs"
-            title="Ciutkan Sidebar"
-            aria-label="Ciutkan Sidebar"
-          >
-            <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
-          </button>
-        )}
       </div>
-
-      {/* Expand button saat collapsed */}
-      {!isMobileMode && collapsed && (
-        <div className="flex justify-center py-2 border-b border-slate-100 dark:border-zinc-800/80">
-          <button
-            onClick={() => setCollapsed(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100/90 hover:bg-slate-200/80 dark:bg-zinc-800/90 dark:hover:bg-zinc-700/80 border border-slate-200/70 dark:border-zinc-700/70 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all shadow-2xs"
-            title="Perluas Sidebar"
-            aria-label="Perluas Sidebar"
-          >
-            <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
-          </button>
-        </div>
-      )}
 
       {/* ── USER CARD ── */}
       {(isMobileMode || !collapsed) && (
@@ -479,6 +455,16 @@ export function SidebarNav() {
           collapsed ? "w-[72px]" : "w-[260px]"
         )}
       >
+        {/* Tombol Sidebar menempel di luar garis pembatas, tanpa border */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3.5 top-5 z-50 hidden md:flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-[#18181b] shadow-md hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all border-none outline-none cursor-pointer"
+          title={collapsed ? "Perluas Sidebar" : "Ciutkan Sidebar"}
+          aria-label={collapsed ? "Perluas Sidebar" : "Ciutkan Sidebar"}
+        >
+          <PanelLeft className="h-4 w-4" strokeWidth={1.75} />
+        </button>
+
         {sidebarContent(false)}
       </aside>
 
