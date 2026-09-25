@@ -373,7 +373,7 @@ export default function MobileFingerprint() {
           waktu: format(new Date(), "HH:mm")
         })
         setDone(true)
-        setShowMoodPopup(true)
+        setTimeout(() => setShowMoodPopup(true), 1200)
         updateQueueCount()
         triggerHaptic("success")
 
@@ -436,7 +436,7 @@ export default function MobileFingerprint() {
         menitTerlambat: data.menitTerlambat || 0
       })
       setDone(true)
-      setShowMoodPopup(true)
+      setTimeout(() => setShowMoodPopup(true), 1200)
 
       try {
         const todayStr = format(new Date(), "yyyy-MM-dd")
@@ -463,7 +463,7 @@ export default function MobileFingerprint() {
             waktu: format(new Date(), "HH:mm")
           })
           setDone(true)
-          setShowMoodPopup(true)
+          setTimeout(() => setShowMoodPopup(true), 1200)
           updateQueueCount()
           triggerHaptic("success")
           toast.info("Koneksi terputus saat mengirim. Presensi telah diamankan ke antrian offline.")
@@ -609,20 +609,22 @@ export default function MobileFingerprint() {
             <X className="w-4 h-4" />
           </button>
 
+          {/* ── Animasi Berhasil Absensi (success.json) ── */}
+          <div className="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center my-1 pointer-events-none">
+            <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
+          </div>
+
           {/* 1. KONDISI ABSEN MASUK (PAGI) */}
           {isCheckIn && (
-            <div className="w-full flex flex-col items-center text-center mt-2">
-              <div className="text-5xl my-2 animate-bounce">
-                {morningGreeting.emoji}
-              </div>
+            <div className="w-full flex flex-col items-center text-center mt-1">
               <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2">
                 {morningGreeting.title}
               </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 px-3 leading-relaxed">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 px-3 leading-relaxed">
                 {morningGreeting.subtitle}
               </p>
 
-              <div className="inline-flex items-center gap-2 mt-4 px-3.5 py-1.5 rounded-full border text-xs font-bold tracking-tight shadow-2xs">
+              <div className="inline-flex items-center gap-2 mt-3 px-3.5 py-1.5 rounded-full border text-xs font-bold tracking-tight shadow-2xs">
                 <span className={cn("px-2.5 py-0.5 rounded-full border text-[11px]", morningGreeting.badgeColor)}>
                   {morningGreeting.badge}
                 </span>
@@ -636,13 +638,10 @@ export default function MobileFingerprint() {
           {/* 2. KONDISI ABSEN PULANG (SORE) */}
           {isCheckOut && (
             <div className="w-full flex flex-col items-center text-center mt-1">
-              <div className="w-16 h-16 flex items-center justify-center mb-1">
-                <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
-              </div>
-              <h2 className="text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+              <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2">
                 Presensi Pulang Berhasil! ✨
               </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 px-3 leading-relaxed">
                 Terima kasih atas kerja keras & dedikasimu hari ini. Selamat beristirahat!
               </p>
             </div>
@@ -650,14 +649,11 @@ export default function MobileFingerprint() {
 
           {/* 3. KONDISI ABSEN SIANG */}
           {isMidday && (
-            <div className="w-full flex flex-col items-center text-center mt-2">
-              <div className="w-20 h-20 flex items-center justify-center my-1">
-                <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
-              </div>
-              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+            <div className="w-full flex flex-col items-center text-center mt-1">
+              <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2">
                 Presensi Siang Berhasil! 🍽️
               </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 px-3">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 px-3 leading-relaxed">
                 Selamat beristirahat dan makan siang. Tetap semangat untuk sesi sore nanti!
               </p>
             </div>
