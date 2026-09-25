@@ -101,7 +101,7 @@ function ScoringGuide() {
     {
       icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
       label: "Kehadiran",
-      bobot: "40%",
+      bobot: "50%",
       bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800",
       accent: "text-emerald-700 dark:text-emerald-400",
       detail: "Persentase hari hadir (termasuk terlambat) dari total hari kerja efektif bulan ini.",
@@ -126,21 +126,10 @@ function ScoringGuide() {
       bobot: "20%",
       bg: "bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800",
       accent: "text-rose-700 dark:text-rose-400",
-      detail: "Penalti atas absensi tanpa keterangan yang valid (Alpha).",
-      rumus: "Skor = max(0, 100 − (Alpha × 10))",
-      plus: "Tidak ada Alpha = skor penuh 100.",
-      minus: "Setiap 1 hari Alpha mengurangi 10 poin dari komponen ini.",
-    },
-    {
-      icon: <HeartHandshake className="h-4 w-4 text-purple-500" />,
-      label: "Perilaku & Sanksi",
-      bobot: "10%",
-      bg: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800",
-      accent: "text-purple-700 dark:text-purple-400",
-      detail: "Berdasarkan ada tidaknya Surat Peringatan (SP) aktif yang tercatat di sistem.",
-      rumus: "SP1 = −20 poin, SP2 = −40 poin, SP3 = −60 poin",
-      plus: "Tanpa SP aktif = skor perilaku penuh 100.",
-      minus: "Setiap level SP aktif akan memberikan pengurangan bertingkat.",
+      detail: "Penalti atas ketidakhadiran tanpa keterangan (Alpha), keterlambatan, atau bolos per sesi (Pagi/Siang/Sore).",
+      rumus: "Skor = max(0, 20 − (Alpha × 5) − (Terlambat × 1) − (Sesi Bolos × 2))",
+      plus: "Absensi lengkap di setiap sesi & tepat waktu = skor penuh 20 poin.",
+      minus: "Alpha (-5 poin), Terlambat (-1 poin), dan Tidak Hadir per sesi Pagi/Siang/Sore (-2 poin/kejadian).",
     },
   ]
 
@@ -176,7 +165,7 @@ function ScoringGuide() {
             <div className="rounded-xl border border-blue-100 dark:border-blue-900/30 bg-white dark:bg-neutral-900 p-4">
               <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-2">Formula Total Skor</p>
               <p className="text-sm font-mono font-bold text-neutral-800 dark:text-neutral-100">
-                Skor = (Kehadiran × 40%) + (Ketepatan × 30%) + (Absensi Bersih × 20%) + (Perilaku × 10%)
+                Skor = (Kehadiran × 50%) + (Ketepatan × 30%) + (Absensi Bersih × 20%)
               </p>
             </div>
 

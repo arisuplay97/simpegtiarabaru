@@ -159,6 +159,7 @@ model Pegawai {
   penilaianAtasan       PenilaianAtasan[] @relation("PenilaianPegawai")
   penilaianDibuat       PenilaianAtasan[] @relation("PenilaianPenilai")
   koreksiAbsensi        KoreksiAbsensi[]
+  employeeMoods         EmployeeMood[]
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -229,6 +230,7 @@ model Cuti {
   status         StatusCuti @default(PENDING)
   alasan         String
   dokumenUrl     String?    // URL foto surat keterangan dokter / bukti izin
+  alasanPenolakan String?   // Catatan/alasan jika permohonan cuti ditolak
   pegawai        Pegawai    @relation(fields: [pegawaiId], references: [id])
   createdAt      DateTime   @default(now())
 
@@ -866,6 +868,7 @@ model IndeksPegawai {
   hadirCount      Int      @default(0)
   terlambatCount  Int      @default(0)
   alphaCount      Int      @default(0)
+  missedSessionsCount Int  @default(0)
   spAktif         Boolean  @default(false)
   pegawai         Pegawai  @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
   penilaianAtasan PenilaianAtasan[]
@@ -1018,4 +1021,28 @@ enum JenisKoreksi {
   DINAS_LUAR
   ERROR_SISTEM
   LAINNYA
+}
+
+// ============ EMPLOYEE MOOD (EMPLOYEE EXPERIENCE) ============
+enum MoodType {
+  HAPPY
+  NEUTRAL
+  SAD
+  TIRED
+  ANGRY
+}
+
+model EmployeeMood {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  pegawaiId String   @db.Uuid
+  date      DateTime
+  mood      MoodType
+  createdAt DateTime @default(now())
+
+  pegawai   Pegawai  @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
+
+  @@unique([pegawaiId, date])
+  @@index([date])
+  @@index([mood])
+  @@index([pegawaiId])
 }

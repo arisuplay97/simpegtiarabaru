@@ -83,6 +83,16 @@ export async function createCuti(payload: any) {
       return { error: `Saldo cuti tidak mencukupi. Sisa saldo: ${pegawai.saldoCuti} hari.` }
     }
 
+    // Validasi Cuti Sakit: Wajib lampirkan foto / file surat keterangan dokter
+    const isCutiSakit = typeof payload.jenisCuti === "string" && (
+      payload.jenisCuti === "Cuti Sakit" || 
+      payload.jenisCuti === "SAKIT" || 
+      payload.jenisCuti.toLowerCase().includes("sakit")
+    )
+    if (isCutiSakit && (!payload.dokumenUrl || typeof payload.dokumenUrl !== "string" || payload.dokumenUrl.trim() === "")) {
+      return { error: "Pengajuan Cuti Sakit wajib melampirkan foto atau file surat keterangan dokter!" }
+    }
+
     const newCuti = await prisma.cuti.create({
       data: {
         pegawaiId: pegawai.id,
@@ -132,7 +142,7 @@ export async function createCuti(payload: any) {
   }
 }
 
-export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "REJECTED") {
+export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "REJECTED", catatan?: string) {
   try {
     const session = await auth()
     if (!session?.user || (session.user.role !== "HRD" && session.user.role !== "SUPERADMIN")) {
@@ -214,9 +224,14 @@ export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "
       }
     }
 
+    const updateData: any = { status: newStatus }
+    if (newStatus === "REJECTED") {
+      updateData.alasanPenolakan = catatan || "Ditolak oleh HRD / Manajemen"
+    }
+
     const updatedCuti = await prisma.cuti.update({
       where: { id: cutiId },
-      data: { status: newStatus }
+      data: updateData
     })
 
     await logAudit({
@@ -241,10 +256,11 @@ export async function updateCutiStatus(cutiId: string, newStatus: "APPROVED" | "
             "/m/cuti"
           )
         } else {
+          const rejectionNote = catatan ? ` Alasan: "${catatan}"` : ""
           await createNotification(
             cuti.pegawai.userId,
             "Permohonan Cuti Ditolak ❌",
-            `Permohonan ${cuti.jenisCuti} Anda (${tglMulaiStr} – ${tglSelesaiStr}) DITOLAK oleh HRD. Hubungi HRD untuk info lebih lanjut.`,
+            `Permohonan ${cuti.jenisCuti} Anda (${tglMulaiStr} – ${tglSelesaiStr}) DITOLAK oleh HRD.${rejectionNote}`,
             "/m/cuti"
           )
         }

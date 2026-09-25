@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "./audit-log"
+import { hitungIndeksPegawai } from "./indeks"
 
 // ============ TYPES ============
 export type SesiAbsensiType = "MASUK" | "SIANG" | "PULANG"
@@ -344,6 +345,12 @@ export async function processKoreksiAbsensi(
         await tx.absensi.create({ data: createData })
       }
     })
+
+    // Otomatis hitung ulang indeks disiplin pegawai agar skor langsung berubah realtime
+    try {
+      const d = new Date(koreksi.tanggal)
+      hitungIndeksPegawai(koreksi.pegawaiId, d.getMonth() + 1, d.getFullYear()).catch(() => {})
+    } catch (_) {}
 
     // Notifikasi ke pegawai (di luar transaction, boleh gagal tanpa rollback)
     try {

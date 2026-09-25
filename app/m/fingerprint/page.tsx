@@ -15,6 +15,8 @@ import { detectFakeGps } from "@/lib/pwa/anti-fake-gps"
 import { FakeGpsModal } from "@/components/mobile/fake-gps-modal"
 import { queueMobileAbsensi, syncMobileOfflineQueue, getMobileQueue } from "@/lib/offline/absensi-queue"
 import { triggerHaptic } from "@/lib/pwa/haptics"
+import { saveEmployeeMood } from "@/lib/actions/mood"
+import { MoodType } from "@prisma/client"
 
 // Helper kalkulasi jarak Haversine (meter)
 function hitungJarak(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -81,7 +83,17 @@ export default function MobileFingerprint() {
   const [done, setDone] = useState(false)
   const [isOfflineQueued, setIsOfflineQueued] = useState(false)
   const [pendingQueueCount, setPendingQueueCount] = useState(0)
-  const [resultData, setResultData] = useState<{ status: string; tipe: string; waktu?: string } | null>(null)
+  const [resultData, setResultData] = useState<{
+    status: string
+    tipe: string
+    waktu?: string
+    menitTerlambat?: number
+  } | null>(null)
+
+  // Employee Experience — Mood Tracker State
+  const [selectedMood, setSelectedMood] = useState<MoodType | null>(null)
+  const [moodSubmitted, setMoodSubmitted] = useState(false)
+  const [isSavingMood, setIsSavingMood] = useState(false)
   
   // Data Pegawai & Summary
   const [pegawaiData, setPegawaiData] = useState<any>(null)
@@ -413,7 +425,8 @@ export default function MobileFingerprint() {
       setResultData({ 
         status: data.status || "HADIR", 
         tipe: finalTipe,
-        waktu: format(new Date(), "HH:mm")
+        waktu: data.jamMasuk || format(new Date(), "HH:mm"),
+        menitTerlambat: data.menitTerlambat || 0
       })
       setDone(true)
 
@@ -455,28 +468,107 @@ export default function MobileFingerprint() {
     }
   }, [location, isOnline, activeSession, geofenceStatus, pegawaiData])
 
-  // ===== SUCCESS / RECEIPT SCREEN =====
+  // ===== SUCCESS / RECEIPT SCREEN (EMPLOYEE EXPERIENCE) =====
   if (done) {
     const isCheckIn = resultData?.tipe === "CHECK_IN"
     const isMidday = resultData?.tipe === "CHECK_MIDDAY"
     const isCheckOut = resultData?.tipe === "CHECK_OUT"
 
-    const sessionTitle = isMidday 
-      ? "Presensi Siang Berhasil"
-      : isCheckIn 
-      ? "Presensi Masuk (Pagi) Berhasil" 
-      : "Presensi Pulang (Sore) Berhasil"
+    const isLate = resultData?.status === "TERLAMBAT"
+    const menitTerlambat = resultData?.menitTerlambat || 0
+    const isSeverelyLate = isLate && menitTerlambat >= 30
 
-    const sessionLabel = isMidday
-      ? "Absen Siang"
-      : isCheckIn
-      ? "Absen Pagi (Masuk)"
-      : "Absen Sore (Pulang)"
+    // Konfigurasi Ucapan Pagi (Employee Experience - Seksi 1)
+    const morningGreeting = isSeverelyLate
+      ? {
+          emoji: "😭",
+          title: "Aduh… kamu terlambat cukup lama hari ini 🥺",
+          subtitle: "Semoga besok perjalananmu lebih lancar dan bisa datang tepat waktu.",
+          badge: `Terlambat ${menitTerlambat} menit`,
+          badgeColor: "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-800",
+        }
+      : isLate
+      ? {
+          emoji: "😅",
+          title: "Hehe… hari ini agak telat.",
+          subtitle: "Besok kita coba lebih pagi lagi ya! 💪",
+          badge: menitTerlambat > 0 ? `Terlambat ${menitTerlambat} menit` : "Terlambat",
+          badgeColor: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-800",
+        }
+      : {
+          emoji: "🥳",
+          title: "Yeay! Kamu datang tepat waktu!",
+          subtitle: "Awal yang baik untuk memulai hari. Semangat ya! 💪",
+          badge: "Tepat Waktu",
+          badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+        }
+
+    // Pilihan Mood Pulang (Employee Experience - Seksi 2 & 3)
+    const MOODS: Array<{
+      type: MoodType
+      emoji: string
+      label: string
+      title: string
+      subtitle: string
+    }> = [
+      {
+        type: "HAPPY",
+        emoji: "😊",
+        label: "Senang",
+        title: "Yeay! Kamu pulang dengan perasaan senang! 🥳",
+        subtitle: "Aku ikut happy 😆 Sampai jumpa besok!",
+      },
+      {
+        type: "NEUTRAL",
+        emoji: "😐",
+        label: "Biasa saja",
+        title: "Hari ini biasa saja ya? 😌",
+        subtitle: "Semoga besok ada lebih banyak hal yang bikin kamu tersenyum!",
+      },
+      {
+        type: "SAD",
+        emoji: "😔",
+        label: "Sedih",
+        title: "Hari ini terasa berat ya? 🥺",
+        subtitle: "Istirahat yang cukup. Semoga besok jadi hari yang lebih baik.",
+      },
+      {
+        type: "TIRED",
+        emoji: "😫",
+        label: "Capek",
+        title: "Capek ya hari ini? 🥹",
+        subtitle: "Kamu sudah melakukan yang terbaik. Sekarang waktunya istirahat.",
+      },
+      {
+        type: "ANGRY",
+        emoji: "😡",
+        label: "Kesal",
+        title: "Hari ini cukup melelahkan ya? 😮‍💨",
+        subtitle: "Tinggalkan dulu urusan kantor, waktunya pulang dan istirahat.",
+      },
+    ]
+
+    const activeMoodConfig = MOODS.find(m => m.type === selectedMood)
+
+    const handleSelectMood = async (mood: MoodType) => {
+      triggerHaptic("medium")
+      setSelectedMood(mood)
+      setMoodSubmitted(true)
+      setIsSavingMood(true)
+      try {
+        await saveEmployeeMood(mood)
+      } catch (err) {
+        console.error("Gagal menyimpan mood:", err)
+      } finally {
+        setIsSavingMood(false)
+      }
+    }
 
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center p-5 bg-zinc-100/80 dark:bg-[#09090b]">
-        <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[28px] p-6 flex flex-col items-center border border-zinc-200/90 dark:border-zinc-800 shadow-xl relative overflow-hidden">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center p-4 bg-zinc-100/90 dark:bg-[#09090b] select-none">
+        <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[32px] p-6 flex flex-col items-center border border-zinc-200/90 dark:border-zinc-800 shadow-2xl relative overflow-hidden">
           
+          {/* Accent Line */}
           <div className={cn(
             "absolute top-0 left-0 right-0 h-1.5",
             isOfflineQueued 
@@ -484,61 +576,138 @@ export default function MobileFingerprint() {
               : isMidday
               ? "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500"
               : isCheckIn 
-              ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500" 
-              : "bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600"
+              ? (isSeverelyLate 
+                  ? "bg-gradient-to-r from-rose-500 to-amber-500" 
+                  : isLate 
+                  ? "bg-gradient-to-r from-amber-500 to-yellow-500" 
+                  : "bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500")
+              : "bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500"
           )} />
 
-          <div className="w-28 h-28 flex items-center justify-center my-1">
-            <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
-          </div>
+          {/* Close button X (Opsional & Cepat kembali) */}
+          <button
+            onClick={() => router.push("/m/dashboard")}
+            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+            aria-label="Tutup"
+          >
+            <X className="w-4 h-4" />
+          </button>
 
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center tracking-tight">
-            {isOfflineQueued ? `${sessionLabel} Tersimpan` : sessionTitle}
-          </h2>
+          {/* 1. KONDISI ABSEN MASUK (PAGI) */}
+          {isCheckIn && (
+            <div className="w-full flex flex-col items-center text-center mt-2">
+              <div className="text-5xl my-2 animate-bounce">
+                {morningGreeting.emoji}
+              </div>
+              <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2">
+                {morningGreeting.title}
+              </h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 px-3 leading-relaxed">
+                {morningGreeting.subtitle}
+              </p>
 
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 mt-2 mb-5">
-            <Clock className="w-3 h-3 text-zinc-400" />
-            <span>Pukul {resultData?.waktu || format(new Date(), "HH:mm")} WITA</span>
-            <span>·</span>
-            <span>{format(new Date(), "dd MMM yyyy", { locale: idLocale })}</span>
-          </div>
+              <div className="inline-flex items-center gap-2 mt-4 px-3.5 py-1.5 rounded-full border text-xs font-bold tracking-tight shadow-2xs">
+                <span className={cn("px-2.5 py-0.5 rounded-full border text-[11px]", morningGreeting.badgeColor)}>
+                  {morningGreeting.badge}
+                </span>
+                <span className="text-zinc-600 dark:text-zinc-300 font-semibold tabular-nums">
+                  Pukul {resultData?.waktu || format(new Date(), "HH:mm")} WITA
+                </span>
+              </div>
+            </div>
+          )}
 
-          <div className="w-full space-y-2.5 bg-zinc-50/80 dark:bg-zinc-800/40 p-4 rounded-2xl mb-5 border border-zinc-200/70 dark:border-zinc-800 text-xs">
-            <div className="flex justify-between items-center py-1">
-              <span className="text-zinc-500 dark:text-zinc-400">Metode</span>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                Tap Layar & GPS
+          {/* 2. KONDISI ABSEN PULANG (SORE & MOOD TRACKER) */}
+          {isCheckOut && (
+            <div className="w-full flex flex-col items-center text-center mt-1">
+              {!moodSubmitted ? (
+                <>
+                  <div className="w-16 h-16 flex items-center justify-center mb-1">
+                    <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
+                  </div>
+                  <h2 className="text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+                    Presensi Pulang Berhasil! ✨
+                  </h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 mb-4">
+                    Gimana perasaanmu hari ini?
+                  </p>
+
+                  {/* 5 Tombol Pilihan Mood (Touch Friendly) */}
+                  <div className="grid grid-cols-5 gap-2 w-full mb-3">
+                    {MOODS.map((m) => (
+                      <button
+                        key={m.type}
+                        onClick={() => handleSelectMood(m.type)}
+                        className={cn(
+                          "flex flex-col items-center justify-center py-3 px-1 rounded-2xl border transition-all active:scale-95 shadow-xs",
+                          selectedMood === m.type
+                            ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/30"
+                            : "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700/60"
+                        )}
+                      >
+                        <span className="text-2xl">{m.emoji}</span>
+                        <span className="text-[10px] font-semibold mt-1 text-zinc-700 dark:text-zinc-300 truncate w-full text-center">
+                          {m.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-3 italic">
+                    *Pilihan perasaan bersifat opsional & dijaga kerahasiaannya
+                  </p>
+                </>
+              ) : (
+                /* Respons Personal Setelah Memilih Mood */
+                <div className="w-full flex flex-col items-center text-center my-3 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="text-5xl my-2">
+                    {activeMoodConfig?.emoji || "😊"}
+                  </div>
+                  <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug px-2">
+                    {activeMoodConfig?.title}
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 px-3 leading-relaxed">
+                    {activeMoodConfig?.subtitle}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. KONDISI ABSEN SIANG */}
+          {isMidday && (
+            <div className="w-full flex flex-col items-center text-center mt-2">
+              <div className="w-20 h-20 flex items-center justify-center my-1">
+                <Lottie animationData={successAnimation} loop={false} className="w-full h-full" />
+              </div>
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                Presensi Siang Berhasil! 🍽️
+              </h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 px-3">
+                Selamat beristirahat dan makan siang. Tetap semangat untuk sesi sore nanti!
+              </p>
+            </div>
+          )}
+
+          {/* Rincian Tiket / Bukti Kehadiran */}
+          <div className="w-full space-y-2 bg-zinc-50/80 dark:bg-zinc-800/40 p-3.5 rounded-2xl my-4 border border-zinc-200/70 dark:border-zinc-800 text-xs">
+            <div className="flex justify-between items-center py-0.5">
+              <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">Waktu Presensi</span>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200 tabular-nums">
+                {resultData?.waktu || format(new Date(), "HH:mm")} WITA · {format(new Date(), "dd MMM yyyy", { locale: idLocale })}
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
-              <span className="text-zinc-500 dark:text-zinc-400">Jenis Presensi</span>
+            <div className="flex justify-between items-center py-0.5 border-t border-zinc-200/50 dark:border-zinc-800/60">
+              <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">Sesi Presensi</span>
               <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                {sessionLabel}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
-              <span className="text-zinc-500 dark:text-zinc-400">Status Kehadiran</span>
-              <span className={cn(
-                "font-semibold text-xs tracking-tight",
-                isOfflineQueued 
-                  ? "text-blue-600 dark:text-blue-400"
-                  : resultData?.status === "TERLAMBAT"
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-emerald-600 dark:text-emerald-400"
-              )}>
-                {isOfflineQueued 
-                  ? "Tersimpan Offline" 
-                  : isCheckIn 
-                    ? (resultData?.status === "TERLAMBAT" ? "Terlambat" : "Tepat Waktu") 
-                    : "Hadir"}
+                {isMidday ? "Absen Siang" : isCheckIn ? "Absen Masuk (Pagi)" : "Absen Pulang (Sore)"}
               </span>
             </div>
 
             {location && (
-              <div className="flex justify-between items-center py-1 border-t border-zinc-200/50 dark:border-zinc-800/60">
-                <span className="text-zinc-500 dark:text-zinc-400">Akurasi GPS</span>
+              <div className="flex justify-between items-center py-0.5 border-t border-zinc-200/50 dark:border-zinc-800/60">
+                <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">Akurasi GPS</span>
                 <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-zinc-400" />
                   ±{Math.round(location.accuracy)} meter
@@ -547,16 +716,22 @@ export default function MobileFingerprint() {
             )}
           </div>
 
-          <button 
-            onClick={() => router.push("/m/dashboard")} 
-            className="w-full rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3.5 font-bold text-sm shadow-md active:scale-95 transition-all"
-          >
-            Selesai & Kembali ke Beranda
-          </button>
+          {/* Tombol Aksi Utama */}
+          <div className="w-full space-y-2">
+            <button 
+              onClick={() => router.push("/m/dashboard")} 
+              className="w-full rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3.5 font-bold text-sm shadow-md active:scale-95 transition-all"
+            >
+              {isCheckOut && !moodSubmitted 
+                ? "Lewati & Kembali ke Beranda" 
+                : "Selesai & Kembali ke Beranda"}
+            </button>
+          </div>
         </div>
       </div>
     )
   }
+
 
   // ===== MAIN SCANNER SCREEN =====
   const isPusat = summaryData?.wajibAbsenSiang ?? true
@@ -725,7 +900,7 @@ export default function MobileFingerprint() {
           className="relative group active:scale-95 transition-all disabled:opacity-60 disabled:active:scale-100 flex flex-col items-center justify-center focus:outline-none"
         >
           <div className={cn(
-            "w-64 h-64 rounded-full relative flex items-center justify-center border-2 border-dashed transition-all duration-300",
+            "w-72 h-72 sm:w-80 sm:h-80 rounded-full relative flex items-center justify-center border-2 border-dashed transition-all duration-300",
             activeSession === "SIANG"
               ? "border-amber-500/30 bg-[radial-gradient(circle,rgba(245,158,11,0.14)_0%,rgba(24,24,27,0.7)_70%)] shadow-[0_0_35px_rgba(245,158,11,0.2)]"
               : activeSession === "SORE"
@@ -737,7 +912,7 @@ export default function MobileFingerprint() {
               <div className="absolute inset-0 rounded-full border-2 border-blue-400/40 animate-ping pointer-events-none" />
             )}
 
-            <div className="w-48 h-48 rounded-full bg-[#18181b] border-2 border-[#27272a] flex items-center justify-center shadow-xl overflow-hidden relative">
+            <div className="w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-[#18181b] border-2 border-[#27272a] flex items-center justify-center shadow-2xl overflow-hidden relative">
               <div className="w-full h-full p-2 relative z-10 flex items-center justify-center">
                 <Lottie 
                   lottieRef={fingerprintLottieRef}

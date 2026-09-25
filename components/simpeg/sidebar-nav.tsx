@@ -13,7 +13,7 @@ import {
   Banknote, ReceiptText, FileSpreadsheet, ArrowUpRight,
   Medal, CheckCheck, Target, Award,
   Files, FileSignature, ShieldAlert,
-  Settings2, Building2, UserCog, KeyRound, History, Bot,
+  Settings2, Building2, UserCog, KeyRound, History, Bot, Smile,
   ChevronRight, ChevronLeft, LogOut, X, Menu, PanelLeft
 } from "lucide-react"
 import { VerifiedBadge } from "@/components/simpeg/verified-badge"
@@ -63,6 +63,7 @@ const navigation: NavGroup[] = [
     icon: CalendarDays,
     items: [
       { title: "Absensi", href: "/absensi", icon: ScanFace },
+      { title: "Employee Experience", href: "/employee-experience", icon: Smile, allowedRoles: ["super_admin", "hrd", "direktur"] },
       { title: "Absensi Selfie", href: "/absensi/selfie", icon: Camera },
       { title: "Kalender Kehadiran", href: "/kalender", icon: CalendarDays },
       { title: "Cuti & Izin", href: "/cuti", icon: CalendarOff },

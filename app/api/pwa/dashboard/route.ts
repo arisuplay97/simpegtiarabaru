@@ -71,12 +71,24 @@ export async function GET() {
       role
     }
 
-    // Fetch summary absensi, pengumuman aktif, banners, dan unread count langsung di server secara paralel
-    const [summary, pengumuman, banners, unread] = await Promise.all([
+    const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Makassar" })
+    const todayDb = new Date(`${dateStr}T00:00:00.000Z`)
+
+    // Fetch summary absensi, pengumuman aktif, banners, unread count, dan todayMood langsung di server secara paralel
+    const [summary, pengumuman, banners, unread, todayMood] = await Promise.all([
       getEmployeeAttendanceSummary(pegawai.id).catch(() => null),
       getPengumumanAktif().catch(() => []),
       getBannersPwa(true).catch(() => []),
-      session.user.id ? getUnreadCount(session.user.id).catch(() => 0) : Promise.resolve(0)
+      session.user.id ? getUnreadCount(session.user.id).catch(() => 0) : Promise.resolve(0),
+      prisma.employeeMood.findUnique({
+        where: {
+          pegawaiId_date: {
+            pegawaiId: pegawai.id,
+            date: todayDb
+          }
+        },
+        select: { mood: true, createdAt: true }
+      }).catch(() => null)
     ])
 
     return NextResponse.json({
@@ -84,7 +96,8 @@ export async function GET() {
       summary,
       pengumuman,
       banners,
-      unread
+      unread,
+      todayMood
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

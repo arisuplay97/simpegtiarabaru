@@ -408,7 +408,14 @@ export async function processUnifiedApproval(
         revalidatePath("/cuti")
       } else {
         // Rejected — hanya update status cuti, tidak perlu sentuh absensi
-        await prisma.cuti.update({ where: { id: originalId }, data: { status: "REJECTED" } })
+        const rejectionNote = catatan || "Ditolak melalui Approval Center"
+        await prisma.cuti.update({
+          where: { id: originalId },
+          data: {
+            status: "REJECTED",
+            alasanPenolakan: rejectionNote
+          }
+        })
 
         // Notifikasi penolakan ke pegawai
         try {
@@ -421,8 +428,8 @@ export async function processUnifiedApproval(
               data: {
                 userId: cuti.pegawai.userId,
                 title: "Cuti Anda Ditolak ❌",
-                message: `Permohonan cuti ${cuti.jenisCuti.replace(/_/g, " ")} Anda telah ditolak.`,
-                link: "/cuti"
+                message: `Permohonan cuti ${cuti.jenisCuti.replace(/_/g, " ")} Anda telah ditolak. Alasan: ${rejectionNote}`,
+                link: "/m/cuti"
               }
             })
           }

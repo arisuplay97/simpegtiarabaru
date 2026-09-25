@@ -6,7 +6,8 @@ import Link from "next/link"
 import {
   Plus, Loader2, CalendarDays, CheckCircle2, Clock,
   XCircle, ArrowLeft, X, Camera, UploadCloud, FileText,
-  Paperclip, Trash2, Eye, ExternalLink, ShieldCheck, Download
+  Paperclip, Trash2, Eye, ExternalLink, ShieldCheck, Download,
+  AlertTriangle
 } from "lucide-react"
 import { getCutiList, createCuti } from "@/lib/actions/cuti"
 import { format } from "date-fns"
@@ -129,8 +130,18 @@ export default function MobileCuti() {
   }
 
   const handleSubmit = async () => {
-    if (!form.tanggalMulai || !form.tanggalSelesai || !form.alasan) {
-      toast.error("Semua field wajib diisi")
+    if (!form.tanggalMulai || !form.tanggalSelesai || !form.alasan?.trim()) {
+      toast.error("Semua field formulir cuti wajib diisi!")
+      return
+    }
+
+    const isSakit = typeof form.jenisCuti === "string" && (
+      form.jenisCuti === "Cuti Sakit" ||
+      form.jenisCuti.toLowerCase().includes("sakit")
+    )
+
+    if (isSakit && !selectedFile) {
+      toast.error("Pengajuan Cuti Sakit wajib melampirkan foto atau file surat keterangan dokter!")
       return
     }
 
@@ -242,6 +253,19 @@ export default function MobileCuti() {
                   </span>
                 </div>
 
+                {/* Tampilkan Alasan Ditolak jika status REJECTED */}
+                {c.status === "REJECTED" && (
+                  <div className="mt-2.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 p-2.5 text-xs text-rose-900 dark:text-rose-200">
+                    <div className="flex items-center gap-1.5 font-bold text-rose-700 dark:text-rose-400 mb-0.5">
+                      <XCircle className="h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                      <span>Alasan Penolakan:</span>
+                    </div>
+                    <p className="text-[11px] text-rose-800/90 dark:text-rose-300/90 leading-relaxed pl-5 font-medium">
+                      {c.alasanPenolakan || "Pengajuan cuti ditolak oleh pihak HRD / manajemen."}
+                    </p>
+                  </div>
+                )}
+
                 {/* Lampiran Surat Dokter / Bukti Pendukung */}
                 {c.dokumenUrl && (
                   <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
@@ -316,9 +340,9 @@ export default function MobileCuti() {
                   ))}
                 </select>
                 {form.jenisCuti === "Cuti Sakit" && (
-                  <p className="mt-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                    Cuti Sakit wajib melampirkan surat keterangan dokter.
+                  <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span>Cuti Sakit <strong>wajib</strong> melampirkan foto surat dokter / bukti faskes.</span>
                   </p>
                 )}
               </div>
@@ -358,23 +382,35 @@ export default function MobileCuti() {
               </div>
 
               {/* SECTION: UNGGAH FOTO SURAT DOKTER / BUKTI */}
-              <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/30 p-3.5 space-y-2.5">
+              <div className={cn(
+                "rounded-2xl border p-3.5 space-y-2.5 transition-colors",
+                form.jenisCuti === "Cuti Sakit" && !selectedFile
+                  ? "border-amber-300 dark:border-amber-700/80 bg-amber-50/40 dark:bg-amber-950/20 ring-1 ring-amber-400/20"
+                  : "border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/30"
+              )}>
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5 text-blue-500" />
                       Foto Surat Dokter / Bukti Izin
+                      {form.jenisCuti === "Cuti Sakit" && (
+                        <span className="text-rose-600 dark:text-rose-400 font-bold">*</span>
+                      )}
                     </label>
                     <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                       {form.jenisCuti === "Cuti Sakit" 
                         ? "Wajib melampirkan foto surat keterangan dokter dari faskes" 
-                        : "Lampiran bukti pendukung (Opsional, maks. 10MB)"}
+                        : "Lampiran bukti pendukung (Opsional, maks. 15MB)"}
                     </p>
                   </div>
 
-                  {form.jenisCuti === "Cuti Sakit" && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                      Penting
+                  {form.jenisCuti === "Cuti Sakit" ? (
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full">
+                      Wajib Diunggah
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-medium uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 px-2 py-0.5 rounded-full">
+                      Opsional
                     </span>
                   )}
                 </div>

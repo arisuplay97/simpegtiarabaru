@@ -2,14 +2,15 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
 
 // ============================================================
-// ALGORITMA SKOR (Bobot Total 100)
+// ALGORITMA SKOR MURNI ABSENSI (Bobot Total 100)
 // ============================================================
-// Disiplin Kehadiran  : 40 poin
+// Disiplin Kehadiran  : 50 poin
 // Ketepatan Waktu     : 30 poin
 // Absensi Bersih      : 20 poin
-// Perilaku / SP       : 10 poin
+// Perilaku / SP       : Dihilangkan (Fokus 100% pada Absensi)
 
 function getPredikat(skor: number): string {
   if (skor >= 90) return "SANGAT_BAIK"
@@ -30,13 +31,17 @@ function getPredikatLabel(predikat: string): string {
   return map[predikat] || predikat
 }
 
-// Helper: hitung hari kerja aktif dari tanggal awal s/d akhir (skip Sabtu Minggu)
-function hitungHariKerja(start: Date, end: Date): number {
+// Helper: hitung hari kerja aktif dari tanggal awal s/d akhir (membedakan pusat 5 hari vs cabang 6 hari)
+function hitungHariKerja(start: Date, end: Date, isCabang: boolean = false): number {
   let count = 0
   const cur = new Date(start)
   while (cur <= end) {
     const day = cur.getDay()
-    if (day !== 0 && day !== 6) count++
+    if (isCabang) {
+      if (day !== 0) count++ // Cabang: Senin s.d. Sabtu
+    } else {
+      if (day !== 0 && day !== 6) count++ // Pusat: Senin s.d. Jumat
+    }
     cur.setDate(cur.getDate() + 1)
   }
   return count
@@ -57,9 +62,11 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
   try {
     const pegawai = await prisma.pegawai.findUnique({
       where: { id: pegawaiId },
-      select: { id: true, nama: true, sp: true }
+      include: { lokasiAbsensi: true, bidang: true }
     })
     if (!pegawai) return { error: "Pegawai tidak ditemukan" }
+
+    const isCabang = isCabangEmployee(pegawai)
 
     const startDate = new Date(tahun, bulan - 1, 1, 0, 0, 0)
     const endDate = new Date(tahun, bulan, 0, 23, 59, 59)
@@ -67,7 +74,7 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     const isCurrentMonth = (bulan === now.getMonth() + 1 && tahun === now.getFullYear())
     const limitDate = isCurrentMonth ? now : endDate
 
-    const hariKerja = hitungHariKerja(startDate, limitDate)
+    const hariKerja = hitungHariKerja(startDate, limitDate, isCabang)
 
     const absensi = await prisma.absensi.findMany({
       where: { pegawaiId, tanggal: { gte: startDate, lte: endDate } }
@@ -103,7 +110,8 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     
     while (curDate <= limitDateAlpha) {
       const day = curDate.getDay()
-      if (day !== 0 && day !== 6) { // Bukan akhir pekan
+      const isWorkday = isCabang ? (day !== 0) : (day !== 0 && day !== 6)
+      if (isWorkday) {
         const dateStr = formatLocal(curDate)
         if (!absensiSet.has(dateStr)) {
           unrecordedCount++
@@ -122,14 +130,57 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     const excusedCount = absensi.filter(a => ['CUTI', 'SAKIT', 'IZIN'].includes(a.status)).length 
     const hariKerjaWajib = hariKerja > excusedCount ? hariKerja - excusedCount : 0
 
+    // Hitung ketidakhadiran per sesi (Pagi / Siang / Sore)
+    // Pusat: 3 sesi (Pagi, Siang, Sore)
+    // Cabang: 2 sesi (Pagi, Sore)
+    const todayStr = formatLocal(now)
+    const nowWita = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+    const currentHourWita = nowWita.getUTCHours()
+    const currentMinWita = nowWita.getUTCMinutes()
+    const currentTotalMinWita = currentHourWita * 60 + currentMinWita
+
+    let missedSessionsCount = 0
+
+    for (const a of absensi) {
+      if (['CUTI', 'SAKIT', 'IZIN', 'ALPA'].includes(a.status)) continue
+
+      const aDateStr = formatLocal(a.tanggal)
+      const isToday = aDateStr === todayStr
+
+      // Sesi Pagi (jamMasuk)
+      if (!a.jamMasuk) {
+        if (!isToday || currentTotalMinWita > 14 * 60) {
+          missedSessionsCount++
+        }
+      }
+
+      // Sesi Siang (jamSiang) - khusus Kantor Pusat
+      if (!isCabang) {
+        if (!a.jamSiang) {
+          if (!isToday || currentTotalMinWita > 14 * 60) {
+            missedSessionsCount++
+          }
+        }
+      }
+
+      // Sesi Sore (jamKeluar)
+      if (!a.jamKeluar) {
+        if (!isToday) {
+          missedSessionsCount++
+        } else if (currentTotalMinWita > 21 * 60) {
+          missedSessionsCount++
+        }
+      }
+    }
+
     // ─── Skor Komponen ───
     // Rasio hadir: seberapa konsisten pegawai hadir dari total wajib hadir
     const rasioHadir = hariKerjaWajib > 0 ? Math.min(1, hadirCount / hariKerjaWajib) : (excusedCount >= hariKerja && hariKerja > 0 ? 1 : 0)
 
-    // Skor Kehadiran (40 poin): proporsi hari hadir dibanding wajib hadir
+    // Skor Kehadiran (50 poin): proporsi hari hadir dibanding wajib hadir
     const skorKehadiran = hariKerjaWajib > 0
-      ? Math.min(40, (hadirCount / hariKerjaWajib) * 40)
-      : (hadirCount > 0 ? 40 : (hariKerja > 0 && excusedCount >= hariKerja ? 40 : 0))
+      ? Math.min(50, (hadirCount / hariKerjaWajib) * 50)
+      : (hadirCount > 0 ? 50 : (hariKerja > 0 && excusedCount >= hariKerja ? 50 : 0))
 
     // Skor Ketepatan (30 poin): FIX — dikalikan rasioHadir agar tidak bisa
     // mendapat nilai penuh jika jarang hadir (banyak alpha tetapi tepat waktu)
@@ -137,14 +188,14 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
       ? Math.min(30, ((hadirCount - terlambatCount) / hadirCount) * 30 * rasioHadir)
       : (hariKerjaWajib === 0 && excusedCount >= hariKerja ? 30 : 0)
 
-    // Skor Absen Bersih (20 poin): alpha -5/hari, terlambat -1/kejadian (lebih tegas)
-    const skorAbsenBersih = Math.max(0, 20 - (alphaCount * 5) - (terlambatCount * 1))
+    // Skor Absen Bersih (20 poin): alpha -5/hari, terlambat -1/kejadian, tidak hadir per sesi (pagi/siang/sore) -2/kejadian
+    const skorAbsenBersih = Math.max(0, 20 - (alphaCount * 5) - (terlambatCount * 1) - (missedSessionsCount * 2))
 
-    // Khusus sistem penilaian kedisiplinan absen ini, poin SP tidak dikurangi
-    const skorPerilaku = 10
+    // Penilaian Perilaku / SP dihilangkan (fokus murni 100% pada absensi)
+    const skorPerilaku = 0
 
     const totalSkor = Math.min(100, Math.round(
-      (skorKehadiran + skorKetepatan + skorAbsenBersih + skorPerilaku) * 10
+      (skorKehadiran + skorKetepatan + skorAbsenBersih) * 10
     ) / 10)
 
     const predikat = getPredikat(totalSkor)
@@ -153,12 +204,12 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
       where: { pegawaiId_bulan_tahun: { pegawaiId, bulan, tahun } },
       update: {
         skorKehadiran, skorKetepatan, skorAbsenBersih, skorPerilaku,
-        totalSkor, predikat, hariKerja, hadirCount, terlambatCount, alphaCount, spAktif
+        totalSkor, predikat, hariKerja, hadirCount, terlambatCount, alphaCount, missedSessionsCount, spAktif
       },
       create: {
         pegawaiId, bulan, tahun,
         skorKehadiran, skorKetepatan, skorAbsenBersih, skorPerilaku,
-        totalSkor, predikat, hariKerja, hadirCount, terlambatCount, alphaCount, spAktif
+        totalSkor, predikat, hariKerja, hadirCount, terlambatCount, alphaCount, missedSessionsCount, spAktif
       }
     })
 

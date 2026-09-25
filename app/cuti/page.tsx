@@ -83,6 +83,7 @@ interface LeaveRequest {
   duration: number
   reason: string
   dokumenUrl?: string | null
+  alasanPenolakan?: string | null
   status: "pending" | "approved" | "rejected"
   submittedDate: string
 }
@@ -177,6 +178,7 @@ export default function CutiPage() {
           duration: dur,
           reason: c.alasan,
           dokumenUrl: c.dokumenUrl || null,
+          alasanPenolakan: c.alasanPenolakan || null,
           status: normalizedStatus,
           submittedDate: format(new Date(c.createdAt), "dd MMM yyyy", {
             locale: id,
@@ -200,6 +202,10 @@ export default function CutiPage() {
     }
     if (!reason.trim()) {
       toast.error("Alasan cuti wajib diisi")
+      return
+    }
+    if (leaveType === "Cuti Sakit") {
+      toast.error("Pengajuan Cuti Sakit wajib melampirkan foto surat dokter. Silakan ajukan melalui aplikasi Mobile PWA.")
       return
     }
 
@@ -242,7 +248,17 @@ export default function CutiPage() {
   }
 
   const handleAction = async (id: string, action: "APPROVED" | "REJECTED") => {
-    const res = await updateCutiStatus(id, action)
+    let catatan: string | undefined = undefined
+    if (action === "REJECTED") {
+      const input = window.prompt("Masukkan alasan penolakan cuti (wajib diisi):")
+      if (!input || input.trim().length === 0) {
+        toast.error("Alasan penolakan wajib diisi!")
+        return
+      }
+      catatan = input.trim()
+    }
+
+    const res = await updateCutiStatus(id, action, catatan)
     if (res.error) {
       toast.error(res.error)
     } else {
@@ -524,6 +540,11 @@ export default function CutiPage() {
                                 <Paperclip className="h-3 w-3 shrink-0" />
                                 <span>Lihat Surat Bukti</span>
                               </button>
+                            )}
+                            {item.status === "rejected" && item.alasanPenolakan && (
+                              <div className="mt-1.5 p-1.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-[10px] text-rose-700 dark:text-rose-300">
+                                <span className="font-bold">Alasan Ditolak:</span> {item.alasanPenolakan}
+                              </div>
                             )}
                           </TableCell>
 

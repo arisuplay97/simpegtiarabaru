@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/audit-log"
 import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
+import { hitungIndeksPegawai } from "./indeks"
 
 // Format YYYY-MM-DD dan rentang hari ini berbasis zona waktu WITA (Asia/Makassar, UTC+8)
 // Menjamin reset jam absen tepat pukul 00:00 WITA, bukan mengikuti UTC server (08:00 WITA)
@@ -499,6 +500,12 @@ export async function updateAbsensi(
     }
 
     await prisma.absensi.update({ where: { id }, data: updateData })
+
+    // Otomatis hitung ulang indeks disiplin pegawai agar skor langsung berubah realtime
+    try {
+      const d = new Date(existing.tanggal)
+      hitungIndeksPegawai(existing.pegawaiId, d.getMonth() + 1, d.getFullYear()).catch(() => {})
+    } catch (_) {}
 
     await logAudit({
       action: "UPDATE",
@@ -1184,6 +1191,12 @@ export async function createAbsensiManual(data: { pegawaiId: string, tanggal: st
       targetName: `Tambah Absensi: ${absensi.pegawai.nama} — ${dbStatus}`,
       newData: absensi as any,
     })
+
+    // Otomatis hitung ulang indeks disiplin pegawai agar skor langsung berubah realtime
+    try {
+      const d = new Date(dateObj)
+      hitungIndeksPegawai(pegawaiId, d.getMonth() + 1, d.getFullYear()).catch(() => {})
+    } catch (_) {}
 
     return { success: true }
   } catch (error: any) {

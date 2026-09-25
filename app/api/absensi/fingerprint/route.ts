@@ -366,6 +366,9 @@ export async function POST(req: Request) {
 
     const statusAbsen = currentTotalM > limitMasukTotalM ? "TERLAMBAT" : "HADIR"
 
+    const menitTerlambat = statusAbsen === "TERLAMBAT" ? Math.max(0, currentTotalM - (jh * 60 + jm)) : 0
+    const jamMasukStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`
+
     if (existing) {
       const updated = await prisma.absensi.update({
         where: { id: existing.id },
@@ -379,7 +382,7 @@ export async function POST(req: Request) {
         } as any
       })
       hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
-      return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_IN" })
+      return NextResponse.json({ success: true, status: updated.status, tipe: "CHECK_IN", menitTerlambat, jamMasuk: jamMasukStr })
     } else {
       const created = await prisma.absensi.create({
         data: {
@@ -394,7 +397,7 @@ export async function POST(req: Request) {
         } as any
       })
       hitungIndeksPegawai(pegawaiId, now.getMonth() + 1, now.getFullYear()).catch(() => {})
-      return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_IN" })
+      return NextResponse.json({ success: true, status: created.status, tipe: "CHECK_IN", menitTerlambat, jamMasuk: jamMasukStr })
     }
 
     } finally {
