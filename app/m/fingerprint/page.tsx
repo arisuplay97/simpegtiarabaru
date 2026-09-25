@@ -353,6 +353,21 @@ export default function MobileFingerprint() {
       return
     }
 
+    // Validasi Hari Libur Operasional (Minggu & Sabtu Pusat)
+    const nowWita = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Makassar" }))
+    const dayOfWeek = nowWita.getDay()
+    if (dayOfWeek === 0) {
+      triggerHaptic("error")
+      toast.error("Hari Minggu adalah hari libur operasional. Presensi ditutup.", { id: "absen-error" })
+      return
+    }
+
+    if (dayOfWeek === 6 && !summaryData?.isCabang) {
+      triggerHaptic("error")
+      toast.error("Hari Sabtu adalah hari libur untuk kantor pusat. Presensi hari Sabtu khusus pegawai kantor cabang.", { id: "absen-error" })
+      return
+    }
+
     // Validasi Geofence sebelum submit jika online dan bukan bebas absensi
     if (isOnline && geofenceStatus && !geofenceStatus.isInside && !pegawaiData?.bebasAbsensi) {
       triggerHaptic("error")
@@ -847,6 +862,12 @@ export default function MobileFingerprint() {
 
   // ===== MAIN SCANNER SCREEN =====
   const isPusat = summaryData?.wajibAbsenSiang ?? true
+  const isCabang = summaryData?.isCabang ?? false
+  const nowWita = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Makassar" }))
+  const dayOfWeek = nowWita.getDay()
+  const isSunday = dayOfWeek === 0
+  const isSaturdayPusat = dayOfWeek === 6 && !isCabang
+  const isHolidayClosed = isSunday || isSaturdayPusat
 
   return (
     <div 
@@ -919,6 +940,21 @@ export default function MobileFingerprint() {
 
       {/* Watermark Clock Card */}
       <WatermarkClock />
+
+      {/* Banner Hari Libur Operasional */}
+      {isHolidayClosed && (
+        <div className="w-full max-w-sm mb-3 px-3.5 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2.5 shadow-2xs">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+          <div className="text-left leading-tight">
+            <span className="block font-bold">Hari Libur Operasional</span>
+            <span className="text-[11px] font-normal text-rose-300/90 mt-0.5 block">
+              {isSunday 
+                ? "Hari Minggu presensi ditutup untuk seluruh unit." 
+                : "Hari Sabtu adalah hari libur untuk kantor pusat."}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Type Switcher (3 Sesi untuk Pusat, 2 Sesi untuk Cabang) */}
       {isPusat ? (
@@ -1053,6 +1089,8 @@ export default function MobileFingerprint() {
               "text-xs font-bold px-6 py-2.5 rounded-full shadow-lg border tracking-wider uppercase inline-flex items-center gap-2 transition-all",
               isSubmitting
                 ? "bg-blue-600 text-white border-blue-500 shadow-blue-500/30"
+                : isHolidayClosed
+                ? "bg-rose-950/40 text-rose-300 border-rose-500/30"
                 : "bg-[#18181b] text-zinc-100 border-[#27272a]"
             )}>
               {isSubmitting ? (
@@ -1060,6 +1098,8 @@ export default function MobileFingerprint() {
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                   Memproses Presensi...
                 </>
+              ) : isHolidayClosed ? (
+                "Presensi Ditutup (Hari Libur)"
               ) : !isOnline ? (
                 activeSession === "SIANG" ? "Tap untuk Siang (Offline)" : activeSession === "SORE" ? "Tap untuk Pulang (Offline)" : "Tap untuk Masuk (Offline)"
               ) : activeSession === "SIANG" ? (
