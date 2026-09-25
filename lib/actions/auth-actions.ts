@@ -5,8 +5,8 @@ import bcrypt from "bcryptjs"
 import { auth } from "@/lib/auth"
 
 export async function changePassword(newPassword: string) {
-  if (!newPassword || newPassword.length < 8) {
-    return { error: "Password minimal 8 karakter" }
+  if (!newPassword || newPassword.length < 4) {
+    return { error: "Password minimal 4 digit / karakter" }
   }
 
   const session = await auth()
@@ -40,8 +40,8 @@ export async function changePasswordWithVerification(currentPassword: string, ne
     const isMatch = await bcrypt.compare(currentPassword, user.password)
     if (!isMatch) return { error: "Password saat ini salah!" }
 
-    if (!newPassword || newPassword.length < 8) {
-      return { error: "Password baru minimal 8 karakter" }
+    if (!newPassword || newPassword.length < 4) {
+      return { error: "Password baru minimal 4 digit / karakter" }
     }
 
     const hashed = await bcrypt.hash(newPassword, 10)

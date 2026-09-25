@@ -158,8 +158,8 @@ export default function MobileProfil() {
       toast.error("Password baru dan konfirmasi tidak cocok!")
       return
     }
-    if (passForm.newPass.length < 8) {
-      toast.error("Password baru minimal 8 karakter!")
+    if (passForm.newPass.length < 4) {
+      toast.error("Password baru minimal 4 digit / karakter!")
       return
     }
 
@@ -507,8 +507,8 @@ export default function MobileProfil() {
               <div>
                 <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Kata Sandi Baru</label>
                 <input 
-                  type="password" required minLength={8}
-                  placeholder="Minimal 8 karakter"
+                  type="password" required minLength={4}
+                  placeholder="Minimal 4 digit / karakter"
                   className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                   value={passForm.newPass} onChange={e => setPassForm(p => ({...p, newPass: e.target.value}))}
                 />
@@ -517,7 +517,7 @@ export default function MobileProfil() {
               <div>
                 <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block mb-1">Konfirmasi Kata Sandi Baru</label>
                 <input 
-                  type="password" required minLength={8}
+                  type="password" required minLength={4}
                   placeholder="Ulangi kata sandi baru"
                   className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                   value={passForm.confirm} onChange={e => setPassForm(p => ({...p, confirm: e.target.value}))}

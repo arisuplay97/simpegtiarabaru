@@ -678,6 +678,7 @@ model Lembur {
   durasiJam       Float         // 3.0
   jenis           JenisLembur   @default(HARI_KERJA)
   alasan          String
+  fotoUrl         String?       // Foto bukti pelaksanaan lembur (wajib dari kamera HP)
   status          StatusLembur  @default(PENDING)
   disetujuiOleh  String?
   tarifPerJam     Decimal       @default(0)

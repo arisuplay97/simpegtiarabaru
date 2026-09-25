@@ -24,20 +24,18 @@ export function ForceChangePasswordModal() {
   if (!mustChange) return null
 
   const validations = [
-    { label: "Minimal 8 karakter", valid: password.length >= 8 },
-    { label: "Ada huruf kapital", valid: /[A-Z]/.test(password) },
-    { label: "Ada angka",          valid: /[0-9]/.test(password) },
+    { label: "Minimal 4 digit / karakter", valid: password.length >= 4 },
   ]
   const isValid = validations.every(v => v.valid) && password === confirm
 
   const handleSubmit = () => {
     setError(null)
-    if (password !== confirm) {
-      setError("Password dan konfirmasi tidak cocok.")
+    if (password.length < 4) {
+      setError("Password minimal 4 digit / karakter.")
       return
     }
-    if (!validations.every(v => v.valid)) {
-      setError("Password belum memenuhi semua kriteria.")
+    if (password !== confirm) {
+      setError("Password dan konfirmasi tidak cocok.")
       return
     }
 
@@ -88,7 +86,7 @@ export function ForceChangePasswordModal() {
             <div className="relative">
               <Input
                 type={showPass ? "text" : "password"}
-                placeholder="Masukkan password baru"
+                placeholder="Minimal 4 digit / karakter"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="pr-10"

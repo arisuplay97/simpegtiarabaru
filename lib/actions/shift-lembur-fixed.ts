@@ -144,6 +144,7 @@ export async function ajukanLembur(data: {
   durasiJam: number
   jenis: "HARI_KERJA" | "HARI_LIBUR" | "HARI_BESAR"
   alasan: string
+  fotoUrl?: string | null
 }) {
   const session = await auth()
   if (!session?.user) return { error: "Belum login" }
@@ -163,6 +164,7 @@ export async function ajukanLembur(data: {
       durasiJam: data.durasiJam,
       jenis: data.jenis,
       alasan: data.alasan,
+      fotoUrl: data.fotoUrl || null,
       tarifPerJam,
       totalBayar,
     },
@@ -234,6 +236,7 @@ export async function getLemburList({
     durasiJam: l.durasiJam,
     jenis: l.jenis,
     alasan: l.alasan,
+    fotoUrl: l.fotoUrl || null,
     status: l.status,
     tarifPerJam: Number(l.tarifPerJam),
     totalBayar: Number(l.totalBayar),

@@ -597,6 +597,29 @@ function LemburTab() {
                 <p className="text-slate-700 dark:text-zinc-300">{selectedApproval.alasan}</p>
               </div>
 
+              {selectedApproval.fotoUrl && (
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-semibold text-slate-500">Foto Bukti Pekerjaan</span>
+                    <a 
+                      href={selectedApproval.fotoUrl} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Buka Penuh ↗
+                    </a>
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 max-h-48 bg-black/5 flex items-center justify-center">
+                    <img 
+                      src={selectedApproval.fotoUrl} 
+                      alt="Bukti Lembur" 
+                      className="max-h-48 w-full object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+
               {selectedApproval.status === "PENDING" ? (
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Catatan Review (Opsional)</Label>

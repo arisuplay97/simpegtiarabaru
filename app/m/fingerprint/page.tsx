@@ -384,7 +384,9 @@ export default function MobileFingerprint() {
           waktu: format(new Date(), "HH:mm")
         })
         setDone(true)
-        setTimeout(() => setShowMoodPopup(true), 1200)
+        if (tipePayload === "CHECK_OUT") {
+          setTimeout(() => setShowMoodPopup(true), 1200)
+        }
         updateQueueCount()
         triggerHaptic("success")
 
@@ -447,7 +449,9 @@ export default function MobileFingerprint() {
         menitTerlambat: data.menitTerlambat || 0
       })
       setDone(true)
-      setTimeout(() => setShowMoodPopup(true), 1200)
+      if (finalTipe === "CHECK_OUT") {
+        setTimeout(() => setShowMoodPopup(true), 1200)
+      }
 
       try {
         const todayStr = format(new Date(), "yyyy-MM-dd")
@@ -474,7 +478,9 @@ export default function MobileFingerprint() {
             waktu: format(new Date(), "HH:mm")
           })
           setDone(true)
-          setTimeout(() => setShowMoodPopup(true), 1200)
+          if (tipePayload === "CHECK_OUT") {
+            setTimeout(() => setShowMoodPopup(true), 1200)
+          }
           updateQueueCount()
           triggerHaptic("success")
           toast.info("Koneksi terputus saat mengirim. Presensi telah diamankan ke antrian offline.")
@@ -667,28 +673,30 @@ export default function MobileFingerprint() {
             </div>
           )}
 
-          {/* Status Mood pada Card (Jika Sudah Dipilih) atau Tombol Buka Popup */}
-          {selectedMood && activeMoodConfig ? (
-            <div className="mt-3.5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold animate-in fade-in">
-              <div className="w-5 h-5 flex items-center justify-center pointer-events-none">
-                <Lottie animationData={activeMoodConfig.animation} loop={false} className="w-full h-full" />
+          {/* Status Mood pada Card (Hanya Tampil Saat Absen Pulang / Sore) */}
+          {isCheckOut && (
+            selectedMood && activeMoodConfig ? (
+              <div className="mt-3.5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold animate-in fade-in">
+                <div className="w-5 h-5 flex items-center justify-center pointer-events-none">
+                  <Lottie animationData={activeMoodConfig.animation} loop={false} className="w-full h-full" />
+                </div>
+                <span>Suasana Hati: <strong>{activeMoodConfig.label}</strong></span>
+                <button 
+                  onClick={() => setShowMoodPopup(true)} 
+                  className="text-[10px] text-purple-600 dark:text-purple-400 underline ml-1 font-normal"
+                >
+                  Ubah
+                </button>
               </div>
-              <span>Suasana Hati: <strong>{activeMoodConfig.label}</strong></span>
-              <button 
-                onClick={() => setShowMoodPopup(true)} 
-                className="text-[10px] text-purple-600 dark:text-purple-400 underline ml-1 font-normal"
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowMoodPopup(true)}
+                className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-semibold transition-all active:scale-95 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs"
               >
-                Ubah
+                <span>Gimana perasaanmu hari ini?</span>
               </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowMoodPopup(true)}
-              className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-semibold transition-all active:scale-95 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs"
-            >
-              <span>Gimana perasaanmu hari ini?</span>
-            </button>
+            )
           )}
 
           {/* Rincian Tiket / Bukti Kehadiran */}
@@ -819,18 +827,12 @@ export default function MobileFingerprint() {
                     {activeMoodConfig?.subtitle}
                   </p>
 
-                  <div className="w-full mt-6 space-y-2">
+                  <div className="w-full mt-6">
                     <button
                       onClick={() => router.push("/m/dashboard")}
                       className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white py-3 font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.3)] active:scale-95 transition-all"
                     >
                       Selesai
-                    </button>
-                    <button
-                      onClick={() => setShowMoodPopup(false)}
-                      className="w-full text-xs font-semibold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 py-1 transition-colors"
-                    >
-                      Lihat Bukti Presensi
                     </button>
                   </div>
                 </div>
