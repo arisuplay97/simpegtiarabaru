@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getEmployeeExperienceStats, MoodFilterOptions } from "@/lib/actions/mood"
 import { cn } from "@/lib/utils"
+import { SidebarNav } from "@/components/simpeg/sidebar-nav"
+import { TopBar } from "@/components/simpeg/top-bar"
 
 const MOOD_METADATA: Record<string, { label: string; emoji: string; color: string; bg: string; border: string }> = {
   HAPPY: {
@@ -119,8 +121,14 @@ export default function EmployeeExperiencePage() {
   const dominantMeta = stats?.dominantMood ? MOOD_METADATA[stats.dominantMood] : null
 
   return (
-    <div className="flex-1 space-y-6 p-6 md:p-8 max-w-7xl mx-auto">
-      {/* Top Header */}
+    <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-[#0B0C0E]">
+      <SidebarNav />
+
+      <div className="flex flex-1 flex-col sidebar-offset min-w-0">
+        <TopBar breadcrumb={["Kehadiran", "Employee Experience"]} />
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1720px] mx-auto w-full">
+          {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -561,6 +569,8 @@ export default function EmployeeExperiencePage() {
             </p>
           </CardContent>
         </Card>
+      </div>
+        </main>
       </div>
     </div>
   )
