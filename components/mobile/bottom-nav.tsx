@@ -50,19 +50,11 @@ export function MobileBottomNav() {
                 className="relative flex flex-col items-center justify-center w-16 group"
               >
                 <div
-                  className={cn(
-                    "absolute -top-5 h-14 w-14 flex items-center justify-center rounded-full border-[3px] border-white dark:border-zinc-950 active:scale-90 transition-all duration-200 shadow-md",
-                    isActive
-                      ? "bg-blue-600 text-white shadow-[0_8px_20px_rgba(37,99,235,0.35)]"
-                      : "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
-                  )}
+                  className="absolute -top-5 h-14 w-14 flex items-center justify-center rounded-full border-[3px] border-white dark:border-zinc-950 bg-blue-600 hover:bg-blue-700 text-white shadow-[0_8px_20px_rgba(37,99,235,0.4)] active:scale-90 transition-all duration-200"
                 >
                   <tab.icon className="h-6 w-6 stroke-[2.2]" />
                 </div>
-                <span className={cn(
-                  "text-[9px] font-bold mt-7 pt-1.5 tracking-wider uppercase transition-colors",
-                  isActive ? "text-blue-600 dark:text-blue-400" : "text-zinc-900 dark:text-zinc-200"
-                )}>
+                <span className="text-[9px] font-bold mt-7 pt-1.5 tracking-wider uppercase transition-colors text-blue-600 dark:text-blue-400">
                   {tab.label}
                 </span>
               </Link>

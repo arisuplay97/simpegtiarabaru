@@ -784,57 +784,6 @@ export default function MobileDashboard() {
               </div>
             </div>
           )}
-
-          {/* Widget Perasaan Hari Ini (Employee Experience) */}
-          <div className="mt-3.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg shrink-0">
-                {todayMood?.mood === "HAPPY"
-                  ? "😊"
-                  : todayMood?.mood === "NEUTRAL"
-                  ? "😐"
-                  : todayMood?.mood === "SAD"
-                  ? "😔"
-                  : todayMood?.mood === "TIRED"
-                  ? "😫"
-                  : todayMood?.mood === "ANGRY"
-                  ? "😡"
-                  : "✨"}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                  Perasaan Hari Ini
-                </p>
-                <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
-                  {todayMood?.mood === "HAPPY"
-                    ? "Senang"
-                    : todayMood?.mood === "NEUTRAL"
-                    ? "Biasa saja"
-                    : todayMood?.mood === "SAD"
-                    ? "Sedih"
-                    : todayMood?.mood === "TIRED"
-                    ? "Capek"
-                    : todayMood?.mood === "ANGRY"
-                    ? "Kesal"
-                    : summary?.sudahAbsenPulang
-                    ? "Belum dipilih"
-                    : "Tersedia saat absen pulang"}
-                </p>
-              </div>
-            </div>
-            {todayMood?.mood ? (
-              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200/50 dark:border-emerald-800/50">
-                Tercatat
-              </span>
-            ) : summary?.sudahAbsenPulang ? (
-              <button 
-                onClick={() => router.push("/m/fingerprint")}
-                className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Pilih Mood
-              </button>
-            ) : null}
-          </div>
         </div>
 
         {/* ===== PENGUMUMAN TICKER ===== */}

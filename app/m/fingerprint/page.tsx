@@ -719,7 +719,7 @@ export default function MobileFingerprint() {
           <div className="w-full space-y-2">
             <button 
               onClick={() => router.push("/m/dashboard")} 
-              className="w-full rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3.5 font-bold text-sm shadow-md active:scale-95 transition-all"
+              className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white py-3.5 font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.3)] active:scale-95 transition-all"
             >
               Selesai & Kembali ke Beranda
             </button>
@@ -825,7 +825,7 @@ export default function MobileFingerprint() {
                   <div className="w-full mt-6 space-y-2">
                     <button
                       onClick={() => router.push("/m/dashboard")}
-                      className="w-full rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 py-3 font-bold text-sm shadow-md active:scale-95 transition-all"
+                      className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white py-3 font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.3)] active:scale-95 transition-all"
                     >
                       Selesai
                     </button>
