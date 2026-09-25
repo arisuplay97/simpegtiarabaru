@@ -389,7 +389,8 @@ export default function MobileDashboard() {
   const sakitCount = summary?.sakit || 0
   const izinCount = summary?.izin || 0
   const cutiCount = summary?.cuti || 0
-  const totalWorkdays = hadirCount + sakitCount + izinCount + cutiCount
+  // Jumlah hari berjalan dalam bulan ini (misal tanggal 25 = 25 hari)
+  const totalDays = today.getDate()
 
   return (
     <div 
@@ -633,7 +634,7 @@ export default function MobileDashboard() {
                   <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Masuk</span>
                   <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums">{summary?.jamMasuk || "08:00"}</span>
                 </div>
-                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-1 tabular-nums">
+                <p className="text-lg font-black text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums tracking-tight">
                   {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
                 </p>
                 <p className={cn(
@@ -652,7 +653,7 @@ export default function MobileDashboard() {
                   <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Siang</span>
                   <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums">{summary?.jamSiang || "12:00"}</span>
                 </div>
-                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-1 tabular-nums">
+                <p className="text-lg font-black text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums tracking-tight">
                   {summary?.waktuAbsenSiang || "--:--"}
                 </p>
                 <p className={cn(
@@ -669,7 +670,7 @@ export default function MobileDashboard() {
                   <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Pulang</span>
                   <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums">{summary?.jamPulang || "17:00"}</span>
                 </div>
-                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-1 tabular-nums">
+                <p className="text-lg font-black text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums tracking-tight">
                   {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
                 </p>
                 <p className={cn(
@@ -701,7 +702,7 @@ export default function MobileDashboard() {
                       {summary?.jamMasuk || "08:00"}
                     </span>
                   </div>
-                  <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                  <p className="text-xl font-black text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums tracking-tight">
                     {summary?.waktuAbsen ? summary.waktuAbsen.split(" - ")[0] : "--:--"}
                   </p>
                   {summary?.sudahAbsenMasuk ? (
@@ -740,7 +741,7 @@ export default function MobileDashboard() {
                       {summary?.jamPulang || "17:00"}
                     </span>
                   </div>
-                  <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums">
+                  <p className="text-xl font-black text-zinc-900 dark:text-zinc-100 mt-0.5 tabular-nums tracking-tight">
                     {summary?.waktuAbsen?.includes(" - ") ? summary.waktuAbsen.split(" - ")[1] || "--:--" : "--:--"}
                   </p>
                   <p className={cn(
@@ -772,16 +773,16 @@ export default function MobileDashboard() {
             </div>
           </div>
 
-          {totalWorkdays > 0 && (
+          {totalDays > 0 && (
             <div className="mb-4">
               <div className="flex justify-between text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
                 <span>Tingkat Kehadiran</span>
-                <span className="font-bold text-zinc-900 dark:text-zinc-100">{hadirCount}/{totalWorkdays} Hari</span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">{hadirCount}/{totalDays} Hari</span>
               </div>
               <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                 <div 
                   className="h-full rounded-full bg-zinc-900 dark:bg-white transition-all duration-700 ease-out"
-                  style={{ width: `${Math.min((hadirCount / totalWorkdays) * 100, 100)}%` }} 
+                  style={{ width: `${Math.min((hadirCount / totalDays) * 100, 100)}%` }} 
                 />
               </div>
             </div>

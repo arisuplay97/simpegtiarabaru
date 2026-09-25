@@ -7,7 +7,8 @@ import Link from "next/link"
 import { 
   ArrowLeft, Calendar, Camera, Clock, CheckCircle2, 
   AlertCircle, RefreshCw, X, Loader2, Sparkles, 
-  History, Send, ChevronRight, FlipHorizontal, Eye, Trash2
+  History, Send, ChevronRight, FlipHorizontal, Eye, Trash2,
+  UploadCloud, FileText
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -21,6 +22,7 @@ import {
   type JenisKoreksiType
 } from "@/lib/actions/koreksi-absensi"
 import { triggerHaptic } from "@/lib/pwa/haptics"
+import { compressImageForMobile, formatFileSize } from "@/lib/utils/image-compression"
 
 const SESI_OPTIONS: { id: SesiAbsensiType; label: string; desc: string; time: string }[] = [
   { id: "MASUK",  label: "Presensi Pagi (Masuk)", desc: "Jam Masuk Kerja", time: "07:00 - 08:30" },
@@ -29,10 +31,8 @@ const SESI_OPTIONS: { id: SesiAbsensiType; label: string; desc: string; time: st
 ]
 
 const JENIS_OPTIONS: { id: JenisKoreksiType; label: string; desc: string; icon: string }[] = [
-  { id: "LUPA_ABSEN",   label: "Lupa Melakukan Presensi", desc: "Hadir namun lupa melakukan scan/tap", icon: "⏰" },
-  { id: "IZIN_SESI",    label: "Izin Khusus Sesi Ini",   desc: "Izin tidak hadir pada sesi tertentu", icon: "📝" },
   { id: "DINAS_LUAR",   label: "Dinas Luar Kantor",      desc: "Menjalankan tugas kedinasan di luar", icon: "🚗" },
-  { id: "ERROR_SISTEM", label: "Kendala Sistem / Device", desc: "Jaringan error, GPS error, atau sistem down", icon: "⚡" },
+  { id: "IZIN_SESI",    label: "Izin Khusus Sesi Ini",   desc: "Izin tidak hadir pada sesi tertentu", icon: "📝" },
   { id: "LAINNYA",      label: "Alasan Lainnya",          desc: "Alasan khusus dengan keterangan lengkap", icon: "📌" },
 ]
 
@@ -47,7 +47,7 @@ export default function MobileKoreksiAbsensiPage() {
   const todayStr = new Date().toISOString().split("T")[0]
   const [tanggal, setTanggal] = useState<string>(todayStr)
   const [selectedSesi, setSelectedSesi] = useState<SesiAbsensiType[]>([])
-  const [jenis, setJenis] = useState<JenisKoreksiType>("LUPA_ABSEN")
+  const [jenis, setJenis] = useState<JenisKoreksiType>("DINAS_LUAR")
   const [alasan, setAlasan] = useState("")
   
   // Camera & Photo State
@@ -59,6 +59,8 @@ export default function MobileKoreksiAbsensiPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const docFileInputRef = useRef<HTMLInputElement | null>(null)
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
 
   // Status & List State
   const [dateAbsensiInfo, setDateAbsensiInfo] = useState<any>(null)
@@ -217,8 +219,22 @@ export default function MobileKoreksiAbsensiPage() {
 
     const video = videoRef.current
     const canvas = canvasRef.current
-    canvas.width = video.videoWidth || 640
-    canvas.height = video.videoHeight || 480
+
+    // Kompres resolusi maksimal 1200px
+    const maxDim = 1200
+    let w = video.videoWidth || 640
+    let h = video.videoHeight || 480
+    if (w > maxDim || h > maxDim) {
+      if (w > h) {
+        h = Math.round((h * maxDim) / w)
+        w = maxDim
+      } else {
+        w = Math.round((w * maxDim) / h)
+        h = maxDim
+      }
+    }
+    canvas.width = w
+    canvas.height = h
 
     const ctx = canvas.getContext("2d")
     if (ctx) {
@@ -228,29 +244,52 @@ export default function MobileKoreksiAbsensiPage() {
         ctx.scale(-1, 1)
       }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.85)
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.78)
       setPhotoPreview(dataUrl)
+      setSelectedFileName("foto_kamera.jpg")
       setIsCameraOpen(false)
-      toast.success("Foto bukti berhasil diambil!")
+      toast.success("Foto bukti berhasil diambil & dikompres!")
     }
   }
 
-  // Handle native camera input fallback
-  const handleNativeCameraInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle native camera & file upload dengan kompresi otomatis di browser
+  const handleFileSelection = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Hanya file gambar/foto yang diperbolehkan.")
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal adalah 15MB")
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      setPhotoPreview(event.target?.result as string)
-      toast.success("Foto bukti berhasil diambil!")
+    if (file.type.startsWith("image/")) {
+      const toastId = toast.loading("Mengompresi foto bukti...")
+      try {
+        const comp = await compressImageForMobile(file, 1280, 1280, 0.8)
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          setPhotoPreview(event.target?.result as string)
+          setSelectedFileName(comp.file.name)
+          if (comp.savedPercent > 0) {
+            toast.success(`Foto terkompresi hemat ${comp.savedPercent}% (${formatFileSize(comp.compressedSize)})`, { id: toastId })
+          } else {
+            toast.dismiss(toastId)
+          }
+        }
+        reader.readAsDataURL(comp.file)
+      } catch {
+        toast.dismiss(toastId)
+      }
+    } else {
+      // Dokumen PDF
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setPhotoPreview(event.target?.result as string)
+        setSelectedFileName(file.name)
+        toast.success(`Dokumen "${file.name}" (${formatFileSize(file.size)}) dipilih`)
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -266,26 +305,25 @@ export default function MobileKoreksiAbsensiPage() {
       return
     }
 
-    if (!photoPreview) {
-      toast.error("Wajib mengambil foto bukti secara langsung.")
-      return
-    }
-
     setSubmitting(true)
     triggerHaptic("medium")
 
     try {
-      // 1. Upload foto bukti ke API
-      toast.loading("Mengunggah foto bukti...", { id: "submit-koreksi" })
-      const uploadRes = await fetch("/api/koreksi-absensi/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: photoPreview }),
-      })
+      let uploadedUrl: string | null = null
 
-      const uploadData = await uploadRes.json()
-      if (!uploadRes.ok || !uploadData.url) {
-        throw new Error(uploadData.error || "Gagal mengunggah foto bukti")
+      // 1. Upload foto bukti ke API jika ada lampiran (tidak wajib)
+      if (photoPreview) {
+        toast.loading("Mengunggah berkas bukti...", { id: "submit-koreksi" })
+        const uploadRes = await fetch("/api/koreksi-absensi/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: photoPreview }),
+        })
+
+        const uploadData = await uploadRes.json()
+        if (uploadRes.ok && uploadData.url) {
+          uploadedUrl = uploadData.url
+        }
       }
 
       // 2. Simpan pengajuan koreksi absensi
@@ -295,7 +333,7 @@ export default function MobileKoreksiAbsensiPage() {
         sesi: selectedSesi,
         jenis,
         alasan,
-        fotoUrl: uploadData.url,
+        fotoUrl: uploadedUrl,
       })
 
       if (res.error) {
@@ -310,6 +348,7 @@ export default function MobileKoreksiAbsensiPage() {
       setSelectedSesi([])
       setAlasan("")
       setPhotoPreview(null)
+      setSelectedFileName(null)
       loadDateStatus(tanggal)
       setActiveTab("riwayat")
     } catch (err: any) {
@@ -607,26 +646,34 @@ export default function MobileKoreksiAbsensiPage() {
               />
             </div>
 
-            {/* 5. Lampiran Bukti Foto Langsung Kamera */}
+            {/* 5. Lampiran Bukti (Opsional) */}
             <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <Camera className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  5. Foto Bukti Langsung (Kamera)
+                  5. Lampiran Bukti (Opsional)
                 </label>
-                <span className="text-[10px] text-rose-500 font-semibold bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full">
-                  Wajib Foto Kamera
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-200/60 dark:border-zinc-700/60">
+                  Opsional
                 </span>
               </div>
 
               {photoPreview ? (
                 <div className="space-y-2">
-                  <div className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-black aspect-video flex items-center justify-center group shadow-inner">
-                    <img 
-                      src={photoPreview} 
-                      alt="Bukti Foto" 
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-950 aspect-video flex items-center justify-center group shadow-inner">
+                    {photoPreview.startsWith("data:application/pdf") ? (
+                      <div className="flex flex-col items-center justify-center text-white p-4">
+                        <FileText className="w-12 h-12 text-blue-400 mb-1.5" />
+                        <p className="text-xs font-bold text-center truncate max-w-[220px]">{selectedFileName || "Dokumen PDF"}</p>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Berkas Dokumen PDF</p>
+                      </div>
+                    ) : (
+                      <img 
+                        src={photoPreview} 
+                        alt="Bukti Foto" 
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                       <button
                         type="button"
@@ -645,11 +692,14 @@ export default function MobileKoreksiAbsensiPage() {
                       className="flex-1 py-2 px-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
-                      Ambil Ulang Foto
+                      Ganti Foto
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPhotoPreview(null)}
+                      onClick={() => {
+                        setPhotoPreview(null)
+                        setSelectedFileName(null)
+                      }}
                       className="py-2 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -659,30 +709,57 @@ export default function MobileKoreksiAbsensiPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => startCamera()}
-                    className="w-full py-6 rounded-2xl border-2 border-dashed border-blue-500/30 hover:border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/70 flex flex-col items-center justify-center gap-2 transition-all active:scale-98 group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                      <Camera className="w-6 h-6" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs font-bold text-blue-600 dark:text-blue-400">Buka Kamera & Ambil Foto Bukti</p>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                        Foto diri di lokasi, dokumen tugas, atau bukti pendukung
-                      </p>
-                    </div>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {/* Tombol Kamera */}
+                    <button
+                      type="button"
+                      onClick={() => startCamera()}
+                      className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50/70 dark:bg-zinc-800/40 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex flex-col items-center justify-center gap-2 transition-all active:scale-98 group"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Camera className="w-4 h-4" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Foto Kamera</p>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Ambil langsung</p>
+                      </div>
+                    </button>
 
-                  {/* Fallback Hidden File Input (Strictly Camera Capture) */}
+                    {/* Tombol Upload File */}
+                    <button
+                      type="button"
+                      onClick={() => docFileInputRef.current?.click()}
+                      className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50/70 dark:bg-zinc-800/40 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex flex-col items-center justify-center gap-2 transition-all active:scale-98 group"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <UploadCloud className="w-4 h-4" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Pilih Berkas</p>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Galeri / PDF</p>
+                      </div>
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-zinc-400 text-center">
+                    Tidak wajib melampirkan foto jika tidak ada berkas pendukung.
+                  </p>
+
+                  {/* Hidden Input Files */}
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     capture="environment"
                     className="hidden"
-                    onChange={handleNativeCameraInput}
+                    onChange={handleFileSelection}
+                  />
+                  <input
+                    ref={docFileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={handleFileSelection}
                   />
                 </div>
               )}

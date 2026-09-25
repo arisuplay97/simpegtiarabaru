@@ -580,16 +580,11 @@ export default function MobileFingerprint() {
             <X className="h-4 w-4" />
           </button>
           
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#18181b] border border-[#27272a] flex items-center justify-center overflow-hidden p-0.5">
-              <img src="/favicon.PNG" alt="Logo" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <p className="text-white font-bold text-sm leading-tight">ASIK Mobile</p>
-              <p className="text-zinc-500 text-[10px] leading-tight font-medium">
-                {isPusat ? "Kantor Pusat (3x Absen)" : "Kantor Cabang (2x Absen)"}
-              </p>
-            </div>
+          <div>
+            <p className="text-white font-bold text-sm leading-tight">ASIK Mobile</p>
+            <p className="text-zinc-500 text-[10px] leading-tight font-medium">
+              {isPusat ? "Kantor Pusat (3x Absen)" : "Kantor Cabang (2x Absen)"}
+            </p>
           </div>
         </div>
 

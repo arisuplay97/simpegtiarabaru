@@ -22,9 +22,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Foto lampiran wajib diambil" }, { status: 400 })
       }
 
-      // Validasi tipe file - hanya gambar
-      if (!file.type.startsWith("image/")) {
-        return NextResponse.json({ error: "Lampiran harus berupa foto langsung" }, { status: 400 })
+      // Validasi tipe file - gambar atau dokumen PDF
+      const mimeType = file.type || ""
+      const isImage = mimeType.startsWith("image/")
+      const isPdf = mimeType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
+      if (!isImage && !isPdf) {
+        return NextResponse.json({ error: "Lampiran harus berupa foto atau dokumen PDF" }, { status: 400 })
       }
 
       const ext = file.name.split(".").pop() || "jpg"

@@ -13,6 +13,7 @@ import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { compressImageForMobile, formatFileSize } from "@/lib/utils/image-compression"
 
 const statusStyle: Record<string, { label: string; class: string; icon: any }> = {
   PENDING:  { label: "Menunggu",  class: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",  icon: Clock },
@@ -60,24 +61,42 @@ export default function MobileCuti() {
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Batas 10MB
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Ukuran file maksimal adalah 10MB")
+    // Batas 15MB
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal adalah 15MB")
       return
     }
 
-    setSelectedFile(file)
+    let finalFile = file
+
     if (file.type.startsWith("image/")) {
-      const url = URL.createObjectURL(file)
+      const toastId = toast.loading("Mengompresi foto bukti...")
+      try {
+        const comp = await compressImageForMobile(file, 1280, 1280, 0.8)
+        finalFile = comp.file
+        if (comp.savedPercent > 0) {
+          toast.success(`Foto terkompresi hemat ${comp.savedPercent}% (${formatFileSize(comp.compressedSize)})`, { id: toastId })
+        } else {
+          toast.dismiss(toastId)
+        }
+      } catch {
+        toast.dismiss(toastId)
+      }
+    } else {
+      toast.success(`Dokumen "${file.name}" (${formatFileSize(file.size)}) dipilih`)
+    }
+
+    setSelectedFile(finalFile)
+    if (finalFile.type.startsWith("image/")) {
+      const url = URL.createObjectURL(finalFile)
       setFilePreviewUrl(url)
     } else {
       setFilePreviewUrl(null)
     }
-    toast.success(`Dokumen "${file.name}" berhasil dipilih`)
   }
 
   const handleRemoveFile = () => {
@@ -158,7 +177,7 @@ export default function MobileCuti() {
           onClick={() => setShowForm(true)}
           className="flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white px-3.5 py-1.5 text-xs font-semibold text-white dark:text-zinc-900 shadow-2xs active:scale-95 transition-all"
         >
-          <Plus className="h-3.5 w-3.5" /> Ajukan Cuti
+          <Plus className="h-3.5 w-3.5" /> Ajukan Cuti & Izin
         </button>
       </div>
 
@@ -231,7 +250,7 @@ export default function MobileCuti() {
             {/* Header Dialog */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
               <div>
-                <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Ajukan Permohonan Cuti</h2>
+                <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Ajukan Permohonan Cuti & Izin</h2>
                 <p className="text-[11px] text-zinc-400">Lengkapi formulir & lampiran bukti jika sakit</p>
               </div>
               <button 
@@ -278,7 +297,7 @@ export default function MobileCuti() {
                 {form.jenisCuti === "Cuti Sakit" && (
                   <p className="mt-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
                     <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                    Cuti Sakit bebas kuota (tidak memotong jatah cuti tahunan). Silakan lampirkan surat keterangan dokter.
+                    Cuti Sakit wajib melampirkan surat keterangan dokter.
                   </p>
                 )}
               </div>

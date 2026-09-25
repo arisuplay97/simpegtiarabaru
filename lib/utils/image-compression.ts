@@ -33,7 +33,7 @@ export function formatFileSize(bytes: number): string {
 export async function compressImageForMobile(
   file: File,
   maxWidth: number = 1200,
-  maxHeight: number = 600,
+  maxHeight: number = 1280,
   quality: number = 0.82
 ): Promise<CompressionResult> {
   // Jika bukan gambar atau merupakan GIF animasi, jangan dikompres agar animasinya tidak hilang
