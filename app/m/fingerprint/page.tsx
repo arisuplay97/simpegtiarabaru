@@ -37,8 +37,21 @@ function WatermarkClock() {
 
   useEffect(() => {
     setTime(new Date())
-    const t = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(t)
+    const updateTime = () => setTime(new Date())
+
+    const now = new Date()
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds()
+
+    let intervalId: NodeJS.Timeout | null = null
+    const timeoutId = setTimeout(() => {
+      updateTime()
+      intervalId = setInterval(updateTime, 60000)
+    }, Math.max(msUntilNextMinute, 500))
+
+    return () => {
+      clearTimeout(timeoutId)
+      if (intervalId) clearInterval(intervalId)
+    }
   }, [])
 
   if (!time) {

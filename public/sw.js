@@ -3,7 +3,7 @@
 // - Web Push Notifications & Attendance Reminders
 // - Background Sync for offline attendance queue
 
-const CACHE_NAME = "hris-pwa-v7";
+const CACHE_NAME = "hris-pwa-v8";
 
 const PRECACHE_ASSETS = [
   "/offline.html",

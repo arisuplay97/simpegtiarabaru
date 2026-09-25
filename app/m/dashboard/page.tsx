@@ -12,9 +12,7 @@ import {
   RefreshCw, ArrowDown
 } from "lucide-react"
 import { triggerHaptic } from "@/lib/pwa/haptics"
-import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
-import { getUnreadCount, getPengumumanAktif } from "@/lib/actions/notifikasi"
-import { getBannersPwa, BannerItem } from "@/lib/actions/banner"
+import type { BannerItem } from "@/lib/actions/banner"
 import { BannerCarousel } from "@/components/simpeg/banner-carousel"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -41,8 +39,22 @@ function DigitalClock() {
   
   useEffect(() => {
     setTime(new Date())
-    const timer = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(timer)
+    const updateTime = () => setTime(new Date())
+    
+    // Sync with minute boundary to eliminate 60 re-renders per minute
+    const now = new Date()
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds()
+    
+    let intervalId: NodeJS.Timeout | null = null
+    const timeoutId = setTimeout(() => {
+      updateTime()
+      intervalId = setInterval(updateTime, 60000)
+    }, Math.max(msUntilNextMinute, 500))
+
+    return () => {
+      clearTimeout(timeoutId)
+      if (intervalId) clearInterval(intervalId)
+    }
   }, [])
 
   if (!time) {
@@ -113,6 +125,7 @@ export default function MobileDashboard() {
   const startYRef = useRef(0)
   const isPullingRef = useRef(false)
   const hasTriggeredHapticRef = useRef(false)
+  const lastDashboardDataRef = useRef<string>("")
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (typeof window !== "undefined" && window.scrollY <= 0 && !isRefreshing) {
@@ -155,6 +168,7 @@ export default function MobileDashboard() {
       setPullDistance(56)
 
       try {
+        lastDashboardDataRef.current = ""
         await Promise.allSettled([
           fetchData(),
           checkOfflineQueue()
@@ -191,12 +205,23 @@ export default function MobileDashboard() {
   }
 
   useEffect(() => {
-    // Coba load data profil pegawai dari cache lokal terlebih dahulu jika offline
+    // 1. Coba load data dashboard lengkap dari cache lokal terlebih dahulu (Instant Paint 0ms)
     if (typeof window !== "undefined") {
       try {
-        const cachedProfile = localStorage.getItem("cached_pegawai_profile")
-        if (cachedProfile) {
-          setPegawai(JSON.parse(cachedProfile))
+        const cachedDashboard = localStorage.getItem("cached_pwa_dashboard")
+        if (cachedDashboard) {
+          const parsed = JSON.parse(cachedDashboard)
+          lastDashboardDataRef.current = cachedDashboard
+          if (parsed.pegawai) setPegawai(parsed.pegawai)
+          if (parsed.summary) setSummary(parsed.summary)
+          if (parsed.pengumuman) setPengumuman(parsed.pengumuman)
+          if (parsed.banners) setBanners(parsed.banners)
+          if (typeof parsed.unread === "number") setUnread(parsed.unread)
+        } else {
+          const cachedProfile = localStorage.getItem("cached_pegawai_profile")
+          if (cachedProfile) {
+            setPegawai(JSON.parse(cachedProfile))
+          }
         }
       } catch {}
     }
@@ -225,7 +250,9 @@ export default function MobileDashboard() {
   useEffect(() => {
     const handleQueueUpdated = () => {
       checkOfflineQueue()
-      fetchData()
+      if (navigator.onLine) {
+        fetchData()
+      }
     }
     const handleSyncError = (e: any) => {
       if (e.detail?.errors?.length > 0) {
@@ -242,49 +269,56 @@ export default function MobileDashboard() {
 
   const fetchData = async () => {
     try {
-      // Fase 1: Ambil data pegawai, pengumuman, banner, dan unread secara PARALEL
-      const [pegawaiRes, pgm, bList, unreadCount] = await Promise.all([
-        fetch("/api/pegawai/me").then(r => r.ok ? r.json() : null).catch(() => null),
-        getPengumumanAktif().catch(() => []),
-        getBannersPwa(true).catch(() => []),
-        session?.user?.id ? getUnreadCount(session.user.id).catch(() => 0) : Promise.resolve(0),
-      ])
-
-      // Set data yang sudah tersedia langsung (UI sudah bisa render parsial)
-      if (pgm?.length) setPengumuman(pgm)
-      if (bList?.length) setBanners(bList)
-      setUnread(unreadCount)
-
-      if (pegawaiRes) {
-        setPegawai(pegawaiRes)
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem("cached_pegawai_profile", JSON.stringify(pegawaiRes))
-          } catch {}
+      // Single unified endpoint: 1 round-trip untuk semua data Dashboard
+      const res = await fetch("/api/pwa/dashboard")
+      if (!res.ok) {
+        if (res.status === 401 && navigator.onLine) {
+          router.push("/login")
         }
+        return
+      }
 
-        // Fase 2: Ambil summary absensi (tergantung pegawaiId)
-        const s = await getEmployeeAttendanceSummary(pegawaiRes.id).catch(() => null)
-        if (s) setSummary(s)
+      const data = await res.json()
+      const dataStr = JSON.stringify(data)
 
-        if (s && typeof window !== "undefined") {
-          try {
+      // Cek apakah data benar-benar berubah sebelum memicu re-render dan I/O disk
+      if (dataStr === lastDashboardDataRef.current) {
+        return
+      }
+      lastDashboardDataRef.current = dataStr
+
+      // Simpan ke cache lokal
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("cached_pwa_dashboard", dataStr)
+          if (data.pegawai) {
+            localStorage.setItem("cached_pegawai_profile", JSON.stringify(data.pegawai))
+          }
+          if (data.summary) {
             localStorage.setItem("attendance_today", JSON.stringify({
               date: format(new Date(), "yyyy-MM-dd"),
-              sudahAbsenMasuk: Boolean(s.sudahAbsenMasuk),
-              sudahAbsenPulang: Boolean(s.sudahAbsenPulang)
+              sudahAbsenMasuk: Boolean(data.summary.sudahAbsenMasuk),
+              sudahAbsenPulang: Boolean(data.summary.sudahAbsenPulang)
             }))
-          } catch {}
-        }
+          }
+        } catch {}
+      }
 
-        // Jalankan smart reminder (non-blocking)
+      if (data.pegawai) setPegawai(data.pegawai)
+      if (data.summary) setSummary(data.summary)
+      if (data.pengumuman) setPengumuman(data.pengumuman)
+      if (data.banners) setBanners(data.banners)
+      if (typeof data.unread === "number") setUnread(data.unread)
+
+      // Jalankan smart reminder (non-blocking)
+      if (data.summary) {
         checkAndSendSmartReminder({
-          batasMasuk: s?.batasAbsenMasuk,
-          mulaiPulang: s?.mulaiAbsenPulang,
-          sudahMasuk: s?.sudahAbsenMasuk,
-          sudahPulang: s?.sudahAbsenPulang,
-          isShift: Boolean((s as any)?.isShift || (s as any)?.jadwalShift),
-          isCabang: Boolean(s?.isCabang),
+          batasMasuk: data.summary.batasAbsenMasuk,
+          mulaiPulang: data.summary.mulaiAbsenPulang,
+          sudahMasuk: data.summary.sudahAbsenMasuk,
+          sudahPulang: data.summary.sudahAbsenPulang,
+          isShift: Boolean((data.summary as any)?.isShift || (data.summary as any)?.jadwalShift),
+          isCabang: Boolean(data.summary?.isCabang),
         })
       }
     } catch {}

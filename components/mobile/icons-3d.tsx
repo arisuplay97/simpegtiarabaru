@@ -21,11 +21,6 @@ export function IconCuti3D({ className = "w-8 h-8", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        {/* Shadow filter */}
-        <filter id="cuti-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#f43f5e" floodOpacity="0.25" />
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.15" />
-        </filter>
         {/* Back page gradient */}
         <linearGradient id="cuti-back" x1="10" y1="12" x2="38" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#cbd5e1" />
@@ -65,7 +60,7 @@ export function IconCuti3D({ className = "w-8 h-8", size }: Icon3DProps) {
       <rect x="10" y="12" width="30" height="30" rx="7" fill="url(#cuti-back)" />
       
       {/* 3D Main Page Body */}
-      <g filter="url(#cuti-shadow)">
+      <g>
         <rect x="7" y="10" width="32" height="32" rx="7" fill="url(#cuti-body)" />
         {/* Calendar grid dots/lines */}
         <rect x="12" y="24" width="4" height="3" rx="1" fill="#cbd5e1" />
@@ -97,7 +92,7 @@ export function IconCuti3D({ className = "w-8 h-8", size }: Icon3DProps) {
       <rect x="29" y="6" width="3.5" height="8" rx="1.75" fill="url(#cuti-ring)" />
 
       {/* Floating 3D Check Badge (Approval Cuti) */}
-      <g filter="url(#cuti-shadow)">
+      <g>
         <circle cx="35" cy="35" r="9" fill="url(#cuti-badge)" />
         <circle cx="35" cy="35" r="8" stroke="#ffffff" strokeWidth="1" opacity="0.4" />
         <path
@@ -128,10 +123,6 @@ export function IconAbsensi3D({ className = "w-8 h-8", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="absen-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#0284c7" floodOpacity="0.25" />
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.15" />
-        </filter>
         {/* Board gradient (Matte leather / clay) */}
         <linearGradient id="board-bg" x1="6" y1="8" x2="38" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#38bdf8" />
@@ -157,7 +148,7 @@ export function IconAbsensi3D({ className = "w-8 h-8", size }: Icon3DProps) {
       </defs>
 
       {/* Main Board Base */}
-      <g filter="url(#absen-shadow)">
+      <g>
         <rect x="7" y="8" width="30" height="36" rx="6" fill="url(#board-bg)" />
         {/* Clip Board highlight */}
         <rect x="8" y="9" width="28" height="34" rx="5" stroke="#ffffff" strokeWidth="0.8" opacity="0.3" />
@@ -187,7 +178,7 @@ export function IconAbsensi3D({ className = "w-8 h-8", size }: Icon3DProps) {
       <circle cx="22" cy="7" r="1.2" fill="#1e293b" opacity="0.3" />
 
       {/* Floating 3D Mini Clock Badge */}
-      <g filter="url(#absen-shadow)">
+      <g>
         <circle cx="35" cy="34" r="8.5" fill="url(#clock-3d)" />
         <circle cx="35" cy="34" r="7.5" fill="#ffffff" />
         {/* Clock Hands */}
@@ -215,10 +206,6 @@ export function IconKalender3D({ className = "w-8 h-8", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="kalender-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#6366f1" floodOpacity="0.25" />
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.15" />
-        </filter>
         {/* Stand Calendar Base */}
         <linearGradient id="cal-stand" x1="6" y1="36" x2="42" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#4338ca" />
@@ -247,7 +234,7 @@ export function IconKalender3D({ className = "w-8 h-8", size }: Icon3DProps) {
       <path d="M6 38L10 43H38L42 38H6Z" fill="url(#cal-stand)" opacity="0.6" />
 
       {/* Main Calendar Body */}
-      <g filter="url(#kalender-shadow)">
+      <g>
         <rect x="8" y="10" width="32" height="30" rx="6" fill="url(#cal-page)" />
         <rect x="9" y="11" width="30" height="28" rx="5" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
       </g>
@@ -286,7 +273,7 @@ export function IconKalender3D({ className = "w-8 h-8", size }: Icon3DProps) {
       </g>
 
       {/* Floating 3D Star / Event Pin */}
-      <g filter="url(#kalender-shadow)">
+      <g>
         <circle cx="35" cy="33" r="7.5" fill="url(#cal-pin)" />
         <path
           d="M35 28.5L36.3 31.7L39.7 32.1L37.1 34.3L37.8 37.6L35 35.9L32.2 37.6L32.9 34.3L30.3 32.1L33.7 31.7L35 28.5Z"
@@ -313,10 +300,6 @@ export function IconKinerja3D({ className = "w-8 h-8", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="kinerja-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#eab308" floodOpacity="0.3" />
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.15" />
-        </filter>
         {/* Gold Trophy Gradients */}
         <linearGradient id="trophy-gold" x1="14" y1="8" x2="34" y2="36" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#fef08a" />
@@ -343,7 +326,7 @@ export function IconKinerja3D({ className = "w-8 h-8", size }: Icon3DProps) {
       <rect x="37" y="16" width="5" height="26" rx="2" fill="#10b981" opacity="0.4" />
 
       {/* Main 3D Golden Trophy Cup */}
-      <g filter="url(#kinerja-shadow)">
+      <g>
         {/* Handles */}
         <path
           d="M13 14H17M13 14C9.5 14 8 18 10 22C11.5 25 15 25.5 17 25.5"
@@ -381,7 +364,7 @@ export function IconKinerja3D({ className = "w-8 h-8", size }: Icon3DProps) {
       </g>
 
       {/* 3D Ascending Growth Arrow */}
-      <g filter="url(#kinerja-shadow)">
+      <g>
         <path
           d="M26 18L35 9M35 9H29M35 9V15"
           stroke="url(#growth-arrow)"
@@ -410,10 +393,6 @@ export function IconLembur3D({ className = "w-8 h-8", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="lembur-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#f97316" floodOpacity="0.3" />
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.15" />
-        </filter>
         {/* Stopwatch Outer Ring (Chrome / Metallic) */}
         <linearGradient id="watch-metal" x1="8" y1="8" x2="40" y2="42" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#cbd5e1" />
@@ -440,7 +419,7 @@ export function IconLembur3D({ className = "w-8 h-8", size }: Icon3DProps) {
       <rect x="33" y="8" width="3.5" height="4" rx="1.2" transform="rotate(35 33 8)" fill="#94a3b8" />
 
       {/* Main Stopwatch Outer Casing */}
-      <g filter="url(#lembur-shadow)">
+      <g>
         <circle cx="24" cy="26" r="17" fill="url(#watch-metal)" />
         <circle cx="24" cy="26" r="16" stroke="#ffffff" strokeWidth="0.8" opacity="0.4" />
         
@@ -461,7 +440,7 @@ export function IconLembur3D({ className = "w-8 h-8", size }: Icon3DProps) {
       </g>
 
       {/* 3D Electric Lightning Bolt (Lembur Ekstra Energi) */}
-      <g filter="url(#lembur-shadow)">
+      <g>
         <path
           d="M34 22L28 32H33L31 42L40 30H34L36 22H34Z"
           fill="url(#bolt-grad)"
@@ -489,10 +468,6 @@ export function IconSlipGaji3D({ className = "w-8 h-8", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="slip-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#10b981" floodOpacity="0.25" />
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.15" />
-        </filter>
         {/* Banknote Gradients */}
         <linearGradient id="note-bg" x1="6" y1="12" x2="38" y2="36" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#34d399" />
@@ -512,7 +487,7 @@ export function IconSlipGaji3D({ className = "w-8 h-8", size }: Icon3DProps) {
       <rect x="8" y="13" width="30" height="20" rx="4.5" fill="#059669" opacity="0.6" />
 
       {/* Front Banknote (Layer 1) */}
-      <g filter="url(#slip-shadow)">
+      <g>
         <rect x="6" y="16" width="32" height="22" rx="5" fill="url(#note-bg)" />
         <rect x="7" y="17" width="30" height="20" rx="4" stroke="#ffffff" strokeWidth="0.8" opacity="0.4" />
 
@@ -528,7 +503,7 @@ export function IconSlipGaji3D({ className = "w-8 h-8", size }: Icon3DProps) {
       </g>
 
       {/* Floating 3D Shiny Gold Coin */}
-      <g filter="url(#slip-shadow)">
+      <g>
         <circle cx="35" cy="34" r="8.5" fill="url(#coin-gold)" />
         <circle cx="35" cy="34" r="7" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
         {/* Coin Emboss (Rp / Currency symbol) */}
@@ -564,10 +539,6 @@ export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="hadir-badge-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#059669" floodOpacity="0.28" />
-          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
-        </filter>
         <linearGradient id="badge-card-bg" x1="12" y1="8" x2="36" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#ffffff" />
           <stop offset="60%" stopColor="#f0fdf4" />
@@ -594,7 +565,7 @@ export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
       <rect x="22" y="6" width="4" height="2" rx="0.5" fill="#475569" />
 
       {/* ID Badge Card Body */}
-      <g filter="url(#hadir-badge-shadow)">
+      <g>
         <rect x="11" y="8" width="26" height="34" rx="5" fill="url(#badge-card-bg)" />
         <rect x="11" y="8" width="26" height="34" rx="5" stroke="#86efac" strokeWidth="0.8" opacity="0.6" />
         
@@ -613,7 +584,7 @@ export function IconHadir3D({ className = "w-6 h-6", size }: Icon3DProps) {
       </g>
 
       {/* 3D Active Verified Checkmark Badge */}
-      <g filter="url(#hadir-badge-shadow)">
+      <g>
         <circle cx="35" cy="35" r="8.5" fill="url(#hadir-verified-glow)" />
         <circle cx="35" cy="35" r="7.8" stroke="#ffffff" strokeWidth="0.8" opacity="0.7" />
         
@@ -651,10 +622,6 @@ export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="sakit-clean-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#e11d48" floodOpacity="0.28" />
-          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
-        </filter>
         {/* Main 3D Card Gradient - Premium Rose / Coral */}
         <linearGradient id="sakit-base" x1="10" y1="8" x2="38" y2="42" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#fb7185" />
@@ -684,7 +651,7 @@ export function IconSakit3D({ className = "w-6 h-6", size }: Icon3DProps) {
       <rect x="9" y="11" width="30" height="30" rx="9" fill="#be123c" opacity="0.6" />
 
       {/* Main 3D Rounded Shield Base */}
-      <g filter="url(#sakit-clean-shadow)">
+      <g>
         <rect x="8" y="9" width="32" height="32" rx="9" fill="url(#sakit-base)" />
         <rect x="8" y="9" width="32" height="32" rx="9" stroke="url(#sakit-rim)" strokeWidth="0.9" />
 
@@ -743,10 +710,6 @@ export function IconIzin3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="izin-shadow" x="-10%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#0284c7" floodOpacity="0.25" />
-          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
-        </filter>
         <linearGradient id="doc-bg" x1="10" y1="8" x2="38" y2="42" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#ffffff" />
           <stop offset="70%" stopColor="#f0f9ff" />
@@ -763,7 +726,7 @@ export function IconIzin3D({ className = "w-6 h-6", size }: Icon3DProps) {
       </defs>
 
       {/* Main Document Body */}
-      <g filter="url(#izin-shadow)">
+      <g>
         <path
           d="M11 9C11 6.79086 12.7909 5 15 5H29L37 13V39C37 41.2091 35.2091 43 33 43H15C12.7909 43 11 41.2091 11 39V9Z"
           fill="url(#doc-bg)"
@@ -781,7 +744,7 @@ export function IconIzin3D({ className = "w-6 h-6", size }: Icon3DProps) {
       </g>
 
       {/* Official Approval Wax Stamp 3D */}
-      <g filter="url(#izin-shadow)">
+      <g>
         <circle cx="32" cy="33" r="8" fill="url(#stamp-blue)" />
         <circle cx="32" cy="33" r="7" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
         <path
@@ -812,10 +775,6 @@ export function IconCutiRekap3D({ className = "w-6 h-6", size }: Icon3DProps) {
       className={className}
     >
       <defs>
-        <filter id="cuti-tropis-shadow" x="-15%" y="-15%" width="135%" height="140%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2" floodColor="#8b5cf6" floodOpacity="0.28" />
-          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.12" />
-        </filter>
         <linearGradient id="cal-stand" x1="10" y1="10" x2="38" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#ffffff" />
           <stop offset="60%" stopColor="#faf5ff" />
@@ -842,7 +801,7 @@ export function IconCutiRekap3D({ className = "w-6 h-6", size }: Icon3DProps) {
       <rect x="29" y="5" width="3" height="5" rx="1.5" fill="#cbd5e1" />
 
       {/* Calendar Body */}
-      <g filter="url(#cuti-tropis-shadow)">
+      <g>
         <rect x="10" y="8" width="28" height="33" rx="5" fill="url(#cal-stand)" />
         <rect x="10" y="8" width="28" height="33" rx="5" stroke="#c084fc" strokeWidth="0.8" opacity="0.5" />
         

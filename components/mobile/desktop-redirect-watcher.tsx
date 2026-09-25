@@ -9,18 +9,32 @@ export function DesktopRedirectWatcher() {
   useEffect(() => {
     if (typeof window === "undefined") return
 
+    // If verified as mobile in this session and still on mobile width, skip redundant checks
+    if (sessionStorage.getItem("simpeg_mobile_verified") === "1" && window.innerWidth < 1024) {
+      return
+    }
+
     // Don't redirect if query contains view=mobile or cookie is set to mobile
     const searchParams = new URLSearchParams(window.location.search)
-    if (searchParams.get("view") === "mobile") return
+    if (searchParams.get("view") === "mobile") {
+      sessionStorage.setItem("simpeg_mobile_verified", "1")
+      return
+    }
 
     const cookies = document.cookie || ""
-    if (cookies.includes("simpeg_view=mobile")) return
+    if (cookies.includes("simpeg_view=mobile")) {
+      sessionStorage.setItem("simpeg_mobile_verified", "1")
+      return
+    }
 
     // If running as an installed standalone PWA app, respect mobile mode
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true
-    if (isStandalone) return
+    if (isStandalone) {
+      sessionStorage.setItem("simpeg_mobile_verified", "1")
+      return
+    }
 
     // Check if user is viewing in desktop browser or requested desktop site:
     // 1. Screen / viewport width >= 1024px (mobile browser "Desktop Site" mode expands layout viewport to 980-1280px)
@@ -33,6 +47,7 @@ export function DesktopRedirectWatcher() {
     const isSafariDesktop = /Macintosh/i.test(navigator.userAgent) && !/iPhone|iPad/i.test(navigator.userAgent)
 
     if (isWideViewport || isUaDataDesktop || isAndroidDesktop || isSafariDesktop) {
+      sessionStorage.removeItem("simpeg_mobile_verified")
       const currentPath = window.location.pathname
       let target = "/dashboard"
       if (currentPath === "/m" || currentPath === "/m/dashboard") target = "/dashboard"
@@ -50,6 +65,7 @@ export function DesktopRedirectWatcher() {
 
       window.location.replace(target)
     } else {
+      sessionStorage.setItem("simpeg_mobile_verified", "1")
       // If currently in regular mobile viewport, clear any stale desktop cookie
       document.cookie = "simpeg_view=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT"
     }
