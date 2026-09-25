@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { 
   ArrowLeft, Calendar, Camera, Clock, CheckCircle2, 
-  AlertCircle, RefreshCw, X, Loader2, Sparkles, 
+  AlertCircle, RefreshCw, X, Loader2, 
   History, Send, ChevronRight, FlipHorizontal, Eye, Trash2,
   UploadCloud, FileText
 } from "lucide-react"
@@ -374,7 +374,7 @@ export default function MobileKoreksiAbsensiPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] pb-28 font-sans text-zinc-900 dark:text-zinc-100">
       {/* Header Bar */}
       <div 
-        className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
+        className="sticky top-0 z-30 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center gap-2.5">
@@ -435,16 +435,11 @@ export default function MobileKoreksiAbsensiPage() {
               <div className="absolute -right-4 -bottom-4 opacity-10">
                 <Clock className="w-32 h-32" />
               </div>
-              <div className="relative z-10 flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-white/15 backdrop-blur-xs shrink-0">
-                  <Sparkles className="w-5 h-5 text-amber-300" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-sm">Lupa Atau Ada Kendala Presensi?</h2>
-                  <p className="text-[11px] text-blue-100 mt-0.5 leading-relaxed">
-                    Pilih tanggal & sesi yang terlewat (bisa lebih dari satu). Sertakan bukti foto langsung dari kamera.
-                  </p>
-                </div>
+              <div className="relative z-10">
+                <h2 className="font-bold text-sm">Lupa Atau Ada Kendala Presensi?</h2>
+                <p className="text-[11px] text-blue-100 mt-0.5 leading-relaxed">
+                  Pilih tanggal & sesi yang diajukan koreksi (bisa lebih dari satu). Lampirkan berkas bukti jika ada.
+                </p>
               </div>
             </div>
 

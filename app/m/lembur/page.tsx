@@ -19,8 +19,24 @@ export default function MobileLembur() {
   const router = useRouter()
   
   const [pegawaiId, setPegawaiId] = useState<string | null>(null)
-  const [lemburList, setLemburList] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [lemburList, setLemburList] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("cached_m_lembur")
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return []
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("cached_m_lembur")
+        if (cached) return false
+      } catch {}
+    }
+    return true
+  })
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   
@@ -48,7 +64,12 @@ export default function MobileLembur() {
         if (p?.id) {
           setPegawaiId(p.id)
           const lemburRes = await getLemburList({ pegawaiId: p.id })
-          setLemburList(lemburRes || [])
+          if (lemburRes) {
+            setLemburList(lemburRes)
+            try {
+              localStorage.setItem("cached_m_lembur", JSON.stringify(lemburRes))
+            } catch {}
+          }
         }
       }
     } catch {}
@@ -114,7 +135,7 @@ export default function MobileLembur() {
     <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] pb-24 font-sans">
       {/* Header */}
       <div 
-        className="sticky top-0 z-20 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
+        className="sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center gap-2.5">

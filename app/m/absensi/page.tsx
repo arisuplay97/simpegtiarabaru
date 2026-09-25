@@ -22,11 +22,28 @@ const statusBadgeConfig: Record<string, { label: string; class: string }> = {
 export default function MobileAbsensi() {
   const { status } = useSession()
   const router = useRouter()
-  const [records, setRecords] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const now = new Date()
   const [bulan] = useState(now.getMonth() + 1)
   const [tahun] = useState(now.getFullYear())
+
+  const [records, setRecords] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_m_absensi_${now.getMonth() + 1}_${now.getFullYear()}`)
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return []
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_m_absensi_${now.getMonth() + 1}_${now.getFullYear()}`)
+        if (cached) return false
+      } catch {}
+    }
+    return true
+  })
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -39,7 +56,12 @@ export default function MobileAbsensi() {
   const loadData = async () => {
     try {
       const data = await getAbsensiSaya(bulan, tahun)
-      setRecords(data || [])
+      if (data) {
+        setRecords(data)
+        try {
+          localStorage.setItem(`cached_m_absensi_${bulan}_${tahun}`, JSON.stringify(data))
+        } catch {}
+      }
     } finally {
       setLoading(false)
     }
@@ -49,7 +71,7 @@ export default function MobileAbsensi() {
     <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] pb-24 font-sans">
       {/* Header */}
       <div 
-        className="sticky top-0 z-20 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
+        className="sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center gap-2.5">

@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
@@ -389,8 +389,33 @@ export default function MobileDashboard() {
   const sakitCount = summary?.sakit || 0
   const izinCount = summary?.izin || 0
   const cutiCount = summary?.cuti || 0
-  // Jumlah hari berjalan dalam bulan ini (misal tanggal 25 = 25 hari)
-  const totalDays = today.getDate()
+
+  // Hitung jumlah hari kerja efektif berjalan bulan ini (membedakan Kantor Pusat vs Kantor Cabang)
+  // Kantor Pusat: 5 hari kerja (Senin s.d. Jumat) -> Sabtu & Minggu LIBUR
+  // Kantor Cabang: 6 hari kerja (Senin s.d. Sabtu) -> Minggu LIBUR
+  const isPusat = summary?.wajibAbsenSiang ?? true
+  const totalWorkdays = useMemo(() => {
+    const year = today.getFullYear()
+    const month = today.getMonth()
+    const currentDay = today.getDate()
+    let workdays = 0
+
+    for (let d = 1; d <= currentDay; d++) {
+      const dayOfWeek = new Date(year, month, d).getDay() // 0 = Minggu, 1 = Senin, ..., 6 = Sabtu
+      if (isPusat) {
+        // Pusat: Hanya Senin(1) s.d. Jumat(5)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          workdays++
+        }
+      } else {
+        // Cabang: Senin(1) s.d. Sabtu(6)
+        if (dayOfWeek >= 1 && dayOfWeek <= 6) {
+          workdays++
+        }
+      }
+    }
+    return Math.max(workdays, hadirCount, 1)
+  }, [today, isPusat, hadirCount])
 
   return (
     <div 
@@ -773,16 +798,16 @@ export default function MobileDashboard() {
             </div>
           </div>
 
-          {totalDays > 0 && (
+          {totalWorkdays > 0 && (
             <div className="mb-4">
               <div className="flex justify-between text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
                 <span>Tingkat Kehadiran</span>
-                <span className="font-bold text-zinc-900 dark:text-zinc-100">{hadirCount}/{totalDays} Hari</span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">{hadirCount}/{totalWorkdays} Hari</span>
               </div>
               <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                 <div 
                   className="h-full rounded-full bg-zinc-900 dark:bg-white transition-all duration-700 ease-out"
-                  style={{ width: `${Math.min((hadirCount / totalDays) * 100, 100)}%` }} 
+                  style={{ width: `${Math.min((hadirCount / totalWorkdays) * 100, 100)}%` }} 
                 />
               </div>
             </div>

@@ -96,7 +96,7 @@ export default function MobileIndeks() {
     <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] font-sans pb-24 flex flex-col">
       {/* Header */}
       <div 
-        className="sticky top-0 z-20 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 shadow-2xs"
+        className="sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 shadow-2xs"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center justify-between">

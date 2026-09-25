@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "ASIK Mobile",
   description: "ASIK Perumdam Tirta Ardhia Rinjani",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "black", title: "ASIK" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ASIK" },
   icons: {
     icon: [
       { url: "/favicon.PNG", sizes: "any" },

@@ -52,9 +52,27 @@ interface SlipData {
 export default function MobileSlipGaji() {
   const { status } = useSession()
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [slipData, setSlipData] = useState<SlipData | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState(() => bulanList[0]?.value || "sep-2026")
+  const [slipData, setSlipData] = useState<SlipData | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const initialPeriod = bulanList[0]?.value || "sep-2026"
+        const cached = localStorage.getItem(`cached_m_slip_${initialPeriod}`)
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return null
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const initialPeriod = bulanList[0]?.value || "sep-2026"
+        const cached = localStorage.getItem(`cached_m_slip_${initialPeriod}`)
+        if (cached) return false
+      } catch {}
+    }
+    return true
+  })
   const [showPeriodPicker, setShowPeriodPicker] = useState(false)
 
   useEffect(() => {
@@ -65,10 +83,28 @@ export default function MobileSlipGaji() {
   }, [status])
 
   const fetchSlip = useCallback(async () => {
-    setLoading(true)
+    const cachedKey = `cached_m_slip_${selectedPeriod}`
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem(cachedKey)
+      if (cached) {
+        setSlipData(JSON.parse(cached))
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
+    } else {
+      setLoading(true)
+    }
     try {
       const res = await getMyPayroll(selectedPeriod)
-      setSlipData(res as SlipData)
+      if (res) {
+        setSlipData(res as SlipData)
+        try {
+          localStorage.setItem(cachedKey, JSON.stringify(res))
+        } catch {}
+      } else {
+        setSlipData(null)
+      }
     } catch {
       setSlipData(null)
     } finally {
@@ -98,7 +134,7 @@ export default function MobileSlipGaji() {
     <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] pb-24 font-sans">
       {/* Header */}
       <div 
-        className="sticky top-0 z-20 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
+        className="sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center gap-2.5">

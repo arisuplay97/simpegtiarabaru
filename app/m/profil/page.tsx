@@ -52,8 +52,24 @@ const faqList = [
 export default function MobileProfil() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
-  const [pegawai, setPegawai] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [pegawai, setPegawai] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("cached_pegawai_profile")
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return null
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("cached_pegawai_profile")
+        if (cached) return false
+      } catch {}
+    }
+    return true
+  })
   const [isUploading, setIsUploading] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -87,6 +103,9 @@ export default function MobileProfil() {
           email: profile.email || "",
           telepon: profile.telepon || ""
         })
+        try {
+          localStorage.setItem("cached_pegawai_profile", JSON.stringify(profile))
+        } catch {}
       }
     } finally {
       setLoading(false)

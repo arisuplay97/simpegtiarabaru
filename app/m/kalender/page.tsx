@@ -21,7 +21,16 @@ const STATUS_CONFIG_EXT: Record<string, { label: string; bg: string; text: strin
 export default function MobileKalender() {
   const { data: session } = useSession()
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [dayMap, setDayMap] = useState<Record<string, any>>({})
+  const [dayMap, setDayMap] = useState<Record<string, any>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const now = new Date()
+        const cached = localStorage.getItem(`cached_m_kalender_${now.getMonth() + 1}_${now.getFullYear()}`)
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return {}
+  })
   const [loading, setLoading] = useState(false)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
@@ -30,10 +39,19 @@ export default function MobileKalender() {
 
   const loadData = useCallback(async () => {
     if (!session?.user) return
-    setLoading(true)
+    // Jika belum ada cache untuk bulan ini, tampilkan indikator loading
+    const cachedKey = `cached_m_kalender_${bulan}_${tahun}`
+    if (typeof window !== "undefined" && !localStorage.getItem(cachedKey)) {
+      setLoading(true)
+    }
     try {
       const res = await (getKalenderPegawai as any)(null, bulan, tahun)
-      if (res) setDayMap(res.dayMap || {})
+      if (res?.dayMap) {
+        setDayMap(res.dayMap)
+        try {
+          localStorage.setItem(cachedKey, JSON.stringify(res.dayMap))
+        } catch {}
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -80,7 +98,7 @@ export default function MobileKalender() {
     <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] font-sans pb-24 flex flex-col">
       {/* Header */}
       <div 
-        className="sticky top-0 z-20 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
+        className="sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shadow-2xs"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center gap-2.5">
