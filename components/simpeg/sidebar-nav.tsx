@@ -14,7 +14,7 @@ import {
   Medal, CheckCheck, Target, Award,
   Files, FileSignature, ShieldAlert,
   Settings2, Building2, UserCog, KeyRound, History, Bot, Smile,
-  ChevronRight, ChevronLeft, LogOut, X, Menu, PanelLeft
+  ChevronRight, ChevronLeft, LogOut, X, Menu
 } from "lucide-react"
 import { VerifiedBadge } from "@/components/simpeg/verified-badge"
 
@@ -455,16 +455,6 @@ export function SidebarNav() {
           collapsed ? "w-[72px]" : "w-[260px]"
         )}
       >
-        {/* Tombol Sidebar menempel di luar garis pembatas, tanpa border */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3.5 top-5 z-50 hidden md:flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-[#18181b] shadow-md hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all border-none outline-none cursor-pointer"
-          title={collapsed ? "Perluas Sidebar" : "Ciutkan Sidebar"}
-          aria-label={collapsed ? "Perluas Sidebar" : "Ciutkan Sidebar"}
-        >
-          <PanelLeft className="h-4 w-4" strokeWidth={1.75} />
-        </button>
-
         {sidebarContent(false)}
       </aside>
 

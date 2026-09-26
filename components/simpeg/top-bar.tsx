@@ -87,19 +87,27 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-zinc-800/80 bg-white/85 dark:bg-[#09090b]/85 backdrop-blur-md px-4 sm:px-6 gap-3">
-      {/* Left: Hamburger (mobile) + Page Icon Badge + Breadcrumb */}
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-zinc-800/80 bg-white/85 dark:bg-[#09090b]/85 backdrop-blur-md pl-3.5 pr-4 sm:pl-3.5 sm:pr-6 gap-3">
+      {/* Left: Hamburger (mobile) + Desktop Sidebar Toggle + Breadcrumb */}
+      <div className="flex items-center gap-2.5 min-w-0">
         {/* Hamburger — mobile only */}
         <button
           onClick={() => setMobileOpen(true)}
-          className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition-colors"
+          className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition-colors cursor-pointer"
           aria-label="Buka menu"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-
+        {/* Desktop Sidebar Toggle — pas di samping kanan garis */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="hidden md:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+          title={collapsed ? "Perluas Sidebar" : "Ciutkan Sidebar"}
+          aria-label={collapsed ? "Perluas Sidebar" : "Ciutkan Sidebar"}
+        >
+          <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
+        </button>
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-[13px] min-w-0">
