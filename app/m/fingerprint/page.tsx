@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader2, MapPin, X, Clock, WifiOff, RefreshCw, CheckCircle2, CloudUpload, ShieldAlert, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { getEmployeeAttendanceSummary } from "@/lib/actions/absensi"
+import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import Lottie from "lottie-react"
@@ -78,7 +79,7 @@ function WatermarkClock() {
 }
 
 export default function MobileFingerprint() {
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   
   const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null)
@@ -115,6 +116,22 @@ export default function MobileFingerprint() {
   // Data Pegawai & Summary
   const [pegawaiData, setPegawaiData] = useState<any>(null)
   const [summaryData, setSummaryData] = useState<any>(null)
+
+  // Deteksi Kantor Cabang yang Akurat & Responsif
+  const isCabang = useMemo(() => {
+    return Boolean(
+      summaryData?.isCabang ||
+      (pegawaiData && isCabangEmployee(pegawaiData)) ||
+      session?.user?.role === "KEPALA_CABANG" ||
+      String(session?.user?.role || "").toUpperCase().includes("CABANG") ||
+      pegawaiData?.role === "KEPALA_CABANG" ||
+      pegawaiData?.user?.role === "KEPALA_CABANG" ||
+      pegawaiData?.bidang?.nama?.toLowerCase().includes("cabang") ||
+      pegawaiData?.lokasiAbsensi?.tipe === "kantor_cabang"
+    )
+  }, [summaryData, pegawaiData, session])
+
+  const isPusat = !isCabang
   
   // Sesi Absensi Aktif: PAGI | SIANG | SORE
   const [activeSession, setActiveSession] = useState<"PAGI" | "SIANG" | "SORE">(() => {
@@ -362,7 +379,7 @@ export default function MobileFingerprint() {
       return
     }
 
-    if (dayOfWeek === 6 && !summaryData?.isCabang) {
+    if (dayOfWeek === 6 && !isCabang) {
       triggerHaptic("error")
       toast.error("Hari Sabtu adalah hari libur untuk kantor pusat. Presensi hari Sabtu khusus pegawai kantor cabang.", { id: "absen-error" })
       return
@@ -861,8 +878,6 @@ export default function MobileFingerprint() {
 
 
   // ===== MAIN SCANNER SCREEN =====
-  const isPusat = summaryData?.wajibAbsenSiang ?? true
-  const isCabang = summaryData?.isCabang ?? false
   const nowWita = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Makassar" }))
   const dayOfWeek = nowWita.getDay()
   const isSunday = dayOfWeek === 0

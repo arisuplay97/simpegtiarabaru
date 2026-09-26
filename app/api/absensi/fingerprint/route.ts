@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     if (UUID_REGEX.test(userId)) {
       pegawai = await prisma.pegawai.findUnique({ 
         where: { userId },
-        include: { lokasiAbsensi: true, bidang: true }
+        include: { lokasiAbsensi: true, bidang: true, user: true }
       })
     }
 
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     if (!pegawai && sessionPegawaiId && UUID_REGEX.test(sessionPegawaiId)) {
       pegawai = await prisma.pegawai.findUnique({
         where: { id: sessionPegawaiId },
-        include: { lokasiAbsensi: true, bidang: true }
+        include: { lokasiAbsensi: true, bidang: true, user: true }
       })
     }
 
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
             { user: { email: { equals: session.user.email, mode: "insensitive" } } }
           ]
         },
-        include: { lokasiAbsensi: true, bidang: true }
+        include: { lokasiAbsensi: true, bidang: true, user: true }
       })
     }
 
@@ -197,7 +197,7 @@ export async function POST(req: Request) {
     }) as any
 
     const pengaturan: any = await getCachedPengaturan()
-    const isCabang = isCabangEmployee(pegawai)
+    const isCabang = isCabangEmployee(pegawai) || String(pegawai?.user?.role || (session.user as any)?.role || "").toUpperCase().includes("CABANG")
     
     // Konversi waktu sekarang (Vercel UTC) ke WITA agar pengecekan jam valid
     const witaString = now.toLocaleString("en-US", { timeZone: "Asia/Makassar" })

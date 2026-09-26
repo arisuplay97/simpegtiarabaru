@@ -43,7 +43,7 @@ async function getSessionPegawai(session: any): Promise<any> {
   if (session.user.id && UUID_REGEX.test(session.user.id)) {
     const p = await prisma.pegawai.findUnique({
       where: { userId: session.user.id },
-      include: { lokasiAbsensi: true, bidang: true } as any
+      include: { lokasiAbsensi: true, bidang: true, user: true } as any
     })
     if (p) return p
   }
@@ -52,7 +52,7 @@ async function getSessionPegawai(session: any): Promise<any> {
   if (sessionPegawaiId && UUID_REGEX.test(sessionPegawaiId)) {
     const p = await prisma.pegawai.findUnique({
       where: { id: sessionPegawaiId },
-      include: { lokasiAbsensi: true, bidang: true } as any
+      include: { lokasiAbsensi: true, bidang: true, user: true } as any
     })
     if (p) return p
   }
@@ -65,7 +65,7 @@ async function getSessionPegawai(session: any): Promise<any> {
           { user: { email: { equals: session.user.email, mode: "insensitive" } } }
         ]
       },
-      include: { lokasiAbsensi: true, bidang: true } as any
+      include: { lokasiAbsensi: true, bidang: true, user: true } as any
     })
     if (p) return p
   }
@@ -81,13 +81,12 @@ export async function checkDeviceAndAbsen(
 ) {
   try {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Anda belum login." }
-
+    if (!session?.user) return { error: "Anda belum login." }
     const pegawai = await getSessionPegawai(session)
 
     if (!pegawai) return { error: "Profil Pegawai tidak ditemukan. Hubungi HRD." }
 
-    const isCabang = isCabangEmployee(pegawai)
+    const isCabang = isCabangEmployee(pegawai) || String(pegawai?.user?.role || (session.user as any)?.role || "").toUpperCase().includes("CABANG")
     const { startOfDay, endOfDay, targetDateDb, now, dayOfWeek, currentWitaMinutes } = getTodayRange()
 
     // Validasi hari libur operasional
@@ -553,9 +552,9 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     const limitDate = isCurrentMonth ? now : endDate
     const pegawai = await prisma.pegawai.findUnique({
       where: { id: pegawaiId },
-      include: { bidang: true, lokasiAbsensi: true }
+      include: { bidang: true, lokasiAbsensi: true, user: true }
     })
-    const isCabang = isCabangEmployee(pegawai)
+    const isCabang = isCabangEmployee(pegawai) || String(pegawai?.user?.role || "").toUpperCase().includes("CABANG")
 
     let hariKerjaAktif = 0
     for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
@@ -577,7 +576,7 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     })
 
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
-    const dayOfWeekToday = now.getDay()
+    const { dayOfWeek: dayOfWeekToday } = getTodayRange(now)
     const isTodaySaturday = dayOfWeekToday === 6
 
     let jamMasukSetting = pengaturan?.jamMasuk || "08:00"

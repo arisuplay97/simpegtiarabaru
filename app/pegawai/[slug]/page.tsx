@@ -54,6 +54,8 @@ import {
   Globe,
   RotateCcw,
   SlidersHorizontal,
+  ShieldCheck,
+  Camera,
 } from "lucide-react"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -78,7 +80,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useParams } from "next/navigation"
-import { getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai, updateBebasAbsensi, updateLokasiPegawai } from "@/lib/actions/pegawai"
+import { getBidang, getEmployee as getEmployeeBase, updateEmployee, uploadFotoPegawai, updateBebasAbsensi, updateLokasiPegawai } from "@/lib/actions/pegawai"
 import {
   getEmployeeProfile,
   addRiwayatJabatan,
@@ -97,10 +99,17 @@ import { getDokumenPegawai, uploadDokumen, deleteDokumen } from "@/lib/actions/d
 import { getPegawaiActivityLogs } from "@/lib/actions/audit-log"
 import { resetFaceData } from "@/lib/actions/face"
 import { getLokasiList } from "@/lib/actions/lokasi"
-import { bidangList, getAtasanOtomatis, type TipeJabatan } from "@/lib/data/bidang-store"
+import { 
+  getJabatanOptions, 
+  getAtasanOtomatis, 
+  getJabatanLabel, 
+  getSubBidangOptions, 
+  golonganOptions, 
+  tipeKepegawaianOptions, 
+  type TipeJabatan 
+} from "@/lib/data/bidang-store"
 import { daftarPangkat } from "@/lib/constants/pangkat"
 import { generateCvPdf } from "@/lib/generate-cv-pdf"
-import { Camera } from "lucide-react"
 
 const statusConfig: Record<string, { label: string; dot: string; className: string }> = {
   AKTIF: { 
@@ -206,10 +215,13 @@ const documents = [
   { nama: "BPJS Kesehatan", jenis: "Dokumen", tanggal: "01 Jan 2014", status: "Aktif" },
 ]
 
-function F({ label, children, error }: { label: string, children: React.ReactNode, error?: string }) {
+function F({ label, children, error, required }: { label: string, children: React.ReactNode, error?: string, required?: boolean }) {
   return (
     <div>
-      <Label className="text-xs text-muted-foreground mb-1 block">{label}</Label>
+      <Label className="text-xs text-muted-foreground mb-1 block">
+        {label}
+        {required && <span className="text-destructive ml-0.5">*</span>}
+      </Label>
       {children}
       {error && <p className="text-destructive text-[10px] mt-1">{error}</p>}
     </div>
@@ -230,6 +242,11 @@ export default function EmployeeDetailPage() {
 
   const [employee, setEmployee] = useState<any>(null)
   const [lokasiList, setLokasiList] = useState<any[]>([])
+  const [bidangData, setBidangData] = useState<any[]>([])
+  const [formTab, setFormTab] = useState<"identitas" | "kepegawaian" | "biodata" | "finansial">("identitas")
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState<any>({})
   const [attendanceSummary, setAttendanceSummary] = useState<any>({
     hadir: 0, izin: 0, sakit: 0, cuti: 0, alpha: 0, terlambat: 0, pulangCepat: 0
@@ -474,6 +491,7 @@ export default function EmployeeDetailPage() {
     if (id) {
       fetchEmployee()
       fetchLokasi()
+      getBidang().then(data => setBidangData(data || []))
     }
   }, [id])
 
@@ -640,47 +658,44 @@ export default function EmployeeDetailPage() {
   }
 
   const handleOpenEdit = () => {
-    // FIX: hanya ambil field scalar — jangan spread seluruh employee object
-    // karena employee mengandung nested relation (bidang, subBidang, kontrak, dll)
-    // yang menyebabkan crash saat dikirim ke Prisma / updateEmployee
     if (!employee) return
-    let kategoriPenempatan = "PUSAT"
-    if (["KEPALA_CABANG", "KASUBBID_CABANG", "STAFF_CABANG"].includes(employee.tipeJabatan)) {
-      kategoriPenempatan = "CABANG"
-    }
     setFormData({
-      nik: employee.nik,
-      nama: employee.nama,
-      email: employee.email,
-      telepon: employee.telepon,
-      kategoriPenempatan,
+      nik: employee.nik || "",
+      nama: employee.nama || "",
+      email: employee.email || "",
+      telepon: employee.telepon || "",
+      fotoUrl: employee.fotoUrl || null,
       bidangId: employee.bidangId || "",
       subBidangId: employee.subBidangId || "",
       tipeJabatan: employee.tipeJabatan || "",
-      tipePegawai: employee.kontrak?.[0]?.tipe || (employee.tipeJabatan === "KONTRAK" ? "KONTRAK" : "TETAP"),
-      jabatan: employee.jabatan,
-      atasanLangsung: employee.atasanLangsung,
-      golongan: employee.golongan,
-      pangkat: employee.pangkat,
-      status: employee.status,
-      sp: employee.sp,
+      jabatan: employee.jabatan || "",
+      atasanLangsung: employee.atasanLangsung || "",
+      golongan: employee.golongan || "",
+      pangkat: employee.pangkat || "",
+      status: employee.status || "AKTIF",
+      sp: employee.sp || null,
       tanggalMasuk: employee.tanggalMasuk ? new Date(employee.tanggalMasuk).toISOString().split("T")[0] : "",
-      jenisKelamin: employee.jenisKelamin,
-      tempatLahir: employee.tempatLahir,
+      jenisKelamin: employee.jenisKelamin || "",
+      tempatLahir: employee.tempatLahir || "",
       tanggalLahir: employee.tanggalLahir ? new Date(employee.tanggalLahir).toISOString().split("T")[0] : "",
-      agama: employee.agama,
-      statusNikah: employee.statusNikah,
-      alamat: employee.alamat,
-      npwp: employee.npwp,
-      pendidikanTerakhir: employee.pendidikanTerakhir,
-      jurusan: employee.jurusan,
-      institusi: employee.institusi,
-      tahunLulus: employee.tahunLulus,
-      bank: employee.bank,
-      noRekening: employee.noRekening,
-      bpjsKesehatan: employee.bpjsKesehatan,
-      bpjsKetenagakerjaan: employee.bpjsKetenagakerjaan,
+      agama: employee.agama || "",
+      statusNikah: employee.statusNikah || "",
+      pendidikanTerakhir: employee.pendidikanTerakhir || "",
+      jurusan: employee.jurusan || "",
+      institusi: employee.institusi || "",
+      tahunLulus: employee.tahunLulus || "",
+      bank: employee.bank || "",
+      noRekening: employee.noRekening || "",
+      bpjsKesehatan: employee.bpjsKesehatan || "",
+      bpjsKetenagakerjaan: employee.bpjsKetenagakerjaan || "",
+      alamat: employee.alamat || "",
+      npwp: employee.npwp || "",
+      tipeKepegawaian: (employee as any).tipeKepegawaian || (employee.tipeJabatan === "KONTRAK" ? "kontrak" : "tetap"),
     })
+    setFotoPreview(employee.fotoUrl || null)
+    setFotoFile(null)
+    setFormErrors({})
+    setFormTab("identitas")
     setShowEditDialog(true)
   }
 
@@ -691,13 +706,13 @@ export default function EmployeeDetailPage() {
     setIsUploading(true)
     toast.loading("Mengupload foto...")
     try {
-      const formData = new FormData()
-      formData.append("pegawaiId", employee.id)
-      formData.append("fotoFile", file)
+      const formDataUpload = new FormData()
+      formDataUpload.append("pegawaiId", employee.id)
+      formDataUpload.append("fotoFile", file)
 
       const res = await fetch("/api/pegawai/upload-foto", {
         method: "POST",
-        body: formData,
+        body: formDataUpload,
       })
       const json = await res.json()
 
@@ -705,6 +720,7 @@ export default function EmployeeDetailPage() {
 
       setEmployee((prev: any) => ({ ...prev, fotoUrl: json.url }))
       setPreviewUrl(json.url)
+      setFotoPreview(json.url)
       toast.dismiss()
       toast.success("Foto berhasil diperbarui")
     } catch (error: any) {
@@ -716,14 +732,20 @@ export default function EmployeeDetailPage() {
   }
 
   const handleSaveEdit = async () => {
+    if (!employee?.id) return
     setIsSaving(true)
     try {
-      await updateEmployee(employee.id, formData)
-      await fetchEmployee()
-      setShowEditDialog(false)
+      const res = (await updateEmployee(employee.id, formData, fotoFile ?? undefined)) as any
+      if (res?.error) {
+        toast.error(res.error)
+        setIsSaving(false)
+        return
+      }
       toast.success("Data pegawai berhasil diperbarui")
-    } catch (error) {
-      toast.error("Gagal memperbarui data pegawai")
+      setShowEditDialog(false)
+      await fetchEmployee()
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memperbarui data pegawai")
     } finally {
       setIsSaving(false)
     }
@@ -2102,314 +2124,548 @@ export default function EmployeeDetailPage() {
       </div>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background">
-          <DialogHeader className="px-6 py-4 border-b bg-muted/30">
-            <DialogTitle className="text-xl font-semibold">Edit Data Pegawai</DialogTitle>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-zinc-50 flex items-center gap-2">
+              <Edit className="h-5 w-5 text-primary" strokeWidth={1.75} />
+              Perbarui Data Pegawai - {employee?.nama}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
+              Perbarui identitas, kepegawaian, biodata, dan dokumen finansial pegawai.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-            <div className="space-y-6">
-              {/* Section 1: Foto + Nama + NIK */}
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-dashed border-muted-foreground/30">
-                    {previewUrl || formData.fotoUrl ? (
-                      <AvatarImage src={previewUrl || formData.fotoUrl} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-                        <Camera className="h-8 w-8" />
-                      </div>
-                    )}
-                  </div>
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                    />
-                    <span className="text-xs text-primary underline">{isUploading ? 'Mengunggah...' : 'Upload Foto'}</span>
-                  </label>
-                </div>
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <F label="Nama Lengkap">
-                    <Input value={formData.nama || ""} onChange={e => handleChange("nama", e.target.value)} placeholder="Nama Lengkap" />
-                  </F>
-                  <F label="NIK">
-                    <Input value={formData.nik || ""} onChange={e => handleChange("nik", e.target.value)} placeholder="Contoh: 2002136" maxLength={18} />
-                  </F>
-                  <F label="Email">
-                    <Input value={formData.email || ""} onChange={e => handleChange("email", e.target.value)} placeholder="email@perusahaan.com" />
-                  </F>
-                  <F label="Telepon">
-                    <Input value={formData.telepon || ""} onChange={e => handleChange("telepon", e.target.value)} placeholder="0812..." />
-                  </F>
-                </div>
+          <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+            <div className="space-y-5">
+              {/* Tab Selector Buttons */}
+              <div className="flex border-b border-slate-200 dark:border-zinc-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFormTab("identitas")}
+                  className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition-colors ${
+                    formTab === "identitas"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Identitas & Akun
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormTab("kepegawaian")}
+                  className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition-colors ${
+                    formTab === "kepegawaian"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                  }`}
+                >
+                  <Briefcase className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Kepegawaian & Jabatan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormTab("biodata")}
+                  className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition-colors ${
+                    formTab === "biodata"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                  }`}
+                >
+                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Biodata & Domisili
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormTab("finansial")}
+                  className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition-colors ${
+                    formTab === "finansial"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                  }`}
+                >
+                  <CreditCard className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Pendidikan & Finansial
+                </button>
               </div>
 
-              <Separator />
-
-              {/* Section 2: Kepegawaian */}
-              <section>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Kepegawaian</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Helper: check if Direksi role (hide unneeded fields) */}
-                {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()) || bidangList.find(b => b.id === formData.bidangId)?.nama?.toLowerCase().includes("direksi")) && (
-                  <F label="Tipe Pegawai">
-                    <Select value={formData.tipePegawai || "TETAP"} onValueChange={v => {
-                      handleChange("tipePegawai", v)
-                      if (v !== "TETAP") {
-                        handleChange("golongan", null)
-                        handleChange("pangkat", null)
-                      }
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Tipe Pegawai" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="TETAP">Tetap / PDAM</SelectItem>
-                        <SelectItem value="KONTRAK">Kontrak (PKWT)</SelectItem>
-                        <SelectItem value="MAGANG">Magang</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </F>
-                )}
-                  <F label="Kategori Penempatan">
-                    <Select value={formData.kategoriPenempatan || "PUSAT"} onValueChange={v => {
-                      handleChange("kategoriPenempatan", v)
-                      if (v === "PUSAT" && ["KEPALA_CABANG","KASUBBID_CABANG","STAFF_CABANG"].includes(formData.tipeJabatan || "")) {
-                        handleChange("tipeJabatan", "STAFF")
-                      } else if (v === "CABANG" && ["KEPALA_BIDANG","KASUBBID","STAFF"].includes(formData.tipeJabatan || "")) {
-                        handleChange("tipeJabatan", "STAFF_CABANG")
-                      }
-                      handleChange("bidangId", "")
-                      handleChange("subBidangId", "")
-                      handleChange("jabatan", "")
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Kategori" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PUSAT">Pusat</SelectItem>
-                        <SelectItem value="CABANG">Cabang</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </F>
-                  <F label="Jabatan">
-                    <Select value={formData.tipeJabatan || ""} onValueChange={v => {
-                      handleChange("tipeJabatan", v)
-                      // Auto-fill jabatan for direktur
-                      if (v === "direktur_utama") handleChange("jabatan", "Direktur Utama")
-                      else if (v === "direktur_operasional") handleChange("jabatan", "Direktur Operasional")
-                      else if (v === "direktur_umum") handleChange("jabatan", "Direktur Umum & Keuangan")
-                      else if (v === "direktur") handleChange("jabatan", "Direktur")
-                      else handleChange("jabatan", "")
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
-                      <SelectContent>
-                        {formData.kategoriPenempatan === "CABANG" ? (
-                          <>
-                            <SelectItem value="kepala_cabang">Kepala Cabang</SelectItem>
-                            <SelectItem value="kasubbid_cabang">Ka. Sub Seksi Cabang</SelectItem>
-                            <SelectItem value="staf_ahli">Staf Ahli</SelectItem>
-                            <SelectItem value="staff_cabang">Staff Cabang</SelectItem>
-                          </>
+              {/* Tab 1: Identitas & Akun */}
+              {formTab === "identitas" && (
+                <div className="space-y-4 pt-1">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/40">
+                    <div className="relative group shrink-0">
+                      <div className="h-20 w-20 rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 flex items-center justify-center shadow-xs">
+                        {fotoPreview ? (
+                          <img src={fotoPreview} alt="Preview" className="h-full w-full object-cover" />
                         ) : (
-                          <>
-                            <SelectItem value="direktur_utama">⭐ Direktur Utama</SelectItem>
-                            <SelectItem value="direktur_operasional">🔹 Direktur Operasional</SelectItem>
-                            <SelectItem value="direktur_umum">🔹 Direktur Umum & Keuangan</SelectItem>
-                            <SelectItem value="direktur">🔹 Direktur (Lainnya)</SelectItem>
-                            <SelectItem value="kepala_bidang">Kepala Bidang/Bagian</SelectItem>
-                            <SelectItem value="kasubbid">Kasubbid / Kasi</SelectItem>
-                            <SelectItem value="staf_ahli">Staf Ahli</SelectItem>
-                            <SelectItem value="staff">Staff Pusat</SelectItem>
-                          </>
+                          <Users className="h-8 w-8 text-slate-400 dark:text-zinc-500" strokeWidth={1.5} />
                         )}
-                      </SelectContent>
-                    </Select>
-                  </F>
-                  <F label={formData.kategoriPenempatan === "CABANG" ? "Pilih Cabang" : "Bidang / Bagian"}>
-                    <Select value={formData.bidangId || "NONE"} onValueChange={v => {
-                      const val = v === "NONE" ? "" : v
-                      handleChange("bidangId", val)
-                      handleChange("subBidangId", "")
-                      handleChange("jabatan", "")
-                    }}>
-                      <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">— Pilih —</SelectItem>
-                        {bidangList.filter(b => formData.kategoriPenempatan === "CABANG" ? b.nama.includes("Cabang") : !b.nama.includes("Cabang")).map(b => (
-                          <SelectItem key={b.id} value={b.id}>{b.nama}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </F>
+                      </div>
+                      <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white rounded-xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-medium">
+                        <Camera className="h-4 w-4 mb-0.5" />
+                        Ubah
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              setFotoFile(file)
+                              setFotoPreview(URL.createObjectURL(file))
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <div className="text-center sm:text-left space-y-1">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Foto Profil Pegawai</p>
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                        Format PNG atau JPG dengan ukuran maksimal 2MB. Foto formal tampak depan dengan pencahayaan memadai.
+                      </p>
+                      <label className="inline-block text-xs font-medium text-primary hover:underline cursor-pointer mt-1">
+                        Pilih Berkas Foto
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              setFotoFile(file)
+                              setFotoPreview(URL.createObjectURL(file))
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
 
-                  {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()) || bidangList.find(b => b.id === formData.bidangId)?.nama?.toLowerCase().includes("direksi")) && (
-                    <F label="Sub Bidang / Seksi">
-                      <Select value={formData.subBidangId || "NONE"} onValueChange={v => {
-                        const val = v === "NONE" ? "" : v
-                        handleChange("subBidangId", val)
-                        handleChange("jabatan", "")
-                      }}>
-                        <SelectTrigger className="w-full truncate overflow-hidden [&>span]:truncate"><SelectValue placeholder="Pilih Sub Bidang" /></SelectTrigger>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <F label="Nama Lengkap" error={formErrors.nama} required>
+                      <Input
+                        value={formData.nama || ""}
+                        onChange={e => handleChange("nama", e.target.value)}
+                        placeholder="Contoh: Muhammad Ihsan, S.T."
+                        className="h-9 text-xs"
+                      />
+                    </F>
+                    <F label="NIK (Nomor Induk Karyawan)" error={formErrors.nik} required>
+                      <Input
+                        value={formData.nik || ""}
+                        onChange={e => handleChange("nik", e.target.value.replace(/\D/g, "").slice(0, 18))}
+                        placeholder="7 - 8 digit angka (contoh: 2002136)"
+                        maxLength={18}
+                        className="h-9 text-xs font-mono"
+                      />
+                    </F>
+                    <F label="Email Perusahaan" error={formErrors.email} required>
+                      <Input
+                        type="email"
+                        value={formData.email || ""}
+                        onChange={e => handleChange("email", e.target.value)}
+                        placeholder="nama@pdam-tar.co.id"
+                        className="h-9 text-xs"
+                      />
+                    </F>
+                    <F label="Nomor Telepon / WhatsApp" error={formErrors.telepon}>
+                      <Input
+                        value={formData.telepon || ""}
+                        onChange={e => handleChange("telepon", e.target.value)}
+                        placeholder="081234567890"
+                        className="h-9 text-xs font-mono"
+                      />
+                    </F>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Kepegawaian & Jabatan */}
+              {formTab === "kepegawaian" && (
+                <div className="space-y-4 pt-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    <F label="Unit Kerja / Bidang" error={formErrors.bidangId} required>
+                      <Select
+                        value={formData.bidangId || "NONE"}
+                        onValueChange={v => {
+                          const bid = v === "NONE" ? "" : v
+                          handleChange("bidangId", bid)
+                          handleChange("subBidangId", "")
+                          handleChange("tipeJabatan", "")
+                          handleChange("jabatan", "")
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs truncate overflow-hidden">
+                          <SelectValue placeholder="Pilih Unit Kerja" />
+                        </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="NONE">— Kosong (Langsung di bawah Bidang/Cabang) —</SelectItem>
-                          {bidangList.find(b => b.id === formData.bidangId)?.subBidang?.map((sb: any) => (
-                            <SelectItem key={sb.id} value={sb.id}>{sb.nama}</SelectItem>
+                          <SelectItem value="NONE">— Pilih Unit Kerja —</SelectItem>
+                          {bidangData.map(b => (
+                            <SelectItem key={b.id} value={b.id} className="text-xs">
+                              {b.nama}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </F>
-                  )}
 
-                  <F label="Jabatan Lengkap (Otomatis)">
-                    <Input className="bg-muted" value={formData.jabatan || ""} readOnly disabled placeholder="Otomatis" />
-                  </F>
-
-                  {formData.tipePegawai === "TETAP" && (
-                    <F label="Golongan PNS">
-                      <Select value={formData.golongan || "NONE"} onValueChange={v => handleChange("golongan", v === "NONE" ? null : v)}>
-                        <SelectTrigger><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                    <F label="Jabatan Struktural" required>
+                      <Select
+                        value={formData.tipeJabatan || "NONE"}
+                        onValueChange={v => {
+                          const tipe = v === "NONE" ? "" : v
+                          const bidang = bidangData.find(b => b.id === formData.bidangId)
+                          const namaB = bidang?.nama || ""
+                          const autoJabatan = tipe ? getJabatanLabel(tipe as TipeJabatan, namaB) : ""
+                          handleChange("tipeJabatan", tipe)
+                          handleChange("jabatan", autoJabatan)
+                          if (tipe.includes("kepala")) {
+                            handleChange("subBidangId", "")
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs truncate overflow-hidden">
+                          <SelectValue placeholder="Pilih Jabatan" />
+                        </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="NONE">— Pilih —</SelectItem>
-                          {["A/I","A/II","A/III","A/IV","B/I","B/II","B/III","B/IV","C/I","C/II","C/III","C/IV","D/I","D/II","D/III","D/IV","E/IV"].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                          <SelectItem value="NONE">— Pilih Jabatan —</SelectItem>
+                          {formData.bidangId ? (
+                            getJabatanOptions(formData.bidangId, bidangData).map(opt => (
+                              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                                {opt.label}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <>
+                              <SelectItem value="kepala_bidang" className="text-xs">Kepala Bidang</SelectItem>
+                              <SelectItem value="kasubbid" className="text-xs">Kasubbid</SelectItem>
+                              <SelectItem value="staf_ahli" className="text-xs">Staf Ahli</SelectItem>
+                              <SelectItem value="staff" className="text-xs">Staff</SelectItem>
+                              <SelectItem value="kepala_cabang" className="text-xs">Kepala Cabang</SelectItem>
+                              <SelectItem value="kasubbid_cabang" className="text-xs">Kasubbid Cabang</SelectItem>
+                              <SelectItem value="staff_cabang" className="text-xs">Staff Cabang</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </F>
-                  )}
-                  
-                  <F label="Status Pegawai">
-                    <Select value={formData.status || "AKTIF"} onValueChange={v => handleChange("status", v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="AKTIF">Aktif</SelectItem>
-                        <SelectItem value="CUTI">Cuti</SelectItem>
-                        <SelectItem value="NON_AKTIF">Non-Aktif</SelectItem>
-                        <SelectItem value="PENSIUN">Pensiun</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </F>
 
-                  {!(["direktur_utama","direktur_operasional","direktur_umum","direktur"].includes((formData.tipeJabatan || "").toLowerCase()) || bidangList.find(b => b.id === formData.bidangId)?.nama?.toLowerCase().includes("direksi")) && (
-                    <F label="SP (Jika Ada)">
-                      <Select value={formData.sp ?? "NONE"} onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}>
-                        <SelectTrigger><SelectValue placeholder="Tidak Ada SP" /></SelectTrigger>
+                    {formData.tipeJabatan && !formData.tipeJabatan.includes("kepala") && formData.bidangId && (
+                      <F label="Sub Bidang" error={formErrors.subBidangId} required>
+                        <Select
+                          value={formData.subBidangId || "NONE"}
+                          onValueChange={v => handleChange("subBidangId", v === "NONE" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Pilih Sub Bidang" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NONE">— Pilih Sub Bidang —</SelectItem>
+                            {getSubBidangOptions(formData.bidangId || "", bidangData).map(sb => (
+                              <SelectItem key={sb.id} value={sb.id} className="text-xs">
+                                {sb.nama}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </F>
+                    )}
+
+                    <F label="Tipe Kepegawaian">
+                      <Select
+                        value={formData.tipeKepegawaian || "tetap"}
+                        onValueChange={v => handleChange("tipeKepegawaian", v)}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Pilih Tipe Kepegawaian" />
+                        </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="NONE">Tidak Ada</SelectItem>
-                          <SelectItem value="SP1">SP 1</SelectItem>
-                          <SelectItem value="SP2">SP 2</SelectItem>
-                          <SelectItem value="SP3">SP 3</SelectItem>
+                          {tipeKepegawaianOptions.map(t => (
+                            <SelectItem key={t.value} value={t.value} className="text-xs">
+                              {t.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </F>
-                  )}
-                </div>
-                {formData.atasanLangsung && formData.atasanLangsung !== "-" && (
-                  <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center gap-2">
-                    <span className="text-xs text-emerald-800 font-medium">✓ Atasan langsung otomatis: <strong>{formData.atasanLangsung}</strong></span>
+
+                    {formData.tipeKepegawaian !== "kontrak" && formData.tipeKepegawaian !== "magang" && (
+                      <F label="Golongan" error={formErrors.golongan} required>
+                        <Select
+                          value={formData.golongan || "NONE"}
+                          onValueChange={v => handleChange("golongan", v === "NONE" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Pilih Golongan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NONE">— Pilih Golongan —</SelectItem>
+                            {golonganOptions.map(g => (
+                              <SelectItem key={g} value={g} className="text-xs font-mono">
+                                {g}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </F>
+                    )}
+
+                    <F label="Status Kepegawaian">
+                      <Select value={formData.status || "AKTIF"} onValueChange={v => handleChange("status", v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="AKTIF" className="text-xs">Aktif</SelectItem>
+                          <SelectItem value="CUTI" className="text-xs">Cuti</SelectItem>
+                          <SelectItem value="NON_AKTIF" className="text-xs">Non-Aktif</SelectItem>
+                          <SelectItem value="PENSIUN" className="text-xs">Pensiun</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </F>
+
+                    <F label="Tanggal Mulai Tugas (TMT)">
+                      <Input
+                        type="date"
+                        value={formData.tanggalMasuk || ""}
+                        onChange={e => handleChange("tanggalMasuk", e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </F>
+
+                    <F label="Surat Peringatan (SP)">
+                      <Select
+                        value={formData.sp ?? "NONE"}
+                        onValueChange={v => handleChange("sp", v === "NONE" ? null : v)}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Tidak Ada SP" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NONE" className="text-xs">Tidak Ada SP</SelectItem>
+                          <SelectItem value="SP1" className="text-xs">SP 1</SelectItem>
+                          <SelectItem value="SP2" className="text-xs">SP 2</SelectItem>
+                          <SelectItem value="SP3" className="text-xs">SP 3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </F>
                   </div>
-                )}
-              </section>
 
-              <Separator />
+                  {(formData.tipeJabatan as TipeJabatan) && formData.bidangId && (
+                    <div className="flex items-center gap-2.5 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-800 dark:text-emerald-300 text-xs">
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <span>
+                        Atasan Langsung Otomatis:{" "}
+                        <strong className="font-semibold">
+                          {getAtasanOtomatis(formData.tipeJabatan as TipeJabatan, formData.bidangId || "", bidangData)}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Section 3: Data Pribadi */}
-              <section>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data Pribadi</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <F label="Tempat Lahir">
-                    <Input value={formData.tempatLahir || ""} onChange={e => handleChange("tempatLahir", e.target.value)} placeholder="Kota Kelahiran" />
-                  </F>
-                  <F label="Tanggal Lahir">
-                    <Input type="date" value={formData.tanggalLahir || ""} onChange={e => handleChange("tanggalLahir", e.target.value)} />
-                  </F>
-                  <F label="Jenis Kelamin">
-                    <Select value={formData.jenisKelamin || "NONE"} onValueChange={v => handleChange("jenisKelamin", v === "NONE" ? null : v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih JKL" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">— Pilih —</SelectItem>
-                        <SelectItem value="L">Laki-laki</SelectItem>
-                        <SelectItem value="P">Perempuan</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </F>
-                  <F label="Agama">
-                    <Select value={formData.agama || "NONE"} onValueChange={v => handleChange("agama", v === "NONE" ? null : v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Agama" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">— Pilih —</SelectItem>
-                        {["ISLAM","KRISTEN","KATOLIK","HINDU","BUDDHA","KONGHUCU"].map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </F>
-                  <F label="Status Nikah">
-                    <Select value={formData.statusNikah || "NONE"} onValueChange={v => handleChange("statusNikah", v === "NONE" ? null : v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">— Pilih —</SelectItem>
-                        <SelectItem value="BELUM_MENIKAH">Belum Menikah</SelectItem>
-                        <SelectItem value="MENIKAH">Menikah</SelectItem>
-                        <SelectItem value="CERAI">Cerai</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {/* Tab 3: Biodata & Domisili */}
+              {formTab === "biodata" && (
+                <div className="space-y-4 pt-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    <F label="Tempat Lahir">
+                      <Input
+                        value={formData.tempatLahir || ""}
+                        onChange={e => handleChange("tempatLahir", e.target.value)}
+                        placeholder="Contoh: Praya, Mataram"
+                        className="h-9 text-xs"
+                      />
+                    </F>
+                    <F label="Tanggal Lahir">
+                      <Input
+                        type="date"
+                        value={formData.tanggalLahir || ""}
+                        onChange={e => handleChange("tanggalLahir", e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </F>
+                    <F label="Jenis Kelamin">
+                      <Select value={formData.jenisKelamin || ""} onValueChange={v => handleChange("jenisKelamin", v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Pilih Jenis Kelamin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="L" className="text-xs">Laki-laki</SelectItem>
+                          <SelectItem value="P" className="text-xs">Perempuan</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </F>
+                    <F label="Agama">
+                      <Select value={formData.agama || ""} onValueChange={v => handleChange("agama", v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Pilih Agama" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU"].map(a => (
+                            <SelectItem key={a} value={a} className="text-xs">
+                              {a}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </F>
+                    <F label="Status Pernikahan">
+                      <Select value={formData.statusNikah || ""} onValueChange={v => handleChange("statusNikah", v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Pilih Status Nikah" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BELUM_MENIKAH" className="text-xs">Belum Menikah</SelectItem>
+                          <SelectItem value="MENIKAH" className="text-xs">Menikah</SelectItem>
+                          <SelectItem value="CERAI" className="text-xs">Cerai</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </F>
+                    <F label="Nomor Pokok Wajib Pajak (NPWP)">
+                      <Input
+                        value={formData.npwp || ""}
+                        onChange={e => handleChange("npwp", e.target.value)}
+                        placeholder="00.000.000.0-000.000"
+                        className="h-9 text-xs font-mono"
+                      />
+                    </F>
+                  </div>
+
+                  <F label="Alamat Domisili Lengkap">
+                    <Textarea
+                      value={formData.alamat || ""}
+                      onChange={e => handleChange("alamat", e.target.value)}
+                      placeholder="Alamat lengkap tempat tinggal saat ini (Jalan, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten)"
+                      className="text-xs min-h-[80px]"
+                    />
                   </F>
                 </div>
-                <div className="mt-4">
-                  <F label="Alamat Domisili">
-                    <Textarea value={formData.alamat || ""} onChange={e => handleChange("alamat", e.target.value)} placeholder="Alamat lengkap tempat tinggal saat ini" />
-                  </F>
+              )}
+
+              {/* Tab 4: Pendidikan & Finansial */}
+              {formTab === "finansial" && (
+                <div className="space-y-4 pt-1">
+                  <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 p-3.5 space-y-3 bg-slate-50/40 dark:bg-zinc-900/30">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <GraduationCap className="h-3.5 w-3.5 text-primary" />
+                      Pendidikan Terakhir
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <F label="Jenjang">
+                        <Select
+                          value={formData.pendidikanTerakhir || "NONE"}
+                          onValueChange={v => handleChange("pendidikanTerakhir", v === "NONE" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Pilih Jenjang" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NONE" className="text-xs">— Pilih —</SelectItem>
+                            {["SD", "SMP", "SMA", "D1", "D2", "D3", "D4", "S1", "S2", "S3"].map(p => (
+                              <SelectItem key={p} value={p} className="text-xs">
+                                {p}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </F>
+                      <F label="Jurusan">
+                        <Input
+                          value={formData.jurusan || ""}
+                          onChange={e => handleChange("jurusan", e.target.value)}
+                          placeholder="Teknik Lingkungan, Manajemen"
+                          className="h-9 text-xs"
+                        />
+                      </F>
+                      <F label="Institusi / Universitas">
+                        <Input
+                          value={formData.institusi || ""}
+                          onChange={e => handleChange("institusi", e.target.value)}
+                          placeholder="Universitas Mataram"
+                          className="h-9 text-xs"
+                        />
+                      </F>
+                      <F label="Tahun Kelulusan">
+                        <Input
+                          value={formData.tahunLulus || ""}
+                          onChange={e => handleChange("tahunLulus", e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          placeholder="Contoh: 2018"
+                          maxLength={4}
+                          className="h-9 text-xs font-mono"
+                        />
+                      </F>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 p-3.5 space-y-3 bg-slate-50/40 dark:bg-zinc-900/30">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5 text-primary" />
+                      Rekening Bank & Jaminan Sosial
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <F label="Bank Penyalur Gaji">
+                        <Select
+                          value={formData.bank || "NONE"}
+                          onValueChange={v => handleChange("bank", v === "NONE" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Pilih Bank" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NONE" className="text-xs">— Pilih Bank —</SelectItem>
+                            {["Bank NTB Syariah", "Bank BNI", "Bank BRI", "Bank Mandiri", "Bank BCA", "Bank Lainnya"].map(b => (
+                              <SelectItem key={b} value={b} className="text-xs">
+                                {b}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </F>
+                      <F label="Nomor Rekening">
+                        <Input
+                          value={formData.noRekening || ""}
+                          onChange={e => handleChange("noRekening", e.target.value)}
+                          placeholder="Contoh: 1234567890"
+                          className="h-9 text-xs font-mono"
+                        />
+                      </F>
+                      <F label="No. BPJS Kesehatan">
+                        <Input
+                          value={formData.bpjsKesehatan || ""}
+                          onChange={e => handleChange("bpjsKesehatan", e.target.value)}
+                          placeholder="13 digit angka"
+                          className="h-9 text-xs font-mono"
+                        />
+                      </F>
+                      <F label="No. BPJS Ketenagakerjaan">
+                        <Input
+                          value={formData.bpjsKetenagakerjaan || ""}
+                          onChange={e => handleChange("bpjsKetenagakerjaan", e.target.value)}
+                          placeholder="11 digit angka"
+                          className="h-9 text-xs font-mono"
+                        />
+                      </F>
+                    </div>
+                  </div>
                 </div>
-              </section>
-
-              <Separator />
-
-              {/* Section 4: Pendidikan */}
-              <section>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pendidikan Terakhir</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <F label="Tingkat Pendidikan">
-                    <Input value={formData.pendidikanTerakhir || ""} onChange={e => handleChange("pendidikanTerakhir", e.target.value)} placeholder="e.g. S1" />
-                  </F>
-                </div>
-              </section>
-
-              <Separator />
-
-              {/* Section 5: Keuangan & Dokumen */}
-              <section>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Keuangan & Dokumen</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <F label="Bank">
-                    <Select value={formData.bank || "NONE"} onValueChange={v => handleChange("bank", v === "NONE" ? "" : v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Bank" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">— Pilih Bank —</SelectItem>
-                        {["Bank Mandiri", "Bank BNI", "Bank BRI", "Bank BCA", "Bank BTN", "Lainnya"].map(b => (
-                          <SelectItem key={b} value={b}>{b}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </F>
-                  <F label="No. Rekening">
-                    <Input value={formData.noRekening || ""} onChange={e => handleChange("noRekening", e.target.value)} placeholder="000111222" />
-                  </F>
-                  <F label="NPWP">
-                    <Input value={formData.npwp || ""} onChange={e => handleChange("npwp", e.target.value)} placeholder="NPWP" />
-                  </F>
-                  <F label="BPJS Kesehatan">
-                    <Input value={formData.bpjsKesehatan || ""} onChange={e => handleChange("bpjsKesehatan", e.target.value)} placeholder="No. BPJS Kes" />
-                  </F>
-                  <F label="BPJS Ketenagakerjaan">
-                    <Input value={formData.bpjsKetenagakerjaan || ""} onChange={e => handleChange("bpjsKetenagakerjaan", e.target.value)} placeholder="No. BPJS TK" />
-                  </F>
-                </div>
-              </section>
+              )}
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t bg-muted/30">
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Batal</Button>
-            <Button onClick={handleSaveEdit} disabled={isLoading}>
-              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Simpan Perubahan"}
+          <DialogFooter className="px-6 py-3.5 border-t bg-slate-50/50 dark:bg-zinc-900/50 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSaving} className="h-9 text-xs">
+              Batal
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving} className="h-9 text-xs">
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Perubahan"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
