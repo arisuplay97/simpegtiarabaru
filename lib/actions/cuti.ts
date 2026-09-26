@@ -13,15 +13,42 @@ export async function getCutiList() {
     const session = await auth()
     if (!session?.user) return { error: "Belum login" }
 
+    const role = session.user.role
+    const isGlobalAdmin = ["SUPERADMIN", "HRD", "DIREKSI"].includes(role ?? "")
     const whereClause: any = {}
-    
-    // Jika PEGAWAI biasa, hanya tampilkan cutinya sendiri
-    if (session.user.role === "PEGAWAI") {
+
+    // Jika bukan Admin Global (Superadmin / HRD / Direksi), lakukan filter terstruktur
+    if (!isGlobalAdmin) {
       const pegawai = await prisma.pegawai.findUnique({
-        where: { userId: session.user.id }
+        where: { userId: session.user.id },
+        select: { id: true, bidangId: true, lokasiAbsensiId: true, tipeJabatan: true }
       })
-      if (!pegawai) return { error: "Profil pegawai tidak ditemukan" }
-      whereClause.pegawaiId = pegawai.id
+      if (!pegawai) return { data: [] }
+
+      const isKepala = 
+        role === "KEPALA_CABANG" || 
+        role === "KEPALA_BIDANG" || 
+        pegawai.tipeJabatan === "KEPALA_CABANG" || 
+        pegawai.tipeJabatan === "KEPALA_BIDANG"
+
+      if (isKepala) {
+        // Kepala cabang/bidang hanya melihat bawahan di unit/cabangnya serta pengajuannya sendiri
+        const orConditions: any[] = [
+          { pegawaiId: pegawai.id }
+        ]
+
+        if (pegawai.bidangId) {
+          orConditions.push({ pegawai: { bidangId: pegawai.bidangId } })
+        }
+        if (pegawai.lokasiAbsensiId) {
+          orConditions.push({ pegawai: { lokasiAbsensiId: pegawai.lokasiAbsensiId } })
+        }
+
+        whereClause.OR = orConditions
+      } else {
+        // Pegawai biasa hanya melihat pengajuan sendiri
+        whereClause.pegawaiId = pegawai.id
+      }
     }
 
     const cutiList = await prisma.cuti.findMany({

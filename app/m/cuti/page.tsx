@@ -7,7 +7,7 @@ import {
   Plus, Loader2, CalendarDays, CheckCircle2, Clock,
   XCircle, ArrowLeft, X, Camera, UploadCloud, FileText,
   Paperclip, Trash2, Eye, ExternalLink, ShieldCheck, Download,
-  AlertTriangle
+  AlertTriangle, User, Users
 } from "lucide-react"
 import { getCutiList, createCuti } from "@/lib/actions/cuti"
 import { format } from "date-fns"
@@ -23,8 +23,9 @@ const statusStyle: Record<string, { label: string; class: string; icon: any }> =
 }
 
 export default function MobileCuti() {
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
+  const [filterTab, setFilterTab] = useState<"ALL" | "SAYA" | "BAWAHAN">("ALL")
   const [cutiList, setCutiList] = useState<any[]>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -69,13 +70,29 @@ export default function MobileCuti() {
     if (status === "authenticated") fetchCuti()
   }, [status])
 
+  useEffect(() => {
+    if (session?.user?.id) {
+      try {
+        const cached = localStorage.getItem(`cached_m_cuti_${session.user.id}`)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCutiList(parsed)
+            setLoading(false)
+          }
+        }
+      } catch {}
+    }
+  }, [session?.user?.id])
+
   const fetchCuti = async () => {
     try {
       const res = await getCutiList()
       if (res.data) {
         setCutiList(res.data)
         try {
-          localStorage.setItem("cached_m_cuti", JSON.stringify(res.data))
+          const cacheKey = session?.user?.id ? `cached_m_cuti_${session.user.id}` : "cached_m_cuti"
+          localStorage.setItem(cacheKey, JSON.stringify(res.data))
         } catch {}
       }
     } finally {
@@ -188,6 +205,17 @@ export default function MobileCuti() {
     }
   }
 
+  const currentPegawaiId = (session?.user as any)?.pegawaiId
+  const hasSubordinates = cutiList.some(c => currentPegawaiId && c.pegawaiId !== currentPegawaiId)
+  const countSaya = cutiList.filter(c => currentPegawaiId ? c.pegawaiId === currentPegawaiId : true).length
+  const countBawahan = cutiList.filter(c => currentPegawaiId ? c.pegawaiId !== currentPegawaiId : false).length
+
+  const displayList = cutiList.filter(c => {
+    if (filterTab === "SAYA") return currentPegawaiId ? c.pegawaiId === currentPegawaiId : true
+    if (filterTab === "BAWAHAN") return currentPegawaiId ? c.pegawaiId !== currentPegawaiId : false
+    return true
+  })
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b] pb-24 font-sans">
       {/* Header */}
@@ -213,27 +241,103 @@ export default function MobileCuti() {
         </button>
       </div>
 
+      {/* Filter Tabs jika ada pengajuan dari bawahan */}
+      {hasSubordinates && (
+        <div className="px-4 mt-3">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60">
+            <button
+              onClick={() => setFilterTab("ALL")}
+              className={cn(
+                "flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all text-center",
+                filterTab === "ALL"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              )}
+            >
+              Semua ({cutiList.length})
+            </button>
+            <button
+              onClick={() => setFilterTab("BAWAHAN")}
+              className={cn(
+                "flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1",
+                filterTab === "BAWAHAN"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              )}
+            >
+              <Users className="h-3 w-3 text-amber-500" /> Bawahan ({countBawahan})
+            </button>
+            <button
+              onClick={() => setFilterTab("SAYA")}
+              className={cn(
+                "flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1",
+                filterTab === "SAYA"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              )}
+            >
+              <User className="h-3 w-3 text-blue-500" /> Saya ({countSaya})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* List Permohonan */}
       <div className="px-4 mt-4 space-y-3">
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
           </div>
-        ) : cutiList.length === 0 ? (
+        ) : displayList.length === 0 ? (
           <div className="py-16 text-center text-zinc-400 dark:text-zinc-500">
             <CalendarDays className="mx-auto h-10 w-10 mb-2.5 opacity-30 stroke-[1.5]" />
-            <p className="text-sm font-medium">Belum ada pengajuan cuti</p>
+            <p className="text-sm font-medium">
+              {filterTab === "BAWAHAN" ? "Belum ada pengajuan cuti dari bawahan" : "Belum ada pengajuan cuti"}
+            </p>
           </div>
         ) : (
-          cutiList.map(c => {
+          displayList.map(c => {
             const s = statusStyle[c.status] || statusStyle.PENDING
             const Icon = s.icon
+            const isSubordinate = currentPegawaiId ? c.pegawaiId !== currentPegawaiId : false
 
             return (
               <div 
                 key={c.id} 
                 className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-4 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
               >
+                {/* Info Pegawai: Tampilkan Nama, Jabatan & Badge Pengajuan */}
+                {c.pegawai?.nama && (
+                  <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-zinc-100 dark:border-zinc-800/80">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-300 shrink-0 overflow-hidden">
+                        {c.pegawai.fotoUrl ? (
+                          <img src={c.pegawai.fotoUrl} alt={c.pegawai.nama} className="w-full h-full object-cover" />
+                        ) : (
+                          c.pegawai.nama.slice(0, 2).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                          {c.pegawai.nama}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                          {c.pegawai.jabatan || c.pegawai.bidang?.nama || "Pegawai"}
+                        </p>
+                      </div>
+                    </div>
+                    {isSubordinate ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                        Bawahan
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 shrink-0">
+                        Pengajuan Saya
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{c.jenisCuti?.replace("_", " ")}</p>
