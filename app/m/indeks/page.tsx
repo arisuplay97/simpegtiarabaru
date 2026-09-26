@@ -32,11 +32,24 @@ function RankChangeIndicator({
   direction, 
   diff,
   delta,
+  isNew,
 }: { 
-  direction?: 'up' | 'down' | 'same'
+  direction?: 'up' | 'down' | 'same' | 'new'
   diff?: number
   delta?: number
+  isNew?: boolean
 }) {
+  if (direction === 'new' || isNew) {
+    return (
+      <span 
+        className="inline-flex items-center justify-center text-[9px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/30 px-1 py-0.5 rounded leading-none tracking-wider shadow-2xs" 
+        title="Pendatang Baru di Top 10"
+      >
+        NEW
+      </span>
+    )
+  }
+
   const dir = direction || (delta && delta > 0 ? 'up' : delta && delta < 0 ? 'down' : 'same')
   const amount = diff !== undefined ? diff : Math.abs(delta || 0)
 
@@ -74,10 +87,43 @@ export default function MobileIndeks() {
   const [tahun, setTahun] = useState(new Date().getFullYear())
   const [activeTab, setActiveTab] = useState("leaderboard")
 
-  const [leaderboard, setLeaderboard] = useState<any[]>([])
-  const [rankingUnit, setRankingUnit] = useState<any[]>([])
-  const [perhatian, setPerhatian] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  // Client-side cache: instant load from localStorage without spinning
+  const [leaderboard, setLeaderboard] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_m_indeks_lb_${new Date().getMonth() + 1}_${new Date().getFullYear()}`)
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return []
+  })
+  const [rankingUnit, setRankingUnit] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_m_indeks_ru_${new Date().getMonth() + 1}_${new Date().getFullYear()}`)
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return []
+  })
+  const [perhatian, setPerhatian] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_m_indeks_pp_${new Date().getMonth() + 1}_${new Date().getFullYear()}`)
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return []
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_m_indeks_lb_${new Date().getMonth() + 1}_${new Date().getFullYear()}`)
+        if (cached) return false
+      } catch {}
+    }
+    return true
+  })
   const [recalcLoading, setRecalcLoading] = useState(false)
   const [availableMonths, setAvailableMonths] = useState<number[]>([])
 
@@ -87,17 +133,53 @@ export default function MobileIndeks() {
     setAvailableMonths([m, m === 1 ? 12 : m - 1])
   }, [])
 
-  const loadAll = async () => {
-    setLoading(true)
+  const loadAll = async (forceRefresh = false) => {
+    const cacheKeyLb = `cached_m_indeks_lb_${bulan}_${tahun}`
+    const cacheKeyRu = `cached_m_indeks_ru_${bulan}_${tahun}`
+    const cacheKeyPp = `cached_m_indeks_pp_${bulan}_${tahun}`
+
+    let hasCachedData = false
+    if (!forceRefresh && typeof window !== "undefined") {
+      try {
+        const cachedLb = localStorage.getItem(cacheKeyLb)
+        const cachedRu = localStorage.getItem(cacheKeyRu)
+        const cachedPp = localStorage.getItem(cacheKeyPp)
+        if (cachedLb) {
+          setLeaderboard(JSON.parse(cachedLb))
+          hasCachedData = true
+        }
+        if (cachedRu) {
+          setRankingUnit(JSON.parse(cachedRu))
+          hasCachedData = true
+        }
+        if (cachedPp) {
+          setPerhatian(JSON.parse(cachedPp))
+        }
+      } catch {}
+    }
+
+    if (!hasCachedData) {
+      setLoading(true)
+    }
+
     try {
       const [lb, ru, pp] = await Promise.all([
         getLeaderboard(bulan, tahun),
         getRankingUnit(bulan, tahun),
         isAdmin ? getPegawaiPerluPerhatian() : []
       ])
-      setLeaderboard(lb || [])
-      setRankingUnit(ru || [])
-      setPerhatian(pp || [])
+      if (lb) {
+        setLeaderboard(lb)
+        try { localStorage.setItem(cacheKeyLb, JSON.stringify(lb)) } catch {}
+      }
+      if (ru) {
+        setRankingUnit(ru)
+        try { localStorage.setItem(cacheKeyRu, JSON.stringify(ru)) } catch {}
+      }
+      if (pp) {
+        setPerhatian(pp)
+        try { localStorage.setItem(cacheKeyPp, JSON.stringify(pp)) } catch {}
+      }
     } catch {} finally {
       setLoading(false)
     }
@@ -113,7 +195,7 @@ export default function MobileIndeks() {
       await hitungIndeksSemuaPegawai(bulan, tahun)
       await generateBadgesBulanan(bulan, tahun)
       toast.success("Indeks berhasil dihitung ulang")
-      await loadAll()
+      await loadAll(true)
     } catch {
       toast.error("Gagal menghitung")
     } finally {
@@ -247,6 +329,7 @@ export default function MobileIndeks() {
                             direction={p.rankDirection} 
                             diff={p.rankDiff} 
                             delta={p.rankDelta} 
+                            isNew={p.isNew}
                           />
                         </div>
                       </div>
@@ -269,7 +352,7 @@ export default function MobileIndeks() {
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col items-end shrink-0 gap-1">
+                      <div className="flex items-center shrink-0">
                         <span className={cn(
                           "text-[10px] font-bold px-2.5 py-1 rounded-full border",
                           idx === 0
@@ -282,11 +365,6 @@ export default function MobileIndeks() {
                         )}>
                           {p.predikatLabel || (idx === 0 ? "Top 1 Teladan" : idx < 3 ? `Top ${idx + 1}` : "Disiplin")}
                         </span>
-                        {p.totalSkor !== undefined && (
-                          <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500">
-                            Skor {p.totalSkor}
-                          </span>
-                        )}
                       </div>
                     </div>
                   ))
@@ -314,6 +392,7 @@ export default function MobileIndeks() {
                               direction={u.rankDirection} 
                               diff={u.rankDiff} 
                               delta={u.rankDelta} 
+                              isNew={u.isNew}
                             />
                           </div>
                         </div>

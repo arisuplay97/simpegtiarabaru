@@ -62,11 +62,24 @@ function RankChangeIndicator({
   direction, 
   diff,
   delta,
+  isNew,
 }: { 
-  direction?: 'up' | 'down' | 'same'
+  direction?: 'up' | 'down' | 'same' | 'new'
   diff?: number
   delta?: number
+  isNew?: boolean
 }) {
+  if (direction === 'new' || isNew) {
+    return (
+      <span 
+        className="inline-flex items-center justify-center text-[9px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/30 px-1 py-0.5 rounded leading-none tracking-wider shadow-2xs" 
+        title="Pendatang Baru di Top 10"
+      >
+        NEW
+      </span>
+    )
+  }
+
   const dir = direction || (delta && delta > 0 ? 'up' : delta && delta < 0 ? 'down' : 'same')
   const amount = diff !== undefined ? diff : Math.abs(delta || 0)
 
@@ -412,7 +425,7 @@ function IndeksContent() {
                             <div className="flex flex-col items-center">
                               <RankBadge rank={p.rank} />
                               <div className="mt-1">
-                                <RankChangeIndicator direction={p.rankDirection} diff={p.rankDiff} delta={p.rankDelta} />
+                                <RankChangeIndicator direction={p.rankDirection} diff={p.rankDiff} delta={p.rankDelta} isNew={p.isNew} />
                               </div>
                             </div>
                             <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-neutral-800 shadow">
@@ -461,7 +474,7 @@ function IndeksContent() {
                         <div className="flex flex-col items-center justify-center shrink-0 w-8">
                           <RankBadge rank={p.rank} />
                           <div className="mt-1">
-                            <RankChangeIndicator direction={p.rankDirection} diff={p.rankDiff} delta={p.rankDelta} />
+                            <RankChangeIndicator direction={p.rankDirection} diff={p.rankDiff} delta={p.rankDelta} isNew={p.isNew} />
                           </div>
                         </div>
                         <Avatar className="h-9 w-9 shrink-0">
@@ -521,7 +534,7 @@ function IndeksContent() {
                         <div className="flex flex-col items-center justify-center shrink-0 w-8">
                           <RankBadge rank={unit.rank} />
                           <div className="mt-1">
-                            <RankChangeIndicator direction={unit.rankDirection} diff={unit.rankDiff} delta={unit.rankDelta} />
+                            <RankChangeIndicator direction={unit.rankDirection} diff={unit.rankDiff} delta={unit.rankDelta} isNew={unit.isNew} />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">

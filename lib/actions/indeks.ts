@@ -392,11 +392,16 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
       const delta = Number((r.totalSkor - Number(prev)).toFixed(1))
 
       const prevRank = prevRankMap.get(r.pegawaiId) ?? null
+      let isNew = false
       let rankDelta = 0
-      let rankDirection: 'up' | 'down' | 'same' = 'same'
+      let rankDirection: 'up' | 'down' | 'same' | 'new' = 'same'
       let rankDiff = 0
 
-      if (prevRank !== null) {
+      if (prevRank === null || prevRank > 10) {
+        // Pegawai yang bulan lalu belum masuk Top 10 atau belum ada data -> New Entry
+        isNew = true
+        rankDirection = 'new'
+      } else {
         rankDelta = prevRank - currentRank
         if (rankDelta > 0) {
           rankDirection = 'up'
@@ -419,6 +424,7 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
       return {
         rank: currentRank,
         prevRank,
+        isNew,
         rankDelta,
         rankDirection,
         rankDiff,
