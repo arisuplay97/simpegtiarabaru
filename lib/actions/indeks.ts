@@ -338,6 +338,26 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
       }
     }
 
+    const prevBulan = b === 1 ? 12 : b - 1
+    const prevTahun = b === 1 ? t - 1 : t
+
+    const prevRows = await prisma.indeksPegawai.findMany({
+      where: { bulan: prevBulan, tahun: prevTahun },
+      orderBy: [
+        { totalSkor: 'desc' },
+        { skorKehadiran: 'desc' },
+        { skorKetepatan: 'desc' },
+        { skorAbsenBersih: 'desc' },
+        { pegawaiId: 'asc' }
+      ],
+      select: { pegawaiId: true, totalSkor: true }
+    })
+    const prevMap = new Map(prevRows.map(r => [r.pegawaiId, r.totalSkor]))
+    const prevRankMap = new Map<string, number>()
+    prevRows.forEach((r, idx) => {
+      prevRankMap.set(r.pegawaiId, idx + 1)
+    })
+
     const rows = await prisma.indeksPegawai.findMany({
       where: { bulan: b, tahun: t },
       include: {
@@ -345,18 +365,15 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
           select: { id: true, nama: true, jabatan: true, fotoUrl: true, bidang: { select: { nama: true } } }
         }
       },
-      orderBy: { totalSkor: 'desc' },
+      orderBy: [
+        { totalSkor: 'desc' },
+        { skorKehadiran: 'desc' },
+        { skorKetepatan: 'desc' },
+        { skorAbsenBersih: 'desc' },
+        { pegawaiId: 'asc' }
+      ],
       take: 10
     })
-
-    const prevBulan = b === 1 ? 12 : b - 1
-    const prevTahun = b === 1 ? t - 1 : t
-
-    const prevRows = await prisma.indeksPegawai.findMany({
-      where: { bulan: prevBulan, tahun: prevTahun },
-      select: { pegawaiId: true, totalSkor: true }
-    })
-    const prevMap = new Map(prevRows.map(r => [r.pegawaiId, r.totalSkor]))
 
     const badges = await prisma.badgePegawai.findMany({
       where: { bulan: b, tahun: t }
@@ -370,8 +387,29 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
     const bulanNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des']
 
     return rows.map((r, idx) => {
+      const currentRank = idx + 1
       const prev = prevMap.get(r.pegawaiId) || 0
       const delta = Number((r.totalSkor - Number(prev)).toFixed(1))
+
+      const prevRank = prevRankMap.get(r.pegawaiId) ?? null
+      let rankDelta = 0
+      let rankDirection: 'up' | 'down' | 'same' = 'same'
+      let rankDiff = 0
+
+      if (prevRank !== null) {
+        rankDelta = prevRank - currentRank
+        if (rankDelta > 0) {
+          rankDirection = 'up'
+          rankDiff = rankDelta
+        } else if (rankDelta < 0) {
+          rankDirection = 'down'
+          rankDiff = Math.abs(rankDelta)
+        } else {
+          rankDirection = 'same'
+          rankDiff = 0
+        }
+      }
+
       // Top 10 di leaderboard merupakan pegawai yang disiplin absen, jangan beri label "Sangat Kurang" atau "Kurang"
       let predLabel = getPredikatLabel(r.predikat)
       if (r.predikat === "SANGAT_KURANG" || r.predikat === "KURANG" || !predLabel) {
@@ -379,7 +417,11 @@ export async function getLeaderboard(bulan?: number, tahun?: number) {
       }
 
       return {
-        rank: idx + 1,
+        rank: currentRank,
+        prevRank,
+        rankDelta,
+        rankDirection,
+        rankDiff,
         pegawaiId: r.pegawaiId,
         nama: r.pegawai.nama,
         jabatan: r.pegawai.jabatan,
@@ -426,6 +468,32 @@ export async function getRankingUnit(bulan?: number, tahun?: number) {
       entry.hariKerjaTotal += r.hariKerja
     })
 
+    const prevBulan = b === 1 ? 12 : b - 1
+    const prevTahun = b === 1 ? t - 1 : t
+
+    const prevRows = await prisma.indeksPegawai.findMany({
+      where: { bulan: prevBulan, tahun: prevTahun },
+      include: { pegawai: { select: { bidang: { select: { id: true, nama: true } } } } }
+    })
+
+    const prevUnitMap = new Map<string, { scores: number[] }>()
+    prevRows.forEach(r => {
+      const unit = r.pegawai.bidang
+      if (!unit || unit.nama.trim().toLowerCase().includes("direksi")) return
+      if (!prevUnitMap.has(unit.id)) prevUnitMap.set(unit.id, { scores: [] })
+      prevUnitMap.get(unit.id)!.scores.push(r.totalSkor)
+    })
+
+    const prevRankings = Array.from(prevUnitMap.entries()).map(([id, data]) => {
+      const avgSkor = data.scores.length > 0 ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length * 10) / 10 : 0
+      return { id, avgSkor }
+    }).sort((a, b) => b.avgSkor - a.avgSkor)
+
+    const prevUnitRankMap = new Map<string, number>()
+    prevRankings.forEach((u, idx) => {
+      prevUnitRankMap.set(u.id, idx + 1)
+    })
+
     const result = Array.from(unitMap.entries()).map(([id, data]) => {
       const avgSkor = data.scores.length > 0 ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length * 10) / 10 : 0
       const persenHadir = data.hariKerjaTotal > 0 ? Math.round((data.hadirTotal / data.hariKerjaTotal) * 100) : 0
@@ -439,7 +507,34 @@ export async function getRankingUnit(bulan?: number, tahun?: number) {
         persenHadir,
       }
     }).sort((a, b) => b.avgSkor - a.avgSkor)
-    .map((r, idx) => ({ ...r, rank: idx + 1 }))
+    .map((r, idx) => {
+      const currentRank = idx + 1
+      const prevRank = prevUnitRankMap.get(r.id) ?? null
+      let rankDelta = 0
+      let rankDirection: 'up' | 'down' | 'same' = 'same'
+      let rankDiff = 0
+      if (prevRank !== null) {
+        rankDelta = prevRank - currentRank
+        if (rankDelta > 0) {
+          rankDirection = 'up'
+          rankDiff = rankDelta
+        } else if (rankDelta < 0) {
+          rankDirection = 'down'
+          rankDiff = Math.abs(rankDelta)
+        } else {
+          rankDirection = 'same'
+          rankDiff = 0
+        }
+      }
+      return {
+        ...r,
+        rank: currentRank,
+        prevRank,
+        rankDelta,
+        rankDirection,
+        rankDiff,
+      }
+    })
 
     return result
   } catch (error) {

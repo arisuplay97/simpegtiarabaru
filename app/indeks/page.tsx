@@ -58,6 +58,43 @@ function RankBadge({ rank }: { rank: number }) {
   return <span className="flex h-7 w-7 items-center justify-center text-sm font-bold text-neutral-500 bg-neutral-100 dark:bg-neutral-800 rounded-full">#{rank}</span>
 }
 
+function RankChangeIndicator({ 
+  direction, 
+  diff,
+  delta,
+}: { 
+  direction?: 'up' | 'down' | 'same'
+  diff?: number
+  delta?: number
+}) {
+  const dir = direction || (delta && delta > 0 ? 'up' : delta && delta < 0 ? 'down' : 'same')
+  const amount = diff !== undefined ? diff : Math.abs(delta || 0)
+
+  if (dir === 'up' && amount > 0) {
+    return (
+      <span className="flex items-center justify-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-none" title={`Naik ${amount} peringkat`}>
+        <ChevronUp className="h-3 w-3 stroke-[2.5]" />
+        <span>{amount}</span>
+      </span>
+    )
+  }
+
+  if (dir === 'down' && amount > 0) {
+    return (
+      <span className="flex items-center justify-center gap-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 leading-none" title={`Turun ${amount} peringkat`}>
+        <ChevronDown className="h-3 w-3 stroke-[2.5]" />
+        <span>{amount}</span>
+      </span>
+    )
+  }
+
+  return (
+    <span className="flex items-center justify-center text-[11px] font-bold text-zinc-400 dark:text-zinc-500 leading-none" title="Posisi tetap">
+      =
+    </span>
+  )
+}
+
 function DeltaBadge({ delta }: { delta: number }) {
   if (delta > 0) return (
     <span className="flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
@@ -372,7 +409,12 @@ function IndeksContent() {
                           podiumH
                         )}>
                           <CardContent className="p-4 flex flex-col items-center gap-2">
-                            <RankBadge rank={p.rank} />
+                            <div className="flex flex-col items-center">
+                              <RankBadge rank={p.rank} />
+                              <div className="mt-1">
+                                <RankChangeIndicator direction={p.rankDirection} diff={p.rankDiff} delta={p.rankDelta} />
+                              </div>
+                            </div>
                             <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-neutral-800 shadow">
                               <AvatarImage src={p.fotoUrl} />
                               <AvatarFallback className="text-sm font-bold bg-blue-100 text-blue-700">
@@ -416,7 +458,12 @@ function IndeksContent() {
                         "flex items-center gap-3 px-5 py-3 border-b border-neutral-50 dark:border-neutral-800 last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors",
                         idx < 3 ? "bg-amber-50/30 dark:bg-amber-900/10" : ""
                       )}>
-                        <RankBadge rank={p.rank} />
+                        <div className="flex flex-col items-center justify-center shrink-0 w-8">
+                          <RankBadge rank={p.rank} />
+                          <div className="mt-1">
+                            <RankChangeIndicator direction={p.rankDirection} diff={p.rankDiff} delta={p.rankDelta} />
+                          </div>
+                        </div>
                         <Avatar className="h-9 w-9 shrink-0">
                           <AvatarImage src={p.fotoUrl} />
                           <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold">
@@ -471,7 +518,12 @@ function IndeksContent() {
                   )}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
-                        <RankBadge rank={unit.rank} />
+                        <div className="flex flex-col items-center justify-center shrink-0 w-8">
+                          <RankBadge rank={unit.rank} />
+                          <div className="mt-1">
+                            <RankChangeIndicator direction={unit.rankDirection} diff={unit.rankDiff} delta={unit.rankDelta} />
+                          </div>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="text-sm font-bold text-neutral-800 dark:text-white truncate">{unit.nama}</p>

@@ -28,10 +28,41 @@ function RankBadge({ rank }: { rank: number }) {
   return <div className="flex shrink-0 h-6 w-6 items-center justify-center text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded-full">#{rank}</div>
 }
 
-function DeltaBadge({ delta }: { delta: number }) {
-  if (delta > 0) return <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400"><ChevronUp className="h-3 w-3" />+{delta}</span>
-  if (delta < 0) return <span className="flex items-center gap-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400"><ChevronDown className="h-3 w-3" />{delta}</span>
-  return <span className="flex items-center gap-0.5 text-[10px] text-zinc-400"><Minus className="h-3 w-3" />0</span>
+function RankChangeIndicator({ 
+  direction, 
+  diff,
+  delta,
+}: { 
+  direction?: 'up' | 'down' | 'same'
+  diff?: number
+  delta?: number
+}) {
+  const dir = direction || (delta && delta > 0 ? 'up' : delta && delta < 0 ? 'down' : 'same')
+  const amount = diff !== undefined ? diff : Math.abs(delta || 0)
+
+  if (dir === 'up' && amount > 0) {
+    return (
+      <span className="flex items-center justify-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-none" title={`Naik ${amount} peringkat`}>
+        <ChevronUp className="h-3 w-3 stroke-[2.5]" />
+        <span>{amount}</span>
+      </span>
+    )
+  }
+
+  if (dir === 'down' && amount > 0) {
+    return (
+      <span className="flex items-center justify-center gap-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 leading-none" title={`Turun ${amount} peringkat`}>
+        <ChevronDown className="h-3 w-3 stroke-[2.5]" />
+        <span>{amount}</span>
+      </span>
+    )
+  }
+
+  return (
+    <span className="flex items-center justify-center text-[11px] font-bold text-zinc-400 dark:text-zinc-500 leading-none" title="Posisi tetap">
+      =
+    </span>
+  )
 }
 
 export default function MobileIndeks() {
@@ -209,7 +240,16 @@ export default function MobileIndeks() {
                           : "border-zinc-200/80 dark:border-zinc-800"
                       )}
                     >
-                      <RankBadge rank={p.rank} />
+                      <div className="flex flex-col items-center justify-center shrink-0 w-7">
+                        <RankBadge rank={p.rank} />
+                        <div className="mt-1">
+                          <RankChangeIndicator 
+                            direction={p.rankDirection} 
+                            diff={p.rankDiff} 
+                            delta={p.rankDelta} 
+                          />
+                        </div>
+                      </div>
                       <Avatar className="h-9 w-9 shrink-0 border border-zinc-200/70 dark:border-zinc-700">
                         <AvatarImage src={p.fotoUrl} />
                         <AvatarFallback className="text-xs bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 font-bold">
@@ -229,7 +269,7 @@ export default function MobileIndeks() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center shrink-0">
+                      <div className="flex flex-col items-end shrink-0 gap-1">
                         <span className={cn(
                           "text-[10px] font-bold px-2.5 py-1 rounded-full border",
                           idx === 0
@@ -242,6 +282,11 @@ export default function MobileIndeks() {
                         )}>
                           {p.predikatLabel || (idx === 0 ? "Top 1 Teladan" : idx < 3 ? `Top ${idx + 1}` : "Disiplin")}
                         </span>
+                        {p.totalSkor !== undefined && (
+                          <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500">
+                            Skor {p.totalSkor}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))
@@ -262,7 +307,16 @@ export default function MobileIndeks() {
                     .map((u) => (
                     <div key={u.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-2xs border border-zinc-200/80 dark:border-zinc-800">
                       <div className="flex items-center gap-3 mb-2">
-                        <RankBadge rank={u.rank} />
+                        <div className="flex flex-col items-center justify-center shrink-0 w-7">
+                          <RankBadge rank={u.rank} />
+                          <div className="mt-1">
+                            <RankChangeIndicator 
+                              direction={u.rankDirection} 
+                              diff={u.rankDiff} 
+                              delta={u.rankDelta} 
+                            />
+                          </div>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{u.nama}</p>
                         </div>
