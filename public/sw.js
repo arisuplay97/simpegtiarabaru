@@ -148,24 +148,6 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
-
-  // 4. Cached AI models if accessed
-  if (url.pathname.startsWith("/models/")) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) return cachedResponse;
-        return fetch(event.request).then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
-            return networkResponse;
-          }
-          const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return networkResponse;
-        });
-      })
-    );
-    return;
-  }
 });
 
 // ================================================================
