@@ -881,10 +881,13 @@ export default function AttendancePage() {
   const handleSendReminder = async () => {
     if (!date) return toast.error("Silakan pilih tanggal terlebih dahulu di filter")
     const dateStr = format(date, "yyyy-MM-dd")
+    const displayDate = format(date, "dd MMMM yyyy", { locale: id })
 
     if (unrecordedEmployees.length === 0) {
       return toast.info("Seluruh pegawai sudah melakukan presensi hari ini!")
     }
+
+    if (!confirm(`Kirim notifikasi pengingat presensi ke ${unrecordedEmployees.length} pegawai yang belum absen pada ${displayDate}?`)) return
 
     setIsLoading(true)
     const res = await sendAttendanceReminderToUnrecorded(dateStr)
