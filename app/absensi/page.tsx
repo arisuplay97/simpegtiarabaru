@@ -72,6 +72,7 @@ import {
   RotateCcw,
   Filter,
   Clock3,
+  MessageSquare,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -734,6 +735,23 @@ export default function AttendancePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState<number>(15)
+
+  // Pagination untuk Tab Belum Absen
+  const [unrecordedPage, setUnrecordedPage] = useState(1)
+  const [unrecordedPerPage, setUnrecordedPerPage] = useState<number>(15)
+
+  const paginatedUnrecorded = React.useMemo(() => {
+    return filteredUnrecorded.slice(
+      (unrecordedPage - 1) * unrecordedPerPage,
+      unrecordedPage * unrecordedPerPage
+    )
+  }, [filteredUnrecorded, unrecordedPage, unrecordedPerPage])
+
+  const totalUnrecordedPages = Math.ceil(filteredUnrecorded.length / unrecordedPerPage)
+
+  React.useEffect(() => {
+    setUnrecordedPage(1)
+  }, [searchQuery, unitFilter, penempatanFilter, date])
 
   const handleOpenEdit = (record: AttendanceRecord) => {
     setSelectedRecord(record)
@@ -1943,7 +1961,7 @@ export default function AttendancePage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {filteredUnrecorded.map((emp) => {
+                            {paginatedUnrecorded.map((emp) => {
                               const isCab = isCabangOnDate(emp, date || new Date())
                               const initials = (emp.nama || "")
                                 .split(" ")
@@ -2016,6 +2034,18 @@ export default function AttendancePage() {
                                       >
                                         Input Detail
                                       </Button>
+                                      {emp.telepon && (
+                                        <a
+                                          href={`https://wa.me/${emp.telepon.replace(/^0/, '62').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo ${emp.nama}, Anda tercatat belum melakukan absensi kehadiran hari ini di SIMPEG TIARA. Mohon segera melakukan presensi.`)}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center justify-center gap-1 h-7 px-2 text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 rounded-lg font-semibold border border-emerald-200/80 shadow-2xs transition-colors"
+                                          title={`Chat WhatsApp: ${emp.telepon}`}
+                                        >
+                                          <MessageSquare className="h-3 w-3" />
+                                          <span>WA</span>
+                                        </a>
+                                      )}
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -2025,6 +2055,84 @@ export default function AttendancePage() {
                         </Table>
                       </div>
                     </CardContent>
+
+                    {/* Pagination Container for Belum Absen */}
+                    <div className="border-t border-slate-200/80 dark:border-zinc-800 p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/40 dark:bg-zinc-900/40">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <span>
+                          Menampilkan{" "}
+                          <strong className="text-foreground">
+                            {filteredUnrecorded.length > 0 ? (unrecordedPage - 1) * unrecordedPerPage + 1 : 0}
+                          </strong>
+                          {" "}-{" "}
+                          <strong className="text-foreground">
+                            {Math.min(unrecordedPage * unrecordedPerPage, filteredUnrecorded.length)}
+                          </strong>
+                          {" "}dari{" "}
+                          <strong className="text-foreground">{filteredUnrecorded.length}</strong> pegawai belum absen
+                        </span>
+                        <span className="text-slate-300 dark:text-zinc-700">|</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>Baris per halaman:</span>
+                          <Select
+                            value={String(unrecordedPerPage)}
+                            onValueChange={(val) => {
+                              setUnrecordedPerPage(Number(val))
+                              setUnrecordedPage(1)
+                            }}
+                          >
+                            <SelectTrigger className="h-7 w-[70px] text-xs rounded-lg">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent side="top">
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="15">15</SelectItem>
+                              <SelectItem value="20">20</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
+                              <SelectItem value="100">100</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground mr-2 font-medium">
+                          Hal {unrecordedPage} dari {totalUnrecordedPages || 1}
+                        </span>
+                        <Button 
+                          variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
+                          disabled={unrecordedPage === 1}
+                          onClick={() => setUnrecordedPage(1)}
+                          title="Halaman Pertama"
+                        >
+                          <ChevronsLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
+                          disabled={unrecordedPage === 1}
+                          onClick={() => setUnrecordedPage((prev: number) => prev - 1)}
+                          title="Halaman Sebelumnya"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
+                          disabled={unrecordedPage === totalUnrecordedPages || totalUnrecordedPages === 0}
+                          onClick={() => setUnrecordedPage((prev: number) => prev + 1)}
+                          title="Halaman Berikutnya"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="outline" size="icon" className="h-7 w-7 rounded-lg" 
+                          disabled={unrecordedPage === totalUnrecordedPages || totalUnrecordedPages === 0}
+                          onClick={() => setUnrecordedPage(totalUnrecordedPages)}
+                          title="Halaman Terakhir"
+                        >
+                          <ChevronsRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                   </Card>
                 )}
               </TabsContent>
