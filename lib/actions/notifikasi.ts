@@ -59,16 +59,48 @@ export async function markAllAsRead(userId: string) {
   }
 }
 
+export async function clearAllNotifications(userId: string) {
+  if (!userId) return { error: "User ID diperlukan" }
+  try {
+    await prisma.notifikasi.deleteMany({
+      where: { userId }
+    })
+    revalidatePath("/")
+    revalidatePath("/m/notifikasi")
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function deleteNotification(id: string, userId: string) {
+  if (!id || !userId) return { error: "ID diperlukan" }
+  try {
+    await prisma.notifikasi.deleteMany({
+      where: { id, userId }
+    })
+    revalidatePath("/")
+    revalidatePath("/m/notifikasi")
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
 export async function createNotification(userId: string, title: string, message: string, link?: string) {
   try {
     const notif = await prisma.notifikasi.create({
       data: { userId, title, message, link }
     })
-    // Push ke perangkat HP pengguna jika terdaftar
+    // Push ke perangkat HP pengguna jika terdaftar (pastikan selalu ke rute mobile PWA)
+    const mobileUrl = link?.startsWith("/m/")
+      ? link
+      : (link === "/cuti" ? "/m/cuti" : (link === "/absensi" ? "/m/absensi" : (link === "/lembur" ? "/m/lembur" : "/m/notifikasi")))
+
     sendPushToUser(userId, {
       title,
       body: message,
-      url: link || "/m/notifikasi",
+      url: mobileUrl,
       tag: "simpeg-alert",
     }).catch(() => {})
 

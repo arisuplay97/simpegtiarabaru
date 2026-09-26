@@ -210,7 +210,13 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action === "close") return;
 
-  const targetUrl = event.notification.data?.url || "/m/fingerprint";
+  let targetUrl = event.notification.data?.url || "/m/notifikasi";
+  if (!targetUrl.startsWith("/m/")) {
+    if (targetUrl === "/cuti") targetUrl = "/m/cuti";
+    else if (targetUrl === "/absensi") targetUrl = "/m/absensi";
+    else if (targetUrl === "/lembur") targetUrl = "/m/lembur";
+    else targetUrl = "/m/notifikasi";
+  }
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
