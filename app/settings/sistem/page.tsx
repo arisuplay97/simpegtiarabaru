@@ -230,6 +230,72 @@ export default function PengaturanSistemPage() {
                     </div>
                   </div>
 
+                  {/* SESI ABSENSI SIANG (KHUSUS KANTOR PUSAT - 3X ABSEN) */}
+                  <div className="rounded-lg border bg-amber-50/40 dark:bg-amber-950/20 p-4 border-amber-200/70 dark:border-amber-900/50 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                          Sesi Absensi Siang (Khusus Kantor Pusat - 3x Absen)
+                        </span>
+                      </div>
+                      <span className="text-[10px] bg-amber-200/60 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-semibold px-2 py-0.5 rounded-full">
+                        Wajib Absen Siang
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="jamSiangPusat" className="flex items-center gap-2 text-xs font-semibold">
+                          <Clock className="h-3.5 w-3.5 text-amber-500" />
+                          Jam Siang / Istirahat
+                        </Label>
+                        <Input 
+                          type="time" 
+                          id="jamSiangPusat" 
+                          name="jamSiangPusat" 
+                          value={formData.jamSiangPusat || "12:00"} 
+                          onChange={handleChange} 
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">
+                          Waktu tengah hari kantor pusat.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="mulaiAbsenSiang" className="flex items-center gap-2 text-xs font-semibold">
+                          <Clock className="h-3.5 w-3.5 text-blue-500" />
+                          Mulai Buka Check-in Siang
+                        </Label>
+                        <Input 
+                          type="time" 
+                          id="mulaiAbsenSiang" 
+                          name="mulaiAbsenSiang" 
+                          value={formData.mulaiAbsenSiang || "11:30"} 
+                          onChange={handleChange} 
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">
+                          Awal jendela absen siang dibuka.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="batasAbsenSiang" className="flex items-center gap-2 text-xs font-semibold">
+                          <Clock className="h-3.5 w-3.5 text-red-500" />
+                          Batas Maksimal Check-in Siang
+                        </Label>
+                        <Input 
+                          type="time" 
+                          id="batasAbsenSiang" 
+                          name="batasAbsenSiang" 
+                          value={formData.batasAbsenSiang || "13:30"} 
+                          onChange={handleChange} 
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">
+                          Lewat jam ini absen siang ditutup.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 rounded-lg border bg-muted/30 p-4">
                     <div className="space-y-2">
                        <Label htmlFor="mulaiAbsenPulang" className="flex items-center gap-2 text-xs font-semibold">

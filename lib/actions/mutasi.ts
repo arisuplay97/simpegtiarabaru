@@ -127,6 +127,17 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
           }
         })
 
+        // Otomatis sinkronkan lokasi absensi jika unit tujuan cocok dengan nama lokasi cabang/pusat
+        const lokasiTarget = await tx.lokasiAbsensi.findFirst({
+          where: {
+            aktif: true,
+            OR: [
+              { nama: { equals: cleanUnit, mode: 'insensitive' } },
+              { nama: { contains: cleanUnit, mode: 'insensitive' } }
+            ]
+          }
+        })
+
         // Auto update tipeJabatan jika relevan
         let newTipeJabatan: any = undefined
         const lowJab = updated.jabatanTujuan.toLowerCase()
@@ -134,7 +145,7 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
         else if (lowJab.includes("kepala cabang") || lowJab.includes("kacab")) newTipeJabatan = "KEPALA_CABANG"
         else if (lowJab.includes("kasubbid") || lowJab.includes("kepala sub")) {
           newTipeJabatan = lowJab.includes("cabang") ? "KASUBBID_CABANG" : "KASUBBID"
-        } else if (lowJab.includes("cabang")) {
+        } else if (lowJab.includes("cabang") || cleanUnit.toLowerCase().includes("cabang")) {
           newTipeJabatan = "STAFF_CABANG"
         }
 
@@ -143,6 +154,7 @@ export async function processMutasi(id: string, isApprove: boolean, approverId: 
           data: {
             jabatan: updated.jabatanTujuan,
             ...(bidangTarget ? { bidangId: bidangTarget.id } : {}),
+            ...(lokasiTarget ? { lokasiAbsensiId: lokasiTarget.id } : {}),
             ...(newTipeJabatan ? { tipeJabatan: newTipeJabatan } : {})
           }
         })

@@ -406,7 +406,7 @@ export default function DashboardPage() {
                           Asisten Kepegawaian & Analisis Cerdas
                         </h3>
                         <p className="text-xs text-blue-100/80 leading-relaxed mt-1.5 line-clamp-2">
-                          Konsultasi regulasi PDAM TIARA, rekapitulasi presensi, perhitungan PPh 21 TER, hingga ringkasan SK secara instan.
+                          Konsultasi regulasi kepegawaian Perumda, analisis presensi & kinerja cerdas, simulasi PPh 21 TER, hingga ringkasan SK secara instan.
                         </p>
                       </div>
 

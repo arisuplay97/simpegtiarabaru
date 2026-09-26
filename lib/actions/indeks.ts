@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
+import { isCabangEmployee, isCabangOnDate } from "@/lib/utils/pegawai-cabang"
 
 // ============================================================
 // ALGORITMA SKOR MURNI ABSENSI (Bobot Total 100)
@@ -62,7 +62,17 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
   try {
     const pegawai = await prisma.pegawai.findUnique({
       where: { id: pegawaiId },
-      include: { lokasiAbsensi: true, bidang: true }
+      include: {
+        lokasiAbsensi: true,
+        bidang: true,
+        mutasiKe: {
+          where: { status: "APPROVED" },
+          select: { tanggalEfektif: true, unitAsal: true, unitTujuan: true, jabatanAsal: true, jabatanTujuan: true, status: true }
+        },
+        riwayatJabatan: {
+          select: { tanggalMulai: true, tanggalSelesai: true, unitDefinitif: true, jabatan: true }
+        }
+      }
     })
     if (!pegawai) return { error: "Pegawai tidak ditemukan" }
 
@@ -74,7 +84,15 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     const isCurrentMonth = (bulan === now.getMonth() + 1 && tahun === now.getFullYear())
     const limitDate = isCurrentMonth ? now : endDate
 
-    const hariKerja = hitungHariKerja(startDate, limitDate, isCabang)
+    // Hitung hari kerja prorata harian dengan mempertimbangkan mutasi jika ada
+    let hariKerja = 0
+    for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay()
+      const isCabangOnD = isCabangOnDate(pegawai, d)
+      if (isCabangOnD ? day !== 0 : (day !== 0 && day !== 6)) {
+        hariKerja++
+      }
+    }
 
     const absensi = await prisma.absensi.findMany({
       where: { pegawaiId, tanggal: { gte: startDate, lte: endDate } }
@@ -110,7 +128,8 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
     
     while (curDate <= limitDateAlpha) {
       const day = curDate.getDay()
-      const isWorkday = isCabang ? (day !== 0) : (day !== 0 && day !== 6)
+      const isCabangOnCurDate = isCabangOnDate(pegawai, curDate)
+      const isWorkday = isCabangOnCurDate ? (day !== 0) : (day !== 0 && day !== 6)
       if (isWorkday) {
         const dateStr = formatLocal(curDate)
         if (!absensiSet.has(dateStr)) {
@@ -146,6 +165,7 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
 
       const aDateStr = formatLocal(a.tanggal)
       const isToday = aDateStr === todayStr
+      const isCabangOnDateOfA = isCabangOnDate(pegawai, a.tanggal)
 
       // Sesi Pagi (jamMasuk)
       if (!a.jamMasuk) {
@@ -154,8 +174,8 @@ export async function hitungIndeksPegawai(pegawaiId: string, bulan: number, tahu
         }
       }
 
-      // Sesi Siang (jamSiang) - khusus Kantor Pusat
-      if (!isCabang) {
+      // Sesi Siang (jamSiang) - khusus Kantor Pusat pada tanggal tersebut
+      if (!isCabangOnDateOfA) {
         if (!a.jamSiang) {
           if (!isToday || currentTotalMinWita > 14 * 60) {
             missedSessionsCount++
@@ -805,21 +825,36 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
           nama: true,
           nik: true,
           jabatan: true,
+          tipeJabatan: true,
           fotoUrl: true,
+          bebasAbsensi: true,
           bidang: { select: { nama: true } },
-          subBidang: { select: { nama: true } }
+          subBidang: { select: { nama: true } },
+          lokasiAbsensi: { select: { id: true, tipe: true, nama: true } },
+          user: { select: { role: true } },
+          mutasiKe: {
+            where: { status: "APPROVED" },
+            select: { tanggalEfektif: true, unitAsal: true, unitTujuan: true, jabatanAsal: true, jabatanTujuan: true, status: true }
+          },
+          riwayatJabatan: {
+            select: { tanggalMulai: true, tanggalSelesai: true, unitDefinitif: true, jabatan: true }
+          }
         }
       })
     ])
+
+    const isCabang = isCabangEmployee(pegawaiData)
 
     // Build a day map
     const dayMap: Record<string, any> = {}
 
     absensiList.forEach((a: any) => {
       const key = formatLocal(a.tanggal)
+      const isCabangOnThisDate = isCabangOnDate(pegawaiData, a.tanggal)
       dayMap[key] = {
         tanggal: key,
         status: a.status,
+        isCabang: isCabangOnThisDate,
         jamMasuk: a.jamMasuk,
         jamSiang: a.jamSiang,
         jamKeluar: a.jamKeluar,
@@ -840,6 +875,7 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
       while (cur <= end) {
         const key = formatLocal(cur)
         if (!dayMap[key]) {
+          const isCabangOnThisDate = isCabangOnDate(pegawaiData, cur)
           const jenisLower = (c.jenisCuti || "").toLowerCase()
           const rawStatus = c.status === 'APPROVED'
             ? (jenisLower.includes('sakit') ? 'SAKIT' : jenisLower.includes('izin') ? 'IZIN' : 'CUTI')
@@ -848,6 +884,7 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
           dayMap[key] = {
             tanggal: key,
             status: rawStatus,
+            isCabang: isCabangOnThisDate,
             jenisCuti: c.jenisCuti,
             keterangan: c.alasan || c.jenisCuti || 'Pengajuan Cuti',
             source: "cuti"
@@ -866,13 +903,16 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
     let curAlphaDate = new Date(startDate)
     while (curAlphaDate <= limitDateAlpha) {
       const day = curAlphaDate.getDay()
-      if (day !== 0 && day !== 6) { // Bukan akhir pekan (Minggu/Sabtu)
+      const isCabangOnCurDate = isCabangOnDate(pegawaiData, curAlphaDate)
+      const isWeekend = isCabangOnCurDate ? day === 0 : (day === 0 || day === 6)
+      if (!isWeekend) {
         const key = formatLocal(curAlphaDate)
         if (!dayMap[key]) {
           // Hari kerja tanpa absen dan cuti = ALPA otomatis
           dayMap[key] = {
             tanggal: key,
             status: 'ALPA',
+            isCabang: isCabangOnCurDate,
             keterangan: 'Alpha (Tanpa Keterangan)',
             source: 'system'
           }
@@ -881,9 +921,17 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
       curAlphaDate.setDate(curAlphaDate.getDate() + 1)
     }
 
-    // Summary
+    // Summary - Hitung total hari kerja secara prorata
+    let totalHariKerja = 0
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay()
+      const isCabangOnD = isCabangOnDate(pegawaiData, d)
+      if (isCabangOnD ? day !== 0 : (day !== 0 && day !== 6)) {
+        totalHariKerja++
+      }
+    }
+
     const values = Object.values(dayMap)
-    const totalHariKerja = hitungHariKerja(startDate, endDate)
     const summary = {
       hadir: values.filter(v => v.status === 'HADIR').length,
       terlambat: values.filter(v => v.status === 'TERLAMBAT').length,
@@ -892,9 +940,10 @@ export async function getKalenderPegawai(pegawaiId: string | null, bulan: number
       sakit: values.filter(v => v.status === 'SAKIT').length,
       alpha: values.filter(v => v.status === 'ALPA').length,
       totalHariKerja,
+      isCabang,
     }
 
-    return { dayMap, summary, pegawai: pegawaiData }
+    return { dayMap, summary, pegawai: pegawaiData, isCabang }
   } catch (error) {
     return { dayMap: {}, summary: {}, pegawai: null }
   }

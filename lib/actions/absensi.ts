@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/audit-log"
-import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
+import { isCabangEmployee, isCabangOnDate } from "@/lib/utils/pegawai-cabang"
 import { hitungIndeksPegawai } from "./indeks"
 
 // Format YYYY-MM-DD dan rentang hari ini berbasis zona waktu WITA (Asia/Makassar, UTC+8)
@@ -39,11 +39,24 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 async function getSessionPegawai(session: any): Promise<any> {
   if (!session?.user) return null
+
+  const includeConfig = {
+    lokasiAbsensi: true,
+    bidang: true,
+    user: true,
+    mutasiKe: {
+      where: { status: "APPROVED" },
+      select: { tanggalEfektif: true, unitAsal: true, unitTujuan: true, jabatanAsal: true, jabatanTujuan: true, status: true }
+    },
+    riwayatJabatan: {
+      select: { tanggalMulai: true, tanggalSelesai: true, unitDefinitif: true, jabatan: true }
+    }
+  } as any
   
   if (session.user.id && UUID_REGEX.test(session.user.id)) {
     const p = await prisma.pegawai.findUnique({
       where: { userId: session.user.id },
-      include: { lokasiAbsensi: true, bidang: true, user: true } as any
+      include: includeConfig
     })
     if (p) return p
   }
@@ -52,7 +65,7 @@ async function getSessionPegawai(session: any): Promise<any> {
   if (sessionPegawaiId && UUID_REGEX.test(sessionPegawaiId)) {
     const p = await prisma.pegawai.findUnique({
       where: { id: sessionPegawaiId },
-      include: { lokasiAbsensi: true, bidang: true, user: true } as any
+      include: includeConfig
     })
     if (p) return p
   }
@@ -65,7 +78,7 @@ async function getSessionPegawai(session: any): Promise<any> {
           { user: { email: { equals: session.user.email, mode: "insensitive" } } }
         ]
       },
-      include: { lokasiAbsensi: true, bidang: true, user: true } as any
+      include: includeConfig
     })
     if (p) return p
   }
@@ -352,7 +365,7 @@ export async function getStatusAbsensiHariIni() {
 
     // Ambil jam kerja dari pengaturan
     const pengaturan = await (prisma as any).pengaturan.findUnique({ where: { id: "1" } })
-    const isCabang = isCabangEmployee(pegawai)
+    const isCabang = isCabangOnDate(pegawai, new Date())
     const isSaturday = dayOfWeek === 6
 
     let jamMasukShift = pengaturan?.jamMasuk || "08:00"
@@ -552,19 +565,27 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
     const limitDate = isCurrentMonth ? now : endDate
     const pegawai = await prisma.pegawai.findUnique({
       where: { id: pegawaiId },
-      include: { bidang: true, lokasiAbsensi: true, user: true }
+      include: {
+        bidang: true,
+        lokasiAbsensi: true,
+        user: true,
+        mutasiKe: {
+          where: { status: "APPROVED" },
+          select: { tanggalEfektif: true, unitAsal: true, unitTujuan: true, jabatanAsal: true, jabatanTujuan: true, status: true }
+        },
+        riwayatJabatan: {
+          select: { tanggalMulai: true, tanggalSelesai: true, unitDefinitif: true, jabatan: true }
+        }
+      }
     })
-    const isCabang = isCabangEmployee(pegawai) || String(pegawai?.user?.role || "").toUpperCase().includes("CABANG")
+    const isCabang = isCabangOnDate(pegawai, now)
 
     let hariKerjaAktif = 0
     for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
       const day = d.getDay()
-      if (isCabang) {
-        // Cabang kerja Senin - Sabtu (Minggu libur)
-        if (day !== 0) hariKerjaAktif++
-      } else {
-        // Kantor Pusat kerja Senin - Jumat (Sabtu & Minggu libur)
-        if (day !== 0 && day !== 6) hariKerjaAktif++
+      const isCabangOnD = isCabangOnDate(pegawai, d)
+      if (isCabangOnD ? day !== 0 : (day !== 0 && day !== 6)) {
+        hariKerjaAktif++
       }
     }
 
@@ -724,7 +745,8 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
 
       // Record present day for auto-alpha calculation
       if (a.tanggal <= limitDate) {
-        const isOffDay = isCabang ? (a.tanggal.getDay() === 0) : (a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6)
+        const isCabangOnTangal = isCabangOnDate(pegawai, a.tanggal)
+        const isOffDay = isCabangOnTangal ? (a.tanggal.getDay() === 0) : (a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6)
         if (!isOffDay) {
           recordedDays.add(formatLocal(a.tanggal))
         }
@@ -750,11 +772,12 @@ export async function getEmployeeAttendanceSummary(pegawaiId: string, month?: nu
       }
     })
 
-    // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja
+    // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja masing-masing tanggal
     let autoAlpha = 0
     for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
       const day = d.getDay()
-      const isWorkday = isCabang ? (day !== 0) : (day !== 0 && day !== 6)
+      const isCabangOnD = isCabangOnDate(pegawai, d)
+      const isWorkday = isCabangOnD ? (day !== 0) : (day !== 0 && day !== 6)
       if (isWorkday) {
         if (!recordedDays.has(formatLocal(d))) {
            autoAlpha++
@@ -977,6 +1000,130 @@ export async function markAllPresentByDate(dateStr: string) {
   }
 }
 
+// =============================================
+// TANDAI ALPHA UNTUK PEGAWAI BELUM ABSEN
+// =============================================
+export async function markAllUnrecordedAsAlpha(dateStr: string) {
+  try {
+    const session = await auth()
+    if (!session?.user) return { error: "Belum login" }
+    if ((session.user as any).role !== "SUPERADMIN" && (session.user as any).role !== "HRD") {
+      return { error: "Akses ditolak" }
+    }
+
+    const targetDate = new Date(dateStr)
+    targetDate.setHours(0, 0, 0, 0)
+    const targetDateDb = new Date(`${dateStr.split("T")[0]}T00:00:00.000Z`)
+
+    const startOfDay = new Date(targetDate)
+    const endOfDay = new Date(targetDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const [pegawais, existingAbsensi, existingCuti] = await Promise.all([
+      prisma.pegawai.findMany({
+        where: { status: "AKTIF" },
+        select: { id: true, nama: true }
+      }),
+      prisma.absensi.findMany({
+        where: { tanggal: { gte: startOfDay, lte: endOfDay } },
+        select: { pegawaiId: true }
+      }),
+      (prisma as any).cuti.findMany({
+        where: {
+          status: "APPROVED",
+          tanggalMulai: { lte: endOfDay },
+          tanggalSelesai: { gte: startOfDay }
+        },
+        select: { pegawaiId: true }
+      })
+    ])
+
+    const recordedIds = new Set([
+      ...existingAbsensi.map(a => a.pegawaiId),
+      ...existingCuti.map((c: any) => c.pegawaiId)
+    ])
+
+    const toInsert = pegawais.filter(p => !recordedIds.has(p.id))
+    if (toInsert.length === 0) {
+      return { success: true, count: 0, message: "Tidak ada pegawai belum absen yang perlu ditandai Alpha." }
+    }
+
+    const dataToInsert = toInsert.map(p => ({
+      pegawaiId: p.id,
+      tanggal: targetDateDb,
+      status: "ALPA" as const,
+      metode: "MANUAL" as const,
+    }))
+
+    await prisma.absensi.createMany({
+      data: dataToInsert,
+      skipDuplicates: true
+    })
+
+    await logAudit({
+      action: "CREATE",
+      module: "absensi",
+      targetId: "ALL_UNRECORDED",
+      targetName: `Tandai Alpha ${toInsert.length} Pegawai Belum Absen pada ${dateStr}`,
+    })
+
+    revalidatePath("/absensi")
+    revalidatePath("/kalender")
+    return { success: true, count: toInsert.length, message: `${toInsert.length} pegawai berhasil ditandai Alpha.` }
+  } catch (err: any) {
+    return { error: err.message || "Gagal menandai Alpha masal" }
+  }
+}
+
+// =============================================
+// KIRIM PENGINGAT ABSENSI KE PEGAWAI BELUM ABSEN
+// =============================================
+export async function sendAttendanceReminderToUnrecorded(dateStr: string) {
+  try {
+    const session = await auth()
+    if (!session?.user) return { error: "Belum login" }
+
+    const targetDate = new Date(dateStr)
+    const startOfDay = new Date(targetDate)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(targetDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const [pegawais, existingAbsensi] = await Promise.all([
+      prisma.pegawai.findMany({
+        where: { status: "AKTIF" },
+        select: { id: true, nama: true, userId: true }
+      }),
+      prisma.absensi.findMany({
+        where: { tanggal: { gte: startOfDay, lte: endOfDay } },
+        select: { pegawaiId: true }
+      })
+    ])
+
+    const existingIds = new Set(existingAbsensi.map(a => a.pegawaiId))
+    const unrecorded = pegawais.filter(p => !existingIds.has(p.id) && p.userId)
+
+    if (unrecorded.length === 0) {
+      return { success: true, count: 0, message: "Seluruh pegawai sudah melakukan presensi hari ini." }
+    }
+
+    const { createNotification } = await import("./notifikasi")
+    const notifPromises = unrecorded.map(p => 
+      createNotification(
+        p.userId,
+        "Peringatan Presensi Kerja",
+        `Halo ${p.nama}, Anda tercatat belum melakukan absensi hari ini. Segera lakukan presensi melalui aplikasi SIMPEG TIARA.`,
+        "/absensi/selfie"
+      ).catch(() => {})
+    )
+    await Promise.all(notifPromises)
+
+    return { success: true, count: unrecorded.length, message: `Pengingat berhasil dikirim ke ${unrecorded.length} pegawai.` }
+  } catch (err: any) {
+    return { error: err.message || "Gagal mengirim pengingat presensi" }
+  }
+}
+
 // ============================================================
 // REKAP BULANAN: Untuk tab Rekap Bulanan di Admin Dashboard
 // ============================================================
@@ -1008,7 +1155,17 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     // Ambil SEMUA pegawai aktif
     const pegawais = await prisma.pegawai.findMany({
       where: { status: "AKTIF" },
-      include: { bidang: true, lokasiAbsensi: true }
+      include: {
+        bidang: true,
+        lokasiAbsensi: true,
+        mutasiKe: {
+          where: { status: "APPROVED" },
+          select: { tanggalEfektif: true, unitAsal: true, unitTujuan: true, jabatanAsal: true, jabatanTujuan: true, status: true }
+        },
+        riwayatJabatan: {
+          select: { tanggalMulai: true, tanggalSelesai: true, unitDefinitif: true, jabatan: true }
+        }
+      }
     })
 
     // Ambil semua absensi dalam bulan ini
@@ -1017,21 +1174,25 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     })
 
     const pegawaiMap: Record<string, any> = {}
+    const pegawaiObjMap: Record<string, any> = {}
     const recordedDates: Record<string, Set<string>> = {}
     
     // Inisialisasi dictionary Pegawai
     for (const p of pegawais) {
+      pegawaiObjMap[p.id] = p
       const isCabang = isCabangEmployee(p)
       let employeeWorkdays = 0
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const day = d.getDay()
-        if (isCabang ? (day !== 0) : (day !== 0 && day !== 6)) employeeWorkdays++
+        const isCabangOnD = isCabangOnDate(p, d)
+        if (isCabangOnD ? (day !== 0) : (day !== 0 && day !== 6)) employeeWorkdays++
       }
 
       let employeeActiveWorkdays = 0
       for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
         const day = d.getDay()
-        if (isCabang ? (day !== 0) : (day !== 0 && day !== 6)) employeeActiveWorkdays++
+        const isCabangOnD = isCabangOnDate(p, d)
+        if (isCabangOnD ? (day !== 0) : (day !== 0 && day !== 6)) employeeActiveWorkdays++
       }
 
       pegawaiMap[p.id] = {
@@ -1072,8 +1233,10 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
       }
 
       const r = pegawaiMap[pid]
+      const p = pegawaiObjMap[pid]
       const status = a.status as any
-      const isOffDay = r.isCabang ? (a.tanggal.getDay() === 0) : (a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6)
+      const isCabangOnTangal = p ? isCabangOnDate(p, a.tanggal) : r.isCabang
+      const isOffDay = isCabangOnTangal ? (a.tanggal.getDay() === 0) : (a.tanggal.getDay() === 0 || a.tanggal.getDay() === 6)
       
       if (a.tanggal <= limitDate && !isOffDay) {
         recordedDates[pid].add(formatLocal(a.tanggal))
@@ -1098,12 +1261,16 @@ export async function getRekapBulanan(bulan: number, tahun: number) {
     // Kalkulasi Mangkir (Alpa) Otomatis di Hari Kerja masing-masing
     for (const pid in pegawaiMap) {
       const r = pegawaiMap[pid]
+      const p = pegawaiObjMap[pid]
       const rec = recordedDates[pid] || new Set()
       let missingCount = 0
 
       for (let d = new Date(startDate); d <= limitDate; d.setDate(d.getDate() + 1)) {
         const day = d.getDay()
-        const isWorkday = r.isCabang ? (day !== 0) : (day !== 0 && day !== 6)
+        const isWorkday = p 
+          ? (isCabangOnDate(p, d) ? (day !== 0) : (day !== 0 && day !== 6))
+          : (r.isCabang ? (day !== 0) : (day !== 0 && day !== 6))
+
         if (isWorkday && !rec.has(formatLocal(d))) {
           missingCount++
         }

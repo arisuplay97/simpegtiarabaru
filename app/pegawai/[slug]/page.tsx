@@ -182,13 +182,7 @@ const salaryHistory = [
   { periode: "Januari 2026", gajiPokok: "Rp 5.850.000", tunjangan: "Rp 3.100.000", potongan: "Rp 1.218.000", gajiBersih: "Rp 7.732.000" },
 ]
 
-// Ini akan diganti dengan state
 
-const leaveBalance = {
-  cutiTahunan: { total: 12, terpakai: 4, sisa: 8 },
-  cutiBesar: { total: 3, terpakai: 0, sisa: 3 },
-  cutiSakit: { total: 12, terpakai: 2, sisa: 10 },
-}
 
 const kpiSummary = {
   year: "2026",
@@ -1834,45 +1828,140 @@ export default function EmployeeDetailPage() {
 
             {/* Cuti Tab */}
             <TabsContent value="cuti">
-              <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
-                <CardHeader>
-                  <CardTitle className="text-base">Saldo Cuti Tahun 2026</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="font-medium">Cuti Tahunan</span>
-                        <span className="text-sm text-muted-foreground">
-                          {leaveBalance.cutiTahunan.terpakai} / {leaveBalance.cutiTahunan.total} hari terpakai
-                        </span>
+              {(() => {
+                const curYear = 2026
+                const cutiList = (employee?.cuti || [])
+                const cutiTahunIni = cutiList.filter((c: any) => {
+                  const y = new Date(c.tanggalMulai).getFullYear()
+                  return y === curYear
+                })
+
+                let terpakaiTahunan = 0
+                let terpakaiBesarHari = 0
+                let terpakaiSakit = 0
+
+                cutiTahunIni.forEach((c: any) => {
+                  const start = new Date(c.tanggalMulai)
+                  const end = new Date(c.tanggalSelesai)
+                  const durasi = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+                  const jenis = (c.jenisCuti || "").toLowerCase()
+
+                  if (jenis.includes("tahunan")) {
+                    terpakaiTahunan += durasi
+                  } else if (jenis.includes("besar")) {
+                    terpakaiBesarHari += durasi
+                  } else if (jenis.includes("sakit")) {
+                    terpakaiSakit += durasi
+                  }
+                })
+
+                const sisaTahunan = employee?.saldoCuti !== undefined ? Number(employee.saldoCuti) : Math.max(0, 12 - terpakaiTahunan)
+                const totalTahunan = Math.max(12, sisaTahunan + terpakaiTahunan)
+                const progressTahunan = totalTahunan > 0 ? Math.min(100, (terpakaiTahunan / totalTahunan) * 100) : 0
+
+                const totalBesarBulan = 3
+                const terpakaiBesarBulan = Math.min(3, Math.round((terpakaiBesarHari / 30) * 10) / 10)
+                const sisaBesarBulan = Math.max(0, totalBesarBulan - terpakaiBesarBulan)
+                const progressBesar = Math.min(100, (terpakaiBesarBulan / totalBesarBulan) * 100)
+
+                return (
+                  <Card className="rounded-xl border border-slate-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#111113] shadow-xs">
+                    <CardHeader className="flex flex-row items-center justify-between pb-3">
+                      <div>
+                        <CardTitle className="text-base font-bold">Saldo & Hak Cuti Pegawai</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">Tahun Periode {curYear}</p>
                       </div>
-                      <Progress value={(leaveBalance.cutiTahunan.terpakai / leaveBalance.cutiTahunan.total) * 100} className="h-3" />
-                      <p className="mt-1 text-sm text-emerald-600">Sisa: {leaveBalance.cutiTahunan.sisa} hari</p>
-                    </div>
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="font-medium">Cuti Besar</span>
-                        <span className="text-sm text-muted-foreground">
-                          {leaveBalance.cutiBesar.terpakai} / {leaveBalance.cutiBesar.total} bulan terpakai
-                        </span>
+                      <Badge variant="outline" className="border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10">
+                        {cutiTahunIni.length} Pengajuan Approved
+                      </Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-2">
+                      {/* Cuti Tahunan */}
+                      <div className="p-4 rounded-xl border border-slate-200/70 dark:border-zinc-800 bg-slate-50/40 dark:bg-zinc-900/30">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="font-semibold text-sm text-slate-900 dark:text-zinc-100">Cuti Tahunan</span>
+                          <span className="text-xs font-medium text-slate-500 dark:text-zinc-400 tabular-nums">
+                            {terpakaiTahunan} / {totalTahunan} hari terpakai
+                          </span>
+                        </div>
+                        <Progress value={progressTahunan} className="h-2.5 bg-slate-200 dark:bg-zinc-800" />
+                        <div className="mt-2 flex items-center justify-between">
+                          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                            Sisa: {sisaTahunan} hari
+                          </p>
+                          <span className="text-[11px] text-muted-foreground">Kuota Tahunan: {totalTahunan} hari</span>
+                        </div>
                       </div>
-                      <Progress value={(leaveBalance.cutiBesar.terpakai / leaveBalance.cutiBesar.total) * 100} className="h-3" />
-                      <p className="mt-1 text-sm text-emerald-600">Sisa: {leaveBalance.cutiBesar.sisa} bulan</p>
-                    </div>
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="font-medium">Cuti Sakit</span>
-                        <span className="text-sm text-muted-foreground">
-                          {leaveBalance.cutiSakit.terpakai} / {leaveBalance.cutiSakit.total} hari terpakai
-                        </span>
+
+                      {/* Cuti Besar */}
+                      <div className="p-4 rounded-xl border border-slate-200/70 dark:border-zinc-800 bg-slate-50/40 dark:bg-zinc-900/30">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="font-semibold text-sm text-slate-900 dark:text-zinc-100">Cuti Besar</span>
+                          <span className="text-xs font-medium text-slate-500 dark:text-zinc-400 tabular-nums">
+                            {terpakaiBesarBulan} / {totalBesarBulan} bulan terpakai
+                          </span>
+                        </div>
+                        <Progress value={progressBesar} className="h-2.5 bg-slate-200 dark:bg-zinc-800" />
+                        <div className="mt-2 flex items-center justify-between">
+                          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                            Sisa: {sisaBesarBulan} bulan
+                          </p>
+                          <span className="text-[11px] text-muted-foreground">Hak Berkala 5 Tahun</span>
+                        </div>
                       </div>
-                      <Progress value={(leaveBalance.cutiSakit.terpakai / leaveBalance.cutiSakit.total) * 100} className="h-3" />
-                      <p className="mt-1 text-sm text-emerald-600">Sisa: {leaveBalance.cutiSakit.sisa} hari</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+
+                      {/* Cuti Sakit: Bebas Kuota / Surat Dokter, TANPA batas sisa saldo */}
+                      <div className="p-4 rounded-xl border border-slate-200/70 dark:border-zinc-800 bg-slate-50/40 dark:bg-zinc-900/30">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm text-slate-900 dark:text-zinc-100">Cuti Sakit</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60">
+                              Surat Keterangan Dokter
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold text-slate-900 dark:text-zinc-100 tabular-nums">
+                            {terpakaiSakit} hari terpakai
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                          Cuti sakit tidak memiliki batas kuota saldo tahunan (tanpa sisa saldo). Diberikan sesuai masa istirahat medis pada Surat Keterangan Dokter yang sah dan tidak memotong kuota Cuti Tahunan.
+                        </p>
+                      </div>
+
+                      {/* Riwayat Cuti Approved */}
+                      {cutiTahunIni.length > 0 && (
+                        <div className="pt-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                            Riwayat Permohonan Cuti Disetujui ({curYear})
+                          </h4>
+                          <div className="space-y-2">
+                            {cutiTahunIni.map((c: any) => {
+                              const sDate = new Date(c.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+                              const eDate = new Date(c.tanggalSelesai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+                              const dur = Math.max(1, Math.ceil((new Date(c.tanggalSelesai).getTime() - new Date(c.tanggalMulai).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+                              return (
+                                <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200/60 dark:border-zinc-800/60 bg-white dark:bg-zinc-900/60 text-xs">
+                                  <div className="min-w-0 pr-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-slate-900 dark:text-zinc-100">{c.jenisCuti}</span>
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-600 bg-emerald-500/10">Disetujui</Badge>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.alasan || "-"}</p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <span className="font-semibold text-slate-800 dark:text-zinc-200">{dur} Hari</span>
+                                    <p className="text-[10px] text-muted-foreground">{sDate} - {eDate}</p>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })()}
             </TabsContent>
 
             {/* Kinerja Tab */}

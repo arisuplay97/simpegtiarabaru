@@ -21,12 +21,28 @@ const STATUS_CONFIG_EXT: Record<string, { label: string; bg: string; text: strin
 export default function MobileKalender() {
   const { data: session } = useSession()
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [isCabang, setIsCabang] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const now = new Date()
+        const cached = localStorage.getItem(`cached_m_kalender_${now.getMonth() + 1}_${now.getFullYear()}`)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (parsed?.isCabang !== undefined) return Boolean(parsed.isCabang)
+        }
+      } catch {}
+    }
+    return false
+  })
   const [dayMap, setDayMap] = useState<Record<string, any>>(() => {
     if (typeof window !== "undefined") {
       try {
         const now = new Date()
         const cached = localStorage.getItem(`cached_m_kalender_${now.getMonth() + 1}_${now.getFullYear()}`)
-        if (cached) return JSON.parse(cached)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          return parsed?.dayMap || parsed
+        }
       } catch {}
     }
     return {}
@@ -48,8 +64,10 @@ export default function MobileKalender() {
       const res = await (getKalenderPegawai as any)(null, bulan, tahun)
       if (res?.dayMap) {
         setDayMap(res.dayMap)
+        const cabangStatus = Boolean(res.isCabang ?? res.summary?.isCabang)
+        setIsCabang(cabangStatus)
         try {
-          localStorage.setItem(cachedKey, JSON.stringify(res.dayMap))
+          localStorage.setItem(cachedKey, JSON.stringify({ dayMap: res.dayMap, isCabang: cabangStatus }))
         } catch {}
       }
     } catch (e) {
@@ -80,7 +98,11 @@ export default function MobileKalender() {
     }).replace(".", ":") + " WITA"
   }
 
-  const isWeekend = (date: Date) => date.getDay() === 0 || date.getDay() === 6
+  const isWeekend = (date: Date) => {
+    const key = format(date, "yyyy-MM-dd")
+    const isCab = dayMap[key]?.isCabang !== undefined ? Boolean(dayMap[key].isCabang) : isCabang
+    return isCab ? date.getDay() === 0 : (date.getDay() === 0 || date.getDay() === 6)
+  }
 
   let totalHadir = 0; let totalCuti = 0; let totalIzin = 0; let totalSakit = 0; let totalAlpha = 0;
   daysInMonth.forEach(date => {
@@ -108,7 +130,12 @@ export default function MobileKalender() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">Kalender Kehadiran</h1>
+          <div>
+            <h1 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">Kalender Kehadiran</h1>
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+              {isCabang ? "Kantor Cabang (6 Hari Kerja)" : "Kantor Pusat (5 Hari Kerja)"}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -228,32 +255,42 @@ export default function MobileKalender() {
               )}
             </div>
 
-            {/* 3 Sesi Jam: Pagi, Siang, Sore (Zona WITA) */}
-            <div className="grid grid-cols-3 gap-2">
-              {/* Pagi */}
-              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
-                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Pagi</span>
-                <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
-                  {formatTimeWita(dayMap[selectedDay]?.jamMasuk)}
-                </span>
-              </div>
+            {/* Sesi Jam: Pagi, Siang (Khusus Kantor Pusat), Sore (Zona WITA) */}
+            {(() => {
+              const isCabangForSelectedDay = selectedDay && dayMap[selectedDay]?.isCabang !== undefined 
+                ? Boolean(dayMap[selectedDay].isCabang) 
+                : isCabang
 
-              {/* Siang */}
-              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
-                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Siang</span>
-                <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
-                  {formatTimeWita(dayMap[selectedDay]?.jamSiang)}
-                </span>
-              </div>
+              return (
+                <div className={cn("grid gap-2", isCabangForSelectedDay ? "grid-cols-2" : "grid-cols-3")}>
+                  {/* Pagi */}
+                  <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Pagi</span>
+                    <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                      {formatTimeWita(dayMap[selectedDay]?.jamMasuk)}
+                    </span>
+                  </div>
 
-              {/* Sore / Pulang */}
-              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
-                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Sore</span>
-                <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
-                  {formatTimeWita(dayMap[selectedDay]?.jamKeluar)}
-                </span>
-              </div>
-            </div>
+                  {/* Siang - Khusus Kantor Pusat */}
+                  {!isCabangForSelectedDay && (
+                    <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Siang</span>
+                      <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                        {formatTimeWita(dayMap[selectedDay]?.jamSiang)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Sore / Pulang */}
+                  <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 text-center">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Sore</span>
+                    <span className="text-xs font-bold font-mono text-zinc-800 dark:text-zinc-200 tabular-nums mt-0.5 block">
+                      {formatTimeWita(dayMap[selectedDay]?.jamKeluar)}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Tombol Ajukan Koreksi */}
             <Link

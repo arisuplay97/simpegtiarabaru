@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
+import { isCabangEmployee, isCabangOnDate } from "@/lib/utils/pegawai-cabang"
 import { revalidatePath } from "next/cache"
 import { getSystemSettings } from "@/lib/actions/absensi"
 
@@ -155,6 +155,24 @@ export async function getKalenderMatrix(
             lokasiAbsensiId: true,
             lokasiAbsensi: { select: { id: true, nama: true, tipe: true } },
             bebasAbsensi: true,
+            mutasiKe: {
+              where: { status: "APPROVED" },
+              select: {
+                tanggalEfektif: true,
+                unitAsal: true,
+                unitTujuan: true,
+                jabatanAsal: true,
+                jabatanTujuan: true,
+              },
+            },
+            riwayatJabatan: {
+              select: {
+                tanggalMulai: true,
+                tanggalSelesai: true,
+                unitDefinitif: true,
+                jabatan: true,
+              },
+            },
           },
           orderBy: { nama: "asc" },
         }),
@@ -245,7 +263,8 @@ export async function getKalenderMatrix(
         const curDate = new Date(tahun, bulan - 1, day)
         const dateStr = `${tahun}-${String(bulan).padStart(2, "0")}-${String(day).padStart(2, "0")}`
         const dayOfWeek = curDate.getDay() // 0 = Min, 6 = Sab
-        const isWeekend = isCabang ? dayOfWeek === 0 : dayOfWeek === 0 || dayOfWeek === 6
+        const isCabangOnDay = isCabangOnDate(p, curDate)
+        const isWeekend = isCabangOnDay ? dayOfWeek === 0 : dayOfWeek === 0 || dayOfWeek === 6
         const isPast = dateStr < todayStr
         const isToday = dateStr === todayStr
 
@@ -443,7 +462,28 @@ export async function isiOtomatisSisaHariMatrix(bulan: number, tahun: number) {
 
     const pegawais = await prisma.pegawai.findMany({
       where: { status: "AKTIF" },
-      select: { id: true, lokasiAbsensi: true },
+      select: {
+        id: true,
+        lokasiAbsensi: true,
+        mutasiKe: {
+          where: { status: "APPROVED" },
+          select: {
+            tanggalEfektif: true,
+            unitAsal: true,
+            unitTujuan: true,
+            jabatanAsal: true,
+            jabatanTujuan: true,
+          },
+        },
+        riwayatJabatan: {
+          select: {
+            tanggalMulai: true,
+            tanggalSelesai: true,
+            unitDefinitif: true,
+            jabatan: true,
+          },
+        },
+      },
     })
 
     const startDate = new Date(tahun, bulan - 1, startDay, 0, 0, 0)
@@ -497,7 +537,7 @@ export async function isiOtomatisSisaHariMatrix(bulan: number, tahun: number) {
       const dayOfWeek = curDate.getDay()
 
       for (const p of pegawais) {
-        const isCabang = isCabangEmployee(p)
+        const isCabang = isCabangOnDate(p, curDate)
         const isWeekend = isCabang ? dayOfWeek === 0 : dayOfWeek === 0 || dayOfWeek === 6
         if (isWeekend) continue // Jangan isi hari libur
 

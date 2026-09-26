@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { TingkatPendidikan } from "@prisma/client"
+import { TingkatPendidikan, StatusCuti } from "@prisma/client"
 import { normalizeGolonganKey } from "@/lib/utils"
 
 export async function getEmployeeProfile(slugOrId: string) {
@@ -20,6 +20,18 @@ export async function getEmployeeProfile(slugOrId: string) {
     pelatihan: { orderBy: { tahun: 'desc' as const } },
     dokumen: { orderBy: { createdAt: 'desc' as const } },
     kontrak: { orderBy: { tanggalSelesai: 'desc' as const } },
+    cuti: {
+      where: { status: StatusCuti.APPROVED },
+      select: {
+        id: true,
+        jenisCuti: true,
+        tanggalMulai: true,
+        tanggalSelesai: true,
+        alasan: true,
+        status: true,
+      },
+      orderBy: { tanggalMulai: 'desc' as const }
+    },
   };
 
   try {

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { startOfMonth, endOfMonth, parse } from "date-fns"
 import { logAudit } from "./audit-log"
 import { prosesPPh21Batch } from "./pph21"
-import { isCabangEmployee } from "@/lib/utils/pegawai-cabang"
+import { isCabangEmployee, isCabangOnDate } from "@/lib/utils/pegawai-cabang"
 import { normalizeGolonganKey } from "@/lib/utils"
 
 // Helper to format date into YYYY-MM-DD in WITA (UTC+8)
@@ -107,7 +107,6 @@ function calculateAttendancePenalty({
   const nowWita = new Date(now.getTime() + 8 * 60 * 60 * 1000)
   const todayStr = formatLocal(now)
 
-  const isCabang = isCabangEmployee(pegawai)
   let unrecordedAlpaCount = 0
 
   const totalDaysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()
@@ -120,13 +119,14 @@ function calculateAttendancePenalty({
       continue
     }
 
+    const isCabangOnDay = isCabangOnDate(pegawai, curDate)
     const dayOfWeek = curDate.getDay() // 0 = Minggu, 6 = Sabtu
-    const isWeekend = isCabang ? (dayOfWeek === 0) : (dayOfWeek === 0 || dayOfWeek === 6)
+    const isWeekend = isCabangOnDay ? (dayOfWeek === 0) : (dayOfWeek === 0 || dayOfWeek === 6)
 
     if (!isWeekend) {
       // Jika hari ini, beri toleransi sebelum jam pulang kerja usai
       if (dateStr === todayStr) {
-        const jamPulangSetting = isCabang && dayOfWeek === 6
+        const jamPulangSetting = isCabangOnDay && dayOfWeek === 6
           ? (pengaturan?.jamPulangSabtuCabang || "13:00")
           : (pengaturan?.jamPulang || "17:00")
         const [pjH, pjM] = jamPulangSetting.split(":").map(Number)
@@ -146,7 +146,7 @@ function calculateAttendancePenalty({
     }
   }
 
-  // 4. Evaluasi Denda Tidak Absen Siang (Khusus Pegawai Kantor Pusat)
+  // 4. Evaluasi Denda Tidak Absen Siang (Khusus Pegawai Kantor Pusat pada tanggal kejadian)
   let countTidakAbsenSiang = 0
   const dendaTidakAbsenSiangPerKejadian = Number(pengaturan?.dendaTidakAbsenSiang ?? 5000)
   const batasAbsenSiangStr = pengaturan?.batasAbsenSiang || "14:00"
@@ -155,23 +155,27 @@ function calculateAttendancePenalty({
   const currentMinWita = nowWita.getUTCMinutes()
   const tanggalMulaiDendaSiang = (pengaturan as any)?.tanggalMulaiDendaSiang || "2026-09-23"
 
-  if (!isCabang) {
-    for (const abs of absensiList) {
-      const dateKey = formatLocal(new Date(abs.tanggal))
-      // Safeguard: Hari-hari lampau sebelum fitur/aturan absen siang resmi diberlakukan tidak boleh dikenakan denda
-      if (dateKey < tanggalMulaiDendaSiang) {
-        continue
-      }
+  for (const abs of absensiList) {
+    const isCabangOnAbsDate = isCabangOnDate(pegawai, abs.tanggal)
+    // Jika pada tanggal absensi tersebut pegawai bertugas di Cabang, bebas absensi siang
+    if (isCabangOnAbsDate) {
+      continue
+    }
 
-      if (abs.jamMasuk && abs.status !== "ALPA" && abs.status !== "CUTI" && abs.status !== "SAKIT" && abs.status !== "IZIN") {
-        if (!abs.jamSiang) {
-          if (dateKey < todayStr) {
+    const dateKey = formatLocal(new Date(abs.tanggal))
+    // Safeguard: Hari-hari lampau sebelum fitur/aturan absen siang resmi diberlakukan tidak boleh dikenakan denda
+    if (dateKey < tanggalMulaiDendaSiang) {
+      continue
+    }
+
+    if (abs.jamMasuk && abs.status !== "ALPA" && abs.status !== "CUTI" && abs.status !== "SAKIT" && abs.status !== "IZIN") {
+      if (!abs.jamSiang) {
+        if (dateKey < todayStr) {
+          countTidakAbsenSiang++
+        } else if (dateKey === todayStr) {
+          const isAfterMidday = currentHourWita > bsH || (currentHourWita === bsH && currentMinWita >= bsM)
+          if (isAfterMidday) {
             countTidakAbsenSiang++
-          } else if (dateKey === todayStr) {
-            const isAfterMidday = currentHourWita > bsH || (currentHourWita === bsH && currentMinWita >= bsM)
-            if (isAfterMidday) {
-              countTidakAbsenSiang++
-            }
           }
         }
       }
@@ -220,7 +224,25 @@ export async function getPayrollList(periodStr: string) {
             lte: end
           }
         }
-      }
+      },
+      mutasiKe: {
+        where: { status: "APPROVED" },
+        select: {
+          tanggalEfektif: true,
+          unitAsal: true,
+          unitTujuan: true,
+          jabatanAsal: true,
+          jabatanTujuan: true,
+        },
+      },
+      riwayatJabatan: {
+        select: {
+          tanggalMulai: true,
+          tanggalSelesai: true,
+          unitDefinitif: true,
+          jabatan: true,
+        },
+      },
     },
     orderBy: { nama: 'asc' }
   })
@@ -739,7 +761,25 @@ export async function processAllPayroll(periodStr: string) {
       },
       include: {
         bidang: true,
-        lokasiAbsensi: true
+        lokasiAbsensi: true,
+        mutasiKe: {
+          where: { status: "APPROVED" },
+          select: {
+            tanggalEfektif: true,
+            unitAsal: true,
+            unitTujuan: true,
+            jabatanAsal: true,
+            jabatanTujuan: true,
+          },
+        },
+        riwayatJabatan: {
+          select: {
+            tanggalMulai: true,
+            tanggalSelesai: true,
+            unitDefinitif: true,
+            jabatan: true,
+          },
+        },
       }
     })
 
@@ -858,7 +898,25 @@ export async function getMyPayroll(periodStr: string) {
         where: {
           bulan: { gte: start, lte: end }
         }
-      }
+      },
+      mutasiKe: {
+        where: { status: "APPROVED" },
+        select: {
+          tanggalEfektif: true,
+          unitAsal: true,
+          unitTujuan: true,
+          jabatanAsal: true,
+          jabatanTujuan: true,
+        },
+      },
+      riwayatJabatan: {
+        select: {
+          tanggalMulai: true,
+          tanggalSelesai: true,
+          unitDefinitif: true,
+          jabatan: true,
+        },
+      },
     }
   })
 
@@ -869,7 +927,25 @@ export async function getMyPayroll(periodStr: string) {
       include: {
         bidang: true,
         lokasiAbsensi: true,
-        payroll: { where: { bulan: { gte: start, lte: end } } }
+        payroll: { where: { bulan: { gte: start, lte: end } } },
+        mutasiKe: {
+          where: { status: "APPROVED" },
+          select: {
+            tanggalEfektif: true,
+            unitAsal: true,
+            unitTujuan: true,
+            jabatanAsal: true,
+            jabatanTujuan: true,
+          },
+        },
+        riwayatJabatan: {
+          select: {
+            tanggalMulai: true,
+            tanggalSelesai: true,
+            unitDefinitif: true,
+            jabatan: true,
+          },
+        },
       }
     })
   }
