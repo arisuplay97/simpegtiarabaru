@@ -87,7 +87,7 @@ export function TopBar({ breadcrumb = ["Dashboard"] }: TopBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-zinc-800/80 bg-white/85 dark:bg-[#09090b]/85 backdrop-blur-md pl-3.5 pr-4 sm:pl-3.5 sm:pr-6 gap-3">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-zinc-800/80 bg-white/85 dark:bg-[#09090b]/85 backdrop-blur-md pl-4 md:pl-1 pr-4 sm:pr-6 gap-3">
       {/* Left: Hamburger (mobile) + Desktop Sidebar Toggle + Breadcrumb */}
       <div className="flex items-center gap-2.5 min-w-0">
         {/* Hamburger — mobile only */}
